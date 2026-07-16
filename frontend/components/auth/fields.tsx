@@ -22,7 +22,7 @@ type TextFieldProps = {
 };
 
 const inputBase =
-	"h-11 w-full rounded-[10px] border border-border bg-white text-base text-foreground placeholder:text-[#9e9e9e] transition-colors duration-200 ease-out focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/25";
+	"h-12 w-full rounded-[10px] border border-border bg-white text-base text-foreground placeholder:text-[#9e9e9e] transition-colors duration-200 ease-out focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/25 md:h-11";
 
 export function TextField({
 	label,

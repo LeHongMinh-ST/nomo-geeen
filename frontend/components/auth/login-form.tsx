@@ -1,6 +1,6 @@
 "use client";
 
-import { LoaderCircle, Lock, Phone } from "lucide-react";
+import { Check, LoaderCircle, Lock, Phone } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { PasswordField, TextField } from "@/components/auth/fields";
@@ -75,12 +75,18 @@ export function LoginForm() {
 
 			<div className="flex items-center justify-between gap-4">
 				<label className="flex cursor-pointer items-center gap-2.5 text-sm text-foreground">
-					<input
-						type="checkbox"
-						checked={remember}
-						onChange={(event) => setRemember(event.target.checked)}
-						className="size-4.5 rounded border-border accent-[#4caf50]"
-					/>
+					<span className="relative flex size-5 shrink-0 items-center justify-center">
+						<input
+							type="checkbox"
+							checked={remember}
+							onChange={(event) => setRemember(event.target.checked)}
+							className="peer size-5 cursor-pointer appearance-none rounded-[6px] border border-border bg-white transition-colors duration-200 ease-out checked:border-primary checked:bg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25"
+						/>
+						<Check
+							className="pointer-events-none absolute size-3.5 stroke-[3] text-white opacity-0 peer-checked:opacity-100"
+							aria-hidden
+						/>
+					</span>
 					Ghi nhớ đăng nhập
 				</label>
 				<Link
@@ -94,7 +100,7 @@ export function LoginForm() {
 			<button
 				type="submit"
 				disabled={status === "loading"}
-				className="flex h-11 w-full items-center justify-center gap-2 rounded-[10px] bg-primary text-base font-semibold text-white transition-all duration-200 ease-out hover:bg-[#43a047] active:translate-y-px active:bg-[#2e7d32] disabled:cursor-not-allowed disabled:opacity-70"
+				className="flex h-12 w-full items-center justify-center gap-2 rounded-[10px] bg-primary text-base font-semibold text-white transition-all duration-200 ease-out hover:bg-[#43a047] active:translate-y-px active:bg-[#2e7d32] disabled:cursor-not-allowed disabled:opacity-70 md:h-11"
 			>
 				{status === "loading" ? (
 					<>
