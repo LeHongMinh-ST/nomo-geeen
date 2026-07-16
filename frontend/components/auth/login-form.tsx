@@ -80,12 +80,22 @@ export function LoginForm() {
 							type="checkbox"
 							checked={remember}
 							onChange={(event) => setRemember(event.target.checked)}
-							className="peer size-5 cursor-pointer appearance-none rounded-[6px] border border-border bg-white transition-colors duration-200 ease-out checked:border-primary checked:bg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25"
+							className="peer absolute inset-0 size-full cursor-pointer opacity-0"
 						/>
-						<Check
-							className="pointer-events-none absolute size-3.5 stroke-[3] text-white opacity-0 peer-checked:opacity-100"
-							aria-hidden
-						/>
+						<span
+							className={`flex size-5 items-center justify-center rounded-[6px] border transition-colors duration-200 ease-out peer-focus-visible:ring-2 peer-focus-visible:ring-primary/25 ${
+								remember
+									? "border-primary bg-primary"
+									: "border-border bg-white"
+							}`}
+						>
+							<Check
+								className={`size-3.5 stroke-[3] text-white transition-opacity duration-200 ease-out ${
+									remember ? "opacity-100" : "opacity-0"
+								}`}
+								aria-hidden
+							/>
+						</span>
 					</span>
 					Ghi nhớ đăng nhập
 				</label>

@@ -1,5 +1,6 @@
 import { HandCoins, Sprout, Warehouse } from "lucide-react";
 import type { Metadata } from "next";
+import Image from "next/image";
 import { LoginForm } from "@/components/auth/login-form";
 
 export const metadata: Metadata = {
@@ -44,8 +45,15 @@ export default function DangNhapPage() {
 				/>
 
 				<div className="relative flex items-center gap-3">
-					<span className="flex size-12 items-center justify-center rounded-[12px] bg-white/15 backdrop-blur-sm">
-						<Sprout className="size-7" aria-hidden />
+					<span className="flex size-12 items-center justify-center rounded-[12px] bg-white p-1.5">
+						<Image
+							src="/images/logo2.png"
+							alt="NomoGreen"
+							width={40}
+							height={40}
+							className="size-full object-contain"
+							priority
+						/>
 					</span>
 					<span className="text-2xl font-bold tracking-tight">NomoGreen</span>
 				</div>
@@ -84,9 +92,14 @@ export default function DangNhapPage() {
 				<div className="mx-auto w-full max-w-md">
 					{/* Logo cho mobile (panel brand ẩn) */}
 					<div className="mb-8 flex items-center gap-3 lg:hidden">
-						<span className="flex size-12 items-center justify-center rounded-[12px] bg-primary text-white">
-							<Sprout className="size-7" aria-hidden />
-						</span>
+						<Image
+							src="/images/logo2.png"
+							alt="NomoGreen"
+							width={48}
+							height={48}
+							className="size-12 rounded-[12px] object-contain"
+							priority
+						/>
 						<span className="text-2xl font-bold tracking-tight text-foreground">
 							NomoGreen
 						</span>

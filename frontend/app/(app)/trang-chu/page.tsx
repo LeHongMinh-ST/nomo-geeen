@@ -1,3 +1,4 @@
+import type { LucideIcon } from "lucide-react";
 import {
 	AlertTriangle,
 	ArrowUpRight,
@@ -8,7 +9,6 @@ import {
 	ShoppingCart,
 	TrendingUp,
 } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { RevenueChart } from "@/components/app/revenue-chart";
@@ -54,22 +54,26 @@ const alerts: {
 	},
 ];
 
-const shortcuts: { icon: LucideIcon; label: string; href: string; tile: string }[] =
-	[
-		{
-			icon: ShoppingCart,
-			label: "Bán hàng",
-			href: "/ban-nhanh",
-			tile: "#43a047",
-		},
-		{
-			icon: PackagePlus,
-			label: "Nhập hàng",
-			href: "/nhap-hang",
-			tile: "#26a69a",
-		},
-		{ icon: HandCoins, label: "Thu nợ", href: "/cong-no", tile: "#f4511e" },
-	];
+const shortcuts: {
+	icon: LucideIcon;
+	label: string;
+	href: string;
+	tile: string;
+}[] = [
+	{
+		icon: ShoppingCart,
+		label: "Bán hàng",
+		href: "/ban-nhanh",
+		tile: "#43a047",
+	},
+	{
+		icon: PackagePlus,
+		label: "Nhập hàng",
+		href: "/nhap-hang",
+		tile: "#26a69a",
+	},
+	{ icon: HandCoins, label: "Thu nợ", href: "/cong-no", tile: "#f4511e" },
+];
 
 const bestSellers = [
 	{ name: "Phân bón NPK Đầu Trâu 20-20-15", sold: 148, revenue: 37_000_000 },
@@ -197,9 +201,7 @@ export default function TrangChuPage() {
 									<p className="truncate text-base font-medium text-foreground">
 										{item.name}
 									</p>
-									<p className="text-sm text-[#616161]">
-										Đã bán {item.sold}
-									</p>
+									<p className="text-sm text-[#616161]">Đã bán {item.sold}</p>
 								</div>
 								<span className="shrink-0 text-base font-bold text-foreground">
 									{formatVND(item.revenue)}₫

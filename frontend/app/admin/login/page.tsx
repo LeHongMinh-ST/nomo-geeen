@@ -1,5 +1,5 @@
-import { ShieldCheck } from "lucide-react";
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { AdminLoginForm } from "@/components/auth/admin-login-form";
 
@@ -14,9 +14,14 @@ export default function AdminLoginPage() {
 		<main className="flex min-h-[100dvh] w-full items-center justify-center px-5 py-10">
 			<div className="w-full max-w-md">
 				<div className="mb-6 flex flex-col items-center gap-4 text-center">
-					<span className="flex size-14 items-center justify-center rounded-[14px] bg-[#546e7a] text-white">
-						<ShieldCheck className="size-8" aria-hidden />
-					</span>
+					<Image
+						src="/images/logo2.png"
+						alt="NomoGreen"
+						width={56}
+						height={56}
+						className="size-14 rounded-[14px] object-contain"
+						priority
+					/>
 					<div className="flex flex-col gap-2">
 						<span className="mx-auto inline-flex items-center gap-1.5 rounded-full bg-[#eceff1] px-3 py-1 text-sm font-medium text-[#546e7a]">
 							Khu vực quản trị

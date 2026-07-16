@@ -3,8 +3,8 @@ import {
 	BarChart3,
 	HandCoins,
 	House,
-	PackagePlus,
 	Package,
+	PackagePlus,
 	Settings,
 	ShoppingCart,
 	Truck,
@@ -64,7 +64,12 @@ export const navGroups: NavGroup[] = [
 	{
 		heading: "Đối tác",
 		items: [
-			{ label: "Khách hàng", href: "/khach-hang", icon: Users, tile: "#1e88e5" },
+			{
+				label: "Khách hàng",
+				href: "/khach-hang",
+				icon: Users,
+				tile: "#1e88e5",
+			},
 			{
 				label: "Nhà cung cấp",
 				href: "/nha-cung-cap",
@@ -78,7 +83,12 @@ export const navGroups: NavGroup[] = [
 		heading: "Khác",
 		items: [
 			{ label: "Báo cáo", href: "/bao-cao", icon: BarChart3, tile: "#546e7a" },
-			{ label: "Thiết lập", href: "/thiet-lap", icon: Settings, tile: "#9e9e9e" },
+			{
+				label: "Thiết lập",
+				href: "/thiet-lap",
+				icon: Settings,
+				tile: "#9e9e9e",
+			},
 		],
 	},
 ];
