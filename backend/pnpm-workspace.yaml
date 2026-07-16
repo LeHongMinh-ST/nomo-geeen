@@ -1,0 +1,4 @@
+allowBuilds:
+  unrs-resolver: true
+overrides:
+  caniuse-lite: 1.0.30001805

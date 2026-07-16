@@ -1,0 +1,25 @@
+{
+  "name": "agro-next",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Agro-next monorepo tooling root (git hooks, commit lint, staged formatting).",
+  "scripts": {
+    "prepare": "husky",
+    "check": "biome check --write ."
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.5.4",
+    "@commitlint/cli": "21.2.1",
+    "@commitlint/config-conventional": "21.0.0",
+    "husky": "9.1.7",
+    "lint-staged": "17.0.8"
+  },
+  "lint-staged": {
+    "frontend/**/*.{js,jsx,ts,tsx,json,jsonc,css}": [
+      "biome check --write --no-errors-on-unmatched"
+    ],
+    "backend/**/*.{ts,js,json,jsonc}": [
+      "biome check --write --no-errors-on-unmatched"
+    ]
+  }
+}
