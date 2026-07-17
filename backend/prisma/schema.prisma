@@ -1,0 +1,521 @@
+// NomoGreen Retail Platform — Core SaaS / Admin schema (Phase 1)
+// Ref: docs/base_spec.md (muc 3 + 19), docs/architecture.md
+// Multi-tenant shared DB: bang nghiep vu co cot tenantId; bang platform khong loc theo tenant.
+// Tien luu BigInt (VND, don vi nho nhat). Soft delete bang deletedAt.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// Prisma 7: connection URL nam o prisma.config.ts (CLI) + driver adapter @prisma/adapter-pg (runtime).
+datasource db {
+  provider = "postgresql"
+}
+
+// ============================================================
+// ENUMS
+// ============================================================
+
+enum TenantType {
+  HOUSEHOLD // nong ho (Simple Mode)
+  RETAIL_DEALER // cua hang / dai ly nho le (Simple Mode)
+  COOPERATIVE // hop tac xa (Advanced Mode)
+  DISTRIBUTOR // nha phan phoi (Advanced, ngoai Phase 1)
+  FARM // trang trai (Advanced, ngoai Phase 1)
+}
+
+enum TenantMode {
+  SIMPLE // Phase 1
+  ADVANCED // ngoai Phase 1
+}
+
+enum TenantStatus {
+  ACTIVE
+  SUSPENDED // tam khoa (vd het han, vi pham)
+  LOCKED // khoa han (het trial khong gia han)
+}
+
+enum BillingCycle {
+  MONTHLY
+  QUARTERLY
+  YEARLY
+}
+
+enum SubscriptionStatus {
+  TRIALING // dang dung thu (3.5)
+  ACTIVE
+  PAST_DUE // qua han thanh toan
+  CANCELLED // huy chu dong
+  EXPIRED // het han
+}
+
+enum InvoiceStatus {
+  DRAFT
+  ISSUED // da phat hanh, cho thanh toan
+  PAID
+  OVERDUE
+  VOID // huy bo
+}
+
+enum PaymentMethod {
+  CASH
+  BANK_TRANSFER
+  QR
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCEEDED
+  FAILED
+  REFUNDED
+}
+
+enum PlatformAdminRole {
+  SUPER_ADMIN // toan quyen van hanh SaaS
+  SUPPORT // xu ly ticket, xem tenant
+  BILLING // quan ly goi, hoa don, thanh toan
+}
+
+enum PlatformAdminStatus {
+  ACTIVE
+  DISABLED
+}
+
+enum UserStatus {
+  ACTIVE
+  INVITED // moi moi, chua kich hoat
+  DISABLED
+}
+
+enum AnnouncementSeverity {
+  INFO
+  WARNING
+  CRITICAL
+}
+
+enum AnnouncementAudience {
+  ALL_TENANTS
+  SPECIFIC_TENANT
+}
+
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+enum TicketPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+enum AuditActorType {
+  PLATFORM_ADMIN
+  USER
+  SYSTEM
+}
+
+enum NotificationType {
+  DEBT_DUE // cong no den han
+  LOW_STOCK // hang sap het
+  NEAR_EXPIRED // hang sap het han
+  SYSTEM // thong bao he thong / announcement
+}
+
+enum StoredFilePurpose {
+  LOGO
+  PRODUCT_IMAGE
+  ATTACHMENT
+}
+
+enum AuthorType {
+  PLATFORM_ADMIN
+  USER
+}
+
+// ============================================================
+// PLATFORM (khong scope theo tenant)
+// ============================================================
+
+// Moi khach hang dang ky tao ra 1 Tenant (3.1)
+model Tenant {
+  id         String       @id @default(uuid())
+  slug       String       @unique // workspace slug: app.argonext.vn/<slug>
+  name       String
+  tenantType TenantType   @default(HOUSEHOLD)
+  mode       TenantMode   @default(SIMPLE)
+  status     TenantStatus @default(ACTIVE)
+  logoUrl    String?
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+  deletedAt  DateTime? // soft delete (17)
+
+  subscriptions  Subscription[]
+  users          User[]
+  roles          Role[]
+  featureFlags   TenantFeatureFlag[]
+  invoices       Invoice[]
+  auditLogs      AuditLog[]
+  notifications  Notification[]
+  storedFiles    StoredFile[]
+  supportTickets SupportTicket[]
+  announcements  SystemAnnouncement[] // announcement nham vao tenant nay
+
+  @@index([status])
+  @@index([deletedAt])
+  @@map("tenant")
+}
+
+// Goi dich vu (3.4): Starter / Professional / Enterprise
+model Plan {
+  id              String       @id @default(uuid())
+  code            String       @unique // starter | professional | enterprise
+  name            String
+  description     String?
+  price           BigInt // VND theo chu ky
+  billingCycle    BillingCycle @default(MONTHLY)
+  maxUsers        Int // gioi han User
+  maxWarehouses   Int          @default(1) // Phase 1: 1 kho
+  maxStorageBytes BigInt // gioi han Storage
+  isActive        Boolean      @default(true)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  features      PlanFeature[]
+  subscriptions Subscription[]
+
+  @@map("plan")
+}
+
+// Catalog module bat/tat duoc (3.9): inventory, debt, batch, tax, barcode, quantity_tier_pricing, advanced_mode...
+model Feature {
+  id          String   @id @default(uuid())
+  code        String   @unique // vd: inventory, debt, batch, advanced_mode
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+
+  plans       PlanFeature[]
+  tenantFlags TenantFeatureFlag[]
+
+  @@map("feature")
+}
+
+// Join Plan <-> Feature: goi gom feature nao
+model PlanFeature {
+  id        String  @id @default(uuid())
+  planId    String
+  featureId String
+  plan      Plan    @relation(fields: [planId], references: [id], onDelete: Cascade)
+  feature   Feature @relation(fields: [featureId], references: [id], onDelete: Cascade)
+
+  @@unique([planId, featureId])
+  @@index([featureId])
+  @@map("plan_feature")
+}
+
+// Tenant <-> Plan (3.4, 3.5). Trial mo hinh bang status=TRIALING + trialEndsAt.
+model Subscription {
+  id           String             @id @default(uuid())
+  tenantId     String
+  planId       String
+  status       SubscriptionStatus @default(TRIALING)
+  billingCycle BillingCycle       @default(MONTHLY)
+  startDate    DateTime           @default(now())
+  endDate      DateTime? // moc het han chu ky hien tai
+  trialEndsAt  DateTime? // 3.5: 7/15/30 ngay
+  cancelledAt  DateTime?
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+
+  tenant   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  plan     Plan      @relation(fields: [planId], references: [id])
+  invoices Invoice[]
+
+  @@index([tenantId])
+  @@index([planId])
+  @@index([status])
+  @@map("subscription")
+}
+
+// Lich su billing (3.6). Khong phai ke toan.
+model Invoice {
+  id             String        @id @default(uuid())
+  tenantId       String
+  subscriptionId String?
+  invoiceNumber  String        @unique
+  amount         BigInt // VND
+  status         InvoiceStatus @default(DRAFT)
+  periodStart    DateTime?
+  periodEnd      DateTime?
+  issuedAt       DateTime?
+  dueAt          DateTime?
+  paidAt         DateTime?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  tenant       Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  subscription Subscription? @relation(fields: [subscriptionId], references: [id])
+  payments     Payment[]
+
+  @@index([tenantId])
+  @@index([status])
+  @@map("invoice")
+}
+
+// Thanh toan cho invoice. Ho tro thanh toan nhieu lan (12).
+model Payment {
+  id        String        @id @default(uuid())
+  invoiceId String
+  amount    BigInt // VND
+  method    PaymentMethod @default(BANK_TRANSFER)
+  status    PaymentStatus @default(PENDING)
+  reference String? // ma giao dich / noi dung chuyen khoan
+  paidAt    DateTime?
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  invoice Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@index([invoiceId])
+  @@index([status])
+  @@map("payment")
+}
+
+// Nhan su van hanh SaaS (19). Tach khoi User cua tenant.
+model PlatformAdmin {
+  id           String              @id @default(uuid())
+  email        String              @unique
+  passwordHash String
+  fullName     String
+  role         PlatformAdminRole   @default(SUPPORT)
+  status       PlatformAdminStatus @default(ACTIVE)
+  lastLoginAt  DateTime?
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+
+  announcements   SystemAnnouncement[]
+  assignedTickets SupportTicket[]
+  ticketMessages  TicketMessage[]
+
+  @@map("platform_admin")
+}
+
+// Thong bao he thong (19). Nham toan bo tenant hoac 1 tenant cu the.
+model SystemAnnouncement {
+  id             String               @id @default(uuid())
+  title          String
+  body           String
+  severity       AnnouncementSeverity @default(INFO)
+  audience       AnnouncementAudience @default(ALL_TENANTS)
+  targetTenantId String? // khi audience = SPECIFIC_TENANT
+  createdById    String
+  publishedAt    DateTime?
+  expiresAt      DateTime?
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+
+  targetTenant Tenant?       @relation(fields: [targetTenantId], references: [id], onDelete: SetNull)
+  createdBy    PlatformAdmin @relation(fields: [createdById], references: [id])
+
+  @@index([audience])
+  @@index([targetTenantId])
+  @@map("system_announcement")
+}
+
+// Support ticket (19). Nguoi tao la user cua tenant; nguoi xu ly la platform admin.
+model SupportTicket {
+  id           String         @id @default(uuid())
+  tenantId     String
+  subject      String
+  status       TicketStatus   @default(OPEN)
+  priority     TicketPriority @default(NORMAL)
+  createdById  String? // User cua tenant tao ticket
+  assignedToId String? // PlatformAdmin xu ly
+  resolvedAt   DateTime?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  tenant     Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdBy  User?           @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  assignedTo PlatformAdmin?  @relation(fields: [assignedToId], references: [id], onDelete: SetNull)
+  messages   TicketMessage[]
+
+  @@index([tenantId])
+  @@index([status])
+  @@map("support_ticket")
+}
+
+// Thread tra loi cua ticket. Author co the la admin hoac user.
+model TicketMessage {
+  id            String     @id @default(uuid())
+  ticketId      String
+  authorType    AuthorType
+  authorAdminId String?
+  authorUserId  String?
+  body          String
+  createdAt     DateTime   @default(now())
+
+  ticket      SupportTicket  @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  authorAdmin PlatformAdmin? @relation(fields: [authorAdminId], references: [id], onDelete: SetNull)
+  authorUser  User?          @relation(fields: [authorUserId], references: [id], onDelete: SetNull)
+
+  @@index([ticketId])
+  @@map("ticket_message")
+}
+
+// ============================================================
+// TENANT-SCOPED
+// ============================================================
+
+// Nguoi dung cua tenant (3.7, 3.8)
+model User {
+  id           String     @id @default(uuid())
+  tenantId     String
+  email        String
+  phone        String?
+  passwordHash String
+  fullName     String
+  roleId       String
+  status       UserStatus @default(ACTIVE)
+  lastLoginAt  DateTime?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  deletedAt    DateTime? // soft delete (17)
+
+  tenant         Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  role           Role            @relation(fields: [roleId], references: [id])
+  createdTickets SupportTicket[]
+  ticketMessages TicketMessage[]
+  notifications  Notification[]
+
+  @@unique([tenantId, email])
+  @@index([tenantId])
+  @@index([phone])
+  @@map("user")
+}
+
+// Vai tro (3.8). tenantId null = role he thong mac dinh (OWNER/STAFF).
+// Design RBAC som (architecture.md 6.2) de len Advanced Mode khong viet lai.
+model Role {
+  id        String   @id @default(uuid())
+  tenantId  String? // null = system role dung chung
+  code      String // OWNER | STAFF | (Advanced: MANAGER/WAREHOUSE/SALES/CASHIER/VIEWER)
+  name      String
+  isSystem  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant      Tenant?          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  users       User[]
+  permissions RolePermission[]
+
+  @@unique([tenantId, code])
+  @@map("role")
+}
+
+// Permission dang resource:action (architecture.md 6.2). vd: sales:create
+model Permission {
+  id        String   @id @default(uuid())
+  code      String   @unique // resource:action
+  resource  String // sales, product, inventory, report...
+  action    String // view, create, edit, delete, approve, export
+  createdAt DateTime @default(now())
+
+  roles RolePermission[]
+
+  @@index([resource])
+  @@map("permission")
+}
+
+// Join Role <-> Permission
+model RolePermission {
+  id           String @id @default(uuid())
+  roleId       String
+  permissionId String
+
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, permissionId])
+  @@index([permissionId])
+  @@map("role_permission")
+}
+
+// Override bat/tat module theo tenant (3.9). Ghi de PlanFeature.
+model TenantFeatureFlag {
+  id        String   @id @default(uuid())
+  tenantId  String
+  featureId String
+  enabled   Boolean  @default(true)
+  updatedAt DateTime @updatedAt
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  feature Feature @relation(fields: [featureId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, featureId])
+  @@index([tenantId])
+  @@map("tenant_feature_flag")
+}
+
+// Audit Log (3.12, 18). Actor co the la admin, user, hoac system.
+model AuditLog {
+  id         String         @id @default(uuid())
+  tenantId   String? // null cho hanh dong cap platform
+  actorType  AuditActorType @default(USER)
+  actorId    String? // id cua PlatformAdmin/User
+  action     String // LOGIN, LOGOUT, CREATE, UPDATE, DELETE, APPROVAL
+  resource   String? // ten bang/module bi tac dong
+  resourceId String?
+  before     Json?
+  after      Json?
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime       @default(now())
+
+  tenant Tenant? @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, createdAt])
+  @@index([actorType, actorId])
+  @@map("audit_log")
+}
+
+// Thong bao (3.11). Scope theo tenant, co the nham 1 user cu the.
+model Notification {
+  id        String           @id @default(uuid())
+  tenantId  String
+  userId    String? // null = gui toan tenant
+  type      NotificationType @default(SYSTEM)
+  title     String
+  body      String?
+  readAt    DateTime?
+  createdAt DateTime         @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user   User?  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, userId, readAt])
+  @@map("notification")
+}
+
+// Metadata file tren R2/MinIO (3.10). BE chi luu metadata; sizeBytes phuc vu quota.
+model StoredFile {
+  id         String            @id @default(uuid())
+  tenantId   String
+  key        String            @unique // object key tren storage
+  purpose    StoredFilePurpose @default(ATTACHMENT)
+  fileName   String
+  mimeType   String
+  sizeBytes  BigInt
+  uploadedBy String? // User id
+  createdAt  DateTime          @default(now())
+  deletedAt  DateTime? // soft delete (17)
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, purpose])
+  @@map("stored_file")
+}
