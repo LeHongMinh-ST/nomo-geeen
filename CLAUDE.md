@@ -95,6 +95,7 @@ Consult these when the task touches the relevant area:
 - State sync: `./.claude/rules/state-sync.md`
 - Hook handling: `./.claude/rules/hook-protocols.md`
 - Other protocols: `./.claude/rules/*`
+- Docs: `./docs`
 
 ## Skill And Script Use
 
@@ -105,7 +106,7 @@ Consult these when the task touches the relevant area:
   - macOS/Linux: `.claude/skills/.venv/bin/python3 scripts/<script>.py`
   - Windows: `.claude\skills\.venv\Scripts\python.exe scripts\<script>.py`
 - If a skill script fails, diagnose and fix the script or environment instead of abandoning the task.
-- **IMPORTANT:** Khi thiết kế giao diện luôn luôn tuân thủ theo DESIGN.md
+- **IMPORTANT:** Khi thiết kế, implement giao diện thì phải luôn tuân thủ ./DESIGN.md.
 
 ## Git And Reporting
 

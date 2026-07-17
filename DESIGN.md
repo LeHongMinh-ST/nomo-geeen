@@ -1,7 +1,7 @@
 # NomoGreen Design System
 
-> **Version:** 2.1
-> **Framework:** Next.js 16 + React 19 + Tailwind CSS v4 + shadcn/ui
+> **Version:** 2.2
+> **Framework:** Next.js 16 + React 19 + Tailwind CSS v4 + lucide-react (shadcn/ui bổ sung khi cần — xem §24)
 > **Design Style:** Inspired FarmGo + Modern SaaS (xanh lá tươi, icon tile nhiều màu, sidebar nhóm)
 > **Sản phẩm:** SaaS quản lý bán hàng vật tư nông nghiệp (bán hàng · kho · công nợ)
 > **Đối tượng:** nông hộ & cửa hàng/đại lý nhỏ lẻ — người ít quen máy tính
@@ -175,6 +175,8 @@ Quy tắc:
 * Mỗi màn hình chỉ **một** nút Primary rõ ràng.
 * Nút quan trọng dùng **icon + chữ** (không chỉ icon) để người mới hiểu ngay.
 * Trên mobile, nút hành động chính **kéo dài hết chiều ngang** (full-width) ở đáy màn hình.
+* **Form mobile**: nút Lưu/Thêm **dính đáy** (`fixed`, ngay trên bottom nav — `bottom-[68px]`), full-width, luôn thấy khi cuộn form dài.
+* **Danh sách mobile/tablet** (`< lg`): hành động tạo mới dùng **FAB pill "＋ <hành động>"** nổi góc phải dưới (trên bottom nav, `bottom-[84px] right-4`), màu Primary + bóng xanh. Desktop đã có nút ở header/toolbar thì FAB phải `lg:hidden` — không trùng lặp. Lưu ý: nút "+" giữa bottom nav là **Bán nhanh**, không dùng thay cho tạo mới trong module khác.
 
 ---
 
@@ -264,6 +266,16 @@ Hướng dẫn
   * Chuông thông báo (badge đỏ khi có mới)
   * Avatar kèm vai trò ("Minh Tâm — Chủ cửa hàng") — luôn biết mình đang ở quyền nào.
 
+## 10.4 Khung nội dung (Content Frame) — chuẩn bắt buộc
+
+Khung nội dung do **AppShell cung cấp một lần duy nhất** tại `<main>`: `mx-auto w-full max-w-6xl`. Mọi màn trong portal người dùng dùng chung khung này — **không trang nào tự thêm `mx-auto` / `max-w-*` cho khung ngoài** — nhờ đó chuyển trang không bị "nhảy khung" to/nhỏ.
+
+* **Trang rộng** (Dashboard, danh sách): nội dung fill hết khung (`flex w-full flex-col`).
+* **Trang form / chi tiết / thiết lập**: nội dung gói trong `max-w-2xl` cho dễ đọc, với căn lề responsive `mx-auto lg:mx-0`:
+  * `< lg` (mobile + tablet dọc, chưa có sidebar): **căn giữa** — căn trái sẽ hở phải, nhìn lệch.
+  * `≥ lg` (desktop có sidebar): **căn trái** — mép trái mọi trang thẳng hàng (kiểu Linear/Stripe).
+* Trang mới thêm vào portal tự thừa hưởng khung, không cần khai báo lại.
+
 ---
 
 # 11. Tiêu đề trang (Page Header)
@@ -306,10 +318,31 @@ Mỗi bản ghi là **một thẻ**, thông tin quan trọng nhất nổi bật:
 * Header nền Gray100, hover hàng = Primary Soft, chọn = #E8F5E9.
 * Hàng cao tối thiểu 56px, thoáng.
 * Cột cuối: menu "⋮" (Dropdown) thay vì nhiều nút inline.
+  * Menu ⋮ phải render bằng **fixed positioning** theo tọa độ nút (không dùng `absolute` trong container `overflow-hidden` — sẽ bị cắt ở hàng cuối). Mỗi mục menu có **icon + chữ**.
 * Trạng thái luôn dùng **Badge** (không dùng text trần).
 * Toolbar: bộ lọc, số bản ghi, nút hành động chính (Primary) góc phải.
 
+**Chống dồn chữ trong cột (bắt buộc):**
+
+* Mọi cột dữ liệu ngắn (số tiền, số lượng, trạng thái, ngày) phải có `min-width` + `whitespace-nowrap` ở cả `<th>` lẫn `<td>` — "Tồn kho", "Sắp hết", "18.000₫" không bao giờ bị bẻ dòng.
+* **Chỉ cho phép xuống dòng** ở cột định danh dài: tên (sản phẩm/khách/NCC) và danh mục.
+* Tham chiếu: tên ≥ 220px (wrap), danh mục ≥ 120px (wrap), tiền ≥ 110px (nowrap), số lượng ≥ 100px (nowrap), trạng thái ≥ 110px (badge nowrap).
+
+## 12.3 Phân trang & tải dần (chuẩn chung)
+
+Cùng dữ liệu, hai cơ chế theo thiết bị:
+
+* **Desktop (bảng)** — **phân trang**: 10 dòng/trang; dưới bảng có "Hiển thị X–Y trên Z" + nút ‹ số trang ›. Chỉ 1 trang thì chỉ hiện "Tổng Z bản ghi".
+* **Mobile (card list)** — **tải dần khi cuộn** (infinite scroll bằng IntersectionObserver, `rootMargin` ~200px, mỗi lần +8 thẻ), sentinel spinner ở đáy; hết dữ liệu hiện "Đã hiển thị tất cả N". **Không dùng phân trang trên mobile.**
+* Đổi bộ lọc/tìm kiếm → tự về trang 1 / thu gọn danh sách.
+
 Cùng dữ liệu, cùng component — chỉ đổi cách bày theo kích thước màn hình.
+
+## 12.4 Bộ lọc danh sách (không modal)
+
+* **Tập giá trị cố định, ít lựa chọn** (trạng thái tồn, trạng thái đơn...): **segmented control** — nền Gray nhạt bo 12px, chia đều `grid-cols-N`, ô active nền trắng + chữ Primary + shadow nhẹ. Full-width nên **không bao giờ cắt chữ ở mép**.
+* **Tập giá trị động, nhiều lựa chọn** (danh mục, thương hiệu...): **pill cuộn ngang** + utility `no-scrollbar` (bắt buộc — không để lộ thanh cuộn); pill active nền Primary Soft. Trên mobile cho tràn viền (`-mx-4 px-4`) để cuộn sát mép màn hình.
+* Lọc nâng cao (nếu cần) → Sheet trượt từ dưới, không dùng Dialog giữa màn.
 
 ---
 
@@ -427,7 +460,7 @@ Không để màn hình trắng trơn — luôn chỉ cho người dùng bước
 
 * Mỗi thao tác thành công: **toast** ngắn gọn (Sonner), tự ẩn.
 * Đang tải: **Skeleton** thay vì màn hình trắng.
-* Thao tác nguy hiểm (xóa, hủy đơn): **Alert Dialog** xác nhận, nút Destructive đặt bên phải.
+* Thao tác nguy hiểm (xóa, hủy đơn): xác nhận **2 bước bằng inline confirm** ngay trên dòng/thẻ/trang đó (đổi sang trạng thái "Xóa? [Hủy] [Xóa]", nút Destructive bên phải) — **ưu tiên hơn Alert Dialog** để hạn chế lớp phủ trên mobile. Chỉ dùng Alert Dialog khi hành động phá hủy vượt phạm vi màn hình hiện tại.
 * Lỗi mạng: thông báo rõ bằng tiếng Việt đời thường ("Mất kết nối, thử lại") + nút Thử lại — không hiện mã lỗi kỹ thuật.
 
 ---
@@ -449,23 +482,29 @@ Theo Tailwind, mobile-first:
 | Tên | Bề rộng | Bố cục |
 | --- | ------- | ------ |
 | base (mobile) | < 640px | 1 cột, Bottom Nav, danh sách dạng thẻ, nút full-width |
-| sm/md (tablet) | 640–1024px | 2 cột, có thể hiện sidebar thu gọn |
-| lg+ (desktop) | ≥ 1024px | Sidebar đầy đủ, bảng nhiều cột, layout nhiều khối |
+| sm/md (tablet) | 640–1024px | 2 cột form, **vẫn Bottom Nav + FAB** (chưa có sidebar); nội dung hẹp **căn giữa** để không lệch |
+| lg+ (desktop) | ≥ 1024px | Sidebar đầy đủ, bảng nhiều cột + phân trang, nội dung hẹp **căn trái** trong khung chung |
 
 Nguyên tắc: thiết kế cho **base trước**, rồi thêm cột/khối khi màn hình rộng ra. Không thu nhỏ layout desktop xuống mobile.
 
 ---
 
-# 24. shadcn/ui — component ưu tiên
+# 24. Component & Lớp phủ (hạn chế modal)
 
-Dùng sẵn, hạn chế tùy biến để giữ nhất quán:
+Hiện tại codebase **viết tay bằng Tailwind v4 + lucide-react** theo token trong `globals.css` (chưa cài shadcn/ui). Khi bổ sung shadcn/ui, ưu tiên các component dưới đây và giữ đúng token hiện có:
 
 * **Nhập liệu:** Button · Input · Select · Combobox · Calendar · Form (React Hook Form + Zod)
 * **Hiển thị:** Card · Badge · Table / Data Table · Tabs · Accordion · Skeleton
-* **Lớp phủ (mobile-friendly):** Sheet · Drawer · Dialog · Alert Dialog · Popover · Dropdown Menu · Tooltip · Command
+* **Lớp phủ (mobile-friendly):** Sheet · Drawer · Popover · Dropdown Menu · Tooltip · Command
 * **Phản hồi:** Sonner (toast) · Pagination
 
-Trên mobile ưu tiên **Sheet/Drawer** (trượt từ dưới/bên) thay cho Dialog nhỏ — dễ chạm hơn.
+**Nguyên tắc hạn chế modal (bắt buộc, để mượt trên mobile):**
+
+1. **Thêm / Sửa / Chi tiết** → **trang riêng** (route), không dùng Dialog.
+2. **Lọc, menu phụ trên mobile** → Sheet trượt từ dưới.
+3. **Xác nhận xóa** → inline confirm 2 bước (xem §21).
+4. **Thêm nhanh mục danh mục/đơn vị...** → inline add row (ô nhập + nút ＋ ngay đầu danh sách).
+5. Dropdown/Popover nhỏ (menu ⋮) được phép — nhưng phải fixed-position để không bị `overflow-hidden` cắt (§12.2).
 
 ---
 
