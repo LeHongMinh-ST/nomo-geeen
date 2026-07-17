@@ -81,6 +81,7 @@
           <li><a href="#task-R3-02">R3-02 · Refresh + logout endpoints ✅</a></li>
           <li><a href="#task-R5-01">R5-01 · Bootstrap admin seed ✅</a></li>
           <li><a href="#task-R6-01">R6-01 · Frontend login wiring ✅</a></li>
+          <li><a href="#task-R2-02">R2-02 · E2E integration gate ✅</a></li>
           <!-- TASK_TOC_END -->
         </ul>
       </aside>
@@ -260,6 +261,21 @@
             <div class="note verification">
               <div class="note-head"><span class="badge">verification</span><time>2026-07-17</time></div>
               <p>FE build Compiled successfully (/admin/login prerendered) · biome 2 file R6 clean. Integration thật (BE :3011, Origin :3000): CORS preflight Allow-Credentials:true + Allow-Origin đúng; login 200 AdminLoginResponse + cookie HttpOnly/SameSite=Strict/Path=/auth; wrong-pw 401. Review: SPEC_PASS 9/10 → vá accessToken-presence guard. Browser click-through không chạy (headless) → chứng minh ở tầng HTTP/CORS contract.</p>
+            </div>
+          </div>
+        </article>
+        <article class="task-block" id="task-R2-02">
+          <div class="task-header">
+            <div>
+              <h2>R2-02 · E2E integration gate</h2>
+              <div class="task-meta">test/auth-flow.e2e-spec.ts · reports/integration-verification.md</div>
+            </div>
+            <span class="status">done</span>
+          </div>
+          <div class="notes">
+            <div class="note verification">
+              <div class="note-head"><span class="badge">verification</span><time>2026-07-17</time></div>
+              <p>Full lifecycle 1 chuỗi: login→/auth/me→refresh→reuse 401+audit→logout→post-logout 401. Full e2e <code>--runInBand</code> 14/14 · unit 30/30 · fail-closed 503 live (Redis dead port) · log-hygiene sạch · CORS Allow-Credentials. Review: SPEC_PASS 8→9.5+ (scope audit query theo actorId + runInBand cho determinism). Report tại reports/integration-verification.md. Browser click-through không chạy (headless).</p>
             </div>
           </div>
         </article>

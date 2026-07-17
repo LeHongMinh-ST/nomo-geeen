@@ -6,8 +6,6 @@ plans/
 !plans/templates/
 .cafekit-backup/
 .cafekit.lock
-.claude/
-.opencode/
 
 # Node
 node_modules/

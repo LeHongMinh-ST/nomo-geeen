@@ -1,0 +1,8 @@
+{
+  "name": "cafekit-opencode-plugins",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@opencode-ai/plugin": "^1.15.11"
+  }
+}
