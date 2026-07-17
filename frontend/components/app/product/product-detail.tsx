@@ -261,7 +261,7 @@ export function ProductDetail({ product }: { product: Product }) {
 			</div>
 
 			{/* Sửa — mobile dính đáy */}
-			<div className="fixed inset-x-0 bottom-[68px] z-20 border-t border-border bg-card p-3 lg:hidden">
+			<div className="fixed inset-x-0 bottom-nav-safe z-20 border-t border-border bg-card p-3 lg:hidden">
 				<button
 					type="button"
 					onClick={() => setEditing(true)}

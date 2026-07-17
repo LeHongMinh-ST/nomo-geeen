@@ -299,3 +299,10 @@ export function brandName(id?: string): string {
 export function getProduct(id: string): Product | undefined {
 	return products.find((p) => p.id === id);
 }
+
+/** Tra sản phẩm theo mã vạch (dùng cho quét/nhập barcode). */
+export function getProductByBarcode(code: string): Product | undefined {
+	const c = code.trim();
+	if (!c) return undefined;
+	return products.find((p) => p.barcode === c);
+}

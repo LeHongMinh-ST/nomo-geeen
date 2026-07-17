@@ -1,6 +1,7 @@
 import type { LucideIcon } from "lucide-react";
 import {
 	BarChart3,
+	BookOpen,
 	HandCoins,
 	House,
 	Package,
@@ -45,6 +46,12 @@ export const navGroups: NavGroup[] = [
 				href: "/don-ban-hang",
 				icon: Package,
 				tile: "#43a047",
+			},
+			{
+				label: "Sổ tay",
+				href: "/so-tay",
+				icon: BookOpen,
+				tile: "#6d4c41",
 			},
 		],
 	},

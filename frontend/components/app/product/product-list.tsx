@@ -347,7 +347,7 @@ export function ProductList() {
 			<Link
 				href="/san-pham/them"
 				aria-label="Thêm sản phẩm"
-				className="fixed bottom-[84px] right-4 z-30 flex h-14 items-center gap-2 rounded-full bg-primary pl-4 pr-5 text-base font-semibold text-white shadow-[0_8px_20px_rgba(76,175,80,0.4)] transition-colors duration-200 ease-out active:bg-[#2e7d32] lg:hidden"
+				className="fixed bottom-fab-safe right-4 z-30 flex h-14 items-center gap-2 rounded-full bg-primary pl-4 pr-5 text-base font-semibold text-white shadow-[0_8px_20px_rgba(76,175,80,0.4)] transition-colors duration-200 ease-out active:bg-[#2e7d32] lg:hidden"
 			>
 				<Plus className="size-6" aria-hidden />
 				Thêm

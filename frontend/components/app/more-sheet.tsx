@@ -4,6 +4,7 @@ import { ChevronRight, LogOut, X } from "lucide-react";
 import Link from "next/link";
 import { useEffect } from "react";
 import { navGroups } from "@/lib/navigation";
+import { useScrollLock } from "@/lib/use-scroll-lock";
 
 /**
  * Menu "Khác" cho mobile — Sheet trượt từ dưới (DESIGN.md §10.1, §24).
@@ -17,14 +18,8 @@ export function MoreSheet({
 	open: boolean;
 	onClose: () => void;
 }) {
-	// Khóa cuộn nền khi sheet mở.
-	useEffect(() => {
-		if (!open) return;
-		document.body.style.overflow = "hidden";
-		return () => {
-			document.body.style.overflow = "";
-		};
-	}, [open]);
+	// Khóa cuộn nền khi sheet mở (iOS-safe).
+	useScrollLock(open);
 
 	// Đóng bằng phím Esc.
 	useEffect(() => {
@@ -73,7 +68,7 @@ export function MoreSheet({
 					</button>
 				</div>
 
-				<div className="overflow-y-auto px-4 pb-6">
+				<div className="pb-safe overflow-y-auto overscroll-contain px-4 pb-6">
 					{/* Thẻ thông tin người dùng — bấm vào mở Thiết lập */}
 					<Link
 						href="/thiet-lap"

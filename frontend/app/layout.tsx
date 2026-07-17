@@ -1,10 +1,31 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
+import { ServiceWorkerRegister } from "@/components/pwa/service-worker-register";
 import "./globals.css";
 
 export const metadata: Metadata = {
 	title: "NomoGreen",
 	description:
 		"Phần mềm bán hàng vật tư nông nghiệp: bán hàng, kho và công nợ.",
+	manifest: "/manifest.webmanifest",
+	appleWebApp: {
+		capable: true,
+		statusBarStyle: "default",
+		title: "NomoGreen",
+	},
+	icons: {
+		icon: [
+			{ url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
+			{ url: "/icons/icon-512.png", sizes: "512x512", type: "image/png" },
+		],
+		apple: "/icons/apple-touch-icon.png",
+	},
+};
+
+export const viewport: Viewport = {
+	themeColor: "#4caf50",
+	width: "device-width",
+	initialScale: 1,
+	viewportFit: "cover",
 };
 
 export default function RootLayout({
@@ -14,7 +35,10 @@ export default function RootLayout({
 }>) {
 	return (
 		<html lang="vi" className="h-full antialiased">
-			<body className="min-h-full flex flex-col">{children}</body>
+			<body className="min-h-full flex flex-col">
+				{children}
+				<ServiceWorkerRegister />
+			</body>
 		</html>
 	);
 }

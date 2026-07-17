@@ -228,6 +228,10 @@
 		font-size: 16px;
 		letter-spacing: var(--tracking-normal);
 		@apply bg-background text-foreground;
+		/* PWA/iOS: bỏ highlight xám khi chạm, không cho double-tap zoom, cuộn mượt. */
+		-webkit-tap-highlight-color: transparent;
+		-webkit-text-size-adjust: 100%;
+		text-size-adjust: 100%;
 	}
 	h1,
 	h2,
@@ -239,6 +243,12 @@
 	}
 	* {
 		@apply border-border outline-ring/50;
+	}
+	/* Nút/link/tab: phản hồi chạm ngay, không trễ 300ms trên iOS. */
+	button,
+	a,
+	[role="button"] {
+		touch-action: manipulation;
 	}
 	html {
 		@apply font-sans;
@@ -252,4 +262,23 @@
 	}
 	-ms-overflow-style: none;
 	scrollbar-width: none;
+}
+
+/* Safe-area (iPhone tai thỏ / home indicator) — dùng cho bottom nav & thanh dính đáy. */
+@utility pb-safe {
+	padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+@utility mb-safe {
+	margin-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Chiều cao bottom nav + safe-area, để các thanh nổi khác canh theo. */
+@utility bottom-nav-safe {
+	bottom: calc(68px + env(safe-area-inset-bottom, 0px));
+}
+
+/* Vị trí FAB (nổi trên bottom nav 16px) + safe-area. */
+@utility bottom-fab-safe {
+	bottom: calc(84px + env(safe-area-inset-bottom, 0px));
 }

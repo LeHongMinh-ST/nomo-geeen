@@ -544,7 +544,7 @@ export function ProductForm({
 			</div>
 
 			{/* Hành động — mobile dính đáy full-width */}
-			<div className="fixed inset-x-0 bottom-[68px] z-20 border-t border-border bg-card p-3 lg:hidden">
+			<div className="fixed inset-x-0 bottom-nav-safe z-20 border-t border-border bg-card p-3 lg:hidden">
 				<button
 					type="submit"
 					disabled={saving}

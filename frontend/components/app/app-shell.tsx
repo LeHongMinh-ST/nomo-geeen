@@ -195,7 +195,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 			</div>
 
 			{/* Bottom nav — chỉ mobile */}
-			<nav className="fixed inset-x-0 bottom-0 z-40 grid h-[68px] grid-cols-5 items-center border-t border-border bg-white lg:hidden">
+			<nav className="pb-safe fixed inset-x-0 bottom-0 z-40 grid h-[68px] grid-cols-5 items-center border-t border-border bg-white [height:calc(68px+env(safe-area-inset-bottom,0px))] lg:hidden">
 				{bottomNavItems.slice(0, 2).map((item) => (
 					<BottomLink
 						key={item.href}
@@ -208,7 +208,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 				<div className="flex items-center justify-center">
 					<Link
 						href="/ban-nhanh"
-						className="flex size-14 -translate-y-3 flex-col items-center justify-center rounded-full bg-primary text-white shadow-[0_8px_20px_rgba(76,175,80,0.4)] transition-colors duration-200 ease-out active:bg-[#2e7d32]"
+						className="flex size-14 -translate-y-3 select-none flex-col items-center justify-center rounded-full bg-primary text-white shadow-[0_8px_20px_rgba(76,175,80,0.4)] transition-transform duration-150 ease-out active:scale-90 active:bg-[#2e7d32]"
 						aria-label="Bán nhanh"
 					>
 						<Plus className="size-7" aria-hidden />
@@ -223,11 +223,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 								key={item.href}
 								type="button"
 								onClick={() => setMoreOpen(true)}
-								className={`flex h-full flex-col items-center justify-center gap-1 text-xs font-medium transition-colors duration-200 ease-out ${
+								className={`group flex h-full select-none flex-col items-center justify-center gap-1 text-xs font-medium transition-colors duration-150 ease-out active:bg-[#f5f5f5] ${
 									moreOpen ? "text-primary" : "text-[#9e9e9e]"
 								}`}
 							>
-								<item.icon className="size-6" aria-hidden />
+								<item.icon
+									className="size-6 transition-transform duration-150 ease-out group-active:scale-90"
+									aria-hidden
+								/>
 								{item.label}
 							</button>
 						);
@@ -257,11 +260,14 @@ function BottomLink({
 	return (
 		<Link
 			href={item.href}
-			className={`flex h-full flex-col items-center justify-center gap-1 text-xs font-medium transition-colors duration-200 ease-out ${
+			className={`group flex h-full select-none flex-col items-center justify-center gap-1 text-xs font-medium transition-colors duration-150 ease-out active:bg-[#f5f5f5] ${
 				active ? "text-primary" : "text-[#9e9e9e]"
 			}`}
 		>
-			<item.icon className="size-6" aria-hidden />
+			<item.icon
+				className="size-6 transition-transform duration-150 ease-out group-active:scale-90"
+				aria-hidden
+			/>
 			{item.label}
 		</Link>
 	);
