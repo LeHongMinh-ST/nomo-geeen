@@ -51,7 +51,7 @@ export default function BaoMatPage() {
 	}
 
 	return (
-		<div className="mx-auto flex w-full max-w-2xl flex-col gap-6">
+		<div className="mx-auto flex w-full max-w-2xl flex-col gap-6 lg:mx-0">
 			<SettingHeader
 				title="Bảo mật tài khoản"
 				description="Quản lý xác thực và các thiết bị đang đăng nhập."

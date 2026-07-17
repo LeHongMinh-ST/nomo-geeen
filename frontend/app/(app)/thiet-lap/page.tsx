@@ -141,7 +141,7 @@ export default function ThietLapPage() {
 	}
 
 	return (
-		<div className="mx-auto flex w-full max-w-2xl flex-col gap-6">
+		<div className="mx-auto flex w-full max-w-2xl flex-col gap-6 lg:mx-0">
 			<div className="flex flex-col gap-1">
 				<h1 className="text-2xl font-bold tracking-tight text-foreground">
 					Thiết lập

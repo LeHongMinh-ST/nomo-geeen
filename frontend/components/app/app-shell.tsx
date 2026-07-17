@@ -188,9 +188,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 					</div>
 				</header>
 
-				{/* Nội dung trang */}
+				{/* Nội dung trang — khung chung max-w-6xl, căn giữa cột nội dung */}
 				<main className="flex-1 px-4 pb-28 pt-5 lg:px-6 lg:pb-10 lg:pt-6">
-					{children}
+					<div className="mx-auto w-full max-w-6xl">{children}</div>
 				</main>
 			</div>
 

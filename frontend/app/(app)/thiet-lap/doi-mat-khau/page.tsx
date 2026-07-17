@@ -46,7 +46,7 @@ export default function DoiMatKhauPage() {
 	}
 
 	return (
-		<div className="mx-auto flex w-full max-w-2xl flex-col gap-6">
+		<div className="mx-auto flex w-full max-w-2xl flex-col gap-6 lg:mx-0">
 			<SettingHeader
 				title="Đổi mật khẩu"
 				description="Đặt mật khẩu mới để bảo vệ tài khoản của bạn."

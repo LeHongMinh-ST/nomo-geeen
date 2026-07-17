@@ -78,7 +78,7 @@ export default function ThongTinCuaHangPage() {
 	}
 
 	return (
-		<div className="mx-auto flex w-full max-w-2xl flex-col gap-6">
+		<div className="mx-auto flex w-full max-w-2xl flex-col gap-6 lg:mx-0">
 			<SettingHeader
 				title="Thông tin cửa hàng"
 				description="Thông tin này hiển thị trên biên lai và báo cáo."
