@@ -1,7 +1,7 @@
 {
   "feature_name": "admin-authentication",
   "created_at": "2026-07-17T03:43:56Z",
-  "updated_at": "2026-07-17T08:08:00Z",
+  "updated_at": "2026-07-17T08:25:00Z",
   "language": "en",
   "status": "in_progress",
   "phase": "tasks",
@@ -170,7 +170,7 @@
     "tasks/task-R2-02-e2e-integration-verification.md": {
       "id": "R2-02",
       "title": "E2e integration verification",
-      "status": "in_progress",
+      "status": "done",
       "dependencies": [
         "tasks/task-R1-02-login-and-me-endpoints.md",
         "tasks/task-R3-02-refresh-and-logout-endpoints.md",
@@ -179,8 +179,8 @@
       ],
       "blocker": null,
       "started_at": "2026-07-17T08:08:00Z",
-      "completed_at": null,
-      "last_updated_at": "2026-07-17T08:08:00Z"
+      "completed_at": "2026-07-17T08:25:00Z",
+      "last_updated_at": "2026-07-17T08:25:00Z"
     }
   },
   "blocker": null,
