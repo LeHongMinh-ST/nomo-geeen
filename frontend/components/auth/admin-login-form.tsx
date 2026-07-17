@@ -1,8 +1,10 @@
 "use client";
 
 import { LoaderCircle, Lock, Mail } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { PasswordField, TextField } from "@/components/auth/fields";
+import { AdminLoginError, adminLogin } from "@/lib/auth-api";
 
 /**
  * Form đăng nhập dành cho quản trị viên.
@@ -12,15 +14,18 @@ import { PasswordField, TextField } from "@/components/auth/fields";
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export function AdminLoginForm() {
+	const router = useRouter();
 	const [email, setEmail] = useState("");
 	const [password, setPassword] = useState("");
 	const [errors, setErrors] = useState<{ email?: string; password?: string }>(
 		{},
 	);
-	const [status, setStatus] = useState<"idle" | "loading" | "notice">("idle");
+	const [status, setStatus] = useState<"idle" | "loading">("idle");
+	const [formError, setFormError] = useState<string | null>(null);
 
 	async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
 		event.preventDefault();
+		setFormError(null);
 
 		const nextErrors: typeof errors = {};
 		if (!email.trim()) {
@@ -35,9 +40,17 @@ export function AdminLoginForm() {
 		if (Object.keys(nextErrors).length > 0) return;
 
 		setStatus("loading");
-		// TODO: gọi API đăng nhập quản trị khi backend sẵn sàng.
-		await new Promise((resolve) => setTimeout(resolve, 600));
-		setStatus("notice");
+		try {
+			await adminLogin(email.trim(), password);
+			router.push("/admin");
+		} catch (error) {
+			const message =
+				error instanceof AdminLoginError
+					? error.message
+					: "Đăng nhập thất bại, vui lòng thử lại.";
+			setFormError(message);
+			setStatus("idle");
+		}
 	}
 
 	return (
@@ -86,13 +99,13 @@ export function AdminLoginForm() {
 				)}
 			</button>
 
-			{status === "notice" ? (
+			{formError ? (
 				<p
-					role="status"
-					className="rounded-[10px] bg-[#e3f2fd] px-4 py-3 text-sm text-[#1565c0]"
+					role="alert"
+					aria-live="assertive"
+					className="rounded-[10px] bg-[#ffebee] px-4 py-3 text-sm text-[#c62828]"
 				>
-					Giao diện đã sẵn sàng. Kết nối API xác thực sẽ được bổ sung ở task
-					backend.
+					{formError}
 				</p>
 			) : null}
 		</form>

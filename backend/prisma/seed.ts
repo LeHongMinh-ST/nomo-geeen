@@ -1,8 +1,52 @@
 // Seed du lieu nen tang Phase 1: Feature catalog, Plan, Permission, System Role (OWNER/STAFF).
 // Chay: pnpm db:seed  (yeu cau DATABASE_URL tro toi Postgres dang chay)
-import { PrismaClient } from '@prisma/client';
 
-const prisma = new PrismaClient();
+import { PrismaPg } from '@prisma/adapter-pg';
+import { PrismaClient } from '@prisma/client';
+import * as argon2 from 'argon2';
+
+// Prisma 7: nap .env thu cong (config loader khong tu nap cho ts-node seed).
+process.loadEnvFile?.('.env');
+
+// Runtime PrismaClient dung driver adapter @prisma/adapter-pg (schema.prisma khong co url).
+const prisma = new PrismaClient({
+	adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }),
+});
+
+// Tham so Argon2id khop PasswordService (src/platform/auth/password.service.ts).
+const ARGON2_OPTS: argon2.Options = {
+	type: argon2.argon2id,
+	memoryCost: 65536,
+	timeCost: 3,
+	parallelism: 2,
+};
+
+// Tao admin dau tien tu env. Bo qua neu thieu env; idempotent (khong ghi de mat khau cu).
+async function seedBootstrapAdmin() {
+	const email = process.env.BOOTSTRAP_ADMIN_EMAIL;
+	const password = process.env.BOOTSTRAP_ADMIN_PASSWORD;
+	if (!email || !password) {
+		console.log('Bootstrap admin skipped (BOOTSTRAP_ADMIN_* not set).');
+		return;
+	}
+	const existing = await prisma.platformAdmin.findUnique({
+		where: { email },
+	});
+	if (existing) {
+		console.log(`Bootstrap admin exists, skipped: ${email}`);
+		return;
+	}
+	await prisma.platformAdmin.create({
+		data: {
+			email,
+			passwordHash: await argon2.hash(password, ARGON2_OPTS),
+			fullName: 'Platform Super Admin',
+			role: 'SUPER_ADMIN',
+			status: 'ACTIVE',
+		},
+	});
+	console.log(`Bootstrap admin created: ${email}`);
+}
 
 // Feature catalog (3.9 + 15)
 const FEATURES = [
@@ -180,6 +224,8 @@ async function main() {
 	console.log(
 		`Seed done: ${FEATURES.length} features, ${PLANS.length} plans, ${permissionIds.length} permissions, roles OWNER/STAFF.`,
 	);
+
+	await seedBootstrapAdmin();
 }
 
 main()

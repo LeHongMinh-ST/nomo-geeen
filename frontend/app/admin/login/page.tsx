@@ -30,7 +30,7 @@ export default function AdminLoginPage() {
 							Đăng nhập hệ thống
 						</h1>
 						<p className="text-base text-[#616161]">
-							Dành cho quản trị viên NomoGreen. Đăng nhập bằng email nội bộ.
+							Dành cho quản trị viên NomoGreen.
 						</p>
 					</div>
 				</div>

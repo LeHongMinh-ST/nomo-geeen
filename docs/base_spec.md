@@ -2,7 +2,9 @@
 
 > Business Logic - Phase 1 (MVP)
 
-Version: 1.0
+Version: 1.2
+
+> Đối chiếu với tài liệu nghiệp vụ của BA (`NomoGreen.md`). Phase 1 giữ nguyên tắc **Simple First**: chỉ nạp các nghiệp vụ đơn giản, khả thi ngay; các hạng mục lớn (AI thật, CRM tự động, tích hợp dữ liệu ngoài) được ghi nhận ở mục 20 để làm sau.
 
 ---
 
@@ -47,10 +49,11 @@ Không bao gồm trong Phase 1
 - Quy trình mua hàng nhiều bước duyệt (Advanced Mode)
 - POS đầy đủ
 - Mobile App
-- AI
+- AI (gợi ý bằng AI/ảnh chụp — Sổ tay Phase 1 dùng rule-based, xem 21)
+- Tích hợp dữ liệu ngoài (thông báo Bộ NN&MT: cảnh báo dịch bệnh khu vực, thời tiết — xem 20)
 - Marketplace
 - Accounting
-- CRM Automation
+- CRM Automation (tích điểm, phân nhóm VIP, chăm sóc tự động — xem 20)
 
 ---
 
@@ -81,6 +84,7 @@ SaaS Platform
       ├── Customer
       ├── Supplier
       ├── Debt
+      ├── Handbook (Sổ tay: bệnh → thuốc gợi ý)
       ├── Reports
       └── Settings
 ```
@@ -313,6 +317,10 @@ Hiển thị
 
 - Revenue Today
 - Revenue This Month
+- Gross Profit (lợi nhuận)
+- Orders Today (đơn hàng hôm nay)
+- New Customers (khách hàng mới)
+- Pending Orders (đơn chờ xử lý)
 - Purchase Amount
 - Inventory Value
 - Outstanding Receivable
@@ -323,12 +331,15 @@ Biểu đồ
 - Revenue
 - Purchase
 - Best Seller
+- Top Customer
+- Top Supplier
 
 Cảnh báo
 
 - Low Stock
 - Out Of Stock
 - Near Expired
+- Recall (thuốc sắp/bị thu hồi)
 
 ---
 
@@ -341,6 +352,14 @@ Quản lý
 - Brand
 - Unit
 - Manufacturer
+
+Nhóm sản phẩm (phủ đủ 3 lĩnh vực — Trồng trọt / Chăn nuôi / Thủy sản)
+
+- Trồng trọt: Giống cây trồng, Thuốc bảo vệ thực vật, Phân bón / Vật tư nông nghiệp
+- Chăn nuôi: Con giống, Thuốc thú y, Thức ăn chăn nuôi
+- Thủy sản: Giống thủy sản, Thuốc thủy sản, Thức ăn thủy sản
+
+Tùy Tenant chỉ kinh doanh một hoặc nhiều lĩnh vực; danh mục nhóm cấu hình được theo lĩnh vực đang bật.
 
 Thông tin
 
@@ -358,8 +377,8 @@ Thông tin chuyên ngành
 
 - Active Ingredient
 - Concentration
-- Crop
-- Pest
+- Đối tượng áp dụng (Cây trồng / Vật nuôi / Thủy sản)
+- Pest / Bệnh (sâu bệnh cây trồng, dịch bệnh vật nuôi, bệnh thủy sản)
 - PHI
 - REI
 
@@ -401,11 +420,20 @@ Thông tin
 
 Ghi chú: khách vãng lai có thể bán không cần tạo hồ sơ; khi cần ghi nợ mới yêu cầu tối thiểu Tên + SĐT.
 
+Hồ sơ sản xuất (tùy chọn, phục vụ tư vấn tại quầy)
+
+- Trồng trọt: loại cây trồng, giống, diện tích canh tác, mùa vụ.
+- Chăn nuôi: loại vật nuôi, giống, quy mô đàn.
+- Thủy sản: loại thủy sản, giống, diện tích ao nuôi.
+
+Một khách có thể khai nhiều lĩnh vực. Hồ sơ này giúp Sổ tay (mục 21) gợi ý sát hơn ở lần mua sau.
+
 Lịch sử
 
 - Orders
 - Payments
 - Debt
+- Lịch sử tư vấn (đối tượng, bệnh, sản phẩm đã tư vấn — liên kết Sổ tay)
 
 ---
 
@@ -415,8 +443,17 @@ Thông tin
 
 - Supplier Code
 - Name
+- Supplier Type (nhà sản xuất / nhà phân phối / đại lý cấp trên...)
+- Người liên hệ + chức vụ
 - Phone
 - Address
+- Tax Code (mã số thuế — nếu có)
+
+Chính sách hợp tác (tùy chọn)
+
+- Chiết khấu (%)
+- Hạn mức công nợ
+- Thời hạn / hình thức thanh toán
 
 Lịch sử
 
@@ -448,6 +485,7 @@ Cho phép
 - Nhập theo đơn vị lớn (tự quy đổi ra Base Unit — xem 5.1)
 - Batch
 - Expiration Date
+- Chiết khấu, VAT, chi phí vận chuyển trên phiếu (nếu bật Tax — xem 15)
 - Ghi công nợ NCC nếu chưa trả đủ
 
 Advanced Mode (ngoài Phase 1) mở rộng quy trình:
@@ -480,6 +518,12 @@ Kiểm kê
 
 - Chỉnh số lượng thực tế trực tiếp theo sản phẩm; chênh lệch ghi vào Adjustment + Audit Log.
 
+Cảnh báo
+
+- Sắp hết / hết hàng
+- Sắp hết hạn / đã hết hạn
+- Recall — đánh dấu lô/sản phẩm bị thu hồi để chặn bán (Business Rules mục 18).
+
 Advanced Mode (ngoài Phase 1): Multi-Warehouse + Transfer (chuyển kho) + kiểm kê theo từng kho.
 
 ---
@@ -500,6 +544,21 @@ Chọn sản phẩm → Nhập SL → Thu tiền → Xong
 - Không có bước Draft/Confirm — bán xong là hoàn thành, trừ tồn ngay.
 - Cho ghi nợ nhanh nếu chọn khách có SĐT.
 - Tự áp giá theo bậc số lượng (xem mục 11).
+
+## Gợi ý thuốc theo bệnh (tích hợp Sổ tay)
+
+Trên màn Bán nhanh và Tạo đơn bán hàng, cạnh ô tìm sản phẩm có lối vào **"Tra bệnh → gợi ý thuốc"** (dữ liệu từ module Sổ tay — mục 21).
+
+```
+Chọn/nhập bệnh → Xem thuốc gợi ý → Thêm vào đơn
+```
+
+- Người bán gõ tên bệnh/sâu hại/dịch bệnh (vd "rầy nâu", "đạo ôn", "dịch tả lợn", "đốm trắng tôm") hoặc chọn từ Sổ tay đã ghim.
+- Hệ thống trả về danh sách sản phẩm gợi ý (còn hàng ưu tiên lên đầu), kèm hoạt chất và đối tượng nuôi trồng phù hợp.
+- Chạm một sản phẩm gợi ý là **thêm thẳng vào đơn** như chọn tay (giá bậc tự áp, trừ tồn khi hoàn tất).
+- Chỉ gợi ý, **không tự thêm** — người bán luôn là người quyết định.
+- Không bán sản phẩm hết hàng / bị khóa / đã hết hạn (theo Business Rules mục 18).
+
 
 ## Sales Order (đơn có quản lý)
 
@@ -591,13 +650,19 @@ Nhà cung cấp
 - Payment
 - Outstanding
 
+Chứng từ thu/chi
+
+- Phiếu thu (thu tiền khách trả nợ)
+- Phiếu chi (chi tiền trả nợ NCC)
+- Mỗi lần thu/chi ghi vào lịch sử thanh toán và giảm công nợ tương ứng.
+
 Thanh toán
 
 - Cash
 - Bank Transfer
-- QR
+- QR / Ví điện tử
 
-Hỗ trợ thanh toán nhiều lần.
+Hỗ trợ thanh toán nhiều lần. Xuất/in sổ chi tiết công nợ theo từng khách hàng/NCC.
 
 ---
 
@@ -696,6 +761,7 @@ Có thể Restore.
 - Tồn kho lưu theo Base Unit; nhập/bán theo đơn vị khác phải quy đổi.
 - Không cho phép tồn kho âm.
 - Không bán hàng đã hết hạn.
+- Không bán lô/sản phẩm bị đánh dấu thu hồi (recall).
 - Ưu tiên xuất bán batch gần hết hạn trước (FIFO theo hạn dùng).
 - Không bán sản phẩm bị khóa.
 - Nhập kho làm tăng tồn.
@@ -762,3 +828,69 @@ Giai đoạn sau
 - Electronic Invoice
 - Accounting
 - Public API
+
+Hạng mục lớn từ tài liệu BA (`NomoGreen.md`) — vượt Simple First, làm sau Phase 1
+
+- **Thông báo từ Bộ NN&MT** (dạng news): cảnh báo dịch bệnh khu vực, cảnh báo thời tiết — cần tích hợp nguồn dữ liệu ngoài.
+- **AI hỗ trợ tư vấn bán hàng**: gợi ý thuốc/thức ăn/vật tư đi kèm bằng AI, chẩn đoán qua ảnh chụp lá cây (Phase 1 dùng Sổ tay rule-based — xem 21).
+- **CRM mở rộng**: điểm tích lũy, nhóm khách VIP/Thân thiết/Mới, nguồn khách hàng, nhân viên phụ trách, nhắc sinh nhật, tần suất mua.
+- **Sổ tay nâng cao**: liều lượng tự động theo diện tích, lịch phun theo mùa vụ, chia sẻ Sổ tay giữa các cửa hàng.
+
+---
+
+# 21. Handbook — Sổ tay bệnh → thuốc
+
+Module tri thức nghiệp vụ giúp người bán (thường không phải kỹ sư nông học) **tra nhanh: đối tượng nuôi trồng (cây/vật nuôi/thủy sản) đang bị bệnh/dịch gì thì bán thuốc nào**. Đây là điểm khác biệt của NomoGreen so với phần mềm bán hàng thường: biến kinh nghiệm bán vật tư thành dữ liệu tra cứu tại quầy.
+
+## 21.1 Mục tiêu
+
+- Người bán nhập/chọn một **bệnh** (hoặc sâu hại / dịch bệnh) → hệ thống **gợi ý danh sách thuốc** phù hợp đang có trong kho.
+- Rút ngắn tư vấn tại quầy: không cần nhớ hoạt chất, chỉ cần biết "lúa bị đạo ôn", "lợn bị dịch tả", "tôm bị đốm trắng" là ra thuốc.
+- Tận dụng dữ liệu chuyên ngành đã có ở Product (mục 5): `Active Ingredient`, `Đối tượng áp dụng`, `Pest / Bệnh`.
+
+## 21.2 Thực thể
+
+**Disease (Bệnh / Sâu hại / Dịch bệnh)** — một mục trong Sổ tay:
+
+- Name — tên thường gọi (Đạo ôn, Rầy nâu, Dịch tả lợn, Đốm trắng tôm...).
+- Aliases — tên gọi khác / từ khóa tìm (để gõ kiểu gì cũng ra).
+- Đối tượng — lĩnh vực & đối tượng liên quan (Trồng trọt: Lúa, Bắp, Rau màu...; Chăn nuôi: Lợn, Gà, Bò...; Thủy sản: Tôm, Cá...).
+- Type — Bệnh (nấm/vi khuẩn/virus/ký sinh), Sâu hại (côn trùng), Cỏ dại, hoặc Dịch bệnh vật nuôi/thủy sản.
+- Symptom — mô tả triệu chứng ngắn, ngôn ngữ đời thường.
+- Recommended Active Ingredients — các hoạt chất khuyến nghị trị bệnh này.
+- Note — ghi chú của chủ cửa hàng (liều, thời điểm dùng, kinh nghiệm xử lý).
+
+Sổ tay là dữ liệu **theo tenant** (mỗi cửa hàng tự bồi đắp kinh nghiệm riêng), có seed sẵn bộ bệnh phổ biến cho cả 3 lĩnh vực để dùng được ngay.
+
+## 21.3 Cơ chế gợi ý thuốc (kết hợp Auto + Manual)
+
+Thứ tự ưu tiên khi tra một bệnh:
+
+1. **Ghim thủ công (Manual pin)** — sản phẩm chủ cửa hàng đã gắn trực tiếp cho bệnh này lên đầu. Chính xác theo kinh nghiệm thực tế.
+2. **Khớp tự động theo hoạt chất** — sản phẩm có `Active Ingredient` nằm trong danh sách hoạt chất khuyến nghị của bệnh.
+3. **Khớp theo tag sâu/bệnh** — sản phẩm có trường `Pest` chứa tên bệnh/alias.
+
+Quy tắc:
+
+- Chủ cửa hàng **ghim** (thêm) hoặc **loại** (ẩn) từng sản phẩm cho mỗi bệnh — đè lên kết quả tự động khi kinh nghiệm khác với match máy.
+- Kết quả gợi ý **lọc theo tồn kho**: còn hàng ưu tiên lên đầu; hết hàng / bị khóa / hết hạn không gợi ý bán (Business Rules mục 18).
+- Không tự thêm vào đơn — chỉ gợi ý, người bán quyết định.
+
+## 21.4 Tích hợp Bán hàng
+
+- Từ Bán nhanh / Tạo đơn: mở "Tra bệnh → gợi ý thuốc" (mục 10), chọn bệnh, chạm thuốc gợi ý để thêm vào đơn.
+- Từ chi tiết một bệnh trong Sổ tay: xem danh sách thuốc gợi ý, thêm thẳng vào đơn đang bán.
+- Áp giá bậc số lượng và trừ tồn giống hệt chọn sản phẩm bằng tay (mục 10, 11).
+
+## 21.5 Phân quyền & Feature Flag
+
+- **Owner**: xem, thêm/sửa/xóa bệnh, ghim/loại thuốc gợi ý.
+- **Staff**: xem và dùng gợi ý khi bán; không sửa nội dung Sổ tay (trừ khi Owner mở).
+- Là module bật/tắt qua Feature Flag (`handbook`) như Inventory/Debt (mục 3.9). Tắt thì ẩn menu và lối vào ở Bán hàng.
+- Quyền dạng `resource:action` với resource `handbook` (view/create/edit/delete) — thống nhất RBAC hiện có.
+
+## 21.6 Ngoài phạm vi Phase 1
+
+- Gợi ý bằng AI / ảnh chụp lá cây (để giai đoạn sau — thuộc AI Assistant, mục 20).
+- Liều lượng tự động theo diện tích, lịch phun theo mùa vụ.
+- Chia sẻ Sổ tay giữa các cửa hàng / kho tri thức tập trung.

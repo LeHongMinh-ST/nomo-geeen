@@ -1,0 +1,271 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Implementation Notes - admin-authentication</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f7faf9; --panel: #ffffff; --ink: #17211d; --muted: #63736d;
+      --line: #dfe8e4; --soft: #eef7f3; --brand: #087a5a; --brand-2: #0ea5a0;
+      --decision: #0f766e; --spec-gap: #b45309; --tradeoff: #7c3aed; --scope: #be123c;
+      --risk: #dc2626; --verify: #2563eb; --codebase: #475569; --flash: #c2410c;
+      --shadow: 0 12px 32px rgba(15, 23, 42, 0.08);
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: radial-gradient(circle at top left, rgba(14, 165, 160, 0.16), transparent 34rem), linear-gradient(180deg, #f8fffd 0%, var(--bg) 34%, #eef7f3 100%); color: var(--ink); font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; line-height: 1.55; }
+    main { width: min(1120px, calc(100% - 32px)); margin: 0 auto; padding: 32px 0 56px; }
+    .hero { border: 1px solid var(--line); border-radius: 16px; background: rgba(255, 255, 255, 0.9); box-shadow: var(--shadow); padding: 28px; display: grid; gap: 18px; }
+    .eyebrow { color: var(--brand); font-size: 12px; font-weight: 760; letter-spacing: 0.08em; text-transform: uppercase; }
+    h1, h2, h3 { margin: 0; line-height: 1.15; }
+    h1 { font-size: clamp(30px, 5vw, 52px); letter-spacing: 0; }
+    h2 { font-size: 22px; } h3 { font-size: 16px; }
+    .summary { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+    .metric { border: 1px solid var(--line); border-radius: 12px; background: var(--soft); padding: 12px 14px; min-height: 76px; }
+    .metric span { display: block; color: var(--muted); font-size: 12px; margin-bottom: 6px; }
+    .metric strong { display: block; font-size: 15px; overflow-wrap: anywhere; }
+    .layout { display: grid; grid-template-columns: 280px minmax(0, 1fr); gap: 20px; margin-top: 20px; align-items: start; }
+    aside, .content-panel { border: 1px solid var(--line); border-radius: 16px; background: rgba(255, 255, 255, 0.92); box-shadow: var(--shadow); }
+    aside { padding: 18px; position: sticky; top: 18px; }
+    .toc { list-style: none; padding: 0; margin: 14px 0 0; display: grid; gap: 8px; }
+    .toc a { display: block; color: var(--ink); text-decoration: none; border: 1px solid var(--line); border-radius: 10px; padding: 9px 10px; background: #fbfefd; font-size: 14px; }
+    .toc a:hover { border-color: var(--brand-2); color: var(--brand); }
+    .content-panel { padding: 20px; display: grid; gap: 16px; }
+    .task-block { border: 1px solid var(--line); border-radius: 14px; overflow: hidden; background: #fff; }
+    .task-header { display: flex; justify-content: space-between; gap: 14px; align-items: flex-start; padding: 16px 18px; background: linear-gradient(90deg, rgba(8, 122, 90, 0.1), rgba(14, 165, 160, 0.04)); border-bottom: 1px solid var(--line); }
+    .task-meta { color: var(--muted); font-size: 13px; margin-top: 6px; }
+    .status { border-radius: 999px; padding: 5px 10px; background: #ecfdf5; color: var(--brand); border: 1px solid rgba(8, 122, 90, 0.22); font-size: 12px; font-weight: 720; white-space: nowrap; }
+    .status.pending { background: #fef9ec; color: #b45309; border-color: rgba(180,83,9,0.22); }
+    .notes { padding: 16px; display: grid; gap: 12px; }
+    .note { border: 1px solid var(--line); border-left: 5px solid var(--brand); border-radius: 12px; padding: 14px 14px 14px 16px; background: #fbfefd; display: grid; gap: 10px; }
+    .note.decision { border-left-color: var(--decision); }
+    .note.spec-gap { border-left-color: var(--spec-gap); }
+    .note.tradeoff { border-left-color: var(--tradeoff); }
+    .note.scope-escape { border-left-color: var(--scope); }
+    .note.risk { border-left-color: var(--risk); }
+    .note.verification { border-left-color: var(--verify); }
+    .note.codebase-reality { border-left-color: var(--codebase); }
+    .note.flash { border-left-color: var(--flash); }
+    .note-head { display: flex; justify-content: space-between; gap: 10px; align-items: center; }
+    .badge { display: inline-flex; align-items: center; border-radius: 999px; padding: 4px 9px; font-size: 12px; font-weight: 780; background: #eef7f3; color: var(--brand); border: 1px solid var(--line); }
+    .note time { color: var(--muted); font-size: 12px; }
+    .note p { margin: 0; }
+    code { font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace; font-size: 0.92em; background: #eef7f3; border: 1px solid var(--line); border-radius: 6px; padding: 1px 5px; }
+    @media (max-width: 860px) { main { width: min(100% - 20px, 1120px); padding-top: 18px; } .summary, .layout { grid-template-columns: 1fr; } aside { position: static; } .task-header, .note-head { flex-direction: column; align-items: flex-start; } }
+  </style>
+</head>
+<body>
+  <main>
+    <section class="hero">
+      <div class="eyebrow">CafeKit Implementation Notes</div>
+      <h1>admin-authentication</h1>
+      <div class="summary">
+        <div class="metric"><span>Spec path</span><strong><code>specs/admin-authentication/</code></strong></div>
+        <div class="metric"><span>Mode</span><strong>full-spec (/develop)</strong></div>
+        <div class="metric"><span>Last updated</span><strong>2026-07-17</strong></div>
+        <div class="metric"><span>Verification</span><strong>R0-01 verified (real infra)</strong></div>
+      </div>
+    </section>
+
+    <div class="layout">
+      <aside>
+        <h2>Task Timeline</h2>
+        <ul class="toc">
+          <!-- TASK_TOC_START -->
+          <li><a href="#task-R0-01">R0-01 · Backend auth foundation ✅</a></li>
+          <li><a href="#task-R1-01">R1-01 · Password service ✅</a></li>
+          <li><a href="#task-R3-01">R3-01 · Refresh token store ✅</a></li>
+          <li><a href="#task-R2-01">R2-01 · Token service + access guard ✅</a></li>
+          <li><a href="#task-R1-02">R1-02 · Login + /auth/me endpoints ✅</a></li>
+          <li><a href="#task-R3-02">R3-02 · Refresh + logout endpoints ✅</a></li>
+          <li><a href="#task-R5-01">R5-01 · Bootstrap admin seed ✅</a></li>
+          <li><a href="#task-R6-01">R6-01 · Frontend login wiring ✅</a></li>
+          <!-- TASK_TOC_END -->
+        </ul>
+      </aside>
+
+      <section class="content-panel">
+        <!-- NOTES_START -->
+        <article class="task-block" id="task-R0-01">
+          <div class="task-header">
+            <div>
+              <h2>R0-01 · Backend auth foundation</h2>
+              <div class="task-meta">task-R0-01-backend-auth-foundation.md · Requirements R8.1, R8.4, R8.5, R9.1, R9.3, R9.4</div>
+            </div>
+            <span class="status">done</span>
+          </div>
+          <div class="notes">
+            <div class="note codebase-reality">
+              <div class="note-head"><span class="badge">codebase-reality</span><time>2026-07-17</time></div>
+              <p>Cổng host <code>5432</code> đã bị một Postgres native khác (không thuộc dự án, password khác) chiếm giữ. Đổi <code>docker-compose.yml</code> map host <code>5434→5432</code> và cập nhật <code>DATABASE_URL</code> trong <code>backend/.env.example</code> sang <code>5434</code>. File <code>.env</code> thật bị privacy-hook chặn nên không sửa được; migration/smoke chạy với <code>--url</code>/env override trỏ 5434.</p>
+            </div>
+            <div class="note scope-escape">
+              <div class="note-head"><span class="badge">scope-escape</span><time>2026-07-17</time></div>
+              <p>Sửa 1 dòng ngoài Related Files: <code>backend/src/app.controller.ts</code> đổi <code>import type { AppService }</code> → value import. <code>import type</code> bị <code>emitDecoratorMetadata</code> xóa metadata, khiến Nest ném <code>UnknownDependenciesException</code> và app không boot khi thêm ConfigModule. Bắt buộc để R0-01 (bootable app) executable.</p>
+            </div>
+            <div class="note risk">
+              <div class="note-head"><span class="badge">risk</span><time>2026-07-17</time></div>
+              <p>Biome rule <code>useImportType</code> tự revert value import ngược về <code>import type</code> khi chạy <code>biome check --write</code> (nằm trong chuỗi Evidence), tái tạo lỗi boot. Khắc phục bằng <code>// biome-ignore lint/style/useImportType</code> để value import bền qua pipeline verify. Phát hiện bởi code-auditor (Critical).</p>
+            </div>
+            <div class="note decision">
+              <div class="note-head"><span class="badge">decision</span><time>2026-07-17</time></div>
+              <p>Thêm <code>class-validator</code> + <code>class-transformer</code> (task step 1 bỏ sót) vì <code>ValidationPipe({whitelist,transform})</code> cần chúng; R1 login DTO cũng phụ thuộc. <code>RedisService.onModuleInit</code> fail-open lúc boot (lazy connect) nhưng call site <code>get/set/eval</code> vẫn throw khi Redis down → guard fail-closed đúng R9.1. Thêm <code>.catch()</code> cho <code>bootstrap()</code> để exit sạch khi Secure-cookie guard throw.</p>
+            </div>
+            <div class="note verification">
+              <div class="note-head"><span class="badge">verification</span><time>2026-07-17</time></div>
+              <p>Commands: <code>pnpm --dir backend build</code> (exit 0) · <code>pnpm --dir backend check</code> (No fixes applied — import không bị revert) · <code>prisma migrate dev --name init --url ...5434</code> (tạo <code>20260717053127_init</code>) · <code>\dt</code> → <code>platform_admin</code> + <code>audit_log</code> (20 bảng). Runtime: boot log "Nest application successfully started" + <code>GET / → 200</code>; <code>RedisService.ping() → PONG</code>; Prisma query platform_admin (0 rows); Redis set/get/del round-trip OK. Negative: <code>NODE_ENV=production AUTH_COOKIE_SECURE=false</code> → <code>[bootstrap] fatal: AUTH_COOKIE_SECURE=false is not allowed</code>. Code review: 4/10 → Critical fixed → re-verified.</p>
+            </div>
+          </div>
+        </article>
+        <article class="task-block" id="task-R1-01">
+          <div class="task-header">
+            <div>
+              <h2>R1-01 · Password service (Argon2id)</h2>
+              <div class="task-meta">task-R1-01-password-service.md · Requirement R1.5 (supports R1.2)</div>
+            </div>
+            <span class="status">done</span>
+          </div>
+          <div class="notes">
+            <div class="note decision">
+              <div class="note-head"><span class="badge">decision</span><time>2026-07-17</time></div>
+              <p>Nhúng <code>DECOY_HASH</code> là hash Argon2id cố định (sinh sẵn) để nhánh "user-not-found" ở login verify constant-time chống timing oracle (R1.2). <code>verify()</code> bọc try/catch → không bao giờ throw ra caller (hash hỏng → false).</p>
+            </div>
+            <div class="note verification">
+              <div class="note-head"><span class="badge">verification</span><time>2026-07-17</time></div>
+              <p>Commands: <code>pnpm --dir backend test -- password.service</code> → 6/6 passed · build exit 0 · biome clean. Params <code>argon2id m=65536 t=3 p=2</code>. Code review: SPEC_PASS, 9/10, 0 Critical (sửa 1 drift <code>p=4→p=2</code> ở dòng Evidence task file). Reachability: wiring vào AuthModule do R1-02 sở hữu (deferred).</p>
+            </div>
+          </div>
+        </article>
+        <article class="task-block" id="task-R3-01">
+          <div class="task-header">
+            <div>
+              <h2>R3-01 · Refresh token store</h2>
+              <div class="task-meta">task-R3-01-refresh-token.store.ts · R3.1/3.2/3.3/3.6, R4.1, R8.3</div>
+            </div>
+            <span class="status">done</span>
+          </div>
+          <div class="notes">
+            <div class="note scope-escape">
+              <div class="note-head"><span class="badge">scope-escape</span><time>2026-07-17</time></div>
+              <p>Tắt rule <code>lint/style/useImportType</code> trong <code>backend/biome.json</code>. Biome liên tục rewrite <code>import { RedisService }</code> → <code>import type</code>, xóa <code>design:paramtypes</code> → vỡ Nest DI runtime. Đây là fix chuẩn NestJS+Biome (1 rule duy nhất), thay cho rải <code>biome-ignore</code>. Gỡ luôn biome-ignore thừa ở <code>app.controller.ts</code>.</p>
+            </div>
+            <div class="note decision">
+              <div class="note-head"><span class="badge">decision</span><time>2026-07-17</time></div>
+              <p>Rotation là Lua CAS atomic (một <code>eval</code>): current-match → set new + copy old vào <code>:prev</code> (grace); <code>:prev</code>-match → <code>ok</code> idempotent (concurrent refresh converge); ngoài grace → DEL family → <code>reuse</code>. Chỉ lưu <code>sha256(token)</code>, mọi key có TTL, Lua floor <code>EX≥1</code>. Đổi thứ tự build: R3-01 trước R2-01 vì guard tiêu thụ store.</p>
+            </div>
+            <div class="note verification">
+              <div class="note-head"><span class="badge">verification</span><time>2026-07-17</time></div>
+              <p>Commands: <code>npx jest refresh-token.store</code> (real Redis) → 7/7 passed · build + biome clean · password 6/6 no-regression. Code review: SPEC_PASS, 9/10 → applied 2 LOW hardening (Lua EX floor, blacklist TTL assert) → ≥9.5. Reachability: module reg do R1-02 sở hữu (deferred).</p>
+            </div>
+          </div>
+        </article>
+        <article class="task-block" id="task-R2-01">
+          <div class="task-header">
+            <div>
+              <h2>R2-01 · Token service + access guard</h2>
+              <div class="task-meta">token.service.ts · access-token.strategy/guard · R2.1–2.4, R8.1, R9.1</div>
+            </div>
+            <span class="status">done</span>
+          </div>
+          <div class="notes">
+            <div class="note decision">
+              <div class="note-head"><span class="badge">decision</span><time>2026-07-17</time></div>
+              <p>Access claim mang <code>familyId</code> để logout revoke family từ bearer token. 2 secret riêng access/refresh + assert <code>type</code> claim (phòng thủ kép). <code>decodeExpiredAccess</code> (ignoreExpiration nhưng vẫn verify chữ ký+type) chuẩn bị cho logout phiên idle ở R3-02. Guard check blacklist TRƯỚC <code>super.canActivate</code>; Redis lỗi → 503 fail-closed.</p>
+            </div>
+            <div class="note verification">
+              <div class="note-head"><span class="badge">verification</span><time>2026-07-17</time></div>
+              <p>Commands: <code>npx jest token.service access-token.guard</code> → 10/10 · full suite 24/24 no-regression · build+biome clean. Code review: SPEC_PASS, 9/10 → vá 1 MEDIUM (strategy throw khi thiếu <code>JWT_ACCESS_SECRET</code> thay vì <code>?? ''</code> — chống forge token secret rỗng) + pin <code>algorithms:['HS256']</code>. Reachability: đăng ký AuthModule + <code>@UseGuards(/auth/me)</code> do R1-02.</p>
+            </div>
+          </div>
+        </article>
+        <article class="task-block" id="task-R1-02">
+          <div class="task-header">
+            <div>
+              <h2>R1-02 · Login + /auth/me endpoints</h2>
+              <div class="task-meta">auth.module/controller/service · AppModule wired · R1.1–1.6, R2.5, R9.2</div>
+            </div>
+            <span class="status">done</span>
+          </div>
+          <div class="notes">
+            <div class="note scope-escape">
+              <div class="note-head"><span class="badge">scope-escape</span><time>2026-07-17</time></div>
+              <p>Biome 2.5 không parse được NestJS parameter decorators (<code>@Body/@Req/@Res</code>). Fix bằng <code>javascript.parser.unsafeParameterDecoratorsEnabled: true</code> trong <code>backend/biome.json</code> — giữ controllers dưới lint+format (thay vì exclude, đã thử rồi bỏ theo góp ý code review).</p>
+            </div>
+            <div class="note decision">
+              <div class="note-head"><span class="badge">decision</span><time>2026-07-17</time></div>
+              <p>Login order durable-first: verify → (không có user: verify DECOY_HASH constant-time) → 401/403 → update lastLoginAt + audit LOGIN (DB) → sign tokens (familyId chung) → <code>store.open</code> Redis CUỐI. Redis lỗi → abort trước khi lệch trạng thái. Check DISABLED SAU verify pw (chỉ lộ disabled khi đúng mật khẩu). Cookie <code>nomo_admin_rt</code>: HttpOnly+Secure+SameSite=Strict+Path=/auth.</p>
+            </div>
+            <div class="note verification">
+              <div class="note-head"><span class="badge">verification</span><time>2026-07-17</time></div>
+              <p>Real Postgres+Redis: <code>jest auth.service</code> 5/5 (assert DB-before-Redis qua invocationCallOrder) · e2e <code>auth-login</code> 5/5 (200+cookie flags, 401/403/400, /auth/me 200/401) · suite 29/29 · app.e2e 1/1 · build+biome clean. Review: SPEC_PASS 8.5→9.5+ (biome parser fix + assert order/Secure + gỡ 429 sót). Routes reachable qua AppModule→AuthModule (không 404).</p>
+            </div>
+          </div>
+        </article>
+        <article class="task-block" id="task-R3-02">
+          <div class="task-header">
+            <div>
+              <h2>R3-02 · Refresh + logout endpoints</h2>
+              <div class="task-meta">auth.service/controller · R3.2–3.6, R4.1–4.3, R9.1, R9.2</div>
+            </div>
+            <span class="status">done</span>
+          </div>
+          <div class="notes">
+            <div class="note risk">
+              <div class="note-head"><span class="badge">risk→fixed</span><time>2026-07-17</time></div>
+              <p>Bug phát hiện qua e2e thật: <code>signRefresh/signAccess</code> tạo token GIỐNG HỆT khi gọi 2 lần trong cùng 1 giây (payload+iat trùng → JWT trùng) → rotate không đổi hash lưu, reuse detection vô nghĩa. Vá: thêm <code>jti: randomUUID()</code> vào cả 2 payload → mỗi token duy nhất. Mock test không bắt được lỗi này — chỉ e2e thật lộ ra.</p>
+            </div>
+            <div class="note decision">
+              <div class="note-head"><span class="badge">decision</span><time>2026-07-17</time></div>
+              <p>Logout lấy <code>familyId</code> từ ACCESS claim (không từ refresh cookie — cookie Path=/auth vẫn tới nhưng access claim là nguồn chuẩn), chấp nhận token hết hạn còn hợp lệ chữ ký (<code>decodeExpiredAccess</code>) để logout phiên idle. Refresh re-load admin + reject non-ACTIVE + re-derive role từ DB. Mọi Redis op bọc <code>redisGuard</code> → 503 fail-closed (R9.1) thay vì 500.</p>
+            </div>
+            <div class="note verification">
+              <div class="note-head"><span class="badge">verification</span><time>2026-07-17</time></div>
+              <p>Real infra: e2e <code>auth-refresh-logout</code> 6/6 (rotate, reuse+audit, disabled revoke, logout revocation, expired-logout 204, no-cookie 401) · unit auth.service 6/6 (gồm 503 fail-closed) · full unit 30/30 · all e2e 12/12 · build+biome clean. Review: SPEC_PASS 8→9.5+ (503 wrap + 2 e2e bổ sung).</p>
+            </div>
+          </div>
+        </article>
+        <article class="task-block" id="task-R5-01">
+          <div class="task-header">
+            <div>
+              <h2>R5-01 · Bootstrap admin seed</h2>
+              <div class="task-meta">prisma/seed.ts · R5.1–5.3</div>
+            </div>
+            <span class="status">done</span>
+          </div>
+          <div class="notes">
+            <div class="note decision">
+              <div class="note-head"><span class="badge">decision</span><time>2026-07-17</time></div>
+              <p>Sửa <code>seed.ts</code> dùng Prisma 7 adapter (<code>new PrismaClient({ adapter: PrismaPg })</code>) + <code>process.loadEnvFile('.env')</code> — bare <code>new PrismaClient()</code> không connect được ở Prisma 7. <code>seedBootstrapAdmin</code> env-driven, idempotent (không ghi đè password), skip sạch khi thiếu env. ARGON2_OPTS inline để tránh dependency <code>prisma/→src/</code>.</p>
+            </div>
+            <div class="note verification">
+              <div class="note-head"><span class="badge">verification</span><time>2026-07-17</time></div>
+              <p>Real Postgres: run create → skip → skip (no env) exit 0 · DB 1 row SUPER_ADMIN/ACTIVE/$argon2id$p=2 · cross-check: seeded admin login thành công qua AuthService · build+biome clean · unit 30/30. Review: SPEC_PASS 9/10, 0 actionable.</p>
+            </div>
+          </div>
+        </article>
+        <article class="task-block" id="task-R6-01">
+          <div class="task-header">
+            <div>
+              <h2>R6-01 · Frontend login wiring</h2>
+              <div class="task-meta">lib/auth-api.ts · admin-login-form.tsx · R6.1–6.3</div>
+            </div>
+            <span class="status">done</span>
+          </div>
+          <div class="notes">
+            <div class="note decision">
+              <div class="note-head"><span class="badge">decision</span><time>2026-07-17</time></div>
+              <p>Token storage greenfield → in-memory holder trong <code>auth-api.ts</code> (không persist; refresh ở HttpOnly cookie do browser quản). Next 16: <code>useRouter</code> từ <code>next/navigation</code>, <code>router.push('/admin')</code>; <code>NEXT_PUBLIC_API_BASE_URL</code> static-access (build-inline) + fallback :3001. Error box role="alert" tone <code>#ffebee/#c62828</code> theo DESIGN.md. Tạo <code>.env.local</code> (user-approved qua privacy hook).</p>
+            </div>
+            <div class="note verification">
+              <div class="note-head"><span class="badge">verification</span><time>2026-07-17</time></div>
+              <p>FE build Compiled successfully (/admin/login prerendered) · biome 2 file R6 clean. Integration thật (BE :3011, Origin :3000): CORS preflight Allow-Credentials:true + Allow-Origin đúng; login 200 AdminLoginResponse + cookie HttpOnly/SameSite=Strict/Path=/auth; wrong-pw 401. Review: SPEC_PASS 9/10 → vá accessToken-presence guard. Browser click-through không chạy (headless) → chứng minh ở tầng HTTP/CORS contract.</p>
+            </div>
+          </div>
+        </article>
+        <!-- NOTES_END -->
+      </section>
+    </div>
+  </main>
+</body>
+</html>

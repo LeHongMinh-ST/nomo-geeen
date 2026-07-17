@@ -1,0 +1,38 @@
+# NomoGreen — ha tang local (Phase 1): Postgres + Redis.
+# Postgres owner cong 5432 cho project nay; Redis 7 bat AOF persistence + volume ben vung.
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: nomogreen-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: nomogreen
+    ports:
+      - "5434:5432"
+    volumes:
+      - nomogreen-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d nomogreen"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: nomogreen-redis
+    # AOF persistence de restart khong lam mat blacklist/refresh family (R9.4).
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - nomogreen-redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  nomogreen-pgdata:
+  nomogreen-redisdata:

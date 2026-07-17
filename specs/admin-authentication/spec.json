@@ -1,0 +1,229 @@
+{
+  "feature_name": "admin-authentication",
+  "created_at": "2026-07-17T03:43:56Z",
+  "updated_at": "2026-07-17T08:08:00Z",
+  "language": "en",
+  "status": "in_progress",
+  "phase": "tasks",
+  "current_phase": "develop",
+  "priority": "P1",
+  "effort": null,
+  "tags": [
+    "auth",
+    "security",
+    "platform-admin",
+    "jwt",
+    "redis"
+  ],
+  "approvals": {
+    "requirements": {
+      "generated": true,
+      "approved": true
+    },
+    "design": {
+      "generated": true,
+      "approved": true
+    },
+    "tasks": {
+      "generated": true,
+      "approved": true
+    }
+  },
+  "scope_lock": {
+    "source": "Implement chức năng đăng nhập cho admin user, yêu cầu tuân thủ theo nguyên tắc refresh token, access_token (chỉ login cho admin)",
+    "in_scope": [
+      "PlatformAdmin email+password login (POST /auth/admin/login)",
+      "JWT access token issuance & verification guard (~15m)",
+      "Refresh token rotation with reuse detection (~30d) backed by Redis",
+      "Logout & token revocation (Redis blacklist + family delete)",
+      "GET /auth/me current-admin endpoint",
+      "Argon2id password hashing",
+      "Backend auth foundation (PrismaService, ConfigModule, RedisModule, cookie-parser, main.ts wiring, env vars, docker-compose redis)",
+      "Bootstrap admin seed (env-driven initial SUPER_ADMIN)",
+      "Frontend admin login form wiring to the real API",
+      "Basic brute-force lockout + LOGIN/LOGOUT audit logs"
+    ],
+    "out_of_scope": [
+      "Tenant User login",
+      "Phone/OTP login",
+      "Google/Apple OAuth",
+      "Password reset / forgot password",
+      "MFA",
+      "Full resource:action RBAC enforcement beyond active-PlatformAdmin",
+      "Tenant/Feature guards from the §6.2 chain"
+    ],
+    "expansion_policy": "requires-user-approval"
+  },
+  "dependencies": {
+    "blockedBy": [],
+    "blocks": []
+  },
+  "task_files": [
+    "tasks/task-R0-01-backend-auth-foundation.md",
+    "tasks/task-R1-01-password-service.md",
+    "tasks/task-R1-02-login-and-me-endpoints.md",
+    "tasks/task-R2-01-token-service-and-access-guard.md",
+    "tasks/task-R2-02-e2e-integration-verification.md",
+    "tasks/task-R3-01-refresh-token-store.md",
+    "tasks/task-R3-02-refresh-and-logout-endpoints.md",
+    "tasks/task-R5-01-bootstrap-admin-seed.md",
+    "tasks/task-R6-01-frontend-login-wiring.md"
+  ],
+  "task_registry": {
+    "tasks/task-R0-01-backend-auth-foundation.md": {
+      "id": "R0-01",
+      "title": "Backend auth foundation",
+      "status": "done",
+      "dependencies": [],
+      "blocker": null,
+      "started_at": "2026-07-17T05:01:49Z",
+      "completed_at": "2026-07-17T05:40:00Z",
+      "last_updated_at": "2026-07-17T05:40:00Z"
+    },
+    "tasks/task-R1-01-password-service.md": {
+      "id": "R1-01",
+      "title": "Password service",
+      "status": "done",
+      "dependencies": [
+        "tasks/task-R0-01-backend-auth-foundation.md"
+      ],
+      "blocker": null,
+      "started_at": "2026-07-17T05:41:00Z",
+      "completed_at": "2026-07-17T05:50:00Z",
+      "last_updated_at": "2026-07-17T05:50:00Z"
+    },
+    "tasks/task-R2-01-token-service-and-access-guard.md": {
+      "id": "R2-01",
+      "title": "Token service and access guard",
+      "status": "done",
+      "dependencies": [
+        "tasks/task-R0-01-backend-auth-foundation.md"
+      ],
+      "blocker": null,
+      "started_at": "2026-07-17T06:12:00Z",
+      "completed_at": "2026-07-17T06:25:00Z",
+      "last_updated_at": "2026-07-17T06:25:00Z"
+    },
+    "tasks/task-R3-01-refresh-token-store.md": {
+      "id": "R3-01",
+      "title": "Refresh token store",
+      "status": "done",
+      "dependencies": [
+        "tasks/task-R0-01-backend-auth-foundation.md"
+      ],
+      "blocker": null,
+      "started_at": "2026-07-17T05:56:00Z",
+      "completed_at": "2026-07-17T06:10:00Z",
+      "last_updated_at": "2026-07-17T06:10:00Z"
+    },
+    "tasks/task-R1-02-login-and-me-endpoints.md": {
+      "id": "R1-02",
+      "title": "Login and me endpoints",
+      "status": "done",
+      "dependencies": [
+        "tasks/task-R1-01-password-service.md",
+        "tasks/task-R2-01-token-service-and-access-guard.md",
+        "tasks/task-R3-01-refresh-token-store.md"
+      ],
+      "blocker": null,
+      "started_at": "2026-07-17T06:27:00Z",
+      "completed_at": "2026-07-17T06:50:00Z",
+      "last_updated_at": "2026-07-17T06:50:00Z"
+    },
+    "tasks/task-R3-02-refresh-and-logout-endpoints.md": {
+      "id": "R3-02",
+      "title": "Refresh and logout endpoints",
+      "status": "done",
+      "dependencies": [
+        "tasks/task-R1-02-login-and-me-endpoints.md"
+      ],
+      "blocker": null,
+      "started_at": "2026-07-17T06:52:00Z",
+      "completed_at": "2026-07-17T07:25:00Z",
+      "last_updated_at": "2026-07-17T07:25:00Z"
+    },
+    "tasks/task-R5-01-bootstrap-admin-seed.md": {
+      "id": "R5-01",
+      "title": "Bootstrap admin seed",
+      "status": "done",
+      "dependencies": [
+        "tasks/task-R0-01-backend-auth-foundation.md",
+        "tasks/task-R1-01-password-service.md"
+      ],
+      "blocker": null,
+      "started_at": "2026-07-17T07:27:00Z",
+      "completed_at": "2026-07-17T07:40:00Z",
+      "last_updated_at": "2026-07-17T07:40:00Z"
+    },
+    "tasks/task-R6-01-frontend-login-wiring.md": {
+      "id": "R6-01",
+      "title": "Frontend login wiring",
+      "status": "done",
+      "dependencies": [
+        "tasks/task-R1-02-login-and-me-endpoints.md"
+      ],
+      "blocker": null,
+      "started_at": "2026-07-17T07:42:00Z",
+      "completed_at": "2026-07-17T08:05:00Z",
+      "last_updated_at": "2026-07-17T08:05:00Z"
+    },
+    "tasks/task-R2-02-e2e-integration-verification.md": {
+      "id": "R2-02",
+      "title": "E2e integration verification",
+      "status": "in_progress",
+      "dependencies": [
+        "tasks/task-R1-02-login-and-me-endpoints.md",
+        "tasks/task-R3-02-refresh-and-logout-endpoints.md",
+        "tasks/task-R5-01-bootstrap-admin-seed.md",
+        "tasks/task-R6-01-frontend-login-wiring.md"
+      ],
+      "blocker": null,
+      "started_at": "2026-07-17T08:08:00Z",
+      "completed_at": null,
+      "last_updated_at": "2026-07-17T08:08:00Z"
+    }
+  },
+  "blocker": null,
+  "progress": {
+    "init": "done",
+    "requirements": "done",
+    "research": "done",
+    "design": "done",
+    "tasks": "done",
+    "code": "in_progress",
+    "test": "pending",
+    "review": "done"
+  },
+  "timestamps": {
+    "init": "2026-07-17T03:43:56Z",
+    "requirements_done": "2026-07-17T03:45:10Z",
+    "research_done": "2026-07-17T03:45:10Z",
+    "design_done": "2026-07-17T03:47:30Z",
+    "tasks_done": "2026-07-17T03:52:00Z",
+    "code_done": null,
+    "test_done": null,
+    "review_done": "2026-07-17T04:20:00Z",
+    "validation_done": "2026-07-17T04:20:00Z"
+  },
+  "design_context": {
+    "discovery_mode": "full",
+    "discovery_reason": "Greenfield auth subsystem touching security, session, Redis integration, and cross-layer FE/BE contract; auth/session forces Deep tier.",
+    "execution_tier": "deep",
+    "validation_recommended": true
+  },
+  "validation": {
+    "status": "completed",
+    "session_count": 1,
+    "questions_asked": 4,
+    "last_validated_at": "2026-07-17T04:20:00Z"
+  },
+  "translation": {
+    "enabled": false,
+    "language": null,
+    "language_code": null,
+    "dir": null,
+    "sync": "always",
+    "last_synced_at": null
+  },
+  "ready_for_implementation": true
+}

@@ -5,9 +5,19 @@
 		"includes": ["**", "!dist", "!coverage"]
 	},
 	"javascript": {
+		"parser": {
+			"unsafeParameterDecoratorsEnabled": true
+		},
 		"formatter": {
 			"quoteStyle": "single",
 			"trailingCommas": "all"
+		}
+	},
+	"linter": {
+		"rules": {
+			"style": {
+				"useImportType": "off"
+			}
 		}
 	}
 }
