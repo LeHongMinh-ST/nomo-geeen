@@ -243,9 +243,10 @@ function SidebarBrand() {
 			<Image
 				src="/images/logo.png"
 				alt="NomoGreen"
-				width={136}
-				height={40}
+				width={108}
+				height={36}
 				priority
+				className="h-9 w-auto object-contain"
 			/>
 		</div>
 	);

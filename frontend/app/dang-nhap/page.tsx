@@ -73,9 +73,9 @@ export default function LoginPage() {
 					<Image
 						src="/images/logo.png"
 						alt="NomoGreen"
-						width={360}
-						height={120}
-						className="h-16 w-auto object-contain drop-shadow-[0_12px_28px_rgba(92,173,69,0.22)]"
+						width={144}
+						height={48}
+						className="h-12 w-auto object-contain drop-shadow-[0_12px_28px_rgba(92,173,69,0.22)]"
 						priority
 					/>
 				</div>

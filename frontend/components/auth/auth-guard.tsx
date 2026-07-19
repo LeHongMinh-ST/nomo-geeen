@@ -53,10 +53,10 @@ function BootScreen() {
 				<Image
 					src="/images/logo.png"
 					alt="NomoGreen"
-					width={360}
-					height={108}
+					width={192}
+					height={64}
 					priority
-					className="h-24 w-auto animate-pulse object-contain"
+					className="h-16 w-auto animate-pulse object-contain"
 				/>
 				<span className="text-sm">Đang tải...</span>
 			</div>

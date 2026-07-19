@@ -18,9 +18,10 @@ export default function AdminLoginPage() {
 					<Image
 						src="/images/logo.png"
 						alt="NomoGreen"
-						width={180}
-						height={56}
+						width={144}
+						height={48}
 						priority
+						className="h-12 w-auto object-contain"
 					/>
 					<div className="flex flex-col gap-2">
 						<p className="text-base text-[#616161]">

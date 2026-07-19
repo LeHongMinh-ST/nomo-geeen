@@ -35,9 +35,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 					<Image
 						src="/images/logo.png"
 						alt="NomoGreen"
-						width={136}
-						height={48}
+						width={108}
+						height={36}
 						priority
+						className="h-9 w-auto object-contain"
 					/>
 					<span className="flex min-w-0 flex-col leading-tight">
 						<span className="truncate text-base font-bold tracking-tight text-foreground">
