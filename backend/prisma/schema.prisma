@@ -147,6 +147,14 @@ enum AuditAction {
   TENANT_UPDATE
   TENANT_STATUS_CHANGE
   TENANT_EXPORT
+  PLAN_CREATE
+  PLAN_UPDATE
+  PLAN_ACTIVATE
+  PLAN_DEACTIVATE
+  SUBSCRIPTION_ASSIGN
+  SUBSCRIPTION_CHANGE
+  SUBSCRIPTION_RENEW
+  SUBSCRIPTION_CANCEL
 }
 
 enum NotificationType {
@@ -282,6 +290,8 @@ model Subscription {
   endDate      DateTime? // moc het han chu ky hien tai
   trialEndsAt  DateTime? // 3.5: 7/15/30 ngay
   cancelledAt  DateTime?
+  manualReference String? @db.VarChar(200)
+  reason         String? @db.VarChar(500)
   createdAt    DateTime           @default(now())
   updatedAt    DateTime           @updatedAt
 
@@ -292,6 +302,8 @@ model Subscription {
   @@index([tenantId])
   @@index([planId])
   @@index([status])
+  @@index([tenantId, status, updatedAt])
+  @@index([tenantId, status, startDate, endDate, trialEndsAt])
   @@map("subscription")
 }
 
@@ -502,16 +514,22 @@ model Role {
 }
 
 // Permission dang resource:action (architecture.md 6.2). vd: sales:create
+// label/group/description: hien thi tieng Viet cho admin UI (R7.5+).
+// group = resource (nhom theo resource); label la ten tieng Viet cua quyen.
 model Permission {
-  id        String   @id @default(uuid())
-  code      String   @unique // resource:action
-  resource  String // sales, product, inventory, report...
-  action    String // view, create, edit, delete, approve, export
-  createdAt DateTime @default(now())
+  id          String   @id @default(uuid())
+  code        String   @unique // resource:action
+  resource    String // sales, product, inventory, report...
+  action      String // view, create, edit, delete, approve, export
+  group       String? // logical group (default = resource)
+  label       String? // ten hien thi tieng Viet
+  description String? // mo ta ngan tieng Viet
+  createdAt   DateTime @default(now())
 
   roles RolePermission[]
 
   @@index([resource])
+  @@index([group])
   @@map("permission")
 }
 

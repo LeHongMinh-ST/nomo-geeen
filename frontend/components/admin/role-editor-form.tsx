@@ -266,7 +266,7 @@ export function RoleEditorForm(props: Props) {
 								type="search"
 								value={permissionFilter}
 								onChange={(e) => setPermissionFilter(e.target.value)}
-								placeholder="Lọc theo mã hoặc hành động..."
+								placeholder="Lọc theo tên, mã hoặc hành động..."
 								className="h-9 w-full rounded-[8px] border border-border/60 bg-background pl-8 pr-3 text-sm text-foreground placeholder:text-muted-foreground/60 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
 							/>
 						</label>

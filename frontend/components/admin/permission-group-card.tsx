@@ -16,33 +16,67 @@ import type { PermissionPublicShape } from "@/lib/admin-api/roles";
 import { cn } from "@/lib/utils";
 
 const RESOURCE_ICONS: Record<string, LucideIcon> = {
+	user: Users,
 	account: Users,
 	tenant: Building2,
 	role: ShieldCheck,
 	permission: KeyRound,
 	audit: ScrollText,
+	report: ScrollText,
+	support: ScrollText,
+	billing: Sparkles,
 	plan: Sparkles,
+	subscription: Sparkles,
 	tag: Tag,
 };
 
-const RESOURCE_LABELS: Record<string, string> = {
-	account: "Tài khoản",
-	tenant: "Cửa hàng",
+// Fallback khi server chua co label (data cu). Moi permission admin.* moi
+// deu co label tu seed (R7.5+).
+const RESOURCE_FALLBACK_LABELS: Record<string, string> = {
+	user: "Người dùng",
 	role: "Vai trò",
-	permission: "Quyền",
-	audit: "Nhật ký",
+	permission: "Quyền hệ thống",
+	tenant: "Cửa hàng",
+	billing: "Tài chính",
+	report: "Báo cáo",
+	support: "Hỗ trợ",
 	plan: "Gói dịch vụ",
-	tag: "Phân loại",
+	subscription: "Gói đăng ký",
 };
 
 const RESOURCE_TONES: Record<string, string> = {
+	user: "bg-blue-50 text-blue-700 ring-blue-200/80",
 	account: "bg-blue-50 text-blue-700 ring-blue-200/80",
 	tenant: "bg-emerald-50 text-emerald-700 ring-emerald-200/80",
 	role: "bg-amber-50 text-amber-700 ring-amber-200/80",
 	permission: "bg-violet-50 text-violet-700 ring-violet-200/80",
 	audit: "bg-slate-100 text-slate-700 ring-slate-200/80",
+	report: "bg-slate-100 text-slate-700 ring-slate-200/80",
+	support: "bg-slate-100 text-slate-700 ring-slate-200/80",
+	billing: "bg-rose-50 text-rose-700 ring-rose-200/80",
 	plan: "bg-rose-50 text-rose-700 ring-rose-200/80",
+	subscription: "bg-rose-50 text-rose-700 ring-rose-200/80",
 	tag: "bg-cyan-50 text-cyan-700 ring-cyan-200/80",
+};
+
+// Label tieng Viet cho action badge. Trung fallback cu de giu tuong thich
+// action cu (list/assign/...).
+const ACTION_LABELS_VI: Record<string, string> = {
+	view: "Xem",
+	list: "Xem",
+	create: "Tạo",
+	edit: "Sửa",
+	update: "Sửa",
+	delete: "Xoá",
+	assign: "Gán",
+	revoke: "Thu hồi",
+	approve: "Duyệt",
+	export: "Xuất",
+	deactivate: "Vô hiệu hoá",
+	reactivate: "Kích hoạt lại",
+	reset_password: "Đặt lại MK",
+	reply: "Phản hồi",
+	activate: "Kích hoạt",
 };
 
 const ACTION_TONES: Record<string, string> = {
@@ -54,6 +88,13 @@ const ACTION_TONES: Record<string, string> = {
 	delete: "text-rose-700 bg-rose-50",
 	assign: "text-violet-700 bg-violet-50",
 	revoke: "text-rose-700 bg-rose-50",
+	approve: "text-emerald-700 bg-emerald-50",
+	export: "text-slate-700 bg-slate-100",
+	deactivate: "text-rose-700 bg-rose-50",
+	reactivate: "text-emerald-700 bg-emerald-50",
+	reset_password: "text-amber-700 bg-amber-50",
+	reply: "text-blue-700 bg-blue-50",
+	activate: "text-emerald-700 bg-emerald-50",
 };
 
 interface Props {
@@ -74,7 +115,8 @@ export function PermissionGroupCard({
 	onToggleAll,
 }: Props) {
 	const Icon = RESOURCE_ICONS[resource] ?? Boxes;
-	const label = RESOURCE_LABELS[resource] ?? resource;
+	const label =
+		RESOURCE_FALLBACK_LABELS[resource] ?? resource;
 	const tone =
 		RESOURCE_TONES[resource] ?? "bg-muted text-muted-foreground ring-border";
 
@@ -84,7 +126,8 @@ export function PermissionGroupCard({
 		return permissions.filter(
 			(p) =>
 				p.code.toLowerCase().includes(q) ||
-				p.action.toLowerCase().includes(q),
+				p.action.toLowerCase().includes(q) ||
+				(p.label ?? "").toLowerCase().includes(q),
 		);
 	}, [permissions, filter]);
 
@@ -164,6 +207,8 @@ function PermissionRow({
 }) {
 	const actionTone =
 		ACTION_TONES[permission.action] ?? "text-muted-foreground bg-muted";
+	const actionLabel =
+		ACTION_LABELS_VI[permission.action] ?? permission.action;
 
 	return (
 		<label
@@ -207,20 +252,25 @@ function PermissionRow({
 				checked={checked}
 				onChange={onToggle}
 				className="sr-only"
-				aria-label={permission.code}
+				aria-label={permission.label ?? permission.code}
 			/>
 			<div className="flex min-w-0 flex-1 items-center gap-2">
-				<code className="truncate font-mono text-[12px] text-foreground/80">
-					{permission.code}
-				</code>
+				<span className="truncate text-sm text-foreground">
+					{permission.label ?? permission.code}
+				</span>
 				<span
 					className={cn(
-						"shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide",
+						"shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-semibold tracking-wide",
 						actionTone,
 					)}
 				>
-					{permission.action}
+					{actionLabel}
 				</span>
+				{permission.label ? (
+					<code className="hidden truncate font-mono text-[11px] text-muted-foreground/70 sm:inline">
+						{permission.code}
+					</code>
+				) : null}
 			</div>
 		</label>
 	);

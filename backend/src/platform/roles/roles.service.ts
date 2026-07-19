@@ -16,6 +16,9 @@ export interface PermissionPublicShape {
 	code: string;
 	resource: string;
 	action: string;
+	group: string | null;
+	label: string | null;
+	description: string | null;
 }
 
 export interface RolePublicShape {
@@ -66,8 +69,16 @@ export class RolesService {
 	async listPermissions(): Promise<PermissionPublicShape[]> {
 		return this.prisma.permission.findMany({
 			where: { code: { startsWith: ADMIN_PERMISSION_PREFIX } },
-			orderBy: [{ resource: 'asc' }, { action: 'asc' }],
-			select: { id: true, code: true, resource: true, action: true },
+			orderBy: [{ group: 'asc' }, { action: 'asc' }],
+			select: {
+				id: true,
+				code: true,
+				resource: true,
+				action: true,
+				group: true,
+				label: true,
+				description: true,
+			},
 		});
 	}
 

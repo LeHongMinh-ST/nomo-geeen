@@ -8,6 +8,9 @@ export interface PermissionPublicShape {
 	code: string;
 	resource: string;
 	action: string;
+	group: string | null;
+	label: string | null;
+	description: string | null;
 }
 
 export interface RolePublicShape {

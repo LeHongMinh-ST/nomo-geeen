@@ -49,20 +49,117 @@ type AdminAction =
 	| 'reset_password'
 	| 'reply';
 
+// Canonical billing contract currently defines five codes (3 plan + 2 subscription).
+export const BILLING_PERMISSION_CODES = [
+	'admin.plan:view',
+	'admin.plan:edit',
+	'admin.plan:activate',
+	'admin.subscription:view',
+	'admin.subscription:edit',
+] as const;
+
 // Resource x applicable actions = one permission code each.
-const PERMISSIONS: Array<{ resource: AdminResource; actions: AdminAction[] }> = [
-	{ resource: 'user', actions: ['view', 'create', 'edit', 'delete', 'deactivate', 'reactivate', 'reset_password'] },
-	{ resource: 'role', actions: ['view', 'create', 'edit', 'delete'] },
-	{ resource: 'permission', actions: ['view'] },
-	{ resource: 'tenant', actions: ['view', 'edit', 'approve', 'export'] },
-	{ resource: 'billing', actions: ['view', 'edit', 'approve', 'export'] },
-	{ resource: 'report', actions: ['view', 'export'] },
-	{ resource: 'support', actions: ['view', 'edit', 'reply'] },
+const PERMISSIONS: Array<{ resource: AdminResource; actions: AdminAction[] }> =
+	[
+		{
+			resource: 'user',
+			actions: [
+				'view',
+				'create',
+				'edit',
+				'delete',
+				'deactivate',
+				'reactivate',
+				'reset_password',
+			],
+		},
+		{ resource: 'role', actions: ['view', 'create', 'edit', 'delete'] },
+		{ resource: 'permission', actions: ['view'] },
+		{ resource: 'tenant', actions: ['view', 'edit', 'approve', 'export'] },
+		{ resource: 'billing', actions: ['view', 'edit', 'approve', 'export'] },
+		{ resource: 'report', actions: ['view', 'export'] },
+		{ resource: 'support', actions: ['view', 'edit', 'reply'] },
+	];
+
+const BILLING_PERMISSIONS = [
+	{ resource: 'plan', actions: ['view', 'edit', 'activate'] },
+	{ resource: 'subscription', actions: ['view', 'edit'] },
 ];
 
-const ALL_PERMISSION_CODES: string[] = PERMISSIONS.flatMap(({ resource, actions }) =>
-	actions.map((action) => `admin.${resource}:${action}`),
-);
+const ALL_PERMISSION_CODES: string[] = PERMISSIONS.flatMap(
+	({ resource, actions }) =>
+		actions.map((action) => `admin.${resource}:${action}`),
+).concat([...BILLING_PERMISSION_CODES]);
+
+// Vietnamese labels (R7.5+). group = resource (nhom theo resource). Hien thi
+// cho admin UI; non-admin permissions khong co label trong phase nay.
+const RESOURCE_LABEL_VI: Record<string, string> = {
+	user: 'Người dùng',
+	role: 'Vai trò',
+	permission: 'Quyền hệ thống',
+	tenant: 'Cửa hàng',
+	billing: 'Tài chính',
+	report: 'Báo cáo',
+	support: 'Hỗ trợ',
+	plan: 'Gói dịch vụ',
+	subscription: 'Gói đăng ký',
+};
+
+// label cua permission = ten tieng Viet cua resource + action. Seed ghi de
+// PERMISSION_LABEL_OVERRIDE khi action co nghĩa rieng (vd: reset_password).
+const ACTION_LABEL_VI: Record<string, string> = {
+	view: 'Xem',
+	create: 'Tạo',
+	edit: 'Sửa',
+	delete: 'Xoá',
+	approve: 'Duyệt',
+	export: 'Xuất',
+	deactivate: 'Vô hiệu hoá',
+	reactivate: 'Kích hoạt lại',
+	reset_password: 'Đặt lại mật khẩu',
+	reply: 'Phản hồi',
+	activate: 'Kích hoạt',
+};
+
+const PERMISSION_LABEL_OVERRIDE: Record<string, string> = {
+	'admin.user:view': 'Xem người dùng',
+	'admin.user:create': 'Tạo người dùng',
+	'admin.user:edit': 'Sửa người dùng',
+	'admin.user:delete': 'Xoá người dùng',
+	'admin.user:deactivate': 'Vô hiệu hoá người dùng',
+	'admin.user:reactivate': 'Kích hoạt lại người dùng',
+	'admin.user:reset_password': 'Đặt lại mật khẩu người dùng',
+	'admin.role:view': 'Xem vai trò',
+	'admin.role:create': 'Tạo vai trò',
+	'admin.role:edit': 'Sửa vai trò',
+	'admin.role:delete': 'Xoá vai trò',
+	'admin.permission:view': 'Xem quyền hệ thống',
+	'admin.tenant:view': 'Xem cửa hàng',
+	'admin.tenant:edit': 'Sửa cửa hàng',
+	'admin.tenant:approve': 'Duyệt cửa hàng',
+	'admin.tenant:export': 'Xuất dữ liệu cửa hàng',
+	'admin.billing:view': 'Xem tài chính',
+	'admin.billing:edit': 'Sửa hoá đơn',
+	'admin.billing:approve': 'Duyệt thanh toán',
+	'admin.billing:export': 'Xuất báo cáo tài chính',
+	'admin.report:view': 'Xem báo cáo',
+	'admin.report:export': 'Xuất báo cáo',
+	'admin.support:view': 'Xem yêu cầu hỗ trợ',
+	'admin.support:edit': 'Sửa yêu cầu hỗ trợ',
+	'admin.support:reply': 'Phản hồi hỗ trợ',
+	'admin.plan:view': 'Xem gói dịch vụ',
+	'admin.plan:edit': 'Sửa gói dịch vụ',
+	'admin.plan:activate': 'Kích hoạt gói dịch vụ',
+	'admin.subscription:view': 'Xem gói đăng ký',
+	'admin.subscription:edit': 'Sửa gói đăng ký',
+};
+
+function labelFor(code: string, resource: string, action: string): string {
+	if (PERMISSION_LABEL_OVERRIDE[code]) return PERMISSION_LABEL_OVERRIDE[code];
+	const res = RESOURCE_LABEL_VI[resource] ?? resource;
+	const act = ACTION_LABEL_VI[action] ?? action;
+	return `${act} ${res.toLowerCase()}`;
+}
 
 // System role grants (R0-04 step 2).
 // SUPER_ADMIN gets ALL admin codes via shortcut at guard layer (R4.2); we DO
@@ -83,6 +180,7 @@ const SUPPORT_GRANTS: string[] = [
 	'admin.tenant:edit',
 	'admin.tenant:approve',
 	'admin.tenant:export',
+	'admin.subscription:view',
 ];
 const BILLING_GRANTS: string[] = [
 	'admin.user:view',
@@ -91,21 +189,32 @@ const BILLING_GRANTS: string[] = [
 	'admin.billing:approve',
 	'admin.billing:export',
 	'admin.report:view',
+	...BILLING_PERMISSION_CODES,
 ];
 
 async function seedPermissions(): Promise<number> {
-	let inserted = 0;
+	const inserted = 0;
 	for (const { resource, actions } of PERMISSIONS) {
 		for (const action of actions) {
 			const code = `admin.${resource}:${action}`;
+			const label = labelFor(code, resource, action);
 			const result = await prisma.permission.upsert({
 				where: { code },
-				update: {},
-				create: { code, resource, action },
+				update: { label, group: resource },
+				create: { code, resource, action, label, group: resource },
 			});
-			// Track inserts (create vs no-op upsert) via _count would require
-			// Prisma `omit: undefined`. Simpler: re-count after loop.
 			void result;
+		}
+	}
+	for (const { resource, actions } of BILLING_PERMISSIONS) {
+		for (const action of actions) {
+			const code = `admin.${resource}:${action}`;
+			const label = labelFor(code, resource, action);
+			await prisma.permission.upsert({
+				where: { code },
+				update: { label, group: resource },
+				create: { code, resource, action, label, group: resource },
+			});
 		}
 	}
 	void inserted;
@@ -138,6 +247,21 @@ async function seedSystemRole(
 		await prisma.role.update({
 			where: { id: role.id },
 			data: { isAdmin: true, isSystem: true },
+		});
+	}
+
+	// Reconcile only the canonical billing permissions. Other role grants
+	// (tenant/RBAC/support permissions) are owned by their existing seeds.
+	const billingPermissionRows = await prisma.permission.findMany({
+		where: { code: { in: [...BILLING_PERMISSION_CODES] } },
+		select: { id: true },
+	});
+	if (billingPermissionRows.length > 0) {
+		await prisma.rolePermission.deleteMany({
+			where: {
+				roleId: role.id,
+				permissionId: { in: billingPermissionRows.map(({ id }) => id) },
+			},
 		});
 	}
 
@@ -175,7 +299,9 @@ async function main(): Promise<void> {
 		`[seed-admin-rbac] Permission rows with admin. prefix: ${actualCount} (expected ${expectedCount})`,
 	);
 
-	console.log('[seed-admin-rbac] Seeding system roles SUPER_ADMIN, SALER, SUPPORT, BILLING...');
+	console.log(
+		'[seed-admin-rbac] Seeding system roles SUPER_ADMIN, SALER, SUPPORT, BILLING...',
+	);
 	await seedSystemRole(SUPER_ADMIN_ROLE_CODE, 'Toan quyen', []);
 	await seedSystemRole('SALER', 'Kinh doanh', []);
 	await seedSystemRole('SUPPORT', 'Ho tro', SUPPORT_GRANTS);
