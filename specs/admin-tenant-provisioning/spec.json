@@ -112,15 +112,15 @@
     "tasks/task-R2-01-tenant-users-management-api.md": {
       "id": "R2-01",
       "title": "Tenant users management api",
-      "status": "in_progress",
+      "status": "done",
       "dependencies": [
         "tasks/task-R0-01-schema-permission-foundation.md",
         "tasks/task-R1-01-tenant-owner-creation-api.md"
       ],
       "blocker": null,
       "started_at": "2026-07-19T23:33:00+07:00",
-      "completed_at": null,
-      "last_updated_at": "2026-07-19T23:33:00+07:00"
+      "completed_at": "2026-07-20T00:29:40+07:00",
+      "last_updated_at": "2026-07-20T00:29:40+07:00"
     },
     "tasks/task-R3-01-create-tenant-ui.md": {
       "id": "R3-01",

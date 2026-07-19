@@ -13,9 +13,9 @@ import { sanitize } from './create-tenant-user.dto';
  * PATCH /admin/tenants/:tenantId/users/:userId body. Strict field whitelist:
  * only `fullName/username/phone/email` are `@Expose()`d. Any other field
  * (`tenantId`/`status`/`roleId`/`roleCode`/`passwordHash`) is rejected 400 by
- * the global `forbidNonWhitelisted` pipe; the service additionally asserts the
- * allowlist and emits `FIELD_NOT_ALLOWED` for a stable machine reason. Role
- * change is a separate endpoint.
+ * the global `forbidNonWhitelisted` pipe before the handler runs; the service
+ * re-applies the allowlist as defense-in-depth. Role change is a separate
+ * endpoint.
  */
 @Exclude()
 export class UpdateTenantUserDto {

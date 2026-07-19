@@ -196,8 +196,10 @@ export class TenantUsersService {
 		_ctx: TenantUserAuditCtx,
 	): Promise<TenantUserPublic> {
 		await this.requireUserInTenant(tenantId, userId);
-		// Redundant-but-explicit allowlist: emit a stable machine reason even
-		// though the global forbidNonWhitelisted pipe already rejects extras.
+		// Non-whitelisted fields (tenantId/status/roleId/roleCode/passwordHash)
+		// are rejected upstream by the global forbidNonWhitelisted ValidationPipe
+		// (400) before reaching here. This allowlist is defense-in-depth against
+		// any future non-pipe caller; an all-empty payload yields NO_FIELDS.
 		const data = this.pickAllowedFields(dto);
 		if (Object.keys(data).length === 0) {
 			throw new BadRequestException({
@@ -384,7 +386,9 @@ export class TenantUsersService {
 				where: { id: tenantId },
 				select: { seatBonus: true },
 			}),
-			client.user.count({ where: { tenantId, status: 'ACTIVE' } }),
+			client.user.count({
+				where: { tenantId, status: 'ACTIVE', deletedAt: null },
+			}),
 			this.activePlan(tenantId, client),
 		]);
 		const seatBonus = tenant?.seatBonus ?? 0;
@@ -450,6 +454,7 @@ export class TenantUsersService {
 			where: {
 				tenantId,
 				status: 'ACTIVE',
+				deletedAt: null,
 				id: { not: userId },
 				role: { code: 'OWNER' },
 			},

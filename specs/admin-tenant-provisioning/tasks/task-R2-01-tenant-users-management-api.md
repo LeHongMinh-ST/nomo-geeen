@@ -1,7 +1,7 @@
 # Task R2-01: Tenant users management api
 
 **Requirement:** R3 — Tenant user management (backend); R8 — NFRs
-**Status:** in_progress
+**Status:** done
 **Priority:** P1
 **Estimated Effort:** L
 **Dependencies:** R0-01, R1-01
@@ -22,22 +22,22 @@
 
 ## Steps
 
-- [ ] 1. Create `TenantUsersModule`, `TenantUsersController` (`@Controller('admin/tenants/:tenantId/users')`), and `TenantUsersService`; register the module in `backend/src/app.module.ts`.
+- [x] 1. Create `TenantUsersModule`, `TenantUsersController` (`@Controller('admin/tenants/:tenantId/users')`), and `TenantUsersService`; register the module in `backend/src/app.module.ts`.
   - Business intent: expose tenant-user management as a reachable, guarded module.
   - Code detail: `backend/src/platform/tenant-users/*`; GET gated `@RequirePermission('admin.tenant-user:view')`, all mutations gated `@RequirePermission('admin.tenant-user:manage')`; assert `:userId ∈ :tenantId` and operator tenant-scope on every handler.
   - _Requirements: 3.1, 3.7_
 
-- [ ] 2. Implement `GET ``` (list + `SeatUsage`) and `POST ``` (create): create applies R2.5–R2.7 rules (required username, password discriminated union), seat check inside a serializable tx, `USER_CREATE` audit; list returns paginated `TenantUserPublic` (≤100/page) plus `SeatUsage` (`activeCount` = ACTIVE only, `effectiveMaxUsers` from ACTIVE/TRIALING subscription).
+- [x] 2. Implement `GET ``` (list + `SeatUsage`) and `POST ``` (create): create applies R2.5–R2.7 rules (required username, password discriminated union), seat check inside a serializable tx, `USER_CREATE` audit; list returns paginated `TenantUserPublic` (≤100/page) plus `SeatUsage` (`activeCount` = ACTIVE only, `effectiveMaxUsers` from ACTIVE/TRIALING subscription).
   - Business intent: view roster + seat state, add users within the seat limit.
   - Code detail: seat query uses `@@index([tenantId, status])`; map `P2002 (tenantId,username)` → 409 `USERNAME_TAKEN`; seat count re-read inside the create tx to prevent overrun.
   - _Requirements: 3.1, 3.2, 3.3, 8.3_
 
-- [ ] 3. Implement `PATCH :userId` (whitelisted `fullName/username/phone/email` only — reject others 400 `FIELD_NOT_ALLOWED`), `PATCH :userId/role` (role within `{OWNER,MANAGER,STAFF}`, separate endpoint), `POST :userId/deactivate`, `POST :userId/reactivate` (seat re-check in tx), `POST :userId/reset-password` (one-time reveal, forces `mustChangePassword=true`). Each asserts `:userId ∈ :tenantId` (404); last-owner guard under a serializable tx blocks removing/demoting/deactivating the final active OWNER (409 `LAST_OWNER`).
+- [x] 3. Implement `PATCH :userId` (whitelisted `fullName/username/phone/email` only — reject others 400 `FIELD_NOT_ALLOWED`), `PATCH :userId/role` (role within `{OWNER,MANAGER,STAFF}`, separate endpoint), `POST :userId/deactivate`, `POST :userId/reactivate` (seat re-check in tx), `POST :userId/reset-password` (one-time reveal, forces `mustChangePassword=true`). Each asserts `:userId ∈ :tenantId` (404); last-owner guard under a serializable tx blocks removing/demoting/deactivating the final active OWNER (409 `LAST_OWNER`).
   - Business intent: full lifecycle management without breaking the store's ownership invariant or leaking privilege.
   - Code detail: last-owner guard counts active OWNERs inside the mutating tx before DISABLED/role-away; reactivate re-runs seat check → 409 `SEAT_LIMIT_REACHED`; role change is not reachable via the field-edit endpoint.
   - _Requirements: 3.4, 3.5, 3.6, 3.7_
 
-- [ ] 4. Verification implementation
+- [x] 4. Verification implementation
   - Integration/e2e: seat full → 409 on create and on reactivate; last owner deactivate/demote → 409 `LAST_OWNER`; cross-tenant `:userId` → 404; PATCH with `roleId`/`status` → 400 `FIELD_NOT_ALLOWED`; reset forces `mustChangePassword`.
   - _Requirements: 3.3, 3.4, 3.5, 3.6, 3.7_
 
@@ -64,25 +64,25 @@
 
 ## Completion Criteria
 
-- [ ] List returns `TenantUserPublic[]` + `SeatUsage`, no `passwordHash`, paginated ≤100 (R3.1, R8.1, R8.3).
-- [ ] Create/reactivate blocked with 409 `SEAT_LIMIT_REACHED` when `active_count >= effective_max_users` (checked in tx) (R3.3, R3.6).
-- [ ] Last active OWNER cannot be deactivated/demoted (409 `LAST_OWNER`); state unchanged (R3.5).
-- [ ] Cross-tenant `:userId` → 404; PATCH rejects non-whitelisted fields (400 `FIELD_NOT_ALLOWED`); every route permission-gated; module registered and reachable (R3.4, R3.7, R7.1).
+- [x] List returns `TenantUserPublic[]` + `SeatUsage`, no `passwordHash`, paginated ≤100 (R3.1, R8.1, R8.3).
+- [x] Create/reactivate blocked with 409 `SEAT_LIMIT_REACHED` when `active_count >= effective_max_users` (checked in tx) (R3.3, R3.6).
+- [x] Last active OWNER cannot be deactivated/demoted (409 `LAST_OWNER`); state unchanged (R3.5).
+- [x] Cross-tenant `:userId` → 404; PATCH rejects non-whitelisted fields (400 `FIELD_NOT_ALLOWED`); every route permission-gated; module registered and reachable (R3.4, R3.7, R7.1).
 
 ## Evidence
 
 This section is both the task-level test plan and the proof checklist. Keep it short, exact, and executable.
 
-- [ ] Automated verification (integration/e2e)
+- [x] Automated verification (integration/e2e)
   - Command(s): `cd backend && pnpm build && pnpm test:e2e -- tenant-users`
   - Expected proof: seat, last-owner, cross-tenant, and permission cases pass; exit 0.
-- [ ] Artifact / runtime verification
+- [x] Artifact / runtime verification
   - Inspect: `GET /admin/tenants/:id/users` response; DB `user.status` transitions after deactivate/reactivate.
   - Expect: `SeatUsage.activeCount/effectiveMaxUsers` correct (activeCount = ACTIVE only); DISABLED excluded from `activeCount`; plan-less tenant uses `seatBonus` for seats.
-- [ ] Runtime reachability verification
+- [x] Runtime reachability verification
   - Entrypoint/caller: `TenantUsersModule` imported in `backend/src/app.module.ts`.
   - Expect: routes resolve over HTTP with an authenticated admin token (end-to-end in R4-02).
-- [ ] Contract / negative-path verification
+- [x] Contract / negative-path verification
   - Check: create at seat cap; deactivate last owner; `:userId` from another tenant; reactivate when full.
   - Expect: 409 `SEAT_LIMIT_REACHED` / 409 `LAST_OWNER` / 404 / 409, each leaving state unchanged.
 
@@ -98,6 +98,52 @@ This section is both the task-level test plan and the proof checklist. Keep it s
 ---
 
 > **Parallel marker**: Append `(P)` to the title if this task can run concurrently with another (usually when serving different requirements).
-> **Test note**: If a test coverage sub-task can be deferred post-MVP, mark it with `- [ ]*`.
+> **Test note**: If a test coverage sub-task can be deferred post-MVP, mark it with `- [x]*`.
 > **Requirement mapping**: Every sub-task MUST end with `_Requirements: X.X_`. No mapping = invalid task file.
 > **Evidence rule**: No `## Evidence` section = invalid task file. Existing specs may use `## Task Test Plan & Verification Evidence` or legacy `## Verification & Evidence`; agents must support all three headings.
+
+---
+
+## Verification Receipt
+
+**Verified at:** 2026-07-20T00:29:40+07:00 · **Result:** PASS · **Git HEAD:** f1ae191
+
+### Commands run (fresh, this run)
+
+```
+cd backend && pnpm build && pnpm test:e2e -- tenant-users
+# build exit=0
+# Test Suites: 1 passed, 1 total
+# Tests:       8 passed, 8 total   (test/tenant-users.e2e-spec.ts)
+```
+
+```
+cd backend && pnpm test -- tenant-users.service
+# Test Suites: 1 passed, 1 total
+# Tests:       18 passed, 18 total (tenant-users.service.spec.ts)
+```
+
+```
+cd backend && pnpm exec biome check src/platform/tenant-users test/tenant-users.e2e-spec.ts
+# Lint: No issues found (0 contributed errors in CI-equivalent `biome check src test` run)
+```
+
+### Evidence mapping
+
+| Completion Criterion | Proof |
+|---|---|
+| List `TenantUserPublic[]` + `SeatUsage`, no `passwordHash`, ≤100/page (R3.1/R8.1/R8.3) | e2e "lists users with SeatUsage and no passwordHash", "caps pageSize at 100" (unit); `USER_SELECT`/`toPublic` exclude `passwordHash` |
+| 409 `SEAT_LIMIT_REACHED` on create/reactivate when full, checked in tx (R3.3/R3.6) | e2e "409 SEAT_LIMIT_REACHED when the tenant is full"; unit seat-cap create + reactivate; serializable tx re-reads seat |
+| Last active OWNER cannot be deactivated/demoted, 409 `LAST_OWNER` (R3.5) | e2e "409 LAST_OWNER when deactivating the only owner"; unit changeRole/deactivate last-owner guards inside serializable tx |
+| Cross-tenant `:userId` → 404; PATCH non-whitelist → 400; all routes gated + reachable (R3.4/R3.7/R7.1) | e2e "404 for a user in another tenant", "400 non-whitelisted field", "403 without admin.tenant-user:view"; module registered in `app.module.ts` |
+
+### Code review (code-auditor)
+
+- **CRITICAL: 0.** passwordHash / cross-tenant / last-owner / seat-overrun / mass-assignment paths all verified safe.
+- **MAJOR M1 (fixed):** `seatUsage.activeCount` and `assertNotLastOwner` now include `deletedAt: null`, matching `list()`/`requireUserInTenant` convention — closes a latent security-count drift ahead of any future user soft-delete feature.
+- **MINOR m1 (fixed):** corrected misleading comments claiming the service emits `FIELD_NOT_ALLOWED`; non-whitelisted fields are rejected upstream by the global `forbidNonWhitelisted` pipe (400), service allowlist is defense-in-depth.
+- **Deferred (documented, not reachable in repo):** m2 no P2034 serialization retry (consistent with sibling `tenants.service.ts`); m3 `status` union includes `INVITED` (no invite flow exists); m4 `page/pageSize=0` falls back to default then service-clamps (harmless).
+
+### Spec-gap note (carried forward)
+
+Only `USER_CREATE` audit is emitted (on create). Edit/deactivate/reactivate/changeRole/reset-password produce no audit row — the `AuditAction` enum lacks `USER_UPDATE/DEACTIVATE/REACTIVATE/RESET_PASSWORD` and R0-01 forbids inventing enum values. Requires a follow-up enum migration if per-mutation audit is later required.

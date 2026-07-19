@@ -283,8 +283,8 @@
       <div class="summary">
         <div class="metric"><span>Spec path</span><strong><code>specs/admin-tenant-provisioning/</code></strong></div>
         <div class="metric"><span>Mode</span><strong>Full-Spec</strong></div>
-        <div class="metric"><span>Last updated</span><strong>2026-07-19 23:31 (+07)</strong></div>
-        <div class="metric"><span>Verification</span><strong>R0-01, R1-01 done · 5/7 tasks pending</strong></div>
+        <div class="metric"><span>Last updated</span><strong>2026-07-20 00:29 (+07)</strong></div>
+        <div class="metric"><span>Verification</span><strong>R0-01, R1-01, R2-01 done · 4/7 tasks pending</strong></div>
       </div>
     </section>
 
@@ -295,6 +295,7 @@
           <!-- TASK_TOC_START -->
           <li><a href="#task-R0-01">R0-01 · Schema permission foundation</a></li>
           <li><a href="#task-R1-01">R1-01 · Tenant owner creation API</a></li>
+          <li><a href="#task-R2-01">R2-01 · Tenant users management API</a></li>
           <!-- TASK_TOC_END -->
         </ul>
       </aside>
@@ -352,6 +353,33 @@
             <div class="note verification">
               <div class="note-head"><span class="badge">verification</span><time>2026-07-19</time></div>
               <p><code>pnpm build</code> (exit 0); <code>pnpm test:e2e -- tenants-create</code> = <strong>7/7 passed</strong> (403 authz, 201 generated pwd, 201 explicit pwd, 409 SLUG_TAKEN, 400 missing-owner regression, 400 PASSWORD_MODE_INVALID, in-tx rollback → 0 orphan rows); <code>pnpm test -- tenants.service</code> = <strong>16/16 passed</strong> (incl. deterministic USERNAME_TAKEN/SLUG_TAKEN mapping via real adapter-pg P2002 payload). Biome clean on scope. code-auditor: 2 MAJOR (M1 missing-owner→500, M2 USERNAME_TAKEN unproven) resolved; m3/m4/m5 minors deferred as tech debt.</p>
+            </div>
+          </div>
+        </article>
+        <article class="task-block" id="task-R2-01">
+          <div class="task-header">
+            <div>
+              <h2>R2-01 · Tenant users management API</h2>
+              <div class="task-meta">File: <code>tasks/task-R2-01-tenant-users-management-api.md</code> · Requirements R3, R8</div>
+            </div>
+            <span class="status">done</span>
+          </div>
+          <div class="notes">
+            <div class="note decision">
+              <div class="note-head"><span class="badge">decision</span><time>2026-07-20</time></div>
+              <p>New <code>TenantUsersController</code>/<code>TenantUsersService</code> under <code>admin/tenants/:tenantId/users</code>, gated <code>admin.tenant-user:view</code> (GET) / <code>admin.tenant-user:manage</code> (mutations). Seat rule: <code>effectiveMaxUsers = (activePlan.maxUsers ?? 0) + tenant.seatBonus</code>, plan from a subscription in <code>ACTIVE/TRIALING</code> within window; <code>activeCount</code> = users <code>status=ACTIVE, deletedAt:null</code> (DISABLED/INVITED do not consume seats). Create + reactivate re-read seat inside a <strong>serializable</strong> <code>$transaction</code>; last-owner guard counts active OWNERs in the same tx before demote/deactivate. A plan-less tenant seats purely on <code>seatBonus</code> (<code>planCode:null</code>).</p>
+            </div>
+            <div class="note codebase-reality">
+              <div class="note-head"><span class="badge">codebase-reality</span><time>2026-07-20</time></div>
+              <p>Cross-tenant access uses <code>findFirst({id, tenantId, deletedAt:null})</code> → 404 (never 403, no existence leak). PATCH edit is a strict <code>@Exclude()</code>/<code>@Expose()</code> whitelist (<code>fullName/username/phone/email</code>); non-whitelisted fields are rejected upstream by the global <code>forbidNonWhitelisted</code> pipe (400) — role change is a separate <code>PATCH :userId/role</code> endpoint. Reset-password forces <code>mustChangePassword=true</code>; password/reset both enforce a <code>{password} XOR {generatePassword}</code> discriminated union. <code>USER_CREATE</code> audit shares the create tx via <code>writeInTx</code>; the <code>P2002 → USERNAME_TAKEN</code> mapper reads both standard and adapter-pg nested shapes.</p>
+            </div>
+            <div class="note risk">
+              <div class="note-head"><span class="badge">risk</span><time>2026-07-20</time></div>
+              <p><strong>Audit spec-gap (carried forward):</strong> only <code>USER_CREATE</code> is recorded. Edit/deactivate/reactivate/changeRole/reset-password write <strong>no</strong> audit row — the <code>AuditAction</code> enum has no <code>USER_UPDATE/DEACTIVATE/REACTIVATE/RESET_PASSWORD</code> and R0-01 forbids inventing enum values. Needs a follow-up enum migration if per-mutation audit is later required. Audit fix from review: seat + last-owner counts now include <code>deletedAt:null</code>, closing a latent security-count drift ahead of any future user soft-delete.</p>
+            </div>
+            <div class="note verification">
+              <div class="note-head"><span class="badge">verification</span><time>2026-07-20</time></div>
+              <p>Build exit 0 · unit <strong>18/18</strong> (<code>tenant-users.service.spec.ts</code>) · e2e <strong>8/8</strong> (<code>test/tenant-users.e2e-spec.ts</code>: 403 gate, list+SeatUsage no passwordHash, create, seat-full 409, last-owner 409, cross-tenant 404, non-whitelist 400, reset forces mustChangePassword) · biome clean (0 contributed errors) · code-auditor <strong>zero CRITICAL</strong> (M1 + m1 fixed).</p>
             </div>
           </div>
         </article>
