@@ -1,0 +1,220 @@
+{
+  "feature_name": "user-registration-authentication",
+  "created_at": "2026-07-19T23:20:00+07:00",
+  "updated_at": "2026-07-19T23:42:00+07:00",
+  "language": "en",
+  "status": "in_progress",
+  "phase": "review",
+  "current_phase": "review",
+  "priority": "P0",
+  "effort": "L",
+  "tags": [
+    "tenant-user",
+    "registration",
+    "authentication",
+    "session",
+    "rbac",
+    "security",
+    "frontend"
+  ],
+  "approvals": {
+    "requirements": {
+      "generated": true,
+      "approved": true
+    },
+    "design": {
+      "generated": true,
+      "approved": true
+    },
+    "tasks": {
+      "generated": true,
+      "approved": true
+    }
+  },
+  "scope_lock": {
+    "source": "Implement đăng ký, auth, đăng nhập cho phía user; hoàn thiện tenant user session, frontend login và authorization theo các gap đã rà soát.",
+    "in_scope": [
+      "Public tenant registration creates one Tenant and its first OWNER user atomically, reusing the provisioning owner/role contract",
+      "Tenant user login by tenant slug plus username, phone, or email and password",
+      "Short-lived tenant access JWT with tenantId, role, and permissions claims",
+      "Rotating tenant refresh session in an HttpOnly cookie, logout, revocation, reuse detection, and /auth/me",
+      "Tenant authorization guard and permission resolution that prevent cross-tenant access",
+      "mustChangePassword first-login enforcement and authenticated password change",
+      "Redis-backed login throttling/lockout and audit events for tenant auth lifecycle",
+      "Frontend registration, login, session store, route guard, API refresh/retry, logout, and user-facing errors",
+      "Backend unit/e2e and frontend build/reachability verification"
+    ],
+    "out_of_scope": [
+      "SMS OTP, email verification, Google/Apple OAuth, MFA",
+      "Forgot-password or unauthenticated password recovery",
+      "Tenant self-service staff management and role administration",
+      "Subscription assignment, billing, seat enforcement, or plan selection during registration",
+      "Replacing admin authentication or changing the admin refresh-token contract",
+      "Tenant-facing audit log UI"
+    ],
+    "expansion_policy": "requires-user-approval"
+  },
+  "dependencies": {
+    "blockedBy": [
+      "admin-tenant-provisioning"
+    ],
+    "blocks": []
+  },
+  "related_specs": [
+    {
+      "feature": "admin-system-activity-audit",
+      "relationship": "coordination-only; auth lifecycle emits rows consumed by the admin audit query"
+    },
+    {
+      "feature": "admin-tenant-provisioning",
+      "relationship": "shared owner/role creation contract; provisioning owns admin creation path, this spec owns public registration path"
+    }
+  ],
+  "task_files": [
+    "tasks/task-R0-01-session-contract-foundation.md",
+    "tasks/task-R1-01-public-registration-backend.md",
+    "tasks/task-R2-01-tenant-login-identity.md",
+    "tasks/task-R3-01-user-session-lifecycle.md",
+    "tasks/task-R4-01-authorization-password-change.md",
+    "tasks/task-R5-01-user-auth-state.md",
+    "tasks/task-R5-02-user-auth-screens.md",
+    "tasks/task-R6-01-tenant-auth-acceptance-tests.md",
+    "tasks/task-R7-01-integration-reachability.md"
+  ],
+  "task_registry": {
+    "tasks/task-R0-01-session-contract-foundation.md": {
+      "id": "R0-01",
+      "title": "Session contract foundation",
+      "status": "pending",
+      "dependencies": [],
+      "blocker": null,
+      "started_at": null,
+      "completed_at": null,
+      "last_updated_at": null
+    },
+    "tasks/task-R1-01-public-registration-backend.md": {
+      "id": "R1-01",
+      "title": "Public registration backend",
+      "status": "pending",
+      "dependencies": ["tasks/task-R0-01-session-contract-foundation.md"],
+      "blocker": null,
+      "started_at": null,
+      "completed_at": null,
+      "last_updated_at": null
+    },
+    "tasks/task-R2-01-tenant-login-identity.md": {
+      "id": "R2-01",
+      "title": "Tenant login identity",
+      "status": "pending",
+      "dependencies": ["tasks/task-R0-01-session-contract-foundation.md"],
+      "blocker": null,
+      "started_at": null,
+      "completed_at": null,
+      "last_updated_at": null
+    },
+    "tasks/task-R3-01-user-session-lifecycle.md": {
+      "id": "R3-01",
+      "title": "User session lifecycle",
+      "status": "pending",
+      "dependencies": ["tasks/task-R0-01-session-contract-foundation.md", "tasks/task-R2-01-tenant-login-identity.md"],
+      "blocker": null,
+      "started_at": null,
+      "completed_at": null,
+      "last_updated_at": null
+    },
+    "tasks/task-R4-01-authorization-password-change.md": {
+      "id": "R4-01",
+      "title": "Authorization password change",
+      "status": "pending",
+      "dependencies": ["tasks/task-R2-01-tenant-login-identity.md", "tasks/task-R3-01-user-session-lifecycle.md"],
+      "blocker": null,
+      "started_at": null,
+      "completed_at": null,
+      "last_updated_at": null
+    },
+    "tasks/task-R5-01-user-auth-state.md": {
+      "id": "R5-01",
+      "title": "User auth state",
+      "status": "pending",
+      "dependencies": ["tasks/task-R3-01-user-session-lifecycle.md", "tasks/task-R4-01-authorization-password-change.md"],
+      "blocker": null,
+      "started_at": null,
+      "completed_at": null,
+      "last_updated_at": null
+    },
+    "tasks/task-R5-02-user-auth-screens.md": {
+      "id": "R5-02",
+      "title": "User auth screens",
+      "status": "pending",
+      "dependencies": ["tasks/task-R1-01-public-registration-backend.md", "tasks/task-R5-01-user-auth-state.md"],
+      "blocker": null,
+      "started_at": null,
+      "completed_at": null,
+      "last_updated_at": null
+    },
+    "tasks/task-R6-01-tenant-auth-acceptance-tests.md": {
+      "id": "R6-01",
+      "title": "Tenant auth acceptance tests",
+      "status": "pending",
+      "dependencies": ["tasks/task-R1-01-public-registration-backend.md", "tasks/task-R2-01-tenant-login-identity.md", "tasks/task-R3-01-user-session-lifecycle.md", "tasks/task-R4-01-authorization-password-change.md"],
+      "blocker": null,
+      "started_at": null,
+      "completed_at": null,
+      "last_updated_at": null
+    },
+    "tasks/task-R7-01-integration-reachability.md": {
+      "id": "R7-01",
+      "title": "Integration reachability",
+      "status": "pending",
+      "dependencies": ["tasks/task-R5-01-user-auth-state.md", "tasks/task-R5-02-user-auth-screens.md", "tasks/task-R6-01-tenant-auth-acceptance-tests.md"],
+      "blocker": null,
+      "started_at": null,
+      "completed_at": null,
+      "last_updated_at": null
+    }
+  },
+  "blocker": "Awaiting completion of admin-tenant-provisioning owner/role creation contract before end-to-end registration integration.",
+  "progress": {
+    "init": "done",
+    "requirements": "done",
+    "research": "done",
+    "design": "done",
+    "tasks": "done",
+    "code": "pending",
+    "test": "pending",
+    "review": "done"
+  },
+  "timestamps": {
+    "init": "2026-07-19T23:20:00+07:00",
+    "requirements_done": "2026-07-19T23:24:00+07:00",
+    "research_done": "2026-07-19T23:24:00+07:00",
+    "design_done": "2026-07-19T23:28:00+07:00",
+    "tasks_done": "2026-07-19T23:34:00+07:00",
+    "code_done": null,
+    "test_done": null,
+    "review_done": "2026-07-19T23:40:00+07:00",
+    "validation_done": "2026-07-19T23:42:00+07:00"
+  },
+  "design_context": {
+    "discovery_mode": "full",
+    "discovery_reason": "Security-critical cross-layer auth/session feature touching existing tenant provisioning, Redis, JWT claims, Prisma User/Role/AuditLog, frontend state, and runtime guards.",
+    "execution_tier": "deep",
+    "validation_recommended": true,
+    "validation_recommended_reason": "Auth/session, password handling, Redis rotation, permissions, schema/runtime contracts, and 7+ task files."
+  },
+  "validation": {
+    "status": "completed",
+    "session_count": 1,
+    "questions_asked": 0,
+    "last_validated_at": "2026-07-19T23:42:00+07:00"
+  },
+  "translation": {
+    "enabled": false,
+    "language": null,
+    "language_code": null,
+    "dir": null,
+    "sync": "always",
+    "last_synced_at": null
+  },
+  "ready_for_implementation": false
+}
