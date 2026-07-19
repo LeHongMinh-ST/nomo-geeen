@@ -101,7 +101,7 @@ export function LoginForm() {
 				</label>
 				<Link
 					href="/quen-mat-khau"
-					className="text-sm font-medium text-[#2e7d32] transition-colors duration-200 ease-out hover:text-[#43a047] hover:underline"
+					className="text-sm font-medium text-primary transition-colors duration-200 ease-out hover:text-[#4f9c3a] hover:underline"
 				>
 					Quên mật khẩu?
 				</Link>
@@ -110,7 +110,7 @@ export function LoginForm() {
 			<button
 				type="submit"
 				disabled={status === "loading"}
-				className="flex h-12 w-full items-center justify-center gap-2 rounded-[10px] bg-primary text-base font-semibold text-white transition-all duration-200 ease-out hover:bg-[#43a047] active:translate-y-px active:bg-[#2e7d32] disabled:cursor-not-allowed disabled:opacity-70 md:h-11"
+				className="flex h-12 w-full items-center justify-center gap-2 rounded-[10px] bg-primary text-base font-semibold text-white transition-all duration-200 ease-out hover:bg-[#4f9c3a] active:translate-y-px active:bg-[#3f8530] disabled:cursor-not-allowed disabled:opacity-70 md:h-11"
 			>
 				{status === "loading" ? (
 					<>
@@ -125,18 +125,18 @@ export function LoginForm() {
 			{status === "notice" ? (
 				<p
 					role="status"
-					className="rounded-[10px] bg-[#e3f2fd] px-4 py-3 text-sm text-[#1565c0]"
+					className="rounded-[10px] bg-accent px-4 py-3 text-sm text-accent-foreground"
 				>
 					Giao diện đã sẵn sàng. Kết nối API đăng nhập sẽ được bổ sung ở task
 					backend.
 				</p>
 			) : null}
 
-			<p className="text-center text-sm text-[#616161]">
+			<p className="text-center text-sm text-muted-foreground">
 				Chưa có tài khoản?{" "}
 				<Link
 					href="/dang-ky"
-					className="font-semibold text-[#2e7d32] transition-colors duration-200 ease-out hover:text-[#43a047] hover:underline"
+					className="font-semibold text-primary transition-colors duration-200 ease-out hover:text-[#4f9c3a] hover:underline"
 				>
 					Đăng ký miễn phí
 				</Link>

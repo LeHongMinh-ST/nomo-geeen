@@ -105,7 +105,7 @@ export default function DoiMatKhauPage() {
 
 				<button
 					type="submit"
-					className="flex h-12 w-full items-center justify-center rounded-[10px] bg-primary text-base font-semibold text-white transition-all duration-200 ease-out hover:bg-[#43a047] active:translate-y-px active:bg-[#2e7d32] md:h-11"
+					className="flex h-12 w-full items-center justify-center rounded-[10px] bg-primary text-base font-semibold text-white transition-all duration-200 ease-out hover:bg-[#5cad45] active:translate-y-px active:bg-[#3f8530] md:h-11"
 				>
 					Đổi mật khẩu
 				</button>

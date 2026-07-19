@@ -21,6 +21,15 @@ export function blKey(token: string): string {
 }
 
 /**
+ * F-09/F-18: per-admin SET index mapping adminId -> open refresh familyIds.
+ * Lets `revokeAllForAdmin(adminId)` wipe all sessions for an admin in O(families)
+ * without SCAN-ing the global `admin:rt:*` keyspace.
+ */
+export function rtIdxKey(adminId: string): string {
+	return `admin:rtidx:${adminId}`;
+}
+
+/**
  * TTL con lai (giay) tu JWT exp (epoch giay), floor toi thieu 1s.
  */
 export function remainingTtlSec(expEpochSec: number): number {
@@ -58,6 +67,9 @@ return 'reuse'
 /**
  * Owner duy nhat cua refresh-family + access blacklist trong Redis (R3).
  * Chi luu sha256(token), khong bao gio luu token tho (R8.3). Moi key deu co TTL.
+ *
+ * Per-admin SET index (F-09/F-18) lets `revokeAllForAdmin` wipe all sessions
+ * for an admin without scanning the global keyspace.
  */
 @Injectable()
 export class RefreshTokenStore {
@@ -67,8 +79,12 @@ export class RefreshTokenStore {
 		familyId: string,
 		refreshToken: string,
 		ttlSec: number,
+		adminId?: string,
 	): Promise<void> {
 		await this.redis.set(rtKey(familyId), sha256(refreshToken), ttlSec);
+		if (adminId) {
+			await this.redis.sadd(rtIdxKey(adminId), familyId);
+		}
 	}
 
 	async rotate(
@@ -78,6 +94,8 @@ export class RefreshTokenStore {
 		ttlSec: number,
 		graceSec: number,
 	): Promise<RotateResult> {
+		// Rotation keeps the family on the same adminId, so the SET index is
+		// untouched (adminId never changes during rotation).
 		const result = await this.redis.eval(
 			ROTATE_LUA,
 			2,
@@ -91,8 +109,11 @@ export class RefreshTokenStore {
 		return result as RotateResult;
 	}
 
-	async revokeFamily(familyId: string): Promise<void> {
+	async revokeFamily(familyId: string, adminId?: string): Promise<void> {
 		await this.redis.del(rtKey(familyId), rtPrevKey(familyId));
+		if (adminId) {
+			await this.redis.srem(rtIdxKey(adminId), familyId);
+		}
 	}
 
 	async blacklistAccess(token: string, ttlSec: number): Promise<void> {
@@ -101,5 +122,19 @@ export class RefreshTokenStore {
 
 	async isAccessBlacklisted(token: string): Promise<boolean> {
 		return (await this.redis.get(blKey(token))) !== null;
+	}
+
+	/**
+	 * F-09/F-18: revoke every refresh family for an admin (R3.7.a reset-password
+	 * path). Uses the per-admin SET index to avoid SCAN over `admin:rt:*`.
+	 */
+	async revokeAllForAdmin(adminId: string): Promise<void> {
+		const familyIds = await this.redis.smembers(rtIdxKey(adminId));
+		if (familyIds.length === 0) {
+			return;
+		}
+		const allKeys = familyIds.flatMap((fid) => [rtKey(fid), rtPrevKey(fid)]);
+		await this.redis.del(...allKeys);
+		await this.redis.del(rtIdxKey(adminId));
 	}
 }

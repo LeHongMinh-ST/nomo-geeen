@@ -22,7 +22,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-	themeColor: "#4caf50",
+	themeColor: "#5cad45",
 	width: "device-width",
 	initialScale: 1,
 	viewportFit: "cover",
@@ -34,8 +34,8 @@ export default function RootLayout({
 	children: React.ReactNode;
 }>) {
 	return (
-		<html lang="vi" className="h-full antialiased">
-			<body className="min-h-full flex flex-col">
+		<html lang="vi" className="h-full antialiased" suppressHydrationWarning>
+			<body className="min-h-full flex flex-col" suppressHydrationWarning>
 				{children}
 				<ServiceWorkerRegister />
 			</body>

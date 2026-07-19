@@ -5,13 +5,17 @@ import { JwtService, type JwtSignOptions } from '@nestjs/jwt';
 export interface AdminIdentity {
 	id: string;
 	email: string;
-	role: string;
+	role: string; // BACKWARD-COMPAT: comma-joined roleCodes (R5.1, F-06)
+	roleCodes: string[]; // NEW: replaces single `role: string` (Phase B cutover)
+	permissions: string[]; // NEW: flat permission codes for guard + FE gating
 }
 
 export interface AccessClaims {
 	sub: string;
 	email: string;
-	role: string;
+	role: string; // BACKWARD-COMPAT: CSV-joined roleCodes (F-06)
+	roleCodes?: string[]; // NEW: optional for OLD-shape tokens
+	permissions?: string[]; // NEW: optional for OLD-shape tokens
 	type: 'access';
 	familyId: string;
 	jti?: string;
@@ -50,10 +54,15 @@ export class TokenService {
 	}
 
 	signAccess(admin: AdminIdentity, familyId: string): string {
+		// F-06 sign contract: `role` field stays as CSV-joined roleCodes so
+		// legacy consumers reading `payload.role` keep working unchanged.
+		const roleCsv = admin.roleCodes.join(',');
 		const payload = {
 			sub: admin.id,
 			email: admin.email,
-			role: admin.role,
+			role: roleCsv,
+			roleCodes: admin.roleCodes,
+			permissions: admin.permissions,
 			type: 'access',
 			familyId,
 			jti: randomUUID(),
@@ -89,6 +98,16 @@ export class TokenService {
 		}
 		if (claims.type !== 'access') {
 			throw new UnauthorizedException('Wrong token type');
+		}
+		// F-06 backward read: OLD-shape tokens lack `roleCodes`; derive from CSV `role`.
+		if (!claims.roleCodes || claims.roleCodes.length === 0) {
+			claims.roleCodes =
+				claims.role && claims.role.length > 0
+					? claims.role.split(',').map((s) => s.trim()).filter(Boolean)
+					: [];
+		}
+		if (!claims.permissions) {
+			claims.permissions = [];
 		}
 		return claims;
 	}
@@ -126,6 +145,16 @@ export class TokenService {
 		}
 		if (claims.type !== 'access') {
 			throw new UnauthorizedException('Wrong token type');
+		}
+		// Same backward-fill as verifyAccess (F-06).
+		if (!claims.roleCodes || claims.roleCodes.length === 0) {
+			claims.roleCodes =
+				claims.role && claims.role.length > 0
+					? claims.role.split(',').map((s) => s.trim()).filter(Boolean)
+					: [];
+		}
+		if (!claims.permissions) {
+			claims.permissions = [];
 		}
 		return claims;
 	}

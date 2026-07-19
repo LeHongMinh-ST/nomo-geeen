@@ -61,6 +61,7 @@ enum PaymentMethod {
   CASH
   BANK_TRANSFER
   QR
+  MIXED // ban hang: nhieu phuong thuc
 }
 
 enum PaymentStatus {
@@ -72,8 +73,14 @@ enum PaymentStatus {
 
 enum PlatformAdminRole {
   SUPER_ADMIN // toan quyen van hanh SaaS
+  SALER // ban B2C: tao tenant/user, seat, set MK
   SUPPORT // xu ly ticket, xem tenant
   BILLING // quan ly goi, hoa don, thanh toan
+}
+
+enum CreatedByType {
+  PLATFORM_ADMIN
+  USER
 }
 
 enum PlatformAdminStatus {
@@ -118,6 +125,30 @@ enum AuditActorType {
   SYSTEM
 }
 
+// Audit action vocabulary (R6.5). 12 RBAC codes + 3 legacy for pre-existing
+// LOGIN/LOGOUT/REFRESH_REUSE_DETECTED rows preserved by additive migration.
+enum AuditAction {
+  ADMIN_CREATE
+  ADMIN_UPDATE
+  ADMIN_DEACTIVATE
+  ADMIN_REACTIVATE
+  ADMIN_RESET_PASSWORD
+  ADMIN_ROLE_ASSIGN
+  ADMIN_ROLE_REVOKE
+  ROLE_CREATE
+  ROLE_UPDATE
+  ROLE_DELETE
+  ROLE_PERMISSION_GRANT
+  ROLE_PERMISSION_REVOKE
+  LOGIN
+  LOGOUT
+  REFRESH_REUSE_DETECTED
+  // admin-tenant-management (deploy migration before app code that emits these)
+  TENANT_UPDATE
+  TENANT_STATUS_CHANGE
+  TENANT_EXPORT
+}
+
 enum NotificationType {
   DEBT_DUE // cong no den han
   LOW_STOCK // hang sap het
@@ -149,6 +180,7 @@ model Tenant {
   mode       TenantMode   @default(SIMPLE)
   status     TenantStatus @default(ACTIVE)
   logoUrl    String?
+  seatBonus  Int          @default(0) // Admin/Saler cap them seat ngoai plan.maxUsers
   createdAt  DateTime     @default(now())
   updatedAt  DateTime     @updatedAt
   deletedAt  DateTime? // soft delete (17)
@@ -163,6 +195,24 @@ model Tenant {
   storedFiles    StoredFile[]
   supportTickets SupportTicket[]
   announcements  SystemAnnouncement[] // announcement nham vao tenant nay
+  // retail
+  warehouses         Warehouse[]
+  documentSequences  DocumentSequence[]
+  categories         Category[]
+  brands             Brand[]
+  manufacturers      Manufacturer[]
+  units              Unit[]
+  products           Product[]
+  customers          Customer[]
+  suppliers          Supplier[]
+  purchases          Purchase[]
+  sales              Sale[]
+  salesReturns       SalesReturn[]
+  stockAdjustments   StockAdjustment[]
+  debtLedgers        DebtLedger[]
+  paymentVouchers    PaymentVoucher[]
+  diseases           Disease[]
+  tenantSettings     TenantSettings?
 
   @@index([status])
   @@index([deletedAt])
@@ -171,18 +221,21 @@ model Tenant {
 
 // Goi dich vu (3.4): Starter / Professional / Enterprise
 model Plan {
-  id              String       @id @default(uuid())
-  code            String       @unique // starter | professional | enterprise
-  name            String
-  description     String?
-  price           BigInt // VND theo chu ky
-  billingCycle    BillingCycle @default(MONTHLY)
-  maxUsers        Int // gioi han User
-  maxWarehouses   Int          @default(1) // Phase 1: 1 kho
-  maxStorageBytes BigInt // gioi han Storage
-  isActive        Boolean      @default(true)
-  createdAt       DateTime     @default(now())
-  updatedAt       DateTime     @updatedAt
+  id                 String       @id @default(uuid())
+  code               String       @unique // starter | professional | enterprise
+  name               String
+  description        String?
+  price              BigInt // VND theo chu ky
+  billingCycle       BillingCycle @default(MONTHLY)
+  maxUsers           Int // gioi han User (seat)
+  maxWarehouses      Int          @default(1) // Phase 1: 1 kho
+  maxProducts        Int?
+  maxCustomers       Int?
+  maxOrdersPerMonth  Int?
+  maxStorageBytes    BigInt // gioi han Storage
+  isActive           Boolean      @default(true)
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
 
   features      PlanFeature[]
   subscriptions Subscription[]
@@ -190,12 +243,13 @@ model Plan {
   @@map("plan")
 }
 
-// Catalog module bat/tat duoc (3.9): inventory, debt, batch, tax, barcode, quantity_tier_pricing, advanced_mode...
+// Catalog capability (3.4, 3.9): sales_quick, debt, handbook, multi_user...
 model Feature {
   id          String   @id @default(uuid())
-  code        String   @unique // vd: inventory, debt, batch, advanced_mode
+  code        String   @unique
   name        String
   description String?
+  group       String? // core | addon | advanced
   createdAt   DateTime @default(now())
 
   plans       PlanFeature[]
@@ -287,21 +341,41 @@ model Payment {
 
 // Nhan su van hanh SaaS (19). Tach khoi User cua tenant.
 model PlatformAdmin {
-  id           String              @id @default(uuid())
-  email        String              @unique
-  passwordHash String
-  fullName     String
-  role         PlatformAdminRole   @default(SUPPORT)
-  status       PlatformAdminStatus @default(ACTIVE)
-  lastLoginAt  DateTime?
-  createdAt    DateTime            @default(now())
-  updatedAt    DateTime            @updatedAt
+  id                  String              @id @default(uuid())
+  email               String              @unique
+  passwordHash        String
+  fullName            String
+  role                PlatformAdminRole   @default(SUPPORT) // legacy enum; RBAC M:N qua AdminRoleAssignment
+  status              PlatformAdminStatus @default(ACTIVE)
+  mustChangePassword  Boolean             @default(false)
+  lastLoginAt         DateTime?
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
 
   announcements   SystemAnnouncement[]
   assignedTickets SupportTicket[]
   ticketMessages  TicketMessage[]
+  roleAssignments AdminRoleAssignment[]
 
   @@map("platform_admin")
+}
+
+// M:N link table between PlatformAdmin and admin-side roles (R5/R8, F-02).
+// onDelete: Cascade on admin (admin deletion cleans assignments); Restrict on role
+// (admin endpoints must revoke/detach before role deletion).
+model AdminRoleAssignment {
+  id         String   @id @default(uuid())
+  adminId    String
+  roleId     String
+  assignedAt DateTime @default(now())
+  assignedBy String?
+
+  admin PlatformAdmin @relation(fields: [adminId], references: [id], onDelete: Cascade)
+  role  Role          @relation(fields: [roleId], references: [id], onDelete: Restrict)
+
+  @@unique([adminId, roleId])
+  @@index([roleId])
+  @@map("admin_role_assignment")
 }
 
 // Thong bao he thong (19). Nham toan bo tenant hoac 1 tenant cu the.
@@ -371,20 +445,24 @@ model TicketMessage {
 // TENANT-SCOPED
 // ============================================================
 
-// Nguoi dung cua tenant (3.7, 3.8)
+// Nguoi dung cua tenant (3.7, 3.8) — login: username | phone | email + password
 model User {
-  id           String     @id @default(uuid())
-  tenantId     String
-  email        String
-  phone        String?
-  passwordHash String
-  fullName     String
-  roleId       String
-  status       UserStatus @default(ACTIVE)
-  lastLoginAt  DateTime?
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
-  deletedAt    DateTime? // soft delete (17)
+  id                 String         @id @default(uuid())
+  tenantId           String
+  username           String
+  email              String?
+  phone              String?
+  passwordHash       String
+  mustChangePassword Boolean        @default(false)
+  fullName           String
+  roleId             String
+  status             UserStatus     @default(ACTIVE)
+  createdByType      CreatedByType?
+  createdById        String?
+  lastLoginAt        DateTime?
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+  deletedAt          DateTime? // soft delete (17)
 
   tenant         Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   role           Role            @relation(fields: [roleId], references: [id])
@@ -392,28 +470,34 @@ model User {
   ticketMessages TicketMessage[]
   notifications  Notification[]
 
-  @@unique([tenantId, email])
-  @@index([tenantId])
+  @@unique([tenantId, username])
+  @@index([tenantId, status])
+  @@index([username])
   @@index([phone])
+  @@index([email])
   @@map("user")
 }
 
-// Vai tro (3.8). tenantId null = role he thong mac dinh (OWNER/STAFF).
-// Design RBAC som (architecture.md 6.2) de len Advanced Mode khong viet lai.
+// Vai tro (3.8). tenantId null = system role. Phase 1: OWNER / MANAGER / STAFF.
+// isAdmin: admin-side roles (SUPER_ADMIN/SALER/SUPPORT/BILLING).
 model Role {
   id        String   @id @default(uuid())
   tenantId  String? // null = system role dung chung
-  code      String // OWNER | STAFF | (Advanced: MANAGER/WAREHOUSE/SALES/CASHIER/VIEWER)
+  code      String // OWNER | MANAGER | STAFF | admin codes | Advanced...
   name      String
   isSystem  Boolean  @default(false)
+  isAdmin   Boolean  @default(false)
+  rank      Int? // 1=Owner 2=Manager 3=Staff
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  tenant      Tenant?          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  users       User[]
-  permissions RolePermission[]
+  tenant           Tenant?               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  users            User[]
+  permissions      RolePermission[]
+  adminAssignments AdminRoleAssignment[]
 
   @@unique([tenantId, code])
+  @@index([tenantId, isAdmin])
   @@map("role")
 }
 
@@ -462,19 +546,23 @@ model TenantFeatureFlag {
 }
 
 // Audit Log (3.12, 18). Actor co the la admin, user, hoac system.
+// actorRoleCode (R6.2): denormalized role code authorizing the action;
+// nullable for SYSTEM actor or pre-migration rows. action (R6.5): enum
+// enforced by R0-01 migration (legacy `String` rows CAST to enum).
 model AuditLog {
-  id         String         @id @default(uuid())
-  tenantId   String? // null cho hanh dong cap platform
-  actorType  AuditActorType @default(USER)
-  actorId    String? // id cua PlatformAdmin/User
-  action     String // LOGIN, LOGOUT, CREATE, UPDATE, DELETE, APPROVAL
-  resource   String? // ten bang/module bi tac dong
-  resourceId String?
-  before     Json?
-  after      Json?
-  ipAddress  String?
-  userAgent  String?
-  createdAt  DateTime       @default(now())
+  id             String         @id @default(uuid())
+  tenantId       String? // null cho hanh dong cap platform
+  actorType      AuditActorType @default(USER)
+  actorId        String? // id cua PlatformAdmin/User
+  actorRoleCode  String? // R6.2: role code dang authorize action
+  action         AuditAction
+  resource       String? // ten bang/module bi tac dong
+  resourceId     String?
+  before         Json?
+  after          Json?
+  ipAddress      String?
+  userAgent      String?
+  createdAt      DateTime       @default(now())
 
   tenant Tenant? @relation(fields: [tenantId], references: [id], onDelete: SetNull)
 
@@ -518,4 +606,898 @@ model StoredFile {
 
   @@index([tenantId, purpose])
   @@map("stored_file")
+}
+
+// ============================================================
+// RETAIL — App cua hang (docs/database-design-retail.md v1.2)
+// ============================================================
+
+enum AgriDomain {
+  CROP
+  LIVESTOCK
+  AQUACULTURE
+  GENERAL
+}
+
+enum ProductKind {
+  PESTICIDE
+  FERTILIZER
+  AGRI_MATERIAL
+  CROP_SEED
+  VET_DRUG
+  ANIMAL_FEED
+  LIVESTOCK_SEED
+  AQUA_DRUG
+  AQUA_FEED
+  AQUA_SEED
+  OTHER
+}
+
+enum ProductStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum ConversionKind {
+  PURCHASE
+  SALE
+  BOTH
+}
+
+enum DocumentType {
+  SALE
+  PURCHASE
+  SALE_RETURN
+  PURCHASE_RETURN
+  RECEIPT
+  PAYMENT
+  ADJUSTMENT
+}
+
+enum PurchaseStatus {
+  DRAFT
+  COMPLETED
+  CANCELLED
+}
+
+enum SaleStatus {
+  DRAFT
+  COMPLETED
+  CANCELLED
+}
+
+enum SaleChannel {
+  QUICK_SALE
+  ORDER
+}
+
+enum PriceSource {
+  CUSTOM
+  TIER
+  RETAIL
+  MANUAL
+}
+
+enum StockDirection {
+  IN
+  OUT
+}
+
+enum StockReason {
+  PURCHASE
+  SALE
+  SALE_RETURN
+  PURCHASE_RETURN
+  ADJUSTMENT
+  TRANSFER_IN
+  TRANSFER_OUT
+}
+
+enum DebtPartyType {
+  CUSTOMER
+  SUPPLIER
+}
+
+enum DebtEntryType {
+  OPENING
+  SALE
+  PURCHASE
+  RECEIPT
+  PAYMENT
+  ADJUST
+}
+
+enum DebtDirection {
+  INCREASE
+  DECREASE
+}
+
+enum VoucherType {
+  RECEIPT
+  PAYMENT
+}
+
+enum CustomerType {
+  RETAIL
+  FARMER
+  FARM
+  AGENT
+}
+
+enum DiseaseType {
+  DISEASE
+  PEST
+  WEED
+  OTHER
+}
+
+enum ConsultFieldType {
+  NUMBER
+  TEXT
+  SELECT
+  MULTI
+  DATE
+}
+
+enum SupplierStatus {
+  ACTIVE
+  INACTIVE
+}
+
+// --- Master data ---
+
+model Warehouse {
+  id        String    @id @default(uuid())
+  tenantId  String
+  code      String    @default("DEFAULT")
+  name      String
+  isDefault Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  tenant           Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  stocks           Stock[]
+  batches          ProductBatch[]
+  movements        StockMovement[]
+  purchases        Purchase[]
+  sales            Sale[]
+  salesReturns     SalesReturn[]
+  stockAdjustments StockAdjustment[]
+
+  @@unique([tenantId, code])
+  @@index([tenantId])
+  @@map("warehouse")
+}
+
+model DocumentSequence {
+  id        String       @id @default(uuid())
+  tenantId  String
+  docType   DocumentType
+  prefix    String?
+  nextValue Int          @default(1)
+  updatedAt DateTime     @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, docType])
+  @@map("document_sequence")
+}
+
+model Category {
+  id        String      @id @default(uuid())
+  tenantId  String
+  name      String
+  domain    AgriDomain?
+  parentId  String?
+  sortOrder Int         @default(0)
+  deletedAt DateTime?
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  tenant   Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  parent   Category?  @relation("CategoryTree", fields: [parentId], references: [id], onDelete: SetNull)
+  children Category[] @relation("CategoryTree")
+  products Product[]
+
+  @@index([tenantId])
+  @@map("category")
+}
+
+model Brand {
+  id        String    @id @default(uuid())
+  tenantId  String
+  name      String
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  tenant   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  products Product[]
+
+  @@index([tenantId])
+  @@map("brand")
+}
+
+model Manufacturer {
+  id        String    @id @default(uuid())
+  tenantId  String
+  name      String
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  tenant   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  products Product[]
+
+  @@index([tenantId])
+  @@map("manufacturer")
+}
+
+model Unit {
+  id        String    @id @default(uuid())
+  tenantId  String
+  code      String
+  name      String
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  tenant      Tenant                   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  products    Product[]
+  conversions ProductUnitConversion[]
+  saleLines   SaleLine[]
+  purchaseLines PurchaseLine[]
+
+  @@unique([tenantId, code])
+  @@map("unit")
+}
+
+model Product {
+  id               String        @id @default(uuid())
+  tenantId         String
+  sku              String
+  barcode          String?
+  name             String
+  nameSearch       String?
+  categoryId       String?
+  brandId          String?
+  manufacturerId   String?
+  defaultSupplierId String?
+  baseUnitId       String
+  domain           AgriDomain?
+  productKind      ProductKind   @default(OTHER)
+  packSize         String?
+  netContent       Decimal?      @db.Decimal(18, 6)
+  netContentUnit   String?
+  registrationNo   String?
+  shortDesc        String?
+  activeIngredient String?
+  concentration    String?
+  applyTargets     Json?
+  pestTags         Json?
+  attrs            Json?
+  costPrice        BigInt        @default(0)
+  salePrice        BigInt        @default(0)
+  wholesalePrice   BigInt?
+  isPinned         Boolean       @default(false)
+  isLocked         Boolean       @default(false)
+  isRecalled       Boolean       @default(false)
+  status           ProductStatus @default(ACTIVE)
+  deletedAt        DateTime?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  tenant          Tenant                   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  category        Category?                @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  brand           Brand?                   @relation(fields: [brandId], references: [id], onDelete: SetNull)
+  manufacturer    Manufacturer?            @relation(fields: [manufacturerId], references: [id], onDelete: SetNull)
+  defaultSupplier Supplier?                @relation(fields: [defaultSupplierId], references: [id], onDelete: SetNull)
+  baseUnit        Unit                     @relation(fields: [baseUnitId], references: [id])
+  conversions     ProductUnitConversion[]
+  priceTiers      ProductPriceTier[]
+  customerPrices  CustomerProductPrice[]
+  batches         ProductBatch[]
+  stocks          Stock[]
+  movements       StockMovement[]
+  purchaseLines   PurchaseLine[]
+  saleLines       SaleLine[]
+  diseasePins     DiseaseProductPin[]
+  diseaseFallbacksAsPrimary DiseaseProductFallback[] @relation("FallbackPrimary")
+  diseaseFallbacksAsAlt     DiseaseProductFallback[] @relation("FallbackAlt")
+
+  @@unique([tenantId, sku])
+  @@index([tenantId, nameSearch])
+  @@index([tenantId, barcode])
+  @@index([tenantId, activeIngredient])
+  @@index([tenantId, productKind])
+  @@index([tenantId, isPinned])
+  @@map("product")
+}
+
+model ProductUnitConversion {
+  id           String         @id @default(uuid())
+  tenantId     String
+  productId    String
+  unitId       String
+  factorToBase Decimal        @db.Decimal(18, 6)
+  kind         ConversionKind @default(BOTH)
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  unit    Unit    @relation(fields: [unitId], references: [id])
+
+  @@unique([productId, unitId, kind])
+  @@index([tenantId])
+  @@map("product_unit_conversion")
+}
+
+model ProductPriceTier {
+  id        String  @id @default(uuid())
+  tenantId  String
+  productId String
+  minQty    Decimal @db.Decimal(18, 6)
+  maxQty    Decimal? @db.Decimal(18, 6)
+  price     BigInt
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, productId])
+  @@map("product_price_tier")
+}
+
+model CustomerProductPrice {
+  id         String @id @default(uuid())
+  tenantId   String
+  customerId String
+  productId  String
+  price      BigInt
+
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  product  Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([customerId, productId])
+  @@index([tenantId])
+  @@map("customer_product_price")
+}
+
+// --- Inventory ---
+
+model ProductBatch {
+  id             String    @id @default(uuid())
+  tenantId       String
+  productId      String
+  warehouseId    String
+  batchCode      String
+  manufacturedAt DateTime? @db.Date
+  expiresAt      DateTime? @db.Date
+  isRecalled     Boolean   @default(false)
+  qtyOnHand      Decimal   @default(0) @db.Decimal(18, 6)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  product       Product          @relation(fields: [productId], references: [id], onDelete: Cascade)
+  warehouse     Warehouse        @relation(fields: [warehouseId], references: [id])
+  movements     StockMovement[]
+  purchaseLines PurchaseLine[]
+  saleLines     SaleLine[]
+  saleLineBatches SaleLineBatch[]
+
+  @@unique([tenantId, productId, warehouseId, batchCode])
+  @@index([expiresAt])
+  @@index([isRecalled])
+  @@map("product_batch")
+}
+
+model Stock {
+  id          String  @id @default(uuid())
+  tenantId    String
+  warehouseId String
+  productId   String
+  qty         Decimal @default(0) @db.Decimal(18, 6)
+  avgCost     BigInt  @default(0)
+  updatedAt   DateTime @updatedAt
+
+  warehouse Warehouse @relation(fields: [warehouseId], references: [id])
+  product   Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([warehouseId, productId])
+  @@index([tenantId])
+  @@map("stock")
+}
+
+model StockMovement {
+  id          String         @id @default(uuid())
+  tenantId    String
+  warehouseId String
+  productId   String
+  batchId     String?
+  direction   StockDirection
+  qty         Decimal        @db.Decimal(18, 6)
+  unitCost    BigInt?
+  reason      StockReason
+  refType     String
+  refId       String
+  refLineId   String?
+  occurredAt  DateTime       @default(now())
+  createdBy   String?
+  note        String?
+  createdAt   DateTime       @default(now())
+
+  warehouse Warehouse    @relation(fields: [warehouseId], references: [id])
+  product   Product      @relation(fields: [productId], references: [id])
+  batch     ProductBatch? @relation(fields: [batchId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, productId, occurredAt])
+  @@index([refType, refId])
+  @@map("stock_movement")
+}
+
+model StockAdjustment {
+  id          String   @id @default(uuid())
+  tenantId    String
+  docNo       String
+  warehouseId String
+  status      String   @default("COMPLETED")
+  note        String?
+  createdBy   String?
+  createdAt   DateTime @default(now())
+
+  tenant    Tenant                 @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  warehouse Warehouse              @relation(fields: [warehouseId], references: [id])
+  lines     StockAdjustmentLine[]
+
+  @@unique([tenantId, docNo])
+  @@map("stock_adjustment")
+}
+
+model StockAdjustmentLine {
+  id           String  @id @default(uuid())
+  adjustmentId String
+  productId    String
+  batchId      String?
+  qtyBefore    Decimal @db.Decimal(18, 6)
+  qtyAfter     Decimal @db.Decimal(18, 6)
+  delta        Decimal @db.Decimal(18, 6)
+
+  adjustment StockAdjustment @relation(fields: [adjustmentId], references: [id], onDelete: Cascade)
+
+  @@index([adjustmentId])
+  @@map("stock_adjustment_line")
+}
+
+// --- Purchase ---
+
+model Purchase {
+  id              String         @id @default(uuid())
+  tenantId        String
+  docNo           String
+  supplierId      String
+  warehouseId     String
+  status          PurchaseStatus @default(DRAFT)
+  purchasedAt     DateTime       @default(now())
+  subtotal        BigInt         @default(0)
+  discountAmount  BigInt         @default(0)
+  taxAmount       BigInt         @default(0)
+  shippingFee     BigInt         @default(0)
+  total           BigInt         @default(0)
+  amountPaid      BigInt         @default(0)
+  debtAmount      BigInt         @default(0)
+  note            String?
+  createdBy       String?
+  completedAt     DateTime?
+  deletedAt       DateTime?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  tenant    Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  supplier  Supplier       @relation(fields: [supplierId], references: [id])
+  warehouse Warehouse      @relation(fields: [warehouseId], references: [id])
+  lines     PurchaseLine[]
+  vouchers  PaymentVoucher[]
+
+  @@unique([tenantId, docNo])
+  @@index([tenantId, purchasedAt])
+  @@map("purchase")
+}
+
+model PurchaseLine {
+  id           String   @id @default(uuid())
+  tenantId     String
+  purchaseId   String
+  productId    String
+  unitId       String
+  qty          Decimal  @db.Decimal(18, 6)
+  qtyBase      Decimal  @db.Decimal(18, 6)
+  unitPrice    BigInt
+  lineDiscount BigInt   @default(0)
+  lineTotal    BigInt
+  batchCode    String?
+  expiresAt    DateTime? @db.Date
+  batchId      String?
+
+  purchase Purchase     @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+  product  Product      @relation(fields: [productId], references: [id])
+  unit     Unit         @relation(fields: [unitId], references: [id])
+  batch    ProductBatch? @relation(fields: [batchId], references: [id], onDelete: SetNull)
+
+  @@index([purchaseId])
+  @@index([tenantId])
+  @@map("purchase_line")
+}
+
+// --- Sales ---
+
+model Sale {
+  id                    String       @id @default(uuid())
+  tenantId              String
+  docNo                 String
+  channel               SaleChannel  @default(QUICK_SALE)
+  status                SaleStatus   @default(COMPLETED)
+  customerId            String?
+  customerNameSnapshot  String?
+  customerPhoneSnapshot String?
+  warehouseId           String
+  subtotal              BigInt       @default(0)
+  discountAmount        BigInt       @default(0)
+  taxAmount             BigInt       @default(0)
+  total                 BigInt       @default(0)
+  amountPaid            BigInt       @default(0)
+  changeAmount          BigInt       @default(0)
+  debtAmount            BigInt       @default(0)
+  paymentMethod         PaymentMethod?
+  soldAt                DateTime     @default(now())
+  diseaseId             String?
+  diseaseNameSnapshot   String?
+  consultContext        Json?
+  suggestedQtyMeta      Json?
+  idempotencyKey        String?
+  createdBy             String?
+  completedAt           DateTime?
+  deletedAt             DateTime?
+  createdAt             DateTime     @default(now())
+  updatedAt             DateTime     @updatedAt
+
+  tenant    Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  customer  Customer?        @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  warehouse Warehouse        @relation(fields: [warehouseId], references: [id])
+  disease   Disease?         @relation(fields: [diseaseId], references: [id], onDelete: SetNull)
+  lines     SaleLine[]
+  returns   SalesReturn[]
+  vouchers  PaymentVoucher[]
+
+  @@unique([tenantId, docNo])
+  @@unique([tenantId, idempotencyKey])
+  @@index([tenantId, soldAt])
+  @@index([tenantId, customerId])
+  @@map("sale")
+}
+
+model SaleLine {
+  id                   String       @id @default(uuid())
+  tenantId             String
+  saleId               String
+  productId            String
+  productNameSnapshot  String
+  unitId               String
+  qty                  Decimal      @db.Decimal(18, 6)
+  qtyBase              Decimal      @db.Decimal(18, 6)
+  unitPrice            BigInt
+  priceSource          PriceSource?
+  lineDiscount         BigInt       @default(0)
+  lineTotal            BigInt
+  unitCost             BigInt       @default(0)
+  batchId              String?
+
+  sale    Sale            @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  product Product         @relation(fields: [productId], references: [id])
+  unit    Unit            @relation(fields: [unitId], references: [id])
+  batch   ProductBatch?   @relation(fields: [batchId], references: [id], onDelete: SetNull)
+  batches SaleLineBatch[]
+
+  @@index([saleId])
+  @@index([tenantId])
+  @@map("sale_line")
+}
+
+model SaleLineBatch {
+  id         String  @id @default(uuid())
+  saleLineId String
+  batchId    String
+  qtyBase    Decimal @db.Decimal(18, 6)
+
+  saleLine SaleLine     @relation(fields: [saleLineId], references: [id], onDelete: Cascade)
+  batch    ProductBatch @relation(fields: [batchId], references: [id])
+
+  @@index([saleLineId])
+  @@map("sale_line_batch")
+}
+
+model SalesReturn {
+  id             String     @id @default(uuid())
+  tenantId       String
+  docNo          String
+  originalSaleId String?
+  customerId     String?
+  warehouseId    String
+  status         SaleStatus @default(COMPLETED)
+  total          BigInt     @default(0)
+  debtAdjust     BigInt     @default(0)
+  note           String?
+  createdBy      String?
+  completedAt    DateTime?
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  tenant       Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  originalSale Sale?              @relation(fields: [originalSaleId], references: [id], onDelete: SetNull)
+  customer     Customer?          @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  warehouse    Warehouse          @relation(fields: [warehouseId], references: [id])
+  lines        SalesReturnLine[]
+
+  @@unique([tenantId, docNo])
+  @@map("sales_return")
+}
+
+model SalesReturnLine {
+  id            String  @id @default(uuid())
+  salesReturnId String
+  productId     String
+  qtyBase       Decimal @db.Decimal(18, 6)
+  lineTotal     BigInt  @default(0)
+
+  salesReturn SalesReturn @relation(fields: [salesReturnId], references: [id], onDelete: Cascade)
+
+  @@index([salesReturnId])
+  @@map("sales_return_line")
+}
+
+// --- Customer / Supplier ---
+
+model Customer {
+  id                 String        @id @default(uuid())
+  tenantId           String
+  code               String?
+  name               String
+  nameSearch         String?
+  phone              String?
+  address            String?
+  type               CustomerType?
+  productionProfile  Json?
+  debtLimit          BigInt?
+  openingBalance     BigInt        @default(0)
+  balance            BigInt        @default(0)
+  note               String?
+  deletedAt          DateTime?
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+
+  tenant         Tenant                 @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  sales          Sale[]
+  salesReturns   SalesReturn[]
+  productPrices  CustomerProductPrice[]
+  vouchers       PaymentVoucher[]
+
+  @@index([tenantId, phone])
+  @@index([tenantId, nameSearch])
+  @@map("customer")
+}
+
+model Supplier {
+  id              String         @id @default(uuid())
+  tenantId        String
+  code            String
+  name            String
+  supplierType    String?
+  contactName     String?
+  contactTitle    String?
+  phone           String?
+  email           String?
+  address         String?
+  taxCode         String?
+  discountPercent Decimal?       @db.Decimal(8, 4)
+  debtLimit       BigInt?
+  paymentTerms    String?
+  openingBalance  BigInt         @default(0)
+  balance         BigInt         @default(0)
+  status          SupplierStatus @default(ACTIVE)
+  deletedAt       DateTime?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  tenant          Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  purchases       Purchase[]
+  productsDefault Product[]
+  vouchers        PaymentVoucher[]
+
+  @@unique([tenantId, code])
+  @@index([tenantId])
+  @@map("supplier")
+}
+
+// --- Debt ---
+
+model DebtLedger {
+  id           String         @id @default(uuid())
+  tenantId     String
+  partyType    DebtPartyType
+  partyId      String
+  entryType    DebtEntryType
+  direction    DebtDirection
+  amount       BigInt
+  balanceAfter BigInt?
+  refType      String?
+  refId        String?
+  occurredAt   DateTime       @default(now())
+  note         String?
+  createdBy    String?
+  createdAt    DateTime       @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, partyType, partyId, occurredAt])
+  @@map("debt_ledger")
+}
+
+model PaymentVoucher {
+  id             String        @id @default(uuid())
+  tenantId       String
+  docNo          String
+  voucherType    VoucherType
+  partyType      DebtPartyType
+  partyId        String
+  amount         BigInt
+  method         PaymentMethod @default(CASH)
+  refSaleId      String?
+  refPurchaseId  String?
+  customerId     String?
+  supplierId     String?
+  occurredAt     DateTime      @default(now())
+  note           String?
+  createdBy      String?
+  status         String        @default("COMPLETED")
+  createdAt      DateTime      @default(now())
+
+  tenant   Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  refSale  Sale?                 @relation(fields: [refSaleId], references: [id], onDelete: SetNull)
+  refPurchase Purchase?          @relation(fields: [refPurchaseId], references: [id], onDelete: SetNull)
+  customer Customer?             @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  supplier Supplier?             @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+  lines    PaymentVoucherLine[]
+
+  @@unique([tenantId, docNo])
+  @@index([tenantId, occurredAt])
+  @@map("payment_voucher")
+}
+
+model PaymentVoucherLine {
+  id            String        @id @default(uuid())
+  voucherId     String
+  method        PaymentMethod
+  amount        BigInt
+  refSaleId     String?
+  refPurchaseId String?
+
+  voucher PaymentVoucher @relation(fields: [voucherId], references: [id], onDelete: Cascade)
+
+  @@index([voucherId])
+  @@map("payment_voucher_line")
+}
+
+// --- Handbook ---
+
+model Disease {
+  id            String       @id @default(uuid())
+  tenantId      String
+  name          String
+  nameSearch    String?
+  aliases       Json?
+  aliasesSearch String?
+  domain        AgriDomain   @default(GENERAL)
+  target        String?
+  type          DiseaseType?
+  symptom       String?
+  note          String?
+  formulaExpr   String?
+  isPinned      Boolean      @default(false)
+  sortOrder     Int          @default(0)
+  isActive      Boolean      @default(true)
+  deletedAt     DateTime?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  tenant      Tenant                   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  ingredients DiseaseIngredient[]
+  pins        DiseaseProductPin[]
+  consultFields DiseaseConsultField[]
+  fallbacks   DiseaseProductFallback[]
+  sales       Sale[]
+
+  @@index([tenantId, isPinned])
+  @@index([tenantId, nameSearch])
+  @@map("disease")
+}
+
+model DiseaseIngredient {
+  id               String @id @default(uuid())
+  tenantId         String
+  diseaseId        String
+  activeIngredient String
+  sortOrder        Int    @default(0)
+
+  disease Disease @relation(fields: [diseaseId], references: [id], onDelete: Cascade)
+
+  @@index([diseaseId])
+  @@map("disease_ingredient")
+}
+
+model DiseaseProductPin {
+  id         String  @id @default(uuid())
+  tenantId   String
+  diseaseId  String
+  productId  String
+  sortOrder  Int     @default(0)
+  isExcluded Boolean @default(false)
+
+  disease Disease @relation(fields: [diseaseId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([diseaseId, productId])
+  @@map("disease_product_pin")
+}
+
+model DiseaseConsultField {
+  id        String           @id @default(uuid())
+  tenantId  String
+  diseaseId String?
+  fieldKey  String
+  label     String
+  fieldType ConsultFieldType @default(NUMBER)
+  unit      String?
+  options   Json?
+  required  Boolean          @default(false)
+  sortOrder Int              @default(0)
+  isEnabled Boolean          @default(true)
+
+  disease Disease? @relation(fields: [diseaseId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, diseaseId])
+  @@map("disease_consult_field")
+}
+
+model DiseaseProductFallback {
+  id                String @id @default(uuid())
+  tenantId          String
+  diseaseId         String
+  primaryProductId  String
+  fallbackProductId String
+  sortOrder         Int    @default(0)
+
+  disease         Disease @relation(fields: [diseaseId], references: [id], onDelete: Cascade)
+  primaryProduct  Product @relation("FallbackPrimary", fields: [primaryProductId], references: [id], onDelete: Cascade)
+  fallbackProduct Product @relation("FallbackAlt", fields: [fallbackProductId], references: [id], onDelete: Cascade)
+
+  @@index([diseaseId, primaryProductId])
+  @@map("disease_product_fallback")
+}
+
+// --- Settings ---
+
+model TenantSettings {
+  tenantId                   String  @id
+  companyName                String?
+  address                    String?
+  phone                      String?
+  email                      String?
+  logoFileId                 String?
+  currency                   String  @default("VND")
+  timezone                   String  @default("Asia/Ho_Chi_Minh")
+  language                   String  @default("vi")
+  defaultPaymentMethod       PaymentMethod?
+  receiptFooter              String?
+  lowStockThresholdDefault   Decimal? @db.Decimal(18, 6)
+  updatedAt                  DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@map("tenant_settings")
 }

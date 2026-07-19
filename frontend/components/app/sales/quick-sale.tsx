@@ -243,7 +243,7 @@ function ActionButtons({
 			<button
 				type="button"
 				onClick={onPay}
-				className="flex h-14 items-center justify-center gap-2 rounded-[10px] bg-primary text-lg font-bold text-white transition-colors duration-200 ease-out hover:bg-[#43a047] active:bg-[#2e7d32]"
+				className="flex h-14 items-center justify-center gap-2 rounded-[10px] bg-primary text-lg font-bold text-white transition-colors duration-200 ease-out hover:bg-[#5cad45] active:bg-[#3f8530]"
 			>
 				<Wallet className="size-6" aria-hidden />
 				Thu tiền

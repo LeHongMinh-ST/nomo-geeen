@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800;900&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="image-slot.js"></script>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; }
+    a { color: #2e7d32; text-decoration: none; }
+    a:hover { color: #1b5e20; }
+    html { scroll-behavior: smooth; }
+  </style>
+</helmet>
+<div style="width:100%;font-family:'IBM Plex Sans',sans-serif;color:#1c2a1e;background:#ffffff;overflow-x:clip;">
+
+  <!-- NAV -->
+  <header style="position:sticky;top:0;z-index:50;background:rgba(255,255,255,0.92);backdrop-filter:blur(10px);border-bottom:1px solid #eaf0e6;">
+    <nav style="max-width:1200px;margin:0 auto;display:flex;align-items:center;gap:32px;padding:14px 32px;">
+      <a href="#top" style="display:flex;align-items:center;gap:12px;">
+        <svg width="42" height="42" viewBox="0 0 200 200" aria-label="Nomo Green">
+          <defs><linearGradient id="nav-ng" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8ed94f"/><stop offset="1" stop-color="#4faa3a"/></linearGradient></defs>
+          <circle cx="100" cy="100" r="90" fill="url(#nav-ng)"/>
+          <path d="M60 50 h26 v100 h-26 Z" fill="#fff"/><path d="M114 50 h26 v100 h-26 Z" fill="#fff"/>
+          <path d="M60 50 h28 L118 96 v20 L88 82 v68 h-28 Z" fill="#fff" opacity="0.92"/>
+        </svg>
+        <span style="font-family:'IBM Plex Sans',sans-serif;font-weight:800;font-size:20px;"><span style="color:#1667b1;">NOMO</span><span style="color:#4faa3a;">GREEN</span></span>
+      </a>
+      <div style="display:flex;gap:28px;margin-left:auto;font-weight:600;font-size:15px;">
+        <a href="#giai-phap">Giải pháp</a>
+        <a href="#linh-vuc">Lĩnh vực</a>
+        <a href="#lo-trinh">Lộ trình</a>
+        <a href="#ve-chung-toi">Về chúng tôi</a>
+      </div>
+      <a href="#lien-he" style="background:linear-gradient(90deg,#5aa646,#2e7d32);color:#fff;font-weight:700;font-size:15px;padding:11px 22px;border-radius:100px;">Liên hệ</a>
+    </nav>
+  </header>
+
+  <!-- HERO -->
+  <section id="top" style="position:relative;background:radial-gradient(120% 90% at 85% 0%,#eaf6e2 0%,#f6fbf2 55%,#ffffff 100%);">
+    <div style="max-width:1200px;margin:0 auto;display:grid;grid-template-columns:1.05fr 0.95fr;gap:48px;align-items:center;padding:80px 32px 90px;">
+      <div>
+        <h1 style="margin:0;font-family:'IBM Plex Sans',sans-serif;font-weight:900;font-size:56px;line-height:1.05;letter-spacing:-1px;color:#173d1e;text-wrap:balance;">Kiến tạo hệ sinh thái <span style="color:#4faa3a;">nông nghiệp số</span></h1>
+        <p style="margin:22px 0 0;font-size:19px;line-height:1.55;color:#4a5c4e;max-width:520px;">NomoGreen số hóa toàn diện chuỗi giá trị nông nghiệp — từ nông hộ, trang trại đến doanh nghiệp — giúp quản lý thông minh, minh bạch và bền vững.</p>
+        <div style="display:flex;gap:14px;margin-top:32px;flex-wrap:wrap;">
+          <a href="#giai-phap" style="background:linear-gradient(90deg,#5aa646,#2e7d32);color:#fff;font-weight:700;font-size:16px;padding:15px 30px;border-radius:100px;">Khám phá giải pháp</a>
+          <a href="#lien-he" style="border:1.5px solid #bcd6b0;color:#2e7d32;font-weight:700;font-size:16px;padding:15px 30px;border-radius:100px;background:#fff;">Đăng ký tư vấn</a>
+        </div>
+      </div>
+      <div style="position:relative;border-radius:26px;overflow:hidden;height:420px;box-shadow:0 24px 60px rgba(46,125,50,0.18);border:1px solid #e0eed8;">
+        <image-slot id="web-hero" shape="rect" src="assets/web-hero.png" placeholder="Ảnh nông nghiệp công nghệ cao"></image-slot>
+      </div>
+    </div>
+  </section>
+
+  <!-- STATS -->
+  <section style="background:#0f3d1a;">
+    <div style="max-width:1200px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr);gap:24px;padding:40px 32px;text-align:center;color:#eafbe6;">
+      <div><div style="font-family:'IBM Plex Sans',sans-serif;font-weight:900;font-size:40px;color:#8ed94f;">7</div><div style="font-size:14px;color:#bfe3ac;margin-top:4px;">Giải pháp số</div></div>
+      <div><div style="font-family:'IBM Plex Sans',sans-serif;font-weight:900;font-size:40px;color:#8ed94f;">+30%</div><div style="font-size:14px;color:#bfe3ac;margin-top:4px;">Năng suất canh tác</div></div>
+      <div><div style="font-family:'IBM Plex Sans',sans-serif;font-weight:900;font-size:40px;color:#8ed94f;">100%</div><div style="font-size:14px;color:#bfe3ac;margin-top:4px;">Truy xuất nguồn gốc</div></div>
+      <div><div style="font-family:'IBM Plex Sans',sans-serif;font-weight:900;font-size:40px;color:#8ed94f;">24/7</div><div style="font-size:14px;color:#bfe3ac;margin-top:4px;">Giám sát bằng AI</div></div>
+    </div>
+  </section>
+
+  <!-- GIAI PHAP -->
+  <section id="giai-phap" style="max-width:1200px;margin:0 auto;padding:88px 32px;">
+    <div style="text-align:center;max-width:680px;margin:0 auto;">
+      <div style="font-size:13px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#4faa3a;">Bộ giải pháp</div>
+      <h2 style="margin:12px 0 0;font-family:'IBM Plex Sans',sans-serif;font-weight:800;font-size:38px;color:#173d1e;">Hệ sinh thái Nomo</h2>
+      <p style="margin:14px 0 0;font-size:17px;color:#5a6b5c;line-height:1.5;">7 giải pháp số kết nối liền mạch, phục vụ toàn bộ chuỗi giá trị nông nghiệp.</p>
+    </div>
+    <div style="display:flex;justify-content:center;margin-top:36px;">
+      <div style="position:relative;width:640px;height:640px;">
+        <svg width="640" height="640" viewBox="0 0 640 640" style="position:absolute;inset:0;">
+          <line x1="320" y1="320" x2="320" y2="70" stroke="#d3e8c6" stroke-width="1.5"/><line x1="320" y1="320" x2="515" y2="164" stroke="#d3e8c6" stroke-width="1.5"/><line x1="320" y1="320" x2="564" y2="376" stroke="#d3e8c6" stroke-width="1.5"/><line x1="320" y1="320" x2="428" y2="545" stroke="#d3e8c6" stroke-width="1.5"/><line x1="320" y1="320" x2="212" y2="545" stroke="#d3e8c6" stroke-width="1.5"/><line x1="320" y1="320" x2="76" y2="376" stroke="#d3e8c6" stroke-width="1.5"/><line x1="320" y1="320" x2="124" y2="164" stroke="#d3e8c6" stroke-width="1.5"/>
+          <circle cx="320" cy="320" r="250" fill="none" stroke="#8ed94f" stroke-width="2.5" stroke-dasharray="3 12" stroke-linecap="round"/>
+        </svg>
+        <div style="position:absolute;left:320px;top:320px;transform:translate(-50%,-50%);width:190px;height:190px;border-radius:50%;background:linear-gradient(135deg,#1c6b2e,#0f3d1a);box-shadow:0 16px 40px rgba(15,61,26,0.35);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;text-align:center;">
+          <svg width="52" height="52" viewBox="0 0 200 200"><defs><linearGradient id="hub-ng" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8ed94f"/><stop offset="1" stop-color="#4faa3a"/></linearGradient></defs><circle cx="100" cy="100" r="90" fill="url(#hub-ng)"/><path d="M60 50 h26 v100 h-26 Z" fill="#fff"/><path d="M114 50 h26 v100 h-26 Z" fill="#fff"/><path d="M60 50 h28 L118 96 v20 L88 82 v68 h-28 Z" fill="#fff" opacity="0.92"/></svg>
+          <div style="font-family:'IBM Plex Sans',sans-serif;font-weight:800;font-size:17px;color:#fff;line-height:1.15;">Hệ sinh thái<br/><span style="color:#8ed94f;">Nomo</span></div>
+        </div>
+      <div style="position:absolute;left:320px;top:70px;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:8px;width:130px;">
+        <div style="width:78px;height:78px;border-radius:50%;background:#fff;box-shadow:0 8px 22px rgba(46,125,50,0.16);display:flex;align-items:center;justify-content:center;"><svg width="54" height="54" viewBox="0 0 200 200"><defs><linearGradient id="r1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8ed94f"/><stop offset="1" stop-color="#4faa3a"/></linearGradient></defs><circle cx="100" cy="100" r="90" fill="url(#r1)"/><path d="M60 50 h26 v100 h-26 Z" fill="#fff"/><path d="M114 50 h26 v100 h-26 Z" fill="#fff"/><path d="M60 50 h28 L118 96 v20 L88 82 v68 h-28 Z" fill="#fff" opacity="0.92"/><path d="M114 150 h-28 L88 122 v-20 L118 138 v-88 h-4 Z" fill="#fff" opacity="0.55"/></svg></div>
+        <div style="font-family:'IBM Plex Sans',sans-serif;font-weight:800;font-size:16px;text-align:center;"><span style="color:#1667b1;">Nomo</span><span style="color:#4faa3a;">Green</span></div>
+        <div style="font-size:12px;color:#93a888;text-align:center;line-height:1.2;">Cửa hàng vật tư</div>
+      </div>
+      <div style="position:absolute;left:515px;top:164px;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:8px;width:130px;">
+        <div style="width:78px;height:78px;border-radius:50%;background:#fff;box-shadow:0 8px 22px rgba(46,125,50,0.16);display:flex;align-items:center;justify-content:center;"><svg width="54" height="54" viewBox="0 0 200 200"><defs><linearGradient id="r2" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8ed94f"/><stop offset="1" stop-color="#4faa3a"/></linearGradient></defs><circle cx="100" cy="100" r="90" fill="url(#r2)"/><path d="M60 50 h26 v100 h-26 Z" fill="#fff"/><path d="M114 50 h26 v100 h-26 Z" fill="#fff"/><path d="M60 50 h28 L118 96 v20 L88 82 v68 h-28 Z" fill="#fff" opacity="0.92"/><path d="M114 150 h-28 L88 122 v-20 L118 138 v-88 h-4 Z" fill="#fff" opacity="0.55"/></svg></div>
+        <div style="font-family:'IBM Plex Sans',sans-serif;font-weight:800;font-size:16px;text-align:center;"><span style="color:#1667b1;">Nomo</span><span style="color:#c8873b;">Farm</span></div>
+        <div style="font-size:12px;color:#93a888;text-align:center;line-height:1.2;">Nông hộ & trang trại</div>
+      </div>
+      <div style="position:absolute;left:564px;top:376px;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:8px;width:130px;">
+        <div style="width:78px;height:78px;border-radius:50%;background:#fff;box-shadow:0 8px 22px rgba(46,125,50,0.16);display:flex;align-items:center;justify-content:center;"><svg width="54" height="54" viewBox="0 0 200 200"><defs><linearGradient id="r3" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8ed94f"/><stop offset="1" stop-color="#4faa3a"/></linearGradient></defs><circle cx="100" cy="100" r="90" fill="url(#r3)"/><path d="M60 50 h26 v100 h-26 Z" fill="#fff"/><path d="M114 50 h26 v100 h-26 Z" fill="#fff"/><path d="M60 50 h28 L118 96 v20 L88 82 v68 h-28 Z" fill="#fff" opacity="0.92"/><path d="M114 150 h-28 L88 122 v-20 L118 138 v-88 h-4 Z" fill="#fff" opacity="0.55"/><g fill="#0f3d1a" opacity="0.9"><rect x="150" y="140" width="9" height="9" rx="1"/><rect x="162" y="140" width="4" height="4" rx="1"/><rect x="150" y="153" width="4" height="4" rx="1"/><rect x="162" y="151" width="9" height="9" rx="1"/></g></svg></div>
+        <div style="font-family:'IBM Plex Sans',sans-serif;font-weight:800;font-size:16px;text-align:center;"><span style="color:#1667b1;">Nomo</span><span style="color:#1f8fb0;">Trace</span></div>
+        <div style="font-size:12px;color:#93a888;text-align:center;line-height:1.2;">Truy xuất nguồn gốc</div>
+      </div>
+      <div style="position:absolute;left:428px;top:545px;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:8px;width:130px;">
+        <div style="width:78px;height:78px;border-radius:50%;background:#fff;box-shadow:0 8px 22px rgba(46,125,50,0.16);display:flex;align-items:center;justify-content:center;"><svg width="54" height="54" viewBox="0 0 200 200"><defs><linearGradient id="r4" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8ed94f"/><stop offset="1" stop-color="#4faa3a"/></linearGradient></defs><circle cx="100" cy="100" r="90" fill="url(#r4)"/><path d="M60 50 h26 v100 h-26 Z" fill="#fff"/><path d="M114 50 h26 v100 h-26 Z" fill="#fff"/><path d="M60 50 h28 L118 96 v20 L88 82 v68 h-28 Z" fill="#fff" opacity="0.92"/><path d="M114 150 h-28 L88 122 v-20 L118 138 v-88 h-4 Z" fill="#fff" opacity="0.55"/><g fill="#0f3d1a" opacity="0.9"><circle cx="152" cy="146" r="6"/><circle cx="168" cy="132" r="4"/><circle cx="168" cy="160" r="4"/></g></svg></div>
+        <div style="font-family:'IBM Plex Sans',sans-serif;font-weight:800;font-size:16px;text-align:center;"><span style="color:#1667b1;">Nomo</span><span style="color:#7b2ff7;">AI</span></div>
+        <div style="font-size:12px;color:#93a888;text-align:center;line-height:1.2;">AI tư vấn, dự báo</div>
+      </div>
+      <div style="position:absolute;left:212px;top:545px;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:8px;width:130px;">
+        <div style="width:78px;height:78px;border-radius:50%;background:#fff;box-shadow:0 8px 22px rgba(46,125,50,0.16);display:flex;align-items:center;justify-content:center;"><svg width="54" height="54" viewBox="0 0 200 200"><defs><linearGradient id="r5" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8ed94f"/><stop offset="1" stop-color="#4faa3a"/></linearGradient></defs><circle cx="100" cy="100" r="90" fill="url(#r5)"/><path d="M60 50 h26 v100 h-26 Z" fill="#fff"/><path d="M114 50 h26 v100 h-26 Z" fill="#fff"/><path d="M60 50 h28 L118 96 v20 L88 82 v68 h-28 Z" fill="#fff" opacity="0.92"/><path d="M114 150 h-28 L88 122 v-20 L118 138 v-88 h-4 Z" fill="#fff" opacity="0.55"/><g fill="none" stroke="#0f3d1a" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" opacity="0.9"><path d="M146 132 h6 l5 22 h20 l5 -16 h-27"/><circle cx="159" cy="162" r="3.2" fill="#0f3d1a" stroke="none"/><circle cx="174" cy="162" r="3.2" fill="#0f3d1a" stroke="none"/></g></svg></div>
+        <div style="font-family:'IBM Plex Sans',sans-serif;font-weight:800;font-size:16px;text-align:center;"><span style="color:#1667b1;">Nomo</span><span style="color:#e8843a;">Market</span></div>
+        <div style="font-size:12px;color:#93a888;text-align:center;line-height:1.2;">Mua bán nông sản</div>
+      </div>
+      <div style="position:absolute;left:76px;top:376px;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:8px;width:130px;">
+        <div style="width:78px;height:78px;border-radius:50%;background:#fff;box-shadow:0 8px 22px rgba(46,125,50,0.16);display:flex;align-items:center;justify-content:center;"><svg width="54" height="54" viewBox="0 0 200 200"><defs><linearGradient id="r6" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8ed94f"/><stop offset="1" stop-color="#4faa3a"/></linearGradient></defs><circle cx="100" cy="100" r="90" fill="url(#r6)"/><path d="M60 50 h26 v100 h-26 Z" fill="#fff"/><path d="M114 50 h26 v100 h-26 Z" fill="#fff"/><path d="M60 50 h28 L118 96 v20 L88 82 v68 h-28 Z" fill="#fff" opacity="0.92"/><path d="M114 150 h-28 L88 122 v-20 L118 138 v-88 h-4 Z" fill="#fff" opacity="0.55"/><g fill="none" stroke="#0f3d1a" stroke-width="3.2" stroke-linejoin="round" opacity="0.9"><path d="M148 138 l14 -7 l14 7 v16 l-14 7 l-14 -7 Z" fill="#0f3d1a" fill-opacity="0.12"/><path d="M148 138 l14 7 l14 -7"/><line x1="162" y1="145" x2="162" y2="161"/></g></svg></div>
+        <div style="font-family:'IBM Plex Sans',sans-serif;font-weight:800;font-size:16px;text-align:center;"><span style="color:#1667b1;">Nomo</span><span style="color:#2e9d8f;">Supply</span></div>
+        <div style="font-size:12px;color:#93a888;text-align:center;line-height:1.2;">Chuỗi cung ứng</div>
+      </div>
+      <div style="position:absolute;left:124px;top:164px;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:8px;width:130px;">
+        <div style="width:78px;height:78px;border-radius:50%;background:#fff;box-shadow:0 8px 22px rgba(46,125,50,0.16);display:flex;align-items:center;justify-content:center;"><svg width="54" height="54" viewBox="0 0 200 200"><defs><linearGradient id="r7" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8ed94f"/><stop offset="1" stop-color="#4faa3a"/></linearGradient></defs><circle cx="100" cy="100" r="90" fill="url(#r7)"/><path d="M60 50 h26 v100 h-26 Z" fill="#fff"/><path d="M114 50 h26 v100 h-26 Z" fill="#fff"/><path d="M60 50 h28 L118 96 v20 L88 82 v68 h-28 Z" fill="#fff" opacity="0.92"/><path d="M114 150 h-28 L88 122 v-20 L118 138 v-88 h-4 Z" fill="#fff" opacity="0.55"/><g fill="#0f3d1a" opacity="0.9"><rect x="149" y="150" width="6" height="10" rx="1.5"/><rect x="159" y="144" width="6" height="16" rx="1.5"/><rect x="169" y="138" width="6" height="22" rx="1.5"/></g></svg></div>
+        <div style="font-family:'IBM Plex Sans',sans-serif;font-weight:800;font-size:16px;text-align:center;"><span style="color:#1667b1;">Nomo</span><span style="color:#3555c8;">ERP</span></div>
+        <div style="font-size:12px;color:#93a888;text-align:center;line-height:1.2;">Quản trị doanh nghiệp</div>
+      </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- LINH VUC -->
+  <section id="linh-vuc" style="background:#f4faf0;">
+    <div style="max-width:1200px;margin:0 auto;padding:88px 32px;">
+      <div style="text-align:center;max-width:680px;margin:0 auto;">
+        <div style="font-size:13px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#4faa3a;">Lĩnh vực</div>
+        <h2 style="margin:12px 0 0;font-family:'IBM Plex Sans',sans-serif;font-weight:800;font-size:38px;color:#173d1e;">Số hóa mọi lĩnh vực nông nghiệp</h2>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:22px;margin-top:44px;">
+        <div style="background:#fff;border-radius:20px;overflow:hidden;box-shadow:0 10px 26px rgba(46,125,50,0.08);">
+          <div style="height:150px;overflow:hidden;"><img src="assets/linhvuc-trongtrot.png" alt="Trồng trọt" style="width:100%;height:100%;object-fit:cover;display:block;"/></div>
+          <div style="padding:24px;text-align:center;">
+          <div style="font-family:'IBM Plex Sans',sans-serif;font-weight:800;font-size:20px;color:#2e7d32;">Trồng trọt</div>
+          <p style="margin:10px 0 0;font-size:15px;color:#5a6b5c;line-height:1.45;">Quản lý vụ mùa, vùng trồng, nhật ký sản xuất và truy xuất.</p>
+          </div>
+        </div>
+        <div style="background:#fff;border-radius:20px;overflow:hidden;box-shadow:0 10px 26px rgba(46,125,50,0.08);">
+          <div style="height:150px;overflow:hidden;"><img src="assets/linhvuc-channuoi.png" alt="Chăn nuôi" style="width:100%;height:100%;object-fit:cover;display:block;"/></div>
+          <div style="padding:24px;text-align:center;">
+          <div style="font-family:'IBM Plex Sans',sans-serif;font-weight:800;font-size:20px;color:#2e7d32;">Chăn nuôi</div>
+          <p style="margin:10px 0 0;font-size:15px;color:#5a6b5c;line-height:1.45;">Theo dõi đàn vật nuôi, thú y, cảnh báo dịch bệnh theo thời gian thực.</p>
+          </div>
+        </div>
+        <div style="background:#fff;border-radius:20px;overflow:hidden;box-shadow:0 10px 26px rgba(46,125,50,0.08);">
+          <div style="height:150px;overflow:hidden;"><img src="assets/linhvuc-thuysan.png" alt="Thủy sản" style="width:100%;height:100%;object-fit:cover;display:block;"/></div>
+          <div style="padding:24px;text-align:center;">
+          <div style="font-family:'IBM Plex Sans',sans-serif;font-weight:800;font-size:20px;color:#2e7d32;">Thủy sản</div>
+          <p style="margin:10px 0 0;font-size:15px;color:#5a6b5c;line-height:1.45;">Quản lý vùng nuôi, môi trường nước và sản lượng thu hoạch.</p>
+          </div>
+        </div>
+        <div style="background:#fff;border-radius:20px;overflow:hidden;box-shadow:0 10px 26px rgba(46,125,50,0.08);">
+          <div style="height:150px;overflow:hidden;"><img src="assets/linhvuc-vattu.png" alt="Cửa hàng vật tư" style="width:100%;height:100%;object-fit:cover;display:block;"/></div>
+          <div style="padding:24px;text-align:center;">
+          <div style="font-family:'IBM Plex Sans',sans-serif;font-weight:800;font-size:20px;color:#2e7d32;">Cửa hàng vật tư</div>
+          <p style="margin:10px 0 0;font-size:15px;color:#5a6b5c;line-height:1.45;">Số hóa bán hàng, kho, công nợ cho đại lý vật tư nông nghiệp.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- LO TRINH -->
+  <section id="lo-trinh" style="max-width:1200px;margin:0 auto;padding:88px 32px;">
+    <div style="text-align:center;max-width:680px;margin:0 auto;">
+      <div style="font-size:13px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#4faa3a;">Lộ trình</div>
+      <h2 style="margin:12px 0 0;font-family:'IBM Plex Sans',sans-serif;font-weight:800;font-size:38px;color:#173d1e;">4 bước chuyển đổi số</h2>
+    </div>
+    <div style="position:relative;margin-top:48px;">
+    <svg viewBox="0 0 1136 120" preserveAspectRatio="none" style="position:absolute;top:180px;left:0;width:100%;height:120px;pointer-events:none;overflow:visible;">
+      <path d="M26 60 C 168 -18, 268 138, 410 60 S 726 -18, 868 60 S 1010 138, 1110 60" fill="none" stroke="#bfe0ac" stroke-width="3" stroke-dasharray="2 12" stroke-linecap="round"/>
+    </svg>
+    <div style="position:relative;display:grid;grid-template-columns:repeat(4,1fr);gap:22px;">
+      <div style="position:relative;padding-top:14px;">
+        <div style="height:150px;border-radius:16px;overflow:hidden;margin-bottom:18px;box-shadow:0 10px 26px rgba(46,125,50,0.14);"><img src="assets/step1.png" alt="Số hóa dữ liệu" style="width:100%;height:100%;object-fit:cover;display:block;"/></div>
+        <div style="width:52px;height:52px;border-radius:14px;background:linear-gradient(135deg,#8ed94f,#2e7d32);color:#fff;font-family:'IBM Plex Sans',sans-serif;font-weight:900;font-size:22px;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 18px rgba(46,125,50,0.25);">1</div>
+        <div style="font-weight:700;font-size:20px;color:#173d1e;margin-top:16px;">Số hóa dữ liệu</div>
+        <p style="margin:8px 0 0;font-size:15px;color:#5a6b5c;line-height:1.45;">Ghi nhận mùa vụ, đàn vật nuôi, vùng trồng và vật tư đầu vào.</p>
+      </div>
+      <div style="position:relative;padding-top:14px;">
+        <div style="height:150px;border-radius:16px;overflow:hidden;margin-bottom:18px;box-shadow:0 10px 26px rgba(46,125,50,0.14);"><img src="assets/step2.png" alt="Quản lý & giám sát" style="width:100%;height:100%;object-fit:cover;display:block;"/></div>
+        <div style="width:52px;height:52px;border-radius:14px;background:linear-gradient(135deg,#8ed94f,#2e7d32);color:#fff;font-family:'IBM Plex Sans',sans-serif;font-weight:900;font-size:22px;display:flex;align-items:center;justify-content:center;">2</div>
+        <div style="font-weight:700;font-size:20px;color:#173d1e;margin-top:16px;">Quản lý & giám sát</div>
+        <p style="margin:8px 0 0;font-size:15px;color:#5a6b5c;line-height:1.45;">Theo dõi sản xuất theo thời gian thực, cảnh báo kịp thời.</p>
+      </div>
+      <div style="position:relative;padding-top:14px;">
+        <div style="height:150px;border-radius:16px;overflow:hidden;margin-bottom:18px;box-shadow:0 10px 26px rgba(46,125,50,0.14);"><img src="assets/step3.png" alt="Kết nối cung cầu" style="width:100%;height:100%;object-fit:cover;display:block;"/></div>
+        <div style="width:52px;height:52px;border-radius:14px;background:linear-gradient(135deg,#8ed94f,#2e7d32);color:#fff;font-family:'IBM Plex Sans',sans-serif;font-weight:900;font-size:22px;display:flex;align-items:center;justify-content:center;">3</div>
+        <div style="font-weight:700;font-size:20px;color:#173d1e;margin-top:16px;">Kết nối cung cầu</div>
+        <p style="margin:8px 0 0;font-size:15px;color:#5a6b5c;line-height:1.45;">Mua bán nông sản, quản lý chuỗi cung ứng minh bạch.</p>
+      </div>
+      <div style="position:relative;padding-top:14px;">
+        <div style="height:150px;border-radius:16px;overflow:hidden;margin-bottom:18px;box-shadow:0 10px 26px rgba(46,125,50,0.14);"><img src="assets/step4.png" alt="Tối ưu bằng AI" style="width:100%;height:100%;object-fit:cover;display:block;"/></div>
+        <div style="width:52px;height:52px;border-radius:14px;background:linear-gradient(135deg,#8ed94f,#2e7d32);color:#fff;font-family:'IBM Plex Sans',sans-serif;font-weight:900;font-size:22px;display:flex;align-items:center;justify-content:center;">4</div>
+        <div style="font-weight:700;font-size:20px;color:#173d1e;margin-top:16px;">Tối ưu bằng AI</div>
+        <p style="margin:8px 0 0;font-size:15px;color:#5a6b5c;line-height:1.45;">Tư vấn, dự báo và truy xuất nguồn gốc toàn trình.</p>
+      </div>
+    </div>
+    </div>
+  </section>
+
+  <!-- VE CHUNG TOI -->
+  <section id="ve-chung-toi" style="background:#f4faf0;">
+    <div style="max-width:1200px;margin:0 auto;display:grid;grid-template-columns:0.9fr 1.1fr;gap:48px;align-items:center;padding:88px 32px;">
+      <div style="position:relative;border-radius:24px;overflow:hidden;height:380px;box-shadow:0 20px 50px rgba(46,125,50,0.15);">
+        <image-slot id="web-about" shape="rect" src="assets/web-about.png" placeholder="Ảnh đội ngũ / nông trại"></image-slot>
+      </div>
+      <div>
+        <div style="font-size:13px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#4faa3a;">Về chúng tôi</div>
+        <h2 style="margin:12px 0 0;font-family:'IBM Plex Sans',sans-serif;font-weight:800;font-size:36px;color:#173d1e;line-height:1.15;">Đồng hành cùng nông nghiệp Việt bước vào kỷ nguyên số</h2>
+        <p style="margin:18px 0 0;font-size:17px;color:#4a5c4e;line-height:1.6;">NomoGreen mang công nghệ số đến gần hơn với nông hộ, trang trại và doanh nghiệp — chuẩn hóa quy trình, nâng cao năng suất và mở rộng thị trường cho nông sản Việt.</p>
+        <div style="display:flex;gap:36px;margin-top:28px;">
+          <div><div style="font-family:'IBM Plex Sans',sans-serif;font-weight:900;font-size:32px;color:#2e7d32;">128+</div><div style="font-size:14px;color:#5a6b5c;">Hộ liên kết</div></div>
+          <div><div style="font-family:'IBM Plex Sans',sans-serif;font-weight:900;font-size:32px;color:#2e7d32;">1.250</div><div style="font-size:14px;color:#5a6b5c;">Tấn nông sản/năm</div></div>
+          <div><div style="font-family:'IBM Plex Sans',sans-serif;font-weight:900;font-size:32px;color:#2e7d32;">4</div><div style="font-size:14px;color:#5a6b5c;">Lĩnh vực</div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA / LIEN HE -->
+  <section id="lien-he" style="background:linear-gradient(115deg,#1c6b2e,#0f3d1a);">
+    <div style="max-width:1000px;margin:0 auto;padding:80px 32px;text-align:center;color:#eafbe6;">
+      <h2 style="margin:0;font-family:'IBM Plex Sans',sans-serif;font-weight:900;font-size:42px;color:#fff;">Bắt đầu chuyển đổi số cùng NomoGreen</h2>
+      <p style="margin:16px auto 0;font-size:18px;color:#c6e7ba;max-width:600px;line-height:1.5;">Để lại thông tin để đội ngũ NomoGreen tư vấn giải pháp phù hợp cho bạn.</p>
+      <div style="display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin-top:34px;">
+        <a href="tel:0889062711" style="background:#8ed94f;color:#0f3d1a;font-weight:800;font-size:17px;padding:16px 34px;border-radius:100px;">☎ 0889 062 711</a>
+        <a href="https://nomogreen.vn" style="border:1.5px solid rgba(255,255,255,0.5);color:#fff;font-weight:700;font-size:17px;padding:16px 34px;border-radius:100px;">🌐 nomogreen.vn</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer style="background:#0a2c14;color:#bfe3ac;">
+    <div style="max-width:1200px;margin:0 auto;display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:36px;padding:56px 32px 40px;">
+      <div>
+        <div style="display:flex;align-items:center;gap:12px;">
+          <svg width="40" height="40" viewBox="0 0 200 200" aria-label="Nomo Green">
+            <defs><linearGradient id="ft-ng" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8ed94f"/><stop offset="1" stop-color="#4faa3a"/></linearGradient></defs>
+            <circle cx="100" cy="100" r="90" fill="url(#ft-ng)"/>
+            <path d="M60 50 h26 v100 h-26 Z" fill="#fff"/><path d="M114 50 h26 v100 h-26 Z" fill="#fff"/>
+            <path d="M60 50 h28 L118 96 v20 L88 82 v68 h-28 Z" fill="#fff" opacity="0.92"/>
+          </svg>
+          <span style="font-family:'IBM Plex Sans',sans-serif;font-weight:800;font-size:19px;color:#fff;">NOMO<span style="color:#8ed94f;">GREEN</span></span>
+        </div>
+        <p style="margin:16px 0 0;font-size:15px;line-height:1.5;max-width:320px;">Hệ sinh thái nông nghiệp số cho nông hộ, trang trại và doanh nghiệp Việt.</p>
+      </div>
+      <div>
+        <div style="font-weight:700;color:#fff;font-size:15px;margin-bottom:14px;">Giải pháp</div>
+        <div style="display:flex;flex-direction:column;gap:9px;font-size:15px;">
+          <a href="#giai-phap" style="color:#bfe3ac;">NomoFarm · NomoTrace</a>
+          <a href="#giai-phap" style="color:#bfe3ac;">NomoAI · NomoMarket</a>
+          <a href="#giai-phap" style="color:#bfe3ac;">NomoSupply · NomoERP</a>
+        </div>
+      </div>
+      <div>
+        <div style="font-weight:700;color:#fff;font-size:15px;margin-bottom:14px;">Liên hệ</div>
+        <div style="display:flex;flex-direction:column;gap:9px;font-size:15px;">
+          <span>🌐 nomogreen.vn</span>
+          <span>☎ 0889 062 711</span>
+        </div>
+      </div>
+    </div>
+    <div style="border-top:1px solid rgba(255,255,255,0.1);padding:20px 32px;text-align:center;font-size:13px;color:#7fa876;">© 2026 NomoGreen. All rights reserved.</div>
+  </footer>
+</div>
+</x-dc>
+</body>
+</html>

@@ -1,0 +1,212 @@
+{
+  "feature_name": "admin-plan-subscription-management",
+  "created_at": "2026-07-19T12:40:00+07:00",
+  "updated_at": "2026-07-19T12:40:01+07:00",
+  "language": "en",
+  "status": "done",
+  "phase": "review",
+  "current_phase": "review",
+  "priority": "P1",
+  "effort": "L",
+  "tags": [
+    "admin",
+    "billing",
+    "subscription",
+    "entitlement",
+    "quota",
+    "audit",
+    "schema"
+  ],
+  "approvals": {
+    "requirements": {
+      "generated": true,
+      "approved": true
+    },
+    "design": {
+      "generated": true,
+      "approved": true
+    },
+    "tasks": {
+      "generated": true,
+      "approved": true
+    }
+  },
+  "scope_lock": {
+    "source": "Build Admin plan management and manual tenant subscription assignment, including backend feature/quota checks and audit history. Sales collects payment manually or coordinates manual transfer first; Stripe is deferred.",
+    "in_scope": [
+      "Admin CRUD and activation/deactivation for plans and their feature/quota definitions",
+      "Admin view of a tenant's current subscription and subscription history",
+      "Manual assign, change, renew, and cancel subscription operations",
+      "Transactional audit history for every plan and subscription mutation",
+      "Backend feature entitlement and quota enforcement primitives on tenant request paths",
+      "Non-destructive downgrade behavior and tests for expiry, quota overflow, and plan change",
+      "Admin UI for plan catalog and tenant subscription actions"
+    ],
+    "out_of_scope": [
+      "Stripe or any automatic payment provider integration",
+      "Automatic invoice generation, collection, retry, refund, or reconciliation",
+      "Deleting or transforming tenant data during downgrade",
+      "Tenant self-service billing portal",
+      "Bulk plan changes and scheduled future plan changes",
+      "A new audit-log viewer"
+    ],
+    "expansion_policy": "requires-user-approval"
+  },
+  "dependencies": {
+    "blockedBy": [
+      "admin-authentication",
+      "admin-rbac-user-management",
+      "admin-tenant-management"
+    ],
+    "blocks": []
+  },
+  "task_files": [
+    "tasks/task-R0-01-schema-seed-audit-foundation.md",
+    "tasks/task-R0-02-entitlement-quota-foundation.md",
+    "tasks/task-R1-01-plan-catalog-api.md",
+    "tasks/task-R1-02-subscription-lifecycle-api.md",
+    "tasks/task-R1-03-entitlement-enforcement-integration.md",
+    "tasks/task-R2-01-admin-plan-ui.md",
+    "tasks/task-R2-02-tenant-subscription-ui.md",
+    "tasks/task-R3-01-backend-acceptance-tests.md",
+    "tasks/task-R3-02-integration-reachability-verification.md"
+  ],
+  "task_registry": {
+    "tasks/task-R0-01-schema-seed-audit-foundation.md": {
+      "id": "R0-01",
+      "title": "Schema seed audit foundation",
+      "status": "pending",
+      "dependencies": [],
+      "blocker": null,
+      "started_at": null,
+      "completed_at": null,
+      "last_updated_at": null
+    },
+    "tasks/task-R0-02-entitlement-quota-foundation.md": {
+      "id": "R0-02",
+      "title": "Entitlement quota foundation",
+      "status": "pending",
+      "dependencies": ["tasks/task-R0-01-schema-seed-audit-foundation.md"],
+      "blocker": null,
+      "started_at": null,
+      "completed_at": null,
+      "last_updated_at": null
+    },
+    "tasks/task-R1-01-plan-catalog-api.md": {
+      "id": "R1-01",
+      "title": "Plan catalog api",
+      "status": "pending",
+      "dependencies": ["tasks/task-R0-01-schema-seed-audit-foundation.md"],
+      "blocker": null,
+      "started_at": null,
+      "completed_at": null,
+      "last_updated_at": null
+    },
+    "tasks/task-R1-02-subscription-lifecycle-api.md": {
+      "id": "R1-02",
+      "title": "Subscription lifecycle api",
+      "status": "pending",
+      "dependencies": ["tasks/task-R0-01-schema-seed-audit-foundation.md", "tasks/task-R1-01-plan-catalog-api.md"],
+      "blocker": null,
+      "started_at": null,
+      "completed_at": null,
+      "last_updated_at": null
+    },
+    "tasks/task-R1-03-entitlement-enforcement-integration.md": {
+      "id": "R1-03",
+      "title": "Entitlement enforcement integration",
+      "status": "pending",
+      "dependencies": ["tasks/task-R0-02-entitlement-quota-foundation.md", "tasks/task-R1-02-subscription-lifecycle-api.md"],
+      "blocker": null,
+      "started_at": null,
+      "completed_at": null,
+      "last_updated_at": null
+    },
+    "tasks/task-R2-01-admin-plan-ui.md": {
+      "id": "R2-01",
+      "title": "Admin plan ui",
+      "status": "pending",
+      "dependencies": ["tasks/task-R1-01-plan-catalog-api.md"],
+      "blocker": null,
+      "started_at": null,
+      "completed_at": null,
+      "last_updated_at": null
+    },
+    "tasks/task-R2-02-tenant-subscription-ui.md": {
+      "id": "R2-02",
+      "title": "Tenant subscription ui",
+      "status": "pending",
+      "dependencies": ["tasks/task-R1-02-subscription-lifecycle-api.md", "tasks/task-R2-01-admin-plan-ui.md"],
+      "blocker": null,
+      "started_at": null,
+      "completed_at": null,
+      "last_updated_at": null
+    },
+    "tasks/task-R3-01-backend-acceptance-tests.md": {
+      "id": "R3-01",
+      "title": "Backend acceptance tests",
+      "status": "pending",
+      "dependencies": ["tasks/task-R1-02-subscription-lifecycle-api.md", "tasks/task-R1-03-entitlement-enforcement-integration.md"],
+      "blocker": null,
+      "started_at": null,
+      "completed_at": null,
+      "last_updated_at": null
+    },
+    "tasks/task-R3-02-integration-reachability-verification.md": {
+      "id": "R3-02",
+      "title": "Integration reachability verification",
+      "status": "pending",
+      "dependencies": ["tasks/task-R2-01-admin-plan-ui.md", "tasks/task-R2-02-tenant-subscription-ui.md", "tasks/task-R3-01-backend-acceptance-tests.md"],
+      "blocker": null,
+      "started_at": null,
+      "completed_at": null,
+      "last_updated_at": null
+    }
+  },
+  "blocker": null,
+  "progress": {
+    "init": "done",
+    "requirements": "done",
+    "research": "done",
+    "design": "done",
+    "tasks": "done",
+    "code": "pending",
+    "test": "pending",
+    "review": "pending"
+  },
+  "timestamps": {
+    "init": "2026-07-19T12:40:00+07:00",
+    "requirements_done": "2026-07-19T12:40:02+07:00",
+    "research_done": "2026-07-19T12:40:03+07:00",
+    "design_done": "2026-07-19T12:40:04+07:00",
+    "tasks_done": "2026-07-19T12:40:05+07:00",
+    "code_done": null,
+    "test_done": null,
+    "review_done": "2026-07-19T12:40:06+07:00",
+    "validation_done": "2026-07-19T12:40:06+07:00"
+  },
+  "design_context": {
+    "discovery_mode": "full",
+    "discovery_reason": "Schema change, admin authorization, manual billing state transitions, entitlement enforcement, auditability, and cross-layer backend/frontend contracts.",
+    "execution_tier": "deep",
+    "validation_recommended": true,
+    "validation_recommended_reason": "Schema change, billing/subscription state, permission-sensitive admin APIs, and 5+ task files."
+  },
+  "validation": {
+    "status": "completed",
+    "session_count": 1,
+    "questions_asked": 3,
+    "last_validated_at": "2026-07-19T12:40:06+07:00",
+    "red_team_report": "reports/red-team-report.md",
+    "validation_log": "reports/validate-log.md"
+  },
+  "translation": {
+    "enabled": false,
+    "language": null,
+    "language_code": null,
+    "dir": null,
+    "sync": "always",
+    "last_synced_at": null
+  },
+  "ready_for_implementation": true
+}

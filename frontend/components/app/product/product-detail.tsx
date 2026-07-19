@@ -86,7 +86,7 @@ export function ProductDetail({ product }: { product: Product }) {
 				<div className="flex items-start gap-4">
 					<span
 						className="flex size-16 shrink-0 items-center justify-center rounded-[14px]"
-						style={{ backgroundColor: "#9e9d24" }}
+						style={{ backgroundColor: "#5cad45" }}
 					>
 						<Package className="size-8 text-white" aria-hidden />
 					</span>
@@ -125,7 +125,7 @@ export function ProductDetail({ product }: { product: Product }) {
 			</section>
 
 			{/* Thông tin cơ bản */}
-			<InfoSection icon={Tag} tile="#43a047" title="Thông tin chung">
+			<InfoSection icon={Tag} tile="#5cad45" title="Thông tin chung">
 				<InfoRow label="Danh mục" value={categoryName(product.categoryId)} />
 				<InfoRow label="Thương hiệu" value={brandName(product.brandId)} />
 				{manufacturerName ? (
@@ -145,7 +145,7 @@ export function ProductDetail({ product }: { product: Product }) {
 
 			{/* Đơn vị & quy đổi */}
 			{product.conversions.length > 0 ? (
-				<InfoSection icon={Layers} tile="#3949ab" title="Đơn vị & quy đổi">
+				<InfoSection icon={Layers} tile="#5cad45" title="Đơn vị & quy đổi">
 					<InfoRow label="Đơn vị gốc" value={product.baseUnit} />
 					{product.conversions.map((c) => (
 						<InfoRow
@@ -159,7 +159,7 @@ export function ProductDetail({ product }: { product: Product }) {
 
 			{/* Giá theo bậc */}
 			{product.priceTiers.length > 1 ? (
-				<InfoSection icon={Tag} tile="#9e9d24" title="Giá theo bậc số lượng">
+				<InfoSection icon={Tag} tile="#5cad45" title="Giá theo bậc số lượng">
 					{product.priceTiers.map((t) => (
 						<InfoRow
 							key={t.minQty}
@@ -174,7 +174,7 @@ export function ProductDetail({ product }: { product: Product }) {
 			{product.agro?.activeIngredient ? (
 				<InfoSection
 					icon={FlaskConical}
-					tile="#26a69a"
+					tile="#5cad45"
 					title="Thông tin chuyên ngành"
 				>
 					{product.agro.activeIngredient ? (
@@ -253,7 +253,7 @@ export function ProductDetail({ product }: { product: Product }) {
 				<button
 					type="button"
 					onClick={() => setEditing(true)}
-					className="flex h-11 items-center gap-2 rounded-[10px] bg-primary px-8 text-base font-semibold text-white transition-colors duration-200 ease-out hover:bg-[#43a047] active:bg-[#2e7d32]"
+					className="flex h-11 items-center gap-2 rounded-[10px] bg-primary px-8 text-base font-semibold text-white transition-colors duration-200 ease-out hover:bg-[#5cad45] active:bg-[#3f8530]"
 				>
 					<Pencil className="size-5" aria-hidden />
 					Sửa sản phẩm
@@ -265,7 +265,7 @@ export function ProductDetail({ product }: { product: Product }) {
 				<button
 					type="button"
 					onClick={() => setEditing(true)}
-					className="flex h-12 w-full items-center justify-center gap-2 rounded-[10px] bg-primary text-base font-semibold text-white transition-colors duration-200 ease-out active:bg-[#2e7d32]"
+					className="flex h-12 w-full items-center justify-center gap-2 rounded-[10px] bg-primary text-base font-semibold text-white transition-colors duration-200 ease-out active:bg-[#3f8530]"
 				>
 					<Pencil className="size-5" aria-hidden />
 					Sửa sản phẩm

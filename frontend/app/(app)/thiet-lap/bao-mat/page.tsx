@@ -59,7 +59,7 @@ export default function BaoMatPage() {
 
 			{/* Xác thực 2 lớp */}
 			<div className="flex items-center gap-3 rounded-[16px] border border-border bg-card p-4 shadow-card">
-				<span className="flex size-11 shrink-0 items-center justify-center rounded-[10px] bg-[#1e88e5]">
+				<span className="flex size-11 shrink-0 items-center justify-center rounded-[10px] bg-[#5cad45]">
 					<ShieldCheck className="size-5.5 text-white" aria-hidden />
 				</span>
 				<div className="flex min-w-0 flex-1 flex-col">

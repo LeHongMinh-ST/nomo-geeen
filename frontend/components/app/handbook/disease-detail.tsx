@@ -66,7 +66,7 @@ export function DiseaseDetail({ disease }: { disease: Disease }) {
 				<div className="flex flex-1 items-start gap-3">
 					<span
 						className="flex size-12 shrink-0 items-center justify-center rounded-[12px]"
-						style={{ backgroundColor: "#6d4c41" }}
+						style={{ backgroundColor: "#5cad45" }}
 					>
 						<Leaf className="size-6 text-white" aria-hidden />
 					</span>
@@ -189,7 +189,7 @@ export function DiseaseDetail({ disease }: { disease: Disease }) {
 				<button
 					type="button"
 					onClick={() => router.push(`/so-tay/${disease.id}/sua`)}
-					className="flex h-14 w-full items-center justify-center gap-2 rounded-[10px] bg-primary text-lg font-bold text-white transition-colors duration-200 ease-out hover:bg-[#43a047] active:bg-[#2e7d32] lg:h-12 lg:w-auto lg:px-8"
+					className="flex h-14 w-full items-center justify-center gap-2 rounded-[10px] bg-primary text-lg font-bold text-white transition-colors duration-200 ease-out hover:bg-[#5cad45] active:bg-[#3f8530] lg:h-12 lg:w-auto lg:px-8"
 				>
 					<Pencil className="size-5.5" aria-hidden />
 					Sửa sổ tay
@@ -224,7 +224,7 @@ function InfoBlock({
 	return (
 		<div className="flex items-start gap-3">
 			<span className="flex size-10 shrink-0 items-center justify-center rounded-[10px] bg-[#efebe9]">
-				<Icon className="size-5 text-[#6d4c41]" aria-hidden />
+				<Icon className="size-5 text-[#5cad45]" aria-hidden />
 			</span>
 			<div className="flex min-w-0 flex-1 flex-col">
 				<span className="text-sm font-medium text-[#9e9e9e]">{label}</span>
@@ -249,7 +249,7 @@ function SuggestionItem({
 	return (
 		<li className="flex items-center gap-3 rounded-[12px] border border-border bg-card p-3">
 			<span className="flex size-11 shrink-0 items-center justify-center rounded-[10px] bg-[#eceff1]">
-				<Pill className="size-5.5 text-[#546e7a]" aria-hidden />
+				<Pill className="size-5.5 text-[#5cad45]" aria-hidden />
 			</span>
 			<div className="flex min-w-0 flex-1 flex-col gap-1">
 				<span className="truncate text-base font-semibold text-foreground">
@@ -264,7 +264,7 @@ function SuggestionItem({
 					<span className="text-[#9e9e9e]">
 						{formatVND(product.salePrice)}₫/{product.baseUnit}
 					</span>
-					<span className="rounded-full bg-[#eceff1] px-2 py-0.5 text-xs font-medium text-[#546e7a]">
+					<span className="rounded-full bg-[#eceff1] px-2 py-0.5 text-xs font-medium text-[#5cad45]">
 						{suggestReasonLabel[reason]}
 					</span>
 				</div>
@@ -279,7 +279,7 @@ function SuggestionItem({
 					<button
 						type="button"
 						onClick={onAdd}
-						className="flex h-9 items-center gap-1 whitespace-nowrap rounded-[10px] bg-primary px-3 text-sm font-semibold text-white transition-colors duration-200 ease-out hover:bg-[#43a047] active:bg-[#2e7d32]"
+						className="flex h-9 items-center gap-1 whitespace-nowrap rounded-[10px] bg-primary px-3 text-sm font-semibold text-white transition-colors duration-200 ease-out hover:bg-[#5cad45] active:bg-[#3f8530]"
 					>
 						<Plus className="size-4" aria-hidden />
 						Thêm vào đơn

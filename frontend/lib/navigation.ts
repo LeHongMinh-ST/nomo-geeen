@@ -14,15 +14,32 @@ import {
 } from "lucide-react";
 
 /**
- * Cấu hình điều hướng dùng chung cho sidebar (desktop) và bottom nav (mobile).
- * Màu tile theo DESIGN.md §3 "Module Accent" — chỉ dùng cho icon tile, không cho nút/text/badge.
+ * Điều hướng app chủ cửa hàng.
+ * Icon tile = 2 màu logo: Green (#5CAD45) + Blue (#1A6FA8) — xen kẽ theo nhóm nghiệp vụ.
  */
+
+/** Brand Green — bán hàng, kho, hành động chính. */
+export const USER_TILE_GREEN = "#5cad45";
+/** Brand Blue (NOMO) — đối tác, báo cáo, thiết lập. */
+export const USER_TILE_BLUE = "#1a6fa8";
+/** Alias mặc định = green (nút / tile hành động). */
+export const USER_TILE = USER_TILE_GREEN;
+
+/**
+ * Nền + chữ khi mục điều hướng active — ăn theo màu tile của chính mục đó
+ * (không cố định xanh lá) để tránh lệch màu giữa nền active và icon tile.
+ * Blue dùng lại đúng cặp Info Soft đã có sẵn ở badge (vd. debt-list.tsx).
+ */
+export const USER_TILE_ACTIVE: Record<string, { bg: string; fg: string }> = {
+	[USER_TILE_GREEN]: { bg: "#f3f8f1", fg: "#3f8530" },
+	[USER_TILE_BLUE]: { bg: "#e3f2fd", fg: "#1565c0" },
+};
 
 export type NavItem = {
 	label: string;
 	href: string;
 	icon: LucideIcon;
-	/** Màu tile module accent (chỉ icon tile). */
+	/** Màu tile icon (green hoặc blue logo). */
 	tile: string;
 };
 
@@ -39,33 +56,43 @@ export const navGroups: NavGroup[] = [
 				label: "Bán nhanh",
 				href: "/ban-nhanh",
 				icon: ShoppingCart,
-				tile: "#43a047",
+				tile: USER_TILE_GREEN,
 			},
 			{
 				label: "Đơn bán hàng",
 				href: "/don-ban-hang",
 				icon: Package,
-				tile: "#43a047",
+				tile: USER_TILE_GREEN,
 			},
 			{
 				label: "Sổ tay",
 				href: "/so-tay",
 				icon: BookOpen,
-				tile: "#6d4c41",
+				tile: USER_TILE_GREEN,
 			},
 		],
 	},
 	{
 		heading: "Kho & Hàng hóa",
 		items: [
-			{ label: "Sản phẩm", href: "/san-pham", icon: Package, tile: "#9e9d24" },
+			{
+				label: "Sản phẩm",
+				href: "/san-pham",
+				icon: Package,
+				tile: USER_TILE_GREEN,
+			},
 			{
 				label: "Nhập hàng",
 				href: "/nhap-hang",
 				icon: PackagePlus,
-				tile: "#26a69a",
+				tile: USER_TILE_GREEN,
 			},
-			{ label: "Tồn kho", href: "/ton-kho", icon: Warehouse, tile: "#3949ab" },
+			{
+				label: "Tồn kho",
+				href: "/ton-kho",
+				icon: Warehouse,
+				tile: USER_TILE_GREEN,
+			},
 		],
 	},
 	{
@@ -75,26 +102,36 @@ export const navGroups: NavGroup[] = [
 				label: "Khách hàng",
 				href: "/khach-hang",
 				icon: Users,
-				tile: "#1e88e5",
+				tile: USER_TILE_BLUE,
 			},
 			{
 				label: "Nhà cung cấp",
 				href: "/nha-cung-cap",
 				icon: Truck,
-				tile: "#7e57c2",
+				tile: USER_TILE_BLUE,
 			},
-			{ label: "Công nợ", href: "/cong-no", icon: HandCoins, tile: "#f4511e" },
+			{
+				label: "Công nợ",
+				href: "/cong-no",
+				icon: HandCoins,
+				tile: USER_TILE_BLUE,
+			},
 		],
 	},
 	{
 		heading: "Khác",
 		items: [
-			{ label: "Báo cáo", href: "/bao-cao", icon: BarChart3, tile: "#546e7a" },
+			{
+				label: "Báo cáo",
+				href: "/bao-cao",
+				icon: BarChart3,
+				tile: USER_TILE_BLUE,
+			},
 			{
 				label: "Thiết lập",
 				href: "/thiet-lap",
 				icon: Settings,
-				tile: "#9e9e9e",
+				tile: USER_TILE_BLUE,
 			},
 		],
 	},
@@ -102,13 +139,18 @@ export const navGroups: NavGroup[] = [
 
 /** 4 mục điều hướng + nút "+ Bán" ở giữa (DESIGN.md §10.1). */
 export const bottomNavItems: NavItem[] = [
-	{ label: "Trang chủ", href: "/trang-chu", icon: House, tile: "#43a047" },
+	{ label: "Trang chủ", href: "/", icon: House, tile: USER_TILE_GREEN },
 	{
-		label: "Bán hàng",
+		label: "Đơn hàng",
 		href: "/don-ban-hang",
 		icon: Package,
-		tile: "#43a047",
+		tile: USER_TILE_GREEN,
 	},
-	{ label: "Công nợ", href: "/cong-no", icon: HandCoins, tile: "#f4511e" },
-	{ label: "Khác", href: "/khac", icon: Settings, tile: "#546e7a" },
+	{
+		label: "Sổ tay",
+		href: "/so-tay",
+		icon: BookOpen,
+		tile: USER_TILE_GREEN,
+	},
+	{ label: "Khác", href: "/khac", icon: Settings, tile: USER_TILE_BLUE },
 ];

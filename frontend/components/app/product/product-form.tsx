@@ -146,7 +146,7 @@ export function ProductForm({
 			className="mx-auto flex w-full max-w-2xl flex-col gap-5 pb-24 lg:mx-0 lg:pb-6"
 		>
 			{/* Section 1: Thông tin cơ bản */}
-			<Section icon={Package} tile="#9e9d24" title="Thông tin cơ bản">
+			<Section icon={Package} tile="#5cad45" title="Thông tin cơ bản">
 				<Field label="Tên sản phẩm" required>
 					<input
 						type="text"
@@ -222,7 +222,7 @@ export function ProductForm({
 						type="checkbox"
 						checked={form.locked}
 						onChange={(e) => set("locked", e.target.checked)}
-						className="size-5 accent-[#4caf50]"
+						className="size-5 accent-primary"
 					/>
 					<span className="flex items-center gap-1.5 text-base text-foreground">
 						<Lock className="size-4.5 text-[#9e9e9e]" aria-hidden />
@@ -232,7 +232,7 @@ export function ProductForm({
 			</Section>
 
 			{/* Section 2: Đơn vị & quy đổi */}
-			<Section icon={Layers} tile="#3949ab" title="Đơn vị & quy đổi">
+			<Section icon={Layers} tile="#5cad45" title="Đơn vị & quy đổi">
 				<Field label="Đơn vị tồn kho gốc (Base Unit)" required>
 					<Select
 						value={form.baseUnit}
@@ -299,7 +299,7 @@ export function ProductForm({
 			</Section>
 
 			{/* Section 3: Giá & tồn kho */}
-			<Section icon={Tag} tile="#43a047" title="Giá bán & tồn kho">
+			<Section icon={Tag} tile="#5cad45" title="Giá bán & tồn kho">
 				<div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
 					<Field label="Giá vốn (₫)">
 						<input
@@ -431,7 +431,7 @@ export function ProductForm({
 				>
 					<span
 						className="flex size-10 shrink-0 items-center justify-center rounded-[10px]"
-						style={{ backgroundColor: "#26a69a" }}
+						style={{ backgroundColor: "#5cad45" }}
 					>
 						<FlaskConical className="size-5 text-white" aria-hidden />
 					</span>
@@ -533,7 +533,7 @@ export function ProductForm({
 				<button
 					type="submit"
 					disabled={saving}
-					className="h-11 rounded-[10px] bg-primary px-8 text-base font-semibold text-white transition-colors duration-200 ease-out hover:bg-[#43a047] active:bg-[#2e7d32] disabled:opacity-60"
+					className="h-11 rounded-[10px] bg-primary px-8 text-base font-semibold text-white transition-colors duration-200 ease-out hover:bg-[#5cad45] active:bg-[#3f8530] disabled:opacity-60"
 				>
 					{saving
 						? "Đang lưu..."
@@ -548,7 +548,7 @@ export function ProductForm({
 				<button
 					type="submit"
 					disabled={saving}
-					className="flex h-12 w-full items-center justify-center rounded-[10px] bg-primary text-base font-semibold text-white transition-colors duration-200 ease-out active:bg-[#2e7d32] disabled:opacity-60"
+					className="flex h-12 w-full items-center justify-center rounded-[10px] bg-primary text-base font-semibold text-white transition-colors duration-200 ease-out active:bg-[#3f8530] disabled:opacity-60"
 				>
 					{saving
 						? "Đang lưu..."

@@ -50,7 +50,7 @@ export function DebtDetail({ account: initial }: { account: DebtAccount }) {
 	const outstanding = debtOutstanding(account);
 	const settled = outstanding <= 0;
 	const collectVerb = isReceivable ? "Thu" : "Trả";
-	const tile = isReceivable ? "#1e88e5" : "#7e57c2";
+	const tile = "#5cad45";
 
 	const initials = account.name
 		.split(" ")
@@ -180,7 +180,7 @@ export function DebtDetail({ account: initial }: { account: DebtAccount }) {
 					<button
 						type="button"
 						onClick={() => setCollecting(true)}
-						className="flex h-14 w-full items-center justify-center gap-2 rounded-[10px] bg-primary text-lg font-bold text-white transition-colors duration-200 ease-out hover:bg-[#43a047] active:bg-[#2e7d32] lg:h-12 lg:w-auto lg:px-8"
+						className="flex h-14 w-full items-center justify-center gap-2 rounded-[10px] bg-primary text-lg font-bold text-white transition-colors duration-200 ease-out hover:bg-[#5cad45] active:bg-[#3f8530] lg:h-12 lg:w-auto lg:px-8"
 					>
 						<HandCoins className="size-6" aria-hidden />
 						{collectVerb} tiền

@@ -11,6 +11,8 @@ import {
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { DataPagination } from "@/components/app/shared/data-pagination";
+import { ListFilterBar } from "@/components/app/shared/list-filter-bar";
+import { ListSkeleton } from "@/components/app/shared/list-skeleton";
 import { LoadMoreSentinel } from "@/components/app/shared/load-more-sentinel";
 import { formatDate, formatVND } from "@/lib/format";
 import {
@@ -52,6 +54,12 @@ export function OrderList() {
 	const [menuId, setMenuId] = useState<string | null>(null);
 	const [page, setPage] = useState(1);
 	const [mobileCount, setMobileCount] = useState(MOBILE_BATCH);
+	const [loading, setLoading] = useState(true);
+
+	useEffect(() => {
+		const timer = setTimeout(() => setLoading(false), 450);
+		return () => clearTimeout(timer);
+	}, []);
 
 	const filtered = useMemo(() => {
 		const q = query.trim().toLowerCase();
@@ -92,6 +100,8 @@ export function OrderList() {
 		setMenuId(null);
 	}
 
+	if (loading) return <ListSkeleton withToolbar rows={6} />;
+
 	return (
 		<div className="flex w-full flex-col gap-5">
 			{/* Page header */}
@@ -120,7 +130,7 @@ export function OrderList() {
 					</Link>
 					<Link
 						href="/don-ban-hang/tao"
-						className="flex h-11 items-center gap-2 rounded-full bg-primary px-5 text-base font-semibold text-white transition-colors duration-200 ease-out hover:bg-[#43a047] active:bg-[#2e7d32]"
+						className="flex h-11 items-center gap-2 rounded-full bg-primary px-5 text-base font-semibold text-white transition-colors duration-200 ease-out hover:bg-[#5cad45] active:bg-[#3f8530]"
 					>
 						<Plus className="size-5" aria-hidden />
 						Tạo đơn
@@ -143,23 +153,18 @@ export function OrderList() {
 				/>
 			</div>
 
-			{/* Lọc trạng thái — segmented control chia đều */}
-			<div className="grid grid-cols-4 gap-1 rounded-[12px] bg-[#f0f2f1] p-1">
-				{statusFilters.map((f) => (
-					<button
-						key={f.value}
-						type="button"
-						onClick={() => setStatus(f.value)}
-						className={`h-9 rounded-[9px] text-sm font-semibold transition-colors duration-200 ease-out ${
-							status === f.value
-								? "bg-card text-primary shadow-[0_1px_3px_rgba(0,0,0,0.08)]"
-								: "text-[#616161] hover:text-foreground"
-						}`}
-					>
-						{f.label}
-					</button>
-				))}
-			</div>
+			{/* Lọc trạng thái */}
+			<ListFilterBar
+				groups={[
+					{
+						key: "status",
+						label: "Trạng thái",
+						value: status,
+						options: statusFilters,
+						onChange: (v) => setStatus(v as StatusFilter),
+					},
+				]}
+			/>
 
 			{/* Kết quả */}
 			{filtered.length === 0 ? (
@@ -226,7 +231,7 @@ export function OrderList() {
 												>
 													<span
 														className="flex size-9 shrink-0 items-center justify-center rounded-[10px]"
-														style={{ backgroundColor: "#43a047" }}
+														style={{ backgroundColor: "#5cad45" }}
 													>
 														<Package
 															className="size-4.5 text-white"
@@ -304,7 +309,7 @@ export function OrderList() {
 			<Link
 				href="/don-ban-hang/tao"
 				aria-label="Tạo đơn"
-				className="fixed bottom-fab-safe right-4 z-30 flex h-14 items-center gap-2 rounded-full bg-primary pl-4 pr-5 text-base font-semibold text-white shadow-[0_8px_20px_rgba(76,175,80,0.4)] transition-colors duration-200 ease-out active:bg-[#2e7d32] lg:hidden"
+				className="fixed bottom-fab-safe right-4 z-30 flex h-14 items-center gap-2 rounded-full bg-primary pl-4 pr-5 text-base font-semibold text-white shadow-[0_8px_20px_rgba(76,175,80,0.4)] transition-colors duration-200 ease-out active:bg-[#3f8530] lg:hidden"
 			>
 				<Plus className="size-6" aria-hidden />
 				Tạo đơn
@@ -448,7 +453,7 @@ function EmptyState({ hasOrders }: { hasOrders: boolean }) {
 			{!hasOrders ? (
 				<Link
 					href="/don-ban-hang/tao"
-					className="flex h-12 items-center gap-2 rounded-[10px] bg-primary px-6 text-base font-semibold text-white transition-colors duration-200 ease-out hover:bg-[#43a047] active:bg-[#2e7d32]"
+					className="flex h-12 items-center gap-2 rounded-[10px] bg-primary px-6 text-base font-semibold text-white transition-colors duration-200 ease-out hover:bg-[#5cad45] active:bg-[#3f8530]"
 				>
 					<Plus className="size-5" aria-hidden />
 					Tạo đơn

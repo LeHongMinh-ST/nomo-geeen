@@ -64,7 +64,7 @@ Rendering: mặc định **Server Components** cho trang đọc; **Client Compon
 | Cache / Queue | **Redis 7** | Session/refresh token blacklist, BullMQ, rate limit |
 | File Storage | S3-compatible: **Cloudflare R2** (prod) / **MinIO** (dev) | Logo, ảnh SP, chứng từ |
 | Search | Postgres full-text (`tsvector`) | Đủ cho tìm sản phẩm; không cần Elasticsearch |
-| Email/SMS | SMTP (email) — Phase 1; SMS OTP (provider VN) — sau | Đăng nhập email, thông báo |
+| Email/SMS | SMTP (email) — Phase 1; SMS OTP (provider VN) — sau | Login: username/phone/email+password; OTP chỉ sau |
 
 > Lý do không dùng Firebase/Supabase làm lõi: nghiệp vụ tồn kho + công nợ cần transaction phức tạp và kiểm soát tại backend. Có thể dùng Supabase như Postgres managed nếu muốn đỡ vận hành, nhưng logic vẫn ở NestJS.
 
@@ -153,17 +153,22 @@ Lý do không tách DB/schema mỗi tenant ở Phase 1: số tenant nhỏ, tách
 
 ## 6.1 Authentication
 
-- Phase 1: đăng nhập bằng **Email + mật khẩu**. Phone (OTP) và Google/Apple OAuth để giai đoạn sau (đã chừa chỗ qua Passport strategy).
+- Phase 1: đăng nhập bằng **identifier + mật khẩu**. Identifier = **username / phone / email** (resolve → user, rồi verify password). Không OTP ở Phase 1.
+- Onboarding: **Saler B2C / Platform Admin** tạo Tenant+User từ Admin Portal; **đặt & đổi MK giúp khách** (field sales). `must_change_password` tùy chọn, không bắt buộc.
+- Google/Apple OAuth và SMS OTP → sau (đã chừa chỗ Passport strategy).
 - **JWT**: access token ngắn hạn (~15 phút) + refresh token dài hạn (~30 ngày) lưu HttpOnly cookie.
 - Refresh token rotation; blacklist token thu hồi trong Redis.
 
 ## 6.2 Authorization
 
-- Phase 1 (Simple Mode): 2 vai trò **Owner / Staff** — dùng `RolesGuard` đơn giản.
-- Thiết kế permission dạng `resource:action` (vd `sales:create`) ngay từ đầu để khi lên Advanced Mode (RBAC đầy đủ) không phải viết lại — chỉ thêm role → permission mapping.
-- `FeatureGuard`: chặn truy cập module bị tắt theo Feature Flag của tenant (mục 3.9 spec).
+- Phase 1 (tenant Simple): 3 vai trò **Owner > Manager > Staff** — `RolesGuard` + permission `resource:action`.
+- Seed permission map sẵn 3 role (xem `base_spec` §3.8). Owner/Manager quản lý nhân viên trong app; **seat** = `plan.max_users + tenant.seat_bonus`.
+- `QuotaGuard`: chặn tạo user khi `active_count >= effective_max_users`.
+- Admin Portal RBAC: `role.is_admin`, prefix `admin.`, `PermissionGuard`, JWT `roleCodes`/`permissions`.
+- Admin permission catalog: `GET /admin/permissions`; route admin dùng `AccessTokenGuard + PermissionGuard`.
+- `FeatureGuard`: module theo plan ⊕ tenant override (`multi_user`, `roles_manager`, …).
 
-Chuỗi guard mỗi request: `JwtAuthGuard → TenantGuard → FeatureGuard → RolesGuard`.
+Chuỗi guard request tenant: `JwtAuthGuard → TenantGuard → FeatureGuard → RolesGuard` (+ `QuotaGuard` trên write tạo user/resource).
 
 ---
 
@@ -241,7 +246,8 @@ Chỉ làm khi số liệu thực tế yêu cầu — không làm sớm:
 - Database: **PostgreSQL 16**, shared-DB multi-tenant.
 - ORM: **Prisma**.
 - API: **REST + OpenAPI**.
-- Auth: **JWT (email)** ở Phase 1; Phone OTP + Google/Apple để sau (đã chừa chỗ).
+- Auth: **JWT**, login **username | phone | email + password**; Saler/Admin tạo TK + **đặt/đổi MK giúp khách** (Audit Log). OTP/OAuth sau.
+- Subscription: entity gói có sẵn; **chia hạn mức / ma trận gói sau** (Phase 1 full feature Simple Mode).
 - Định danh tenant: **theo path** (`/minhtam`) — dùng subdomain sau, middleware thiết kế để đổi được mà không sửa nghiệp vụ.
 - Queue/Cache: **Redis + BullMQ**.
 - Storage: **Cloudflare R2** (prod) / MinIO (dev).
@@ -249,4 +255,5 @@ Chỉ làm khi số liệu thực tế yêu cầu — không làm sớm:
 
 **Hoãn / chốt sau:**
 
-- **SMS OTP**: chọn nhà cung cấp VN sau (khi bật đăng nhập bằng phone).
+- **SMS OTP**: chọn nhà cung cấp VN sau (khôi phục / xác minh SĐT — login phone Phase 1 dùng password, không OTP).
+- **Chia gói / hạn mức subscription**: sau khi bao quát đủ chức năng.

@@ -28,8 +28,8 @@ export function DebtCard({
 	const status = debtStatus(account);
 	const outstanding = debtOutstanding(account);
 	const isReceivable = account.direction === "receivable";
-	// Tile màu module accent: khách (Blue) / NCC (Purple) — §3.
-	const tile = isReceivable ? "#1e88e5" : "#7e57c2";
+	// Tile Brand Green (app user) — DESIGN.md §3.
+	const tile = "#5cad45";
 	const initials = account.name
 		.split(" ")
 		.slice(-2)
@@ -81,7 +81,7 @@ export function DebtCard({
 			<button
 				type="button"
 				onClick={() => onCollect(account)}
-				className="flex h-12 w-full items-center justify-center gap-2 rounded-[10px] bg-primary text-base font-bold text-white transition-colors duration-200 ease-out hover:bg-[#43a047] active:bg-[#2e7d32]"
+				className="flex h-12 w-full items-center justify-center gap-2 rounded-[10px] bg-primary text-base font-bold text-white transition-colors duration-200 ease-out hover:bg-[#5cad45] active:bg-[#3f8530]"
 			>
 				<HandCoins className="size-5" aria-hidden />
 				{isReceivable ? "Thu tiền" : "Trả tiền"}

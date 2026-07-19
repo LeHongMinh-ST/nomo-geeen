@@ -1,20 +1,32 @@
 "use client";
 
 import { LoaderCircle, Lock, Mail } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { PasswordField, TextField } from "@/components/auth/fields";
-import { AdminLoginError, adminLogin } from "@/lib/auth-api";
+import { useAdminAuth } from "@/stores/admin-auth-store";
 
 /**
- * Form đăng nhập dành cho quản trị viên.
- * Đăng nhập bằng email nội bộ, không có đăng ký / ghi nhớ phiên.
+ * Form dang nhap danh cho quan tri vien.
+ * Store action `login` goi /auth/admin/login va set state atomically.
+ * Redirect ve ?next= neu hop le.
  */
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+function sanitizeNext(value: string | null): string {
+	if (!value || !value.startsWith("/admin") || value.startsWith("//")) {
+		return "/admin";
+	}
+	return value;
+}
+
 export function AdminLoginForm() {
 	const router = useRouter();
+	const searchParams = useSearchParams();
+	const next = sanitizeNext(searchParams.get("next"));
+	const login = useAdminAuth((s) => s.login);
+
 	const [email, setEmail] = useState("");
 	const [password, setPassword] = useState("");
 	const [errors, setErrors] = useState<{ email?: string; password?: string }>(
@@ -34,20 +46,24 @@ export function AdminLoginForm() {
 			nextErrors.email = "Email chưa đúng định dạng.";
 		}
 		if (!password) {
-			nextErrors.password = "Vui lòng nhập mật khẩu.";
+			nextErrors.password = "Vui lòng nhập mậu khẩu.";
 		}
 		setErrors(nextErrors);
 		if (Object.keys(nextErrors).length > 0) return;
 
 		setStatus("loading");
 		try {
-			await adminLogin(email.trim(), password);
-			router.push("/admin");
+			await login(email.trim(), password);
+			router.push(next);
 		} catch (error) {
+			const status = (error as { status?: number }).status;
 			const message =
-				error instanceof AdminLoginError
-					? error.message
-					: "Đăng nhập thất bại, vui lòng thử lại.";
+				status === 403
+					? "Tài khoản quản trị đã bị vô hiệu hóa."
+					: status === 401
+						? "Email hoặc mật khẩu không đúng."
+						: (error as Error).message ||
+							"Đăng nhập thất bại, vui lòng thử lại.";
 			setFormError(message);
 			setStatus("idle");
 		}

@@ -4,6 +4,7 @@ import { BookOpen, Leaf, Pill, Plus, Search } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { DataPagination } from "@/components/app/shared/data-pagination";
+import { ListFilterBar } from "@/components/app/shared/list-filter-bar";
 import { LoadMoreSentinel } from "@/components/app/shared/load-more-sentinel";
 import {
 	availableSuggestionCount,
@@ -90,7 +91,7 @@ export function HandbookList() {
 				{/* Hành động — desktop */}
 				<Link
 					href="/so-tay/them"
-					className="hidden h-11 items-center gap-2 rounded-full bg-primary px-5 text-base font-semibold text-white transition-colors duration-200 ease-out hover:bg-[#43a047] active:bg-[#2e7d32] lg:flex"
+					className="hidden h-11 items-center gap-2 rounded-full bg-primary px-5 text-base font-semibold text-white transition-colors duration-200 ease-out hover:bg-[#5cad45] active:bg-[#3f8530] lg:flex"
 				>
 					<Plus className="size-5" aria-hidden />
 					Thêm sổ tay
@@ -112,23 +113,18 @@ export function HandbookList() {
 				/>
 			</div>
 
-			{/* Lọc lĩnh vực — segmented control chia đều, không cắt mép */}
-			<div className="grid grid-cols-4 gap-1 rounded-[12px] bg-[#f0f2f1] p-1">
-				{fieldFilters.map((f) => (
-					<button
-						key={f.value}
-						type="button"
-						onClick={() => setField(f.value)}
-						className={`h-9 rounded-[9px] px-1 text-sm font-semibold transition-colors duration-200 ease-out ${
-							field === f.value
-								? "bg-card text-primary shadow-[0_1px_3px_rgba(0,0,0,0.08)]"
-								: "text-[#616161] hover:text-foreground"
-						}`}
-					>
-						{f.label}
-					</button>
-				))}
-			</div>
+			{/* Lọc lĩnh vực */}
+			<ListFilterBar
+				groups={[
+					{
+						key: "field",
+						label: "Lĩnh vực",
+						value: field,
+						options: fieldFilters,
+						onChange: (v) => setField(v as FieldFilter),
+					},
+				]}
+			/>
 
 			{/* Kết quả */}
 			{filtered.length === 0 ? (
@@ -202,7 +198,7 @@ export function HandbookList() {
 			<Link
 				href="/so-tay/them"
 				aria-label="Thêm sổ tay"
-				className="fixed bottom-fab-safe right-4 z-30 flex h-14 items-center gap-2 rounded-full bg-primary pl-4 pr-5 text-base font-semibold text-white shadow-[0_8px_20px_rgba(76,175,80,0.4)] transition-colors duration-200 ease-out active:bg-[#2e7d32] lg:hidden"
+				className="fixed bottom-fab-safe right-4 z-30 flex h-14 items-center gap-2 rounded-full bg-primary pl-4 pr-5 text-base font-semibold text-white shadow-[0_8px_20px_rgba(76,175,80,0.4)] transition-colors duration-200 ease-out active:bg-[#3f8530] lg:hidden"
 			>
 				<Plus className="size-6" aria-hidden />
 				Thêm
@@ -224,7 +220,7 @@ function DiseaseRow({ disease }: { disease: Disease }) {
 				>
 					<span
 						className="flex size-9 shrink-0 items-center justify-center rounded-[10px]"
-						style={{ backgroundColor: "#6d4c41" }}
+						style={{ backgroundColor: "#5cad45" }}
 					>
 						<Leaf className="size-5 text-white" aria-hidden />
 					</span>
@@ -273,7 +269,7 @@ function EmptyState({ hasEntries }: { hasEntries: boolean }) {
 	return (
 		<div className="flex flex-col items-center gap-4 rounded-[16px] border border-dashed border-border bg-card px-6 py-14 text-center">
 			<span className="flex size-16 items-center justify-center rounded-full bg-[#efebe9]">
-				<BookOpen className="size-8 text-[#6d4c41]" aria-hidden />
+				<BookOpen className="size-8 text-[#5cad45]" aria-hidden />
 			</span>
 			<div className="flex flex-col gap-1">
 				<h2 className="text-lg font-semibold text-foreground">
@@ -288,7 +284,7 @@ function EmptyState({ hasEntries }: { hasEntries: boolean }) {
 			{!hasEntries ? (
 				<Link
 					href="/so-tay/them"
-					className="flex h-12 items-center gap-2 rounded-[10px] bg-primary px-6 text-base font-semibold text-white transition-colors duration-200 ease-out hover:bg-[#43a047] active:bg-[#2e7d32]"
+					className="flex h-12 items-center gap-2 rounded-[10px] bg-primary px-6 text-base font-semibold text-white transition-colors duration-200 ease-out hover:bg-[#5cad45] active:bg-[#3f8530]"
 				>
 					<Plus className="size-5" aria-hidden />
 					Thêm sổ tay

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
+import { Suspense } from "react";
 import { AdminLoginForm } from "@/components/auth/admin-login-form";
 
 export const metadata: Metadata = {
@@ -15,20 +16,13 @@ export default function AdminLoginPage() {
 			<div className="w-full max-w-md">
 				<div className="mb-6 flex flex-col items-center gap-4 text-center">
 					<Image
-						src="/images/logo2.png"
+						src="/images/logo.png"
 						alt="NomoGreen"
-						width={56}
+						width={180}
 						height={56}
-						className="size-14 rounded-[14px] object-contain"
 						priority
 					/>
 					<div className="flex flex-col gap-2">
-						<span className="mx-auto inline-flex items-center gap-1.5 rounded-full bg-[#eceff1] px-3 py-1 text-sm font-medium text-[#546e7a]">
-							Khu vực quản trị
-						</span>
-						<h1 className="text-2xl font-bold tracking-tight text-foreground">
-							Đăng nhập hệ thống
-						</h1>
 						<p className="text-base text-[#616161]">
 							Dành cho quản trị viên NomoGreen.
 						</p>
@@ -36,7 +30,9 @@ export default function AdminLoginPage() {
 				</div>
 
 				<div className="rounded-[16px] border border-border bg-card p-6 shadow-card sm:p-8">
-					<AdminLoginForm />
+					<Suspense fallback={null}>
+						<AdminLoginForm />
+					</Suspense>
 				</div>
 
 				<p className="mt-6 text-center text-sm text-[#9e9e9e]">

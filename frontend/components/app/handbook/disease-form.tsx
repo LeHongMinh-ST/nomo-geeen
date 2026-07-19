@@ -87,7 +87,7 @@ export function DiseaseForm({
 			className="mx-auto flex w-full max-w-2xl flex-col gap-5 pb-24 lg:mx-0 lg:pb-6"
 		>
 			{/* Section 1: Thông tin bệnh */}
-			<Section icon={Leaf} tile="#6d4c41" title="Thông tin bệnh / vấn đề">
+			<Section icon={Leaf} tile="#5cad45" title="Thông tin bệnh / vấn đề">
 				<Field label="Tên bệnh / vấn đề" required>
 					<input
 						type="text"
@@ -172,7 +172,7 @@ export function DiseaseForm({
 			{/* Section 2: Gợi ý & kinh nghiệm */}
 			<Section
 				icon={FlaskConical}
-				tile="#26a69a"
+				tile="#5cad45"
 				title="Gợi ý thuốc & kinh nghiệm"
 			>
 				<TagInput
@@ -226,7 +226,7 @@ export function DiseaseForm({
 				<button
 					type="submit"
 					disabled={saving}
-					className="h-11 rounded-[10px] bg-primary px-8 text-base font-semibold text-white transition-colors duration-200 ease-out hover:bg-[#43a047] active:bg-[#2e7d32] disabled:opacity-60"
+					className="h-11 rounded-[10px] bg-primary px-8 text-base font-semibold text-white transition-colors duration-200 ease-out hover:bg-[#5cad45] active:bg-[#3f8530] disabled:opacity-60"
 				>
 					{saving ? "Đang lưu..." : submitLabel}
 				</button>
@@ -237,7 +237,7 @@ export function DiseaseForm({
 				<button
 					type="submit"
 					disabled={saving}
-					className="flex h-12 w-full items-center justify-center rounded-[10px] bg-primary text-base font-semibold text-white transition-colors duration-200 ease-out active:bg-[#2e7d32] disabled:opacity-60"
+					className="flex h-12 w-full items-center justify-center rounded-[10px] bg-primary text-base font-semibold text-white transition-colors duration-200 ease-out active:bg-[#3f8530] disabled:opacity-60"
 				>
 					{saving ? "Đang lưu..." : submitLabel}
 				</button>

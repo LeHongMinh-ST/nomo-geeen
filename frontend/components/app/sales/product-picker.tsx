@@ -115,7 +115,7 @@ export function ProductPicker({
 										>
 											<span
 												className="flex size-10 shrink-0 items-center justify-center rounded-[10px]"
-												style={{ backgroundColor: "#9e9d24" }}
+												style={{ backgroundColor: "#5cad45" }}
 											>
 												<Package className="size-5 text-white" aria-hidden />
 											</span>

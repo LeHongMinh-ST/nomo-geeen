@@ -18,8 +18,9 @@ describe('Admin auth full lifecycle (e2e)', () => {
 	const email = `e2e-flow-${Date.now()}@nomogreen.vn`;
 	const password = 'Full-Fl0w-Pw';
 
-	function rt(setCookie: string[]): string {
-		const c = setCookie.find((x) => x.startsWith('nomo_admin_rt='));
+	function rt(setCookie: string | string[]): string {
+		const values = Array.isArray(setCookie) ? setCookie : [setCookie];
+		const c = values.find((x) => x.startsWith('nomo_admin_rt='));
 		if (!c) throw new Error('no refresh cookie');
 		return c.split(';')[0];
 	}

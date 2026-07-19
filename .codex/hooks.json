@@ -1,0 +1,118 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Read|Write|Edit|MultiEdit|Bash|Glob|Grep",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node '/Users/minhlh.st/code/nomo-green/.codex/hooks/privacy-block.cjs'"
+          },
+          {
+            "type": "command",
+            "command": "node '/Users/minhlh.st/code/nomo-green/.codex/hooks/inspect-block.cjs'"
+          }
+        ]
+      },
+      {
+        "matcher": "Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node '/Users/minhlh.st/code/nomo-green/.codex/hooks/task-scaffold-guard.cjs'"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Agent|Task|TaskCreate|TaskUpdate|TodoWrite",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node '/Users/minhlh.st/code/nomo-green/.codex/hooks/state.cjs'"
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node '/Users/minhlh.st/code/nomo-green/.codex/hooks/usage.cjs'",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "startup|resume|clear|compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node '/Users/minhlh.st/code/nomo-green/.codex/hooks/session.cjs'"
+          },
+          {
+            "type": "command",
+            "command": "node '/Users/minhlh.st/code/nomo-green/.codex/hooks/docs-sync.cjs'"
+          },
+          {
+            "type": "command",
+            "command": "node '/Users/minhlh.st/code/nomo-green/.codex/hooks/state.cjs'"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node '/Users/minhlh.st/code/nomo-green/.codex/hooks/rules.cjs'"
+          },
+          {
+            "type": "command",
+            "command": "node '/Users/minhlh.st/code/nomo-green/.codex/hooks/spec-state.cjs'"
+          },
+          {
+            "type": "command",
+            "command": "node '/Users/minhlh.st/code/nomo-green/.codex/hooks/usage.cjs'",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "SubagentStart": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node '/Users/minhlh.st/code/nomo-green/.codex/hooks/agent.cjs'"
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node '/Users/minhlh.st/code/nomo-green/.codex/hooks/state.cjs'"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node '/Users/minhlh.st/code/nomo-green/.codex/hooks/state.cjs'"
+          }
+        ]
+      }
+    ]
+  }
+}

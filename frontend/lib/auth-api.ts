@@ -1,7 +1,10 @@
 // Client API cho xac thuc admin (PlatformAdmin).
-// Access token giu trong bo nho (khong persist) de giam be mat XSS;
-// refresh token do backend quan ly qua HttpOnly cookie.
-
+// Refresh token do backend quan ly qua HttpOnly cookie.
+// Access token + identity (admin) in-memory trong Zustand store.
+// KHONG persist gi vao sessionStorage (tranh stale data khi F5).
+//
+// FE goi thang NestJS backend (CORS credentials=true de browser
+// attach + luu HttpOnly cookie cross-origin).
 const API_BASE =
 	process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:3001";
 
@@ -10,6 +13,8 @@ export type AdminIdentity = {
 	email: string;
 	fullName: string;
 	role: string;
+	roleCodes?: string[];
+	permissions?: string[];
 };
 
 export type AdminLoginResponse = {
@@ -27,16 +32,6 @@ export class AdminLoginError extends Error {
 	}
 }
 
-let accessToken: string | null = null;
-
-export function setAccessToken(token: string | null): void {
-	accessToken = token;
-}
-
-export function getAccessToken(): string | null {
-	return accessToken;
-}
-
 export async function adminLogin(
 	email: string,
 	password: string,
@@ -45,8 +40,8 @@ export async function adminLogin(
 	try {
 		res = await fetch(`${API_BASE}/auth/admin/login`, {
 			method: "POST",
-			headers: { "Content-Type": "application/json" },
 			credentials: "include",
+			headers: { "Content-Type": "application/json" },
 			body: JSON.stringify({ email, password }),
 		});
 	} catch {
@@ -64,9 +59,16 @@ export async function adminLogin(
 	}
 
 	const data = (await res.json()) as AdminLoginResponse;
-	if (!data.accessToken) {
+	if (!data.accessToken || !data.admin) {
 		throw new AdminLoginError(res.status, "Phản hồi đăng nhập không hợp lệ.");
 	}
-	setAccessToken(data.accessToken);
 	return data;
+}
+
+export async function adminLogout(accessToken: string): Promise<void> {
+	await fetch(`${API_BASE}/auth/logout`, {
+		method: "POST",
+		credentials: "include",
+		headers: { Authorization: `Bearer ${accessToken}` },
+	});
 }

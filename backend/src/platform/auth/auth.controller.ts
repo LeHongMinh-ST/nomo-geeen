@@ -11,8 +11,10 @@ import {
 } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { AuthService } from './auth.service';
+import { RequirePermission } from './decorators/require-permission.decorator';
 import { AdminLoginDto } from './dto/admin-login.dto';
 import { AccessTokenGuard } from './guards/access-token.guard';
+import { PermissionGuard } from './guards/permission.guard';
 import type { AdminIdentity } from './token.service';
 
 const REFRESH_COOKIE = 'nomo_admin_rt';
@@ -22,11 +24,18 @@ function cookieSecure(): boolean {
 }
 
 function refreshCookieOptions(maxAgeMs?: number) {
+	const isDev = process.env.NODE_ENV !== 'production';
+	// SameSite=None + Secure=true can thiet de browser gui cookie HttpOnly
+	// cross-origin qua fetch() tu FE (:3000) den backend (:3001) voi
+	// credentials: 'include'. SameSite=Lax chi cho phep top-level navigation,
+	// khong gui kem cross-origin fetch POST -> /auth/refresh 401 khi F5.
+	// Chrome co exception cho localhost (treated as secure context) nen
+	// `secure: true` cung hoat dong o dev khong can HTTPS that su.
 	return {
 		httpOnly: true,
-		secure: cookieSecure(),
-		sameSite: 'strict' as const,
-		path: '/auth',
+		secure: isDev ? true : cookieSecure(),
+		sameSite: 'none' as const,
+		path: '/',
 		...(maxAgeMs !== undefined ? { maxAge: maxAgeMs } : {}),
 	};
 }
@@ -79,15 +88,28 @@ export class AuthController {
 			REFRESH_COOKIE
 		];
 		if (!cookie) {
+			console.log('[auth/refresh] 401 reason=missing_cookie');
 			throw new UnauthorizedException('Missing refresh token');
 		}
-		const result = await this.auth.refresh(cookie);
-		res.cookie(
-			REFRESH_COOKIE,
-			result.refreshToken,
-			refreshCookieOptions(result.refreshTtlSec * 1000),
-		);
-		return { accessToken: result.accessToken };
+		try {
+			const result = await this.auth.refresh(cookie, {
+				ip: req.ip,
+				userAgent: req.get('user-agent') ?? undefined,
+			});
+			res.cookie(
+				REFRESH_COOKIE,
+				result.refreshToken,
+				refreshCookieOptions(result.refreshTtlSec * 1000),
+			);
+			return { accessToken: result.accessToken };
+		} catch (err) {
+			console.log(
+				`[auth/refresh] 401 reason=${
+					(err as Error).message ?? 'unknown'
+				}`,
+			);
+			throw err;
+		}
 	}
 
 	@Post('logout')
@@ -104,6 +126,29 @@ export class AuthController {
 	@Get('me')
 	@UseGuards(AccessTokenGuard)
 	async me(@Req() req: AuthedRequest) {
-		return this.auth.me(req.user.id);
+		try {
+			const admin = await this.auth.me(req.user.id);
+			console.log(
+				`[auth/me] 200 adminId=${admin.id} roleCodes=${JSON.stringify(
+					admin.roleCodes,
+				)} permissions=${admin.permissions.length}`,
+			);
+			return admin;
+		} catch (err) {
+			console.log(`[auth/me] ERR reason=${(err as Error).message ?? 'unknown'}`);
+			throw err;
+		}
+	}
+
+	/**
+	 * R0-03 step 4 demo: route guarded by both AccessTokenGuard (JWT verify)
+	 * + PermissionGuard (@RequirePermission('admin.user:view')). Used to
+	 * verify the wiring end-to-end before R1/R2 endpoints rely on it.
+	 */
+	@Get('admin/ping')
+	@UseGuards(AccessTokenGuard, PermissionGuard)
+	@RequirePermission('admin.user:view')
+	adminPing(@Req() req: AuthedRequest) {
+		return { ok: true, adminId: req.user.id };
 	}
 }

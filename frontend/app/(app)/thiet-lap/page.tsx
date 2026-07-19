@@ -83,14 +83,14 @@ const settingGroups: {
 				icon: KeyRound,
 				label: "Đổi mật khẩu",
 				desc: "Cập nhật mật khẩu đăng nhập",
-				tile: "#546e7a",
+				tile: "#1a6fa8",
 				href: "/thiet-lap/doi-mat-khau",
 			},
 			{
 				icon: ShieldCheck,
 				label: "Bảo mật tài khoản",
 				desc: "Thiết bị đăng nhập, xác thực",
-				tile: "#1e88e5",
+				tile: "#1a6fa8",
 				href: "/thiet-lap/bao-mat",
 			},
 		],
@@ -102,21 +102,21 @@ const settingGroups: {
 				icon: Building2,
 				label: "Thông tin cửa hàng",
 				desc: "Tên, địa chỉ, giấy phép kinh doanh",
-				tile: "#26a69a",
+				tile: "#1a6fa8",
 				href: "/thiet-lap/thong-tin-cua-hang",
 			},
 			{
 				icon: Printer,
 				label: "Mẫu in biên lai",
 				desc: "Tùy chỉnh thông tin trên biên lai",
-				tile: "#9e9d24",
+				tile: "#5cad45",
 				href: "/thiet-lap/mau-in",
 			},
 			{
 				icon: Bell,
 				label: "Thông báo",
 				desc: "Nhắc nợ đến hạn, hàng sắp hết",
-				tile: "#f4511e",
+				tile: "#1a6fa8",
 				href: "/thiet-lap/thong-bao",
 			},
 		],
@@ -160,7 +160,7 @@ export default function ThietLapPage() {
 					<button
 						type="button"
 						aria-label="Đổi ảnh đại diện"
-						className="absolute -bottom-1 -right-1 flex size-9 items-center justify-center rounded-full border-2 border-card bg-primary text-white transition-colors duration-200 ease-out hover:bg-[#43a047]"
+						className="absolute -bottom-1 -right-1 flex size-9 items-center justify-center rounded-full border-2 border-card bg-primary text-white transition-colors duration-200 ease-out hover:bg-[#5cad45]"
 					>
 						<Camera className="size-4.5" aria-hidden />
 					</button>
@@ -220,7 +220,7 @@ export default function ThietLapPage() {
 
 				<button
 					type="submit"
-					className="mt-1 flex h-12 w-full items-center justify-center rounded-[10px] bg-primary text-base font-semibold text-white transition-all duration-200 ease-out hover:bg-[#43a047] active:translate-y-px active:bg-[#2e7d32] md:h-11"
+					className="mt-1 flex h-12 w-full items-center justify-center rounded-[10px] bg-primary text-base font-semibold text-white transition-all duration-200 ease-out hover:bg-[#5cad45] active:translate-y-px active:bg-[#3f8530] md:h-11"
 				>
 					Lưu thay đổi
 				</button>

@@ -109,6 +109,7 @@ const RESOURCES = [
 	'debt',
 	'report',
 	'setting',
+	'user',
 ];
 const ACTIONS = ['view', 'create', 'edit', 'delete', 'approve', 'export'];
 
@@ -169,7 +170,7 @@ async function main() {
 		}
 	}
 
-	// System roles (tenantId = null). Phase 1: OWNER (toan quyen), STAFF (han che).
+	// System roles (tenantId = null). Phase 1: OWNER, MANAGER, STAFF.
 	// Luu y: NULL khong dedupe trong unique constraint Postgres => dung findFirst + create,
 	// khong upsert tren compound unique [tenantId, code].
 	const owner =
@@ -186,6 +187,30 @@ async function main() {
 		(await prisma.role.create({
 			data: { code: 'STAFF', name: 'Nhan vien', isSystem: true },
 		}));
+	const manager =
+		(await prisma.role.findFirst({
+			where: { tenantId: null, code: 'MANAGER' },
+		})) ??
+		(await prisma.role.create({
+			data: {
+				code: 'MANAGER',
+				name: 'Quan ly',
+				isSystem: true,
+				rank: 2,
+			},
+		}));
+	await prisma.role.update({
+		where: { id: owner.id },
+		data: { rank: 1, isSystem: true, isAdmin: false },
+	});
+	await prisma.role.update({
+		where: { id: staff.id },
+		data: { rank: 3, isSystem: true, isAdmin: false },
+	});
+	await prisma.role.update({
+		where: { id: manager.id },
+		data: { rank: 2, isSystem: true, isAdmin: false },
+	});
 
 	// OWNER: toan quyen
 	for (const permissionId of permissionIds) {
@@ -221,8 +246,33 @@ async function main() {
 		});
 	}
 
+	const managerPerms = await prisma.permission.findMany({
+		where: {
+			OR: [
+				{
+					resource: { in: ['sales', 'purchase', 'product', 'inventory'] },
+					action: { in: ['view', 'create', 'edit'] },
+				},
+				{
+					resource: { in: ['customer', 'supplier', 'debt', 'dashboard'] },
+					action: 'view',
+				},
+				{ resource: 'user', action: { in: ['view', 'create', 'edit'] } },
+			],
+		},
+	});
+	for (const perm of managerPerms) {
+		await prisma.rolePermission.upsert({
+			where: {
+				roleId_permissionId: { roleId: manager.id, permissionId: perm.id },
+			},
+			update: {},
+			create: { roleId: manager.id, permissionId: perm.id },
+		});
+	}
+
 	console.log(
-		`Seed done: ${FEATURES.length} features, ${PLANS.length} plans, ${permissionIds.length} permissions, roles OWNER/STAFF.`,
+		`Seed done: ${FEATURES.length} features, ${PLANS.length} plans, ${permissionIds.length} permissions, roles OWNER/MANAGER/STAFF.`,
 	);
 
 	await seedBootstrapAdmin();

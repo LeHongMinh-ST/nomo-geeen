@@ -39,7 +39,7 @@ export function SiteFooter() {
 			<div className="mx-auto max-w-[1200px] px-4 py-12 lg:px-8">
 				<div className="grid grid-cols-2 gap-8 md:grid-cols-4">
 					<div className="col-span-2 flex flex-col gap-4">
-						<Link href="/" className="flex items-center">
+						<Link href="/home-page" className="flex items-center">
 							<Image
 								src="/images/logo_ngang.png"
 								alt="NomoGreen"

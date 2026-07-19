@@ -14,7 +14,7 @@ import {
 
 /**
  * Thẻ 1 sản phẩm cho mobile (DESIGN.md §12.1).
- * Tile màu module "Sản phẩm" (Lime #9e9d24) + tên + SKU + tồn + giá + badge trạng thái.
+ * Tile màu module "Sản phẩm" (Lime #5cad45) + tên + SKU + tồn + giá + badge trạng thái.
  */
 export function ProductCard({ product }: { product: Product }) {
 	const status = getStockStatus(product);
@@ -26,7 +26,7 @@ export function ProductCard({ product }: { product: Product }) {
 		>
 			<span
 				className="flex size-12 shrink-0 items-center justify-center rounded-[12px]"
-				style={{ backgroundColor: "#9e9d24" }}
+				style={{ backgroundColor: "#5cad45" }}
 			>
 				<Package className="size-6 text-white" aria-hidden />
 			</span>

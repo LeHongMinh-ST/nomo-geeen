@@ -88,7 +88,7 @@ export function PurchaseDetail({ purchase: initial }: { purchase: Purchase }) {
 				<div className="flex items-center gap-3">
 					<span
 						className="flex size-12 items-center justify-center rounded-full text-white"
-						style={{ backgroundColor: "#7e57c2" }}
+						style={{ backgroundColor: "#5cad45" }}
 					>
 						<Truck className="size-6" aria-hidden />
 					</span>
@@ -121,7 +121,7 @@ export function PurchaseDetail({ purchase: initial }: { purchase: Purchase }) {
 							>
 								<span
 									className="flex size-10 shrink-0 items-center justify-center rounded-[10px]"
-									style={{ backgroundColor: "#26a69a" }}
+									style={{ backgroundColor: "#5cad45" }}
 								>
 									<PackagePlus className="size-5 text-white" aria-hidden />
 								</span>
@@ -241,7 +241,7 @@ export function PurchaseDetail({ purchase: initial }: { purchase: Purchase }) {
 								<button
 									type="button"
 									onClick={() => setStatus("completed")}
-									className="flex h-14 flex-1 items-center justify-center gap-2 rounded-[10px] bg-primary text-lg font-bold text-white transition-colors duration-200 ease-out hover:bg-[#43a047] active:bg-[#2e7d32] lg:h-12 lg:flex-none lg:px-8"
+									className="flex h-14 flex-1 items-center justify-center gap-2 rounded-[10px] bg-primary text-lg font-bold text-white transition-colors duration-200 ease-out hover:bg-[#5cad45] active:bg-[#3f8530] lg:h-12 lg:flex-none lg:px-8"
 								>
 									<CheckCircle2 className="size-6" aria-hidden />
 									Hoàn thành nhập

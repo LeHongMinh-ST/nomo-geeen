@@ -4,7 +4,6 @@ import {
 	Building2,
 	CreditCard,
 	LayoutDashboard,
-	Package,
 	ScrollText,
 	Settings,
 	Users,
@@ -14,6 +13,10 @@ import {
  * Điều hướng khu quản trị nội bộ (admin) — quản lý nền tảng SaaS NomoGreen.
  * Tách biệt với app chủ cửa hàng (lib/navigation.ts).
  * Màu tile theo DESIGN.md §3 "Module Accent" — chỉ dùng cho icon tile.
+ *
+ * R7.8: `permission` is the admin.* permission code that gates this nav item.
+ * SUPER_ADMIN (R4.2) bypasses all permission checks. Items without
+ * `permission` (legacy / always-visible) are shown to everyone authenticated.
  */
 
 export type AdminNavItem = {
@@ -22,6 +25,8 @@ export type AdminNavItem = {
 	icon: LucideIcon;
 	/** Màu tile module accent (chỉ icon tile). */
 	tile: string;
+	/** R7.8: admin.* permission code required to see this item. */
+	permission?: string;
 };
 
 export type AdminNavGroup = {
@@ -46,21 +51,10 @@ export const adminNavGroups: AdminNavGroup[] = [
 		items: [
 			{
 				label: "Cửa hàng",
-				href: "/admin/cua-hang",
+				href: "/admin/tenants",
 				icon: Building2,
 				tile: "#43a047",
-			},
-			{
-				label: "Người dùng",
-				href: "/admin/nguoi-dung",
-				icon: Users,
-				tile: "#1e88e5",
-			},
-			{
-				label: "Gói dịch vụ",
-				href: "/admin/goi-dich-vu",
-				icon: Package,
-				tile: "#7e57c2",
+				permission: "admin.tenant:view",
 			},
 		],
 	},
@@ -69,13 +63,14 @@ export const adminNavGroups: AdminNavGroup[] = [
 		items: [
 			{
 				label: "Giao dịch",
-				href: "/admin/giao-dich",
+				href: "/admin/transactions",
 				icon: CreditCard,
 				tile: "#f4511e",
+				permission: "admin.billing:view",
 			},
 			{
 				label: "Nhật ký hệ thống",
-				href: "/admin/nhat-ky",
+				href: "/admin/audit-log",
 				icon: ScrollText,
 				tile: "#3949ab",
 			},
@@ -85,14 +80,21 @@ export const adminNavGroups: AdminNavGroup[] = [
 		heading: "Hệ thống",
 		items: [
 			{
+				label: "Tài khoản",
+				href: "/admin/admin-users",
+				icon: Users,
+				tile: "#1e88e5",
+				permission: "admin.user:view",
+			},
+			{
 				label: "Tình trạng",
-				href: "/admin/tinh-trang",
+				href: "/admin/status",
 				icon: Activity,
 				tile: "#26a69a",
 			},
 			{
 				label: "Thiết lập",
-				href: "/admin/thiet-lap",
+				href: "/admin/settings",
 				icon: Settings,
 				tile: "#9e9e9e",
 			},

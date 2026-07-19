@@ -15,7 +15,7 @@ import {
 
 /**
  * Thẻ 1 phiếu nhập cho mobile (DESIGN.md §12.1).
- * Tile màu module "Nhập hàng" (Teal #26a69a).
+ * Tile màu module "Nhập hàng" (Teal #5cad45).
  */
 export function PurchaseCard({ purchase }: { purchase: Purchase }) {
 	return (
@@ -25,7 +25,7 @@ export function PurchaseCard({ purchase }: { purchase: Purchase }) {
 		>
 			<span
 				className="flex size-12 shrink-0 items-center justify-center rounded-[12px]"
-				style={{ backgroundColor: "#26a69a" }}
+				style={{ backgroundColor: "#5cad45" }}
 			>
 				<PackagePlus className="size-6 text-white" aria-hidden />
 			</span>

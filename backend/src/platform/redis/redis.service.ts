@@ -63,6 +63,20 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
 		return this.client.ttl(key);
 	}
 
+	// SET wrappers used by RefreshTokenStore admin-index (F-09/F-18) — atomic,
+	// no scripting needed because we don't compose multi-key writes.
+	async sadd(key: string, member: string): Promise<number> {
+		return this.client.sadd(key, member);
+	}
+
+	async srem(key: string, member: string): Promise<number> {
+		return this.client.srem(key, member);
+	}
+
+	async smembers(key: string): Promise<string[]> {
+		return this.client.smembers(key);
+	}
+
 	/**
 	 * Chay Lua script atomic (dung cho rotation compare-and-swap o R3-01).
 	 */

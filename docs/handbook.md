@@ -44,24 +44,45 @@ Quy tắc:
 
 ## 21.4 Tích hợp Bán hàng
 
-- Từ Bán nhanh / Tạo đơn: mở "Tra bệnh → gợi ý thuốc" (xem mục 10 trong `sales.md`), chọn bệnh, chạm thuốc gợi ý để thêm vào đơn.
-- Từ chi tiết một bệnh trong Sổ tay: xem danh sách thuốc gợi ý, thêm thẳng vào đơn đang bán.
-- Áp giá bậc số lượng và trừ tồn giống hệt chọn sản phẩm bằng tay (mục 11 trong `base_spec.md`).
+- **Luồng B trên Bán nhanh** (`sales.md`): khách kể bệnh → gõ ô tìm → chọn bệnh → (tuỳ) hỏi diện tích/số con → list thuốc → thêm giỏ. **Cùng màn bán**, không app riêng.
+- Luồng A (biết tên thuốc) không bắt qua Sổ tay.
+- MVP: ghim + khớp hoạt chất/pest + **hỏi optional + SL sơ bộ** (21.7). Fallback 2 lớp tinh = 1.1 (21.8).
+- Từ màn chi tiết bệnh trong Sổ tay: thêm thuốc vào đơn đang mở.
+- Giá / trừ tồn = chọn SP tay.
 
 ## 21.5 Phân quyền & Feature Flag
 
-- **Owner**: xem, thêm/sửa/xóa bệnh, ghim/loại thuốc gợi ý, cấu hình schema hỏi đáp (21.7) và fallback thuốc (21.8).
-- **Staff**: xem và dùng gợi ý khi bán; không sửa nội dung Sổ tay (trừ khi Owner mở).
-- Là module bật/tắt qua Feature Flag (`handbook`) như Inventory/Debt (mục 3.9 `base_spec.md`). Tắt thì ẩn menu và lối vào ở Bán hàng.
-- Quyền dạng `resource:action` với resource `handbook` (view/create/edit/delete) — thống nhất RBAC hiện có.
+- **Owner**: xem, thêm/sửa/xóa bệnh, ghim/loại thuốc; bật schema hỏi đáp (21.7) / fallback (21.8) khi flag sẵn sàng.
+- **Staff**: xem và dùng gợi ý khi bán; không sửa Sổ tay (trừ Owner mở).
+- Feature Flag `handbook` (mục 3.9 `base_spec.md`). Tắt → ẩn menu + lối Tra bệnh.
+- Quyền `handbook:view|create|edit|delete`.
 
-## 21.6 Ngoài phạm vi Phase 1
+## 21.6 Phạm vi theo phase
 
-- Gợi ý bằng AI / ảnh chụp lá cây (để giai đoạn sau — thuộc AI Assistant, mục 20 `base_spec.md`).
-- Nhắc lịch phun tự động cho khách sau khi mua (Phase 2).
-- Chia sẻ Sổ tay giữa các cửa hàng / kho tri thức tập trung.
+**Phase 1 (MVP quầy) — bắt buộc**
+
+- Disease + aliases + đối tượng + ghim thuốc + khớp hoạt chất / pest tag.
+- **Gõ bệnh trên Bán nhanh** → panel thuốc (luồng B).
+- §21.7 Hỏi đáp **optional** + công thức số học đơn giản + prefill SL — preset field theo lĩnh vực; Owner tắt hết field = 0 câu hỏi.
+- Context trên đơn: bệnh + field đã trả lời (§22 tối thiểu).
+- Seed bệnh vùng / 3 lĩnh vực.
+
+**Phase 1.1**
+
+- §21.8 Fallback thuốc hết hàng 2 lớp (mapping Owner + cùng hoạt chất).
+- Field consult tùy biến nâng cao / công thức phức tạp hơn.
+- Gợi ý “lần trước khách này mua gì cho bệnh này”.
+
+**Ngoài Phase 1**
+
+- AI / ảnh chụp lá cây.
+- Nhắc lịch phun tự động.
+- Chia sẻ Sổ tay liên cửa hàng.
 
 ## 21.7 Schema hỏi đáp theo lĩnh vực (tư vấn chuyên ngành)
+
+> **Phase 1: có trong luồng B, nhưng từng câu hỏi luôn bỏ qua được.**  
+> Owner tắt field / bệnh không bật field → sau chọn bệnh **thẳng** list thuốc.
 
 Mỗi bệnh / vấn đề trong Sổ tay có một **bộ câu hỏi tư vấn** (consult schema) để người bán hỏi khách rồi quyết định bán gì. Ví dụ:
 
@@ -120,7 +141,9 @@ Thêm vào đơn, lưu context tư vấn (mục 22)
 
 ## 21.8 Fallback thuốc khi hết hàng
 
-Khi thuốc được gợi ý chính **hết hàng / bị khóa / hết hạn**, hệ thống tự động tìm thuốc thay thế theo 2 lớp:
+> **Flag OFF mặc định Phase 1.** MVP: hết hàng → không gợi ý bán (Business Rules §18); Owner ghim thuốc thay bằng tay.
+
+Khi bật flag và thuốc gợi ý chính **hết hàng / bị khóa / hết hạn**, tìm thay thế 2 lớp:
 
 ### Lớp 1 — Owner mapping thủ công (ưu tiên cao nhất)
 

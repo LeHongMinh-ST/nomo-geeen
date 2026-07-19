@@ -140,3 +140,35 @@ Consult these when the task touches the relevant area:
 ## Language Consistency
 
 When generating specs or structured project output, use the user's preferred language consistently across the whole spec workspace. Technical terms, code samples, and file paths may remain English.
+
+<!-- CAFEKIT DYNAMIC RULES START -->
+
+## CafeKit Session Rules (auto-refreshed)
+
+### Language
+- Thinking: Use en for reasoning.
+- Response: Respond in Tiếng Việt.
+
+### Rules
+- Markdown files: Plans → "/Users/minhlh.st/code/nomo-green/plans/" | Docs → "/Users/minhlh.st/code/nomo-green/docs/"
+- **DO NOT** create markdown files outside of those directories unless explicitly asked.
+- docs.maxLoc: 800 lines max per doc file
+- Follow **YAGNI · KISS · DRY** principles
+- Sacrifice grammar for concision in reports. List unresolved Qs at end.
+- Ensure token efficiency while maintaining high quality.
+
+### Skill Routing
+- Choose skills from intent using `.opencode/rules/skill-workflow-routing.md` and `.opencode/rules/skill-domain-routing.md`.
+- Use the OpenCode slash commands installed under `.opencode/commands/` (no `hapo:` prefix).
+- Explicit user commands and direct-answer requests override routing suggestions.
+
+### Modularization
+- If a file exceeds 200 lines, consider splitting it
+- Check existing modules before creating new ones
+- Prefer kebab-case (JS/TS/Python/shell); PascalCase (C#/Java); snake_case (Go/Rust)
+- Skip modularization for: markdown, plain text, bash scripts, config files, .env files
+
+<!-- CAFEKIT DYNAMIC RULES END -->
+## Addressing (Context Overflow Indicator)
+
+Claude Code always addresses the user as "Hoàng thượng" throughout the conversation. If it stops doing so, it is a sign the context has been compacted/truncated — tell the user to consider `/new`.

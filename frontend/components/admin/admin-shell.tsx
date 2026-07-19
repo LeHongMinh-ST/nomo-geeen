@@ -1,16 +1,21 @@
 "use client";
 
-import { Bell, Menu, Search, X } from "lucide-react";
+import { Bell, ChevronDown, LogOut, Menu, Search, X } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
+import { SUPER_ADMIN_ROLE_CODE } from "@/lib/admin-rbac";
 import { adminNavGroups } from "@/lib/admin-navigation";
+import { useAdminAuth } from "@/stores/admin-auth-store";
 
 /**
  * Khung khu quản trị nội bộ: sidebar (desktop) + drawer (mobile) + topbar.
  * Identity Slate (#546e7a) để phân biệt rõ với app chủ cửa hàng (Brand Green).
  * Điều hướng theo DESIGN.md §10.2/§10.3; icon tile màu module accent (§3).
+ *
+ * Redirect-if-unauthenticated do AuthGuard xử lý (wrap layout). Shell chỉ
+ * render UI, gọi store.logout() để clear khi user bấm đăng xuất.
  */
 
 const ADMIN_SLATE = "#546e7a";
@@ -22,7 +27,45 @@ function isActive(pathname: string, href: string) {
 
 export function AdminShell({ children }: { children: React.ReactNode }) {
 	const pathname = usePathname();
+	const router = useRouter();
+	const admin = useAdminAuth((s) => s.admin);
+	const logout = useAdminAuth((s) => s.logout);
 	const [drawerOpen, setDrawerOpen] = useState(false);
+	const [menuOpen, setMenuOpen] = useState(false);
+	const menuRef = useRef<HTMLDivElement>(null);
+
+	const initials = admin?.fullName
+		? admin.fullName
+				.split(/\s+/)
+				.map((part) => part[0])
+				.slice(0, 2)
+				.join("")
+				.toUpperCase()
+		: "AD";
+
+	useEffect(() => {
+		if (!menuOpen) return;
+		function handlePointerDown(event: PointerEvent) {
+			if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+				setMenuOpen(false);
+			}
+		}
+		function handleKeyDown(event: KeyboardEvent) {
+			if (event.key === "Escape") setMenuOpen(false);
+		}
+		document.addEventListener("pointerdown", handlePointerDown);
+		document.addEventListener("keydown", handleKeyDown);
+		return () => {
+			document.removeEventListener("pointerdown", handlePointerDown);
+			document.removeEventListener("keydown", handleKeyDown);
+		};
+	}, [menuOpen]);
+
+	async function handleLogout() {
+		setMenuOpen(false);
+		await logout();
+		router.push("/admin/login");
+	}
 
 	return (
 		<div className="min-h-[100dvh] bg-background">
@@ -115,20 +158,72 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
 							<span className="absolute right-2.5 top-2.5 size-2 rounded-full bg-destructive" />
 						</button>
 
-						{/* Avatar + vai trò */}
-						<div className="flex items-center gap-2.5 pl-1">
-							<span
-								className="flex size-10 items-center justify-center rounded-full text-base font-semibold text-white"
-								style={{ backgroundColor: ADMIN_SLATE }}
+						{/* Avatar + vai trò — dropdown Thông tin / Đăng xuất */}
+						<div className="relative pl-1" ref={menuRef}>
+							<button
+								type="button"
+								onClick={() => setMenuOpen((open) => !open)}
+								aria-haspopup="menu"
+								aria-expanded={menuOpen}
+								className="flex items-center gap-2 rounded-[10px] py-1 pr-1.5 transition-colors duration-200 ease-out hover:bg-[#f5f5f5]"
 							>
-								QT
-							</span>
-							<div className="hidden flex-col leading-tight sm:flex">
-								<span className="text-sm font-semibold text-foreground">
-									Quản trị viên
+								<span
+									className="flex size-10 items-center justify-center rounded-full text-base font-semibold text-white"
+									style={{ backgroundColor: ADMIN_SLATE }}
+								>
+									{initials}
 								</span>
-								<span className="text-xs text-[#9e9e9e]">Toàn quyền</span>
-							</div>
+								<div className="hidden flex-col items-start leading-tight sm:flex">
+									<span className="text-sm font-semibold text-foreground">
+										{admin?.fullName ?? "Quản trị viên"}
+									</span>
+									<span className="text-xs text-[#9e9e9e]">
+										{admin?.role ?? "Toàn quyền"}
+									</span>
+								</div>
+								<ChevronDown
+									className={`hidden size-4 shrink-0 text-[#9e9e9e] transition-transform duration-200 ease-out sm:block ${
+										menuOpen ? "rotate-180" : ""
+									}`}
+									aria-hidden
+								/>
+							</button>
+
+							{menuOpen ? (
+								<div
+									role="menu"
+									className="absolute right-0 top-full z-40 mt-2 w-64 overflow-hidden rounded-[10px] border border-border bg-card shadow-lg"
+								>
+									{/* Thông tin — tóm tắt danh tính, không điều hướng */}
+									<div className="flex items-center gap-3 px-4 py-3">
+										<span
+											className="flex size-10 shrink-0 items-center justify-center rounded-full text-base font-semibold text-white"
+											style={{ backgroundColor: ADMIN_SLATE }}
+										>
+											{initials}
+										</span>
+										<div className="flex min-w-0 flex-col leading-tight">
+											<span className="truncate text-sm font-semibold text-foreground">
+												{admin?.fullName ?? "Quản trị viên"}
+											</span>
+											<span className="truncate text-xs text-[#9e9e9e]">
+												{admin?.email ?? admin?.role ?? "Toàn quyền"}
+											</span>
+										</div>
+									</div>
+									<div className="border-t border-border" />
+									{/* Đăng xuất */}
+									<button
+										type="button"
+										role="menuitem"
+										onClick={handleLogout}
+										className="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-sm font-medium text-destructive transition-colors duration-200 ease-out hover:bg-[#ffebee]"
+									>
+										<LogOut className="size-4.5" aria-hidden />
+										Đăng xuất
+									</button>
+								</div>
+							) : null}
 						</div>
 					</div>
 				</header>
@@ -144,21 +239,14 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
 
 function SidebarBrand() {
 	return (
-		<div className="flex h-16 items-center gap-3 px-5">
+		<div className="flex h-16 items-center justify-start gap-3 px-5">
 			<Image
-				src="/images/logo2.png"
+				src="/images/logo.png"
 				alt="NomoGreen"
-				width={40}
+				width={136}
 				height={40}
-				className="size-10 shrink-0 rounded-[10px] object-contain"
 				priority
 			/>
-			<span className="flex min-w-0 flex-col leading-tight">
-				<span className="truncate text-lg font-bold tracking-tight text-foreground">
-					NomoGreen
-				</span>
-				<span className="truncate text-sm text-[#9e9e9e]">Khu quản trị</span>
-			</span>
 		</div>
 	);
 }
@@ -170,9 +258,27 @@ function SidebarNav({
 	pathname: string;
 	onNavigate?: () => void;
 }) {
+	const admin = useAdminAuth((s) => s.admin);
+	const roleCodes = admin?.roleCodes ?? [];
+	const permissions = admin?.permissions ?? [];
+	const isSuperAdmin = roleCodes.includes(SUPER_ADMIN_ROLE_CODE);
+
+	// R7.8: filter nav items by permission. Items without `permission` are
+	// always-visible to authenticated admins.
+	const filteredGroups = adminNavGroups
+		.map((group) => ({
+			...group,
+			items: group.items.filter((item) => {
+				if (!item.permission) return true;
+				if (isSuperAdmin) return true;
+				return permissions.includes(item.permission);
+			}),
+		}))
+		.filter((group) => group.items.length > 0);
+
 	return (
 		<nav className="flex-1 overflow-y-auto px-3 pb-6">
-			{adminNavGroups.map((group) => (
+			{filteredGroups.map((group) => (
 				<div key={group.heading} className="mb-5">
 					<p className="px-3 pb-2 pt-3 text-xs font-semibold uppercase tracking-wide text-[#9e9e9e]">
 						{group.heading}
@@ -224,6 +330,25 @@ function SidebarFooter() {
 			>
 				← Về khu cửa hàng
 			</Link>
+		</div>
+	);
+}
+
+/**
+ * BootScreen khong con dung (AuthGuard wrap layout). Giu export de tranh
+ * import loi neu file khac con tham chieu; co the xoa sau.
+ */
+export function BootScreen() {
+	return (
+		<div
+			className="flex min-h-[100dvh] w-full items-center justify-center bg-background"
+			aria-busy="true"
+			aria-live="polite"
+		>
+			<div className="flex flex-col items-center gap-3 text-[#9e9e9e]">
+				<span className="size-8 animate-spin rounded-full border-2 border-border border-t-primary" />
+				<span className="text-sm">Đang xác thực...</span>
+			</div>
 		</div>
 	);
 }

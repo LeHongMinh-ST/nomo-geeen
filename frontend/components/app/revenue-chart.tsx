@@ -22,48 +22,66 @@ const data: Day[] = [
 
 const max = Math.max(...data.map((d) => d.value));
 
+const todayIndex = data.length - 1;
+
 export function RevenueChart() {
-	const [active, setActive] = useState<number | null>(null);
+	const [active, setActive] = useState<number | null>(todayIndex);
 
 	return (
 		<div className="flex flex-col gap-3">
-			<div className="flex h-44 items-end justify-between gap-2">
+			<div className="flex h-44 items-end justify-between gap-1.5 sm:gap-2">
 				{data.map((day, index) => {
-					const heightPct = Math.round((day.value / max) * 100);
+					const heightPct = Math.max(8, Math.round((day.value / max) * 100));
 					const isActive = active === index;
+					const isToday = index === todayIndex;
 					return (
 						<button
 							type="button"
 							key={day.label}
 							onPointerEnter={() => setActive(index)}
-							onPointerLeave={() => setActive(null)}
+							onPointerLeave={() => setActive(todayIndex)}
 							onFocus={() => setActive(index)}
-							onBlur={() => setActive(null)}
-							className="group flex h-full flex-1 flex-col items-center justify-end gap-2"
-							aria-label={`${day.label}: ${formatVND(day.value)} đồng`}
+							onBlur={() => setActive(todayIndex)}
+							className="group flex h-full min-h-12 flex-1 flex-col items-center justify-end gap-1.5 touch-manipulation"
+							aria-label={`${day.label}: ${formatVND(day.value)} đồng${isToday ? " (hôm nay)" : ""}`}
+							aria-pressed={isActive}
 						>
 							<span
-								className={`text-xs font-semibold transition-opacity duration-200 ${
+								className={`text-sm font-semibold tabular-nums transition-opacity duration-200 ${
 									isActive ? "opacity-100" : "opacity-0"
 								} text-foreground`}
 							>
 								{Math.round(day.value / 1000)}
 							</span>
 							<span
-								className="w-full rounded-t-[6px] bg-primary transition-all duration-200 ease-out group-hover:bg-[#43a047]"
+								className={`w-full max-w-10 rounded-t-[8px] transition-all duration-200 ease-out sm:max-w-none ${
+									isToday || isActive
+										? "bg-primary"
+										: "bg-[#c8e0c0]"
+								}`}
 								style={{
 									height: `${heightPct}%`,
-									opacity: isActive || active === null ? 1 : 0.55,
+									opacity: isActive || active === null ? 1 : 0.7,
 								}}
 							/>
-							<span className="text-sm text-[#616161]">{day.label}</span>
+							<span
+								className={`text-sm ${
+									isToday
+										? "font-semibold text-primary"
+										: "text-muted-foreground"
+								}`}
+							>
+								{day.label}
+							</span>
 						</button>
 					);
 				})}
 			</div>
 			<div className="flex items-center justify-between border-t border-border pt-3 text-sm">
-				<span className="text-[#616161]">Cao nhất trong tuần</span>
-				<span className="font-bold text-foreground">{formatVND(max)}₫</span>
+				<span className="text-muted-foreground">Cao nhất trong tuần</span>
+				<span className="font-bold tabular-nums text-foreground">
+					{formatVND(max)}₫
+				</span>
 			</div>
 		</div>
 	);

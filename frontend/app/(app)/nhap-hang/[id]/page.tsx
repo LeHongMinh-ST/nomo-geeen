@@ -24,7 +24,7 @@ export default function ChiTietPhieuNhapPage({
 				</p>
 				<Link
 					href="/nhap-hang"
-					className="flex h-12 items-center rounded-[10px] bg-primary px-6 text-base font-semibold text-white transition-colors duration-200 ease-out hover:bg-[#43a047] active:bg-[#2e7d32]"
+					className="flex h-12 items-center rounded-[10px] bg-primary px-6 text-base font-semibold text-white transition-colors duration-200 ease-out hover:bg-[#5cad45] active:bg-[#3f8530]"
 				>
 					Về danh sách phiếu nhập
 				</Link>

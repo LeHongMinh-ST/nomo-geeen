@@ -12,8 +12,16 @@ export type Supplier = {
 	name: string;
 	type: SupplierType;
 	contact?: string;
+	/** Chức vụ người liên hệ (base_spec §7). */
+	contactRole?: string;
 	phone: string;
 	address?: string;
+	/** Mã số thuế — nếu có (base_spec §7). */
+	taxCode?: string;
+	/** Chính sách hợp tác (tùy chọn, base_spec §7). */
+	discountPercent?: number;
+	creditLimit?: number;
+	paymentTerm?: string;
 };
 
 export const supplierTypeLabel: Record<SupplierType, string> = {
@@ -29,8 +37,13 @@ export const suppliers: Supplier[] = [
 		name: "Vật tư Bình Điền",
 		type: "manufacturer",
 		contact: "A. Dũng",
+		contactRole: "Trưởng vùng",
 		phone: "0283822xxxx",
 		address: "KCN Long An",
+		taxCode: "0301234567",
+		discountPercent: 5,
+		creditLimit: 50_000_000,
+		paymentTerm: "Công nợ 30 ngày",
 	},
 	{
 		id: "ncc-bayer",
@@ -38,8 +51,11 @@ export const suppliers: Supplier[] = [
 		name: "Bayer Việt Nam",
 		type: "distributor",
 		contact: "C. Lan",
+		contactRole: "Nhân viên kinh doanh",
 		phone: "0283911xxxx",
 		address: "Q.1, TP.HCM",
+		taxCode: "0302345678",
+		paymentTerm: "Công nợ 15 ngày",
 	},
 	{
 		id: "ncc-loctroi",

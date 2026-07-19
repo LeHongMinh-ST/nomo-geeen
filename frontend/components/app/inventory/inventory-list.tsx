@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { InventoryCard } from "@/components/app/inventory/inventory-card";
 import { DataPagination } from "@/components/app/shared/data-pagination";
+import { ListFilterBar } from "@/components/app/shared/list-filter-bar";
+import { ListSkeleton } from "@/components/app/shared/list-skeleton";
 import { LoadMoreSentinel } from "@/components/app/shared/load-more-sentinel";
 import { formatDate, formatVND } from "@/lib/format";
 import {
@@ -58,6 +60,12 @@ export function InventoryList() {
 	const [expiry, setExpiry] = useState<ExpiryFilter>("all");
 	const [page, setPage] = useState(1);
 	const [mobileCount, setMobileCount] = useState(MOBILE_BATCH);
+	const [loading, setLoading] = useState(true);
+
+	useEffect(() => {
+		const timer = setTimeout(() => setLoading(false), 450);
+		return () => clearTimeout(timer);
+	}, []);
 
 	const filtered = useMemo(() => {
 		const q = query.trim().toLowerCase();
@@ -101,6 +109,8 @@ export function InventoryList() {
 	const expiredCount = seedProducts.filter(
 		(p) => expiryByProduct.get(p.id) === "expired",
 	).length;
+
+	if (loading) return <ListSkeleton withToolbar rows={6} />;
 
 	return (
 		<div className="flex w-full flex-col gap-5">
@@ -163,40 +173,24 @@ export function InventoryList() {
 			</div>
 
 			{/* Bộ lọc */}
-			<div className="flex flex-col gap-3">
-				<div className="grid grid-cols-4 gap-1 rounded-[12px] bg-[#f0f2f1] p-1">
-					{stockFilters.map((f) => (
-						<button
-							key={f.value}
-							type="button"
-							onClick={() => setStock(f.value)}
-							className={`h-9 rounded-[9px] text-sm font-semibold transition-colors duration-200 ease-out ${
-								stock === f.value
-									? "bg-card text-primary shadow-[0_1px_3px_rgba(0,0,0,0.08)]"
-									: "text-[#616161] hover:text-foreground"
-							}`}
-						>
-							{f.label}
-						</button>
-					))}
-				</div>
-				<div className="grid grid-cols-3 gap-1 rounded-[12px] bg-[#f0f2f1] p-1">
-					{expiryFilters.map((f) => (
-						<button
-							key={f.value}
-							type="button"
-							onClick={() => setExpiry(f.value)}
-							className={`h-9 rounded-[9px] text-sm font-semibold transition-colors duration-200 ease-out ${
-								expiry === f.value
-									? "bg-card text-primary shadow-[0_1px_3px_rgba(0,0,0,0.08)]"
-									: "text-[#616161] hover:text-foreground"
-							}`}
-						>
-							{f.label}
-						</button>
-					))}
-				</div>
-			</div>
+			<ListFilterBar
+				groups={[
+					{
+						key: "stock",
+						label: "Trạng thái tồn",
+						value: stock,
+						options: stockFilters,
+						onChange: (v) => setStock(v as StockFilter),
+					},
+					{
+						key: "expiry",
+						label: "Hạn sử dụng",
+						value: expiry,
+						options: expiryFilters,
+						onChange: (v) => setExpiry(v as ExpiryFilter),
+					},
+				]}
+			/>
 
 			{filtered.length === 0 ? (
 				<EmptyState />
@@ -267,7 +261,7 @@ export function InventoryList() {
 													>
 														<span
 															className="flex size-10 shrink-0 items-center justify-center rounded-[10px]"
-															style={{ backgroundColor: "#3949ab" }}
+															style={{ backgroundColor: "#5cad45" }}
 														>
 															<Warehouse
 																className="size-5 text-white"

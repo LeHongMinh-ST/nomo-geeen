@@ -17,7 +17,7 @@ import {
 
 /**
  * Thẻ 1 mặt hàng tồn cho mobile (DESIGN.md §12.1).
- * Tile màu module "Tồn kho" (Indigo #3949ab). Badge tồn + HSD.
+ * Tile màu module "Tồn kho" (Indigo #5cad45). Badge tồn + HSD.
  */
 export function InventoryCard({
 	product,
@@ -37,7 +37,7 @@ export function InventoryCard({
 		>
 			<span
 				className="flex size-12 shrink-0 items-center justify-center rounded-[12px]"
-				style={{ backgroundColor: "#3949ab" }}
+				style={{ backgroundColor: "#5cad45" }}
 			>
 				<Warehouse className="size-6 text-white" aria-hidden />
 			</span>

@@ -93,7 +93,7 @@ export default function ThongTinCuaHangPage() {
 					<button
 						type="button"
 						aria-label="Đổi logo cửa hàng"
-						className="absolute -bottom-1 -right-1 flex size-9 items-center justify-center rounded-full border-2 border-card bg-primary text-white transition-colors duration-200 ease-out hover:bg-[#43a047]"
+						className="absolute -bottom-1 -right-1 flex size-9 items-center justify-center rounded-full border-2 border-card bg-primary text-white transition-colors duration-200 ease-out hover:bg-[#5cad45]"
 					>
 						<Camera className="size-4.5" aria-hidden />
 					</button>
@@ -150,7 +150,7 @@ export default function ThongTinCuaHangPage() {
 
 				<button
 					type="submit"
-					className="mt-1 flex h-12 w-full items-center justify-center rounded-[10px] bg-primary text-base font-semibold text-white transition-all duration-200 ease-out hover:bg-[#43a047] active:translate-y-px active:bg-[#2e7d32] md:h-11"
+					className="mt-1 flex h-12 w-full items-center justify-center rounded-[10px] bg-primary text-base font-semibold text-white transition-all duration-200 ease-out hover:bg-[#5cad45] active:translate-y-px active:bg-[#3f8530] md:h-11"
 				>
 					Lưu thay đổi
 				</button>

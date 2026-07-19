@@ -1,94 +1,165 @@
 # Sales — Bán hàng
 
-> Module chính, dùng hằng ngày. Phase 1 tối ưu cho bán tại quầy tại nông thôn. Tài liệu này tách ra từ mục 10 của `base_spec.md`.
+> Module chính, dùng hằng ngày. Phase 1 tối ưu **quầy nông thôn**: nhanh, ít chạm, chữ to, mạng yếu vẫn dùng được (online mobile web). Tách từ mục 10 `base_spec.md`.
 
-## Bán nhanh (Quick Sale)
+## Mục tiêu UX Phase 1
 
-Màn hình một chạm cho nông hộ/cửa hàng nhỏ:
+- **Hai kiểu khách quầy** đều xong trên **một màn Bán nhanh** (không đổi app).
+- **≤ 3 chạm** khi khách đã biết tên thuốc / mang vỏ.
+- **≤ 5–6 chạm** khi khách **kể bệnh** (gõ bệnh → chọn thuốc → thu).
+- Hỏi diện tích / số con / đàn = **tùy chọn**, bỏ qua 1 chạm.
+- Nút to, chữ to, bàn phím số; mobile-first; search bỏ dấu.
 
-```
-Chọn sản phẩm → Nhập SL → Thu tiền → Xong
-```
+---
 
-- Không bắt buộc chọn khách (bán vãng lai).
-- Không có bước Draft/Confirm — bán xong là hoàn thành, trừ tồn ngay.
-- Cho ghi nợ nhanh nếu chọn khách có SĐT.
-- Tự áp giá theo bậc số lượng (xem mục 11 trong `base_spec.md`).
+## Hành vi thực tế quầy nông thôn (cơ sở thiết kế)
 
-## Tìm sản phẩm khi bán — 3 đường
+| Kiểu khách | Việc xảy ra | Tần suất (ước) | Hệ thống phải |
+|---|---|---|---|
+| **A. Đã biết thuốc** | “Cho 2 chai X”, mang vỏ/ảnh | Rất cao | Ghim / top / quét / gõ tên SP → thu ngay |
+| **B. Kể bệnh / triệu chứng** | “Lúa đạo ôn”, “heo tiêu chảy”, “tôm đốm trắng” | Cao — **khác biệt NomoGreen** | Gõ bệnh trên ô bán → ra bệnh + thuốc gợi ý (+ tuỳ hỏi liều) |
+| **C. Ghi nợ / quen** | Gọi tên + “ghi sổ” | Cao | SĐT, dư nợ, 1 chạm ghi nợ |
+| **D. Mua kèm** | Phân + thuốc, hoặc “thêm 1 bao” | Trung bình | Thêm dòng SP sau khi đã có thuốc từ bệnh |
 
-Màn hình Bán nhanh và Tạo đơn đều có ô tìm chung. Khi gõ vào ô, hệ thống tìm song song 3 nguồn, gom kết quả để người bán chọn nhanh nhất:
+**Không** ép mọi đơn qua hỏi đáp. **Không** chôn luồng B vào menu phụ khó tìm.
 
-1. **Theo Sổ tay (bệnh / sâu hại / dịch bệnh)** — gõ tên bệnh hoặc triệu chứng (vd "đạo ôn", "rầy nâu", "tiêu chảy lợn"). Kết quả: danh sách bệnh phù hợp → chạm vào bệnh → chạy tiếp gợi ý thuốc (xem `handbook.md` mục 21).
-2. **Theo thuốc / sản phẩm** — gõ tên thuốc, tên hoạt chất, SKU, barcode. Kết quả: danh sách sản phẩm khớp → chạm để thêm vào đơn.
-3. **Theo tên khách / SĐT** — gõ tên hoặc một phần SĐT. Kết quả: danh sách khách khớp → chạm để gắn khách vào đơn (hỗ trợ ghi nợ nhanh). Nếu không khớp: hiện nút "+ Tạo khách nhanh" chỉ yêu cầu Tên + SĐT.
+---
 
-Thứ tự hiển thị gợi ý trong dropdown: **Sổ tay (bệnh) > Thuốc > Khách** vì đường Sổ tay là giá trị cốt lõi của NomoGreen. Người bán vẫn dùng phím tắt / tab để chuyển nhanh giữa 3 nhóm.
+## Hai luồng chuẩn trên Bán nhanh
 
-Ghi chú: khi đã chọn bệnh từ nhóm 1, hệ thống vẫn hiển thị tiếp nhóm 2 và 3 trong cùng dropdown để bổ sung sản phẩm / chọn khách nếu cần.
-
-## Gợi ý thuốc theo bệnh (tích hợp Sổ tay)
-
-Trên màn Bán nhanh và Tạo đơn bán hàng, cạnh ô tìm sản phẩm có lối vào **"Tra bệnh → gợi ý thuốc"** (dữ liệu từ module Sổ tay — xem `handbook.md` mục 21).
+### Luồng A — Biết thuốc (tốc độ)
 
 ```
-Chọn/nhập bệnh → Trả lời câu hỏi tư vấn (nếu có) → Xem thuốc gợi ý → Thêm vào đơn
+Ghim / Top / Quét / Gõ tên SP → SL → Thu / Ghi nợ → Xong
 ```
 
-- Người bán gõ tên bệnh/sâu hại/dịch bệnh (vd "rầy nâu", "đạo ôn", "dịch tả lợn", "đốm trắng tôm") hoặc chọn từ Sổ tay đã ghim.
-- Nếu bệnh đã bật schema hỏi đáp (`handbook.md` 21.7) → hiện các câu hỏi đặc thù (diện tích / số con / diện tích ao / ...) trước khi ra gợi ý.
-- Hệ thống trả về danh sách sản phẩm gợi ý (còn hàng ưu tiên lên đầu), kèm hoạt chất và đối tượng nuôi trồng phù hợp; kèm số lượng đề xuất tính từ câu trả lời.
-- Nếu thuốc chính hết hàng, chuyển sang fallback (`handbook.md` 21.8): thuốc mapping thủ công → thuốc cùng hoạt chất. Mỗi loại có nhãn rõ.
-- Chạm một sản phẩm gợi ý là **thêm thẳng vào đơn** như chọn tay (giá bậc tự áp, trừ tồn khi hoàn tất).
-- Chỉ gợi ý, **không tự thêm** — người bán luôn là người quyết định.
-- Không bán sản phẩm hết hàng / bị khóa / đã hết hạn (theo Business Rules mục 18 `base_spec.md`).
-- Context tư vấn (bệnh + các trường hỏi đáp + SĐT khách) **được lưu trên đơn** sau khi Completed (xem `handbook.md` mục 22).
-
-## Sales Order (đơn có quản lý)
-
-Dùng khi cần đơn công nợ, giao sau, hoặc chỉnh sửa trước khi chốt.
-
-Trạng thái (Simple Mode)
-
-- **Draft**
-- **Completed**
-- **Cancelled**
-
-Thông tin
-
-- **Customer** — khách hàng (kèm SĐT, tên snapshot).
-- **Products** — danh sách sản phẩm + số lượng + đơn giá.
-- **Discount** — chiết khấu (% hoặc số tiền).
-- **Tax** — thuế (nếu bật).
-- **Total** — tổng cộng.
-- **Context tư vấn** — bệnh, đối tượng, các trường hỏi đáp theo lĩnh vực (xem `handbook.md` 22.1) — lưu snapshot, không sửa sau khi Completed.
-
-Kho: mặc định kho duy nhất, không cần chọn (Simple Mode).
-
-Khi Completed:
+### Luồng B — Kể bệnh (cốt lõi ngành) — Phase 1 **bắt buộc hỗ trợ**
 
 ```
-Giảm tồn kho
-Ghi nhận context tư vấn trên đơn (snapshot)
-Ghi Audit Log
+[Ô tìm trên Bán nhanh] gõ "đạo ôn" / "tiêu chảy heo" / triệu chứng
+  → Kết quả nhóm Bệnh (ưu tiên khi query giống bệnh)
+  → Chạm 1 bệnh
+  → (Tuỳ chọn) Hỏi thêm: diện tích | số con | số đàn | …  [Bỏ qua]
+  → Gợi ý SL sơ bộ (nếu có công thức + đã nhập)
+  → Danh sách thuốc (ghim + khớp kho) kèm tồn
+  → Chạm thuốc → thêm vào giỏ (SL sửa được)
+  → (Tuỳ) thêm SP khác / chọn khách
+  → Thu / Ghi nợ → Xong
+  → Lưu snapshot: bệnh + câu trả lời hỏi (nếu có) trên đơn
 ```
 
-Ghi chú: trạng thái Confirmed và chọn Warehouse thuộc Advanced Mode.
+Quy tắc:
+
+- Không bắt buộc khách (vãng lai OK).
+- Không Draft/Confirm — **hoàn thành = trừ tồn ngay**.
+- Chỉ gợi ý, **không tự thêm** thuốc. Hết hàng / khóa / HSD / recall không bán (§18).
+- Hỏi đáp **không bắt buộc** — mặc định có nút **Bỏ qua → xem thuốc ngay**.
+- Owner tắt hết field hỏi của 1 bệnh → sau chọn bệnh **thẳng** ra thuốc (0 câu hỏi).
+
+---
+
+## Bán nhanh (Quick Sale) — màn hình duy nhất Phase 1
+
+```
+Chọn (SP hoặc Bệnh→thuốc) → SL → Thu tiền / Ghi nợ → Xong
+```
+
+- Phase 1 **chỉ Bán nhanh** tại quầy. Sales Order Draft = sau.
+- Trả hàng (Sales Return) vẫn có.
+
+### Chọn hàng — lối vào
+
+1. **Ghim / Top / Gần đây** — luồng A.
+2. **Quét barcode** — add ngay 1 dòng (nếu bật).
+3. **Ô tìm chung** — gõ **một lần**, search song song 3 nguồn (xem dưới).
+4. Nút phụ **“Bệnh hay gặp”** (ghim disease) — mở list bệnh đã ghim, không cần gõ.
+
+### Ô tìm — 3 nguồn (song song)
+
+1. **Sổ tay (bệnh / vấn đề)** — tên bệnh, alias, triệu chứng đời thường.
+2. **Thuốc / SP** — tên, hoạt chất, SKU, barcode.
+3. **Khách** — tên / SĐT → gắn khách; không khớp → **+ Tạo khách nhanh** (Tên + SĐT).
+
+**Search nông thôn:** bỏ dấu, telex gần đúng, alias bệnh (“đạo ôn” / “dao on” / “cháy lá”).
+
+**Thứ tự dropdown theo ngữ cảnh (không cố định Thuốc trước):**
+
+| Tín hiệu query | Ưu tiên hiển thị |
+|---|---|
+| Khớp mạnh bệnh / triệu chứng / alias Sổ tay | **Bệnh → Thuốc → Khách** |
+| Khớp mạnh tên SP / barcode / hoạt chất | **Thuốc → Bệnh → Khách** |
+| Toàn số (SĐT) | **Khách → Thuốc → Bệnh** |
+| Rỗng / chưa gõ | Ghim SP + Bệnh hay gặp (không dropdown dài) |
+
+Tab chuyển nhóm luôn có. Sau khi chọn bệnh, vẫn gõ tiếp để thêm SP / khách.
+
+### Sau chọn bệnh — panel gợi ý
+
+1. Tên bệnh + đối tượng (lúa / lợn / tôm…) + ghi chú Owner (nếu có).
+2. **Hỏi thêm (optional)** — field đã bật trên bệnh đó:
+   - Cây: diện tích (sào/ha), giai đoạn, số lần phun…
+   - Con: số con mắc, tổng đàn, cân nặng TB…
+   - Thủy sản: diện tích ao, mật độ, ngày tuổi…
+3. Nút **Bỏ qua** / **Xem thuốc**.
+4. List thuốc: còn hàng trước; nhãn ghim / cùng hoạt chất; SL đề xuất (nếu tính được) — **sửa tay**.
+5. Chạm = add giỏ; có thể chọn nhiều thuốc (phun + bám…).
+
+Chi tiết schema field + công thức: `handbook.md` §21.7.  
+**Phase 1 ship:** chọn bệnh → thuốc + hỏi optional tối thiểu (preset field, công thức số học đơn giản). Fallback 2 lớp tinh chỉnh = 1.1.
+
+### Dòng hàng
+
+- **Đơn vị bán** trên dòng — quy **Base Unit**.
+- SL: bàn phím số, +/− to; prefill từ gợi ý liều nếu có.
+- Giá: auto; **sửa tay luôn**.
+- Tax: OFF mặc định.
+
+### Thanh toán 1 chạm
+
+| Nút | Hành vi |
+|---|---|
+| **Tiền mặt đủ** | Thu = tổng |
+| **Một phần** | Nhập thu; phần còn nợ (cần SĐT) |
+| **Ghi nợ hết** | Full nợ (cần SĐT) |
+
+- **Khách đưa** → **Thối lại**.
+- Chọn khách → hiện **dư nợ cũ**.
+- Cash mặc định; CK / QR ghi nhận.
+
+### Sau khi xong
+
+- Trừ tồn, audit, công nợ, **snapshot bệnh + consult** (nếu có).
+- In A5/thermal hoặc copy gửi Zalo.
+- **Bán tiếp** — xóa giỏ, giữ context màn.
+
+---
 
 ## Sales Return
 
-Khách trả hàng
+```
+Chọn đơn / SP trả → SL → Xác nhận
+  → Tăng tồn
+  → Điều chỉnh công nợ (nếu đơn ghi nợ)
+```
 
-↓
+Đơn giản: trả theo dòng SP; không quy trình duyệt.
 
-Tăng tồn kho
+---
 
-↓
+## Sales Order (Draft) — ngoài luồng quầy Phase 1
 
-Điều chỉnh công nợ
+Giữ concept cho sau / Advanced:
 
-## Ghi chú cho người dùng nông thôn
+- Draft → Completed / Cancelled
+- Dùng khi cần soạn dở, giao sau
 
-- Mọi trường context (bệnh, diện tích, số con...) đều **tùy chọn** — nếu khách vãng lai mua 1 chai thuốc đã biết, có thể bỏ qua hoàn toàn bước tư vấn.
-- Bàn phím số hiển thị riêng cho trường số; nút to, chữ to, một câu một màn hình trên Bán nhanh.
-- Giá trị mặc định theo vùng miền (vd "1 sào" cho lúa miền Bắc) để người bán chỉ cần sửa nhanh.
+**Phase 1 quầy không bắt buộc implement UI Sales Order** nếu Bán nhanh + Return đủ. API/schema có thể chừa.
+
+---
+
+## Ghi chú nông thôn
+
+- Mọi context (bệnh, diện tích, số con…) **tùy chọn**.
+- Empty state tenant mới: seed SP mẫu / bệnh vùng + Saler import Excel (Product/Customer).
+- Offline bán đầy đủ = sau (PWA); Phase 1 = **mobile web online ổn định**, timeout/retry rõ, không mất giỏ khi lỗi mạng ngắn (giữ state client).
+- Không nhồi dashboard trước khi bán xong đơn đang mở.

@@ -33,7 +33,7 @@ export function SupplierPicker({
 			>
 				<span
 					className="flex size-8 shrink-0 items-center justify-center rounded-full text-white"
-					style={{ backgroundColor: "#7e57c2" }}
+					style={{ backgroundColor: "#1a6fa8" }}
 				>
 					<Truck className="size-4.5" aria-hidden />
 				</span>
@@ -181,7 +181,7 @@ function SupplierRow({
 		>
 			<span
 				className="flex size-11 shrink-0 items-center justify-center rounded-full text-white"
-				style={{ backgroundColor: "#7e57c2" }}
+				style={{ backgroundColor: "#1a6fa8" }}
 			>
 				<Truck className="size-5.5" aria-hidden />
 			</span>

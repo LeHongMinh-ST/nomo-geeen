@@ -15,7 +15,13 @@ describe('TokenService', () => {
 		service = new TokenService(new JwtService());
 	});
 
-	const admin = { id: 'a1', email: 'admin@nomogreen.vn', role: 'SUPER_ADMIN' };
+	const admin = {
+		id: 'a1',
+		email: 'admin@nomogreen.vn',
+		role: 'SUPER_ADMIN',
+		roleCodes: ['SUPER_ADMIN'],
+		permissions: ['admin.user:view', 'admin.role:create'],
+	};
 
 	it('signAccess embeds sub/email/role/type/familyId and verifies with access secret', () => {
 		const token = service.signAccess(admin, 'fam-1');
@@ -25,6 +31,38 @@ describe('TokenService', () => {
 		expect(claims.role).toBe('SUPER_ADMIN');
 		expect(claims.type).toBe('access');
 		expect(claims.familyId).toBe('fam-1');
+	});
+
+	it('signAccess joins multi-role roleCodes into CSV `role` field (F-06)', () => {
+		const multiRole = {
+			...admin,
+			roleCodes: ['SUPER_ADMIN', 'BILLING'],
+		};
+		const token = service.signAccess(multiRole, 'fam-2');
+		const claims = service.verifyAccess(token);
+		expect(claims.role).toBe('SUPER_ADMIN,BILLING');
+		expect(claims.roleCodes).toEqual(['SUPER_ADMIN', 'BILLING']);
+		expect(claims.permissions).toEqual([
+			'admin.user:view',
+			'admin.role:create',
+		]);
+	});
+
+	it('verifyAccess derives roleCodes from CSV when roleCodes field absent (backward compat)', () => {
+		const jwt = new JwtService();
+		const legacy = jwt.sign(
+			{
+				sub: 'a1',
+				email: 'admin@nomogreen.vn',
+				role: 'SUPPORT,BILLING',
+				type: 'access',
+				familyId: 'fam-legacy',
+			},
+			{ secret: ACCESS, expiresIn: '15m' },
+		);
+		const claims = service.verifyAccess(legacy);
+		expect(claims.roleCodes).toEqual(['SUPPORT', 'BILLING']);
+		expect(claims.permissions).toEqual([]);
 	});
 
 	it('verifyAccess rejects a refresh token (wrong type/secret)', () => {

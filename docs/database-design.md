@@ -89,10 +89,13 @@ Mỗi khách hàng đăng ký tạo ra một tenant với workspace riêng.
 | mode | enum `TenantMode` | SIMPLE (Phase 1) / ADVANCED |
 | status | enum `TenantStatus` | ACTIVE / SUSPENDED / LOCKED |
 | logo_url | string? | logo riêng |
+| seat_bonus | int (mặc định 0) | Admin/Saler cấp thêm seat ngoài `plan.max_users` |
 | created_at / updated_at | datetime | |
 | deleted_at | datetime? | soft delete |
 
 Index: `status`, `deleted_at`.
+
+`effective_max_users = plan.max_users + seat_bonus` (null max_users = unlimited). `active_count` = user status ACTIVE|INVITED.
 
 ## 4.2 `plan` — Gói dịch vụ (3.4)
 
@@ -104,21 +107,31 @@ Index: `status`, `deleted_at`.
 | description | string? | |
 | price | BigInt | VND theo chu kỳ |
 | billing_cycle | enum `BillingCycle` | MONTHLY / QUARTERLY / YEARLY |
-| max_users | int | giới hạn user |
-| max_warehouses | int (mặc định 1) | Phase 1: 1 kho |
-| max_storage_bytes | BigInt | giới hạn storage (đối chiếu `stored_file.size_bytes`) |
+| max_users | int? | null = unlimited (Phase 1 nới) |
+| max_warehouses | int (mặc định 1) | |
+| max_products | int? | optional quota |
+| max_customers | int? | optional quota |
+| max_orders_per_month | int? | soft/hard tùy policy |
+| max_storage_bytes | BigInt? | đối chiếu `stored_file.size_bytes` |
 | is_active | bool | |
 
-## 4.3 `feature` — Catalog module (3.9, 15)
+## 4.3 `feature` — Catalog capability (3.4, 3.9, 15)
 
-Danh mục các module bật/tắt được: `inventory`, `debt`, `batch`, `tax`, `barcode`, `quantity_tier_pricing`, `advanced_mode`.
+Danh mục **capability** bật/tắt (không nhét số hạn vào đây). Code ổn định — xem ma trận `base_spec.md` §3.4.
+
+Nhóm gợi ý seed:
+
+- **Core:** `sales_quick`, `product_basic`, `inventory_single`, `purchase_simple`, `customer_basic`, `supplier_basic`, `report_basic`, `unit_conversion`
+- **Add-on:** `debt`, `batch_expiry`, `recall`, `barcode`, `handbook`, `handbook_consult`, `handbook_fallback`, `pricing_tier`, `pricing_customer`, `tax`, `print_receipt`, `import_export`, `multi_user`, `roles_manager`, `sales_return`, `report_profit`, `report_debt`
+- **Advanced:** `advanced_mode`, `multi_warehouse`, `warehouse_transfer`, `purchase_workflow`, `rbac_full`, `sales_order_draft`, `costing_batch_fifo`
 
 | Cột | Kiểu | Ghi chú |
 |---|---|---|
 | id | uuid PK | |
-| code | string, unique | mã feature |
+| code | string, unique | mã capability ổn định |
 | name | string | |
 | description | string? | |
+| group | string? | core / addon / advanced — chỉ để Admin UI |
 
 ## 4.4 `plan_feature` — Gói ↔ Feature
 
@@ -193,7 +206,7 @@ Tách hoàn toàn khỏi `user` (người dùng tenant) để ranh giới bảo 
 | email | string, unique | |
 | password_hash | string | |
 | full_name | string | |
-| role | enum `PlatformAdminRole` | SUPER_ADMIN / SUPPORT / BILLING |
+| role | enum `PlatformAdminRole` | SUPER_ADMIN / SALER / SUPPORT / BILLING |
 | status | enum `PlatformAdminStatus` | ACTIVE / DISABLED |
 | last_login_at | datetime? | |
 
@@ -253,29 +266,34 @@ Index: `ticket_id`.
 |---|---|---|
 | id | uuid PK | |
 | tenant_id | FK → tenant | Cascade |
-| email | string | |
-| phone | string? | |
+| username | string | login identifier; unique trong tenant |
+| email | string? | login identifier nếu có |
+| phone | string? | login identifier nếu có |
 | password_hash | string | |
+| must_change_password | bool | tùy chọn: true nếu muốn bắt khách tự đổi MK lần đầu; false khi Saler đã set MK cuối |
 | full_name | string | |
 | role_id | FK → role | |
 | status | enum `UserStatus` | ACTIVE / INVITED / DISABLED |
+| created_by_type | enum? | PLATFORM_ADMIN / USER — ai tạo (Saler vs Owner) |
 | last_login_at | datetime? | |
 | deleted_at | datetime? | soft delete |
 
-Unique: `(tenant_id, email)`. Index: `tenant_id`, `phone`.
+Unique: `(tenant_id, username)`; partial unique `(tenant_id, email)` / `(tenant_id, phone)` khi không null. Index: `tenant_id`, `username`, `phone`, `email`.
+
+Login Phase 1: resolve `username | phone | email` trong scope tenant (hoặc global lookup theo workspace path) → verify password.
 
 ## 5.2 `role` — Vai trò (3.8)
 
-`tenant_id` null = role hệ thống dùng chung (OWNER / STAFF). Thiết kế RBAC sớm
-(`architecture.md §6.2`) để lên Advanced Mode không phải viết lại — chỉ thêm role → permission.
+`tenant_id` null = role hệ thống dùng chung. Phase 1 seed: **OWNER / MANAGER / STAFF**. Advanced thêm WAREHOUSE / SALES / CASHIER / VIEWER.
 
 | Cột | Kiểu | Ghi chú |
 |---|---|---|
 | id | uuid PK | |
 | tenant_id | FK → tenant? | null = system role; Cascade khi có tenant |
-| code | string | OWNER / STAFF (Advanced: MANAGER/WAREHOUSE/SALES/CASHIER/VIEWER) |
+| code | string | OWNER / MANAGER / STAFF (+ Advanced…) |
 | name | string | |
 | is_system | bool | |
+| rank | int? | 1=Owner, 2=Manager, 3=Staff — hỗ trợ so sánh “không nâng mình” |
 
 Unique: `(tenant_id, code)`.
 
@@ -394,15 +412,16 @@ Index: `(tenant_id, purpose)`.
 
 Script `backend/prisma/seed.ts` khởi tạo:
 
-- **7 feature**: inventory, debt, batch, tax, barcode, quantity_tier_pricing, advanced_mode.
-- **3 plan** + mapping feature:
-  - Starter (0đ, 2 user, 1GB): inventory, debt, quantity_tier_pricing.
-  - Professional (199.000đ, 5 user, 5GB): + batch, tax, barcode.
-  - Enterprise (499.000đ, 20 user, 20GB): full (gồm advanced_mode).
-- **60 permission**: 10 resource × 6 action (`resource:action`).
-- **2 system role**:
-  - OWNER — toàn quyền (đủ 60 permission).
-  - STAFF — bán/nhập/xem sản phẩm-kho (view/create/edit) + xem khách/NCC/công nợ/dashboard; không sửa setting, không xóa, không xem report.
+- **Feature catalog** theo `base_spec` §3.4 (core / addon / advanced) — gồm `multi_user`, `roles_manager`.
+- **3 plan** + mapping feature + `max_users`:
+  - Starter: max_users=1 (chỉ Owner), core quầy; không `multi_user` / `roles_manager`.
+  - Professional: max_users=5, + debt/batch/handbook/barcode, `multi_user` + `roles_manager`.
+  - Enterprise: max_users cao, full + advanced_mode.
+- **Permission** `resource:action` (gồm `users:manage`, `report:profit`, …).
+- **3 system role**:
+  - OWNER — toàn quyền tenant (trừ billing platform).
+  - MANAGER — vận hành + quản lý NV (không setting / không đụng Owner).
+  - STAFF — bán/nhập/xem; không users:manage, không report:profit mặc định.
 
 ---
 
@@ -411,7 +430,9 @@ Script `backend/prisma/seed.ts` khởi tạo:
 | Quyết định | Lý do |
 |---|---|
 | Tách `platform_admin` khỏi `user` | Ranh giới bảo mật rõ; tránh nhầm quyền hệ thống với quyền tenant. |
-| RBAC (`role`/`permission`/`role_permission`) ngay Phase 1 | `architecture.md §6.2`: thiết kế `resource:action` sớm để lên Advanced Mode không viết lại. Phase 1 chỉ seed OWNER/STAFF. |
+| RBAC 3 bậc Phase 1 | Seed OWNER/MANAGER/STAFF + `resource:action`. Advanced chỉ thêm role. |
+| `tenant.seat_bonus` | Admin/Saler cấp thêm seat ngoài gói mà không đổi plan. |
+| `effective_max_users` | `plan.max_users + seat_bonus`; DISABLED không tính seat. |
 | Trial gộp vào `subscription` | YAGNI — `status = TRIALING` + `trial_ends_at` đủ dùng, không cần bảng riêng. |
 | Feature flag 2 tầng | `plan_feature` quyết định gói cho phép gì; `tenant_feature_flag` cho phép override thủ công từng tenant. |
 | Tiền `BigInt` (VND) | Chính xác tuyệt đối, tránh sai số float. |

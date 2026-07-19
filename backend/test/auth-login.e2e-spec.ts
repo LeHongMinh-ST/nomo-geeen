@@ -76,7 +76,7 @@ describe('Admin auth login (e2e)', () => {
 		expect(cookie).toContain('nomo_admin_rt=');
 		expect(cookie).toContain('HttpOnly');
 		expect(cookie).toContain('Secure');
-		expect(cookie).toContain('Path=/auth');
+		expect(cookie).toContain('Path=/');
 		expect(cookie).toContain('SameSite=Strict');
 		expect(cookie).toContain('Max-Age=');
 	});

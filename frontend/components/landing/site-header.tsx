@@ -17,7 +17,7 @@ export function SiteHeader() {
 	return (
 		<header className="sticky top-0 z-50 border-b border-border bg-white/90 backdrop-blur-md">
 			<div className="mx-auto flex h-16 max-w-[1200px] items-center gap-4 px-4 lg:px-8">
-				<Link href="/" className="flex items-center">
+				<Link href="/home-page" className="flex items-center">
 					<Image
 						src="/images/logo_ngang.png"
 						alt="NomoGreen"

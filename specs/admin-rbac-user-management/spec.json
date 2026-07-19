@@ -1,0 +1,255 @@
+{
+  "feature_name": "admin-rbac-user-management",
+  "created_at": "2026-07-17T15:30:00Z",
+  "updated_at": "2026-07-18T19:30:00+07:00",
+  "language": "en",
+  "status": "ready_for_review",
+  "phase": "review",
+  "current_phase": "review",
+  "priority": "P1",
+  "effort": null,
+  "tags": [
+    "auth",
+    "security",
+    "rbac",
+    "platform-admin",
+    "migration",
+    "audit"
+  ],
+  "approvals": {
+    "requirements": {
+      "generated": true,
+      "approved": true
+    },
+    "design": {
+      "generated": true,
+      "approved": true
+    },
+    "tasks": {
+      "generated": true,
+      "approved": true
+    }
+  },
+  "scope_lock": {
+    "source": "Implement chức năng phân quyền, vai trò, quản lý admin user (cho phần quản trị)",
+    "in_scope": [
+      "Multi-role RBAC cho PlatformAdmin (admin có nhiều role, mỗi role có nhiều permission)",
+      "CRUD PlatformAdmin (tạo, sửa, deactivate/reactivate, reset password) — chỉ SUPER_ADMIN",
+      "CRUD Role + gán Permission cho Role (role editor) — chỉ SUPER_ADMIN",
+      "Danh sách Permission (read-only, seed từ code taxonomy resource:action)",
+      "Gán role cho admin (replace enum cũ PlatformAdminRole)",
+      "Audit log cho mọi thao tác admin (CREATE/UPDATE/DELETE/ASSIGN_ROLE/REVOKE_ROLE/RESET_PASSWORD/STATUS_CHANGE)",
+      "Permission guard @RequirePermission('resource:action') cho admin endpoints",
+      "Wire Role/Permission tables vào AccessTokenClaims (role string → permission codes list)",
+      "Frontend admin pages: /admin/nguoi-dung-quan-tri (admin list + create/edit), /admin/vai-tro (role list + editor), /admin/quyen-han (permission list)",
+      "FE navigation/menu gating theo permission code",
+      "Admin permission codes dùng prefix `admin.` (vd: `admin.user:view`) để tránh va chạm với 10 permission code tenant hiện có"
+    ],
+    "out_of_scope": [
+      "RBAC cho Tenant User (User/Role gán cho tenant — out of scope cho spec này)",
+      "Tenant-scoped permissions (chỉ platform-level)",
+      "OAuth/SSO cho admin",
+      "MFA/2FA",
+      "Permission delegation / temporary permission grant",
+      "Custom permission builder (admin tự tạo permission mới — read-only seed)",
+      "Audit log viewer UI (ghi vào DB, query qua API endpoint riêng ở task khác)",
+      "Self-service password change cho admin (chỉ reset bởi SUPER_ADMIN)",
+      "audit_log.action enum chỉ giữ 12 code RBAC (R6.5) — code LOGIN/LOGOUT/REFRESH_REUSE_DETECTED hiện có do admin-authentication spec thêm vào, nằm ngoài scope cập nhật enum tại spec này"
+    ],
+    "expansion_policy": "requires-user-approval"
+  },
+  "dependencies": {
+    "blockedBy": [
+      {
+        "spec": "admin-authentication",
+        "status": "done",
+        "reason": "Cần AuthModule (AccessTokenGuard, TokenService, RefreshTokenStore) làm foundation. Migration enum role → M:N phải đi cùng với token claim update."
+      }
+    ],
+    "blocks": []
+  },
+  "task_files": [
+    "tasks/task-R0-01-claim-migration.md",
+    "tasks/task-R0-02-token-service-update.md",
+    "tasks/task-R0-03-permission-guard.md",
+    "tasks/task-R0-04-permission-seed.md",
+    "tasks/task-R0-05-audit-logger.md",
+    "tasks/task-R0-06-existing-tests-update.md",
+    "tasks/task-R1-01-role-api.md",
+    "tasks/task-R1-02-role-ui.md",
+    "tasks/task-R2-01-admin-user-api.md",
+    "tasks/task-R2-02-admin-user-ui.md",
+    "tasks/task-R3-01-fe-admin-pages.md"
+  ],
+  "task_registry": {
+    "tasks/task-R0-01-claim-migration.md": {
+      "id": "R0-01",
+      "title": "Claim migration",
+      "status": "done",
+      "dependencies": [],
+      "blocker": null,
+      "started_at": "2026-07-18T00:35:00+07:00",
+      "completed_at": "2026-07-18T03:30:00+07:00",
+      "last_updated_at": "2026-07-18T03:30:00+07:00"
+    },
+    "tasks/task-R0-02-token-service-update.md": {
+      "id": "R0-02",
+      "title": "Token service update",
+      "status": "done",
+      "dependencies": [
+        "tasks/task-R0-01-claim-migration.md"
+      ],
+      "blocker": null,
+      "started_at": "2026-07-18T00:55:00+07:00",
+      "completed_at": "2026-07-18T03:30:00+07:00",
+      "last_updated_at": "2026-07-18T03:30:00+07:00"
+    },
+    "tasks/task-R0-03-permission-guard.md": {
+      "id": "R0-03",
+      "title": "Permission guard",
+      "status": "done",
+      "dependencies": [
+        "tasks/task-R0-01-claim-migration.md"
+      ],
+      "blocker": null,
+      "started_at": "2026-07-18T01:10:00+07:00",
+      "completed_at": "2026-07-18T03:30:00+07:00",
+      "last_updated_at": "2026-07-18T03:30:00+07:00"
+    },
+    "tasks/task-R0-04-permission-seed.md": {
+      "id": "R0-04",
+      "title": "Permission seed",
+      "status": "done",
+      "dependencies": [
+        "tasks/task-R0-01-claim-migration.md"
+      ],
+      "blocker": null,
+      "started_at": "2026-07-18T01:25:00+07:00",
+      "completed_at": "2026-07-18T03:30:00+07:00",
+      "last_updated_at": "2026-07-18T03:30:00+07:00"
+    },
+    "tasks/task-R0-05-audit-logger.md": {
+      "id": "R0-05",
+      "title": "Audit logger",
+      "status": "done",
+      "dependencies": [
+        "tasks/task-R0-01-claim-migration.md"
+      ],
+      "blocker": null,
+      "started_at": "2026-07-18T01:35:00+07:00",
+      "completed_at": "2026-07-18T03:30:00+07:00",
+      "last_updated_at": "2026-07-18T03:30:00+07:00"
+    },
+    "tasks/task-R0-06-existing-tests-update.md": {
+      "id": "R0-06",
+      "title": "Existing tests update",
+      "status": "done",
+      "dependencies": [
+        "tasks/task-R0-01-claim-migration.md",
+        "tasks/task-R0-02-token-service-update.md"
+      ],
+      "blocker": null,
+      "started_at": "2026-07-18T03:05:00+07:00",
+      "completed_at": "2026-07-18T03:30:00+07:00",
+      "last_updated_at": "2026-07-18T03:30:00+07:00"
+    },
+    "tasks/task-R1-01-role-api.md": {
+      "id": "R1-01",
+      "title": "Role api",
+      "status": "done",
+      "dependencies": [
+        "tasks/task-R0-03-permission-guard.md",
+        "tasks/task-R0-04-permission-seed.md",
+        "tasks/task-R0-05-audit-logger.md"
+      ],
+      "blocker": null,
+      "started_at": "2026-07-18T01:50:00+07:00",
+      "completed_at": "2026-07-18T03:30:00+07:00",
+      "last_updated_at": "2026-07-18T19:30:00+07:00"
+    },
+    "tasks/task-R1-02-role-ui.md": {
+      "id": "R1-02",
+      "title": "Role ui",
+      "status": "done",
+      "dependencies": [
+        "tasks/task-R1-01-role-api.md"
+      ],
+      "blocker": null,
+      "started_at": "2026-07-18T02:25:00+07:00",
+      "completed_at": "2026-07-18T03:30:00+07:00",
+      "last_updated_at": "2026-07-18T03:30:00+07:00"
+    },
+    "tasks/task-R2-01-admin-user-api.md": {
+      "id": "R2-01",
+      "title": "Admin user api",
+      "status": "done",
+      "dependencies": [
+        "tasks/task-R0-03-permission-guard.md",
+        "tasks/task-R0-05-audit-logger.md",
+        "tasks/task-R1-01-role-api.md"
+      ],
+      "blocker": null,
+      "started_at": "2026-07-18T02:05:00+07:00",
+      "completed_at": "2026-07-18T03:30:00+07:00",
+      "last_updated_at": "2026-07-18T03:30:00+07:00"
+    },
+    "tasks/task-R2-02-admin-user-ui.md": {
+      "id": "R2-02",
+      "title": "Admin user ui",
+      "status": "done",
+      "dependencies": [
+        "tasks/task-R2-01-admin-user-api.md",
+        "tasks/task-R1-02-role-ui.md"
+      ],
+      "blocker": null,
+      "started_at": "2026-07-18T02:55:00+07:00",
+      "completed_at": "2026-07-18T03:30:00+07:00",
+      "last_updated_at": "2026-07-18T03:30:00+07:00"
+    },
+    "tasks/task-R3-01-fe-admin-pages.md": {
+      "id": "R3-01",
+      "title": "Fe admin pages",
+      "status": "done",
+      "dependencies": [
+        "tasks/task-R1-02-role-ui.md",
+        "tasks/task-R2-02-admin-user-ui.md",
+        "tasks/task-R0-03-permission-guard.md"
+      ],
+      "blocker": null,
+      "started_at": "2026-07-18T02:40:00+07:00",
+      "completed_at": "2026-07-18T03:30:00+07:00",
+      "last_updated_at": "2026-07-18T03:30:00+07:00"
+    }
+  },
+  "design_context": {
+    "execution_tier": "deep",
+    "discovery_mode": "full",
+    "validation_recommended": true,
+    "validation_recommended_reason": "auth/session/migration/schema-change/security-sensitive; >=5 task files expected"
+  },
+  "validation": {
+    "status": "completed",
+    "completed_at": "2026-07-18T00:30:00+07:00",
+    "interview_report": "reports/validation-interview.md",
+    "red_team_report": "reports/red-team-findings.md",
+    "reconciliation_report": "reports/reconciliation-audit.md"
+  },
+  "timestamps": {
+    "validation_done": "2026-07-18T00:30:00+07:00",
+    "review_done": "2026-07-18T00:30:00+07:00"
+  },
+  "ready_for_implementation": true,
+  "translation": {
+    "enabled": false,
+    "language": null,
+    "language_code": null,
+    "dir": null,
+    "sync": "manual",
+    "last_synced_at": null
+  },
+  "risk_assessment": {
+    "cynefin": "Complex",
+    "blast_radius": "Critical Path",
+    "rationale": "JWT access token claim thay đổi (role string → permission codes); migration enum PlatformAdminRole; existing SUPER_ADMIN seed phải migrate sang multi-role; AuthService.login() và AccessTokenStrategy.validate() bị ảnh hưởng. Test toàn bộ admin auth flow khi deploy."
+  }
+}

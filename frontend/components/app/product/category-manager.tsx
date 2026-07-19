@@ -20,14 +20,14 @@ type Entity = { id: string; name: string };
 type TabKey = "category" | "brand" | "unit" | "manufacturer";
 
 const tabs: { key: TabKey; label: string; unit: string; tile: string }[] = [
-	{ key: "category", label: "Danh mục", unit: "danh mục", tile: "#9e9d24" },
-	{ key: "brand", label: "Thương hiệu", unit: "thương hiệu", tile: "#7e57c2" },
-	{ key: "unit", label: "Đơn vị", unit: "đơn vị", tile: "#3949ab" },
+	{ key: "category", label: "Danh mục", unit: "danh mục", tile: "#5cad45" },
+	{ key: "brand", label: "Thương hiệu", unit: "thương hiệu", tile: "#5cad45" },
+	{ key: "unit", label: "Đơn vị", unit: "đơn vị", tile: "#5cad45" },
 	{
 		key: "manufacturer",
 		label: "Nhà sản xuất",
 		unit: "nhà sản xuất",
-		tile: "#26a69a",
+		tile: "#5cad45",
 	},
 ];
 
@@ -114,7 +114,7 @@ export function CategoryManager() {
 					onClick={addItem}
 					disabled={!newName.trim()}
 					aria-label="Thêm"
-					className="flex size-12 shrink-0 items-center justify-center rounded-[10px] bg-primary text-white transition-colors duration-200 ease-out hover:bg-[#43a047] active:bg-[#2e7d32] disabled:opacity-50 md:h-11"
+					className="flex size-12 shrink-0 items-center justify-center rounded-[10px] bg-primary text-white transition-colors duration-200 ease-out hover:bg-[#5cad45] active:bg-[#3f8530] disabled:opacity-50 md:h-11"
 				>
 					<Plus className="size-6" aria-hidden />
 				</button>

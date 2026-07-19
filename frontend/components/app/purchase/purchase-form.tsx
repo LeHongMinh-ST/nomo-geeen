@@ -268,7 +268,7 @@ export function PurchaseForm() {
 					type="button"
 					disabled={!canSave}
 					onClick={() => save("completed")}
-					className="flex h-14 flex-1 items-center justify-center gap-2 rounded-[10px] bg-primary text-lg font-bold text-white transition-colors duration-200 ease-out hover:bg-[#43a047] active:bg-[#2e7d32] disabled:cursor-not-allowed disabled:bg-[#a5d6a7] lg:h-12 lg:flex-none lg:px-8"
+					className="flex h-14 flex-1 items-center justify-center gap-2 rounded-[10px] bg-primary text-lg font-bold text-white transition-colors duration-200 ease-out hover:bg-[#5cad45] active:bg-[#3f8530] disabled:cursor-not-allowed disabled:bg-[#a5d6a7] lg:h-12 lg:flex-none lg:px-8"
 				>
 					<CheckCircle2 className="size-6" aria-hidden />
 					Hoàn thành

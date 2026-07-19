@@ -2,9 +2,11 @@ import { randomUUID } from 'node:crypto';
 import {
 	ForbiddenException,
 	Injectable,
+	Logger,
 	ServiceUnavailableException,
 	UnauthorizedException,
 } from '@nestjs/common';
+import { SUPER_ADMIN_ROLE_CODE } from '../admin-users/admin.constants';
 import { PrismaService } from '../prisma/prisma.service';
 import { DECOY_HASH, PasswordService } from './password.service';
 import { RefreshTokenStore, remainingTtlSec } from './refresh-token.store';
@@ -47,6 +49,7 @@ export class AuthService {
 	private readonly refreshTtlSec = ttlToSeconds(
 		process.env.JWT_REFRESH_TTL ?? '30d',
 	);
+	private readonly logger = new Logger(AuthService.name);
 
 	constructor(
 		private readonly prisma: PrismaService,
@@ -57,14 +60,103 @@ export class AuthService {
 
 	/**
 	 * Bọc các thao tác Redis: lỗi Redis -> 503 (fail closed, R9.1),
-	 * thay vì để ioredis throw thành 500.
+	 * thay vì để ioredis throw thành 500. Log lỗi gốc ở level warn để operator
+	 * không mất dấu incident khi stack fail-closed.
 	 */
 	private async redisGuard<T>(op: () => Promise<T>): Promise<T> {
 		try {
 			return await op();
-		} catch {
+		} catch (err) {
+			this.logger.warn(`redis op failed: ${(err as Error).message}`);
 			throw new ServiceUnavailableException('Auth store unavailable');
 		}
+	}
+
+	/**
+	 * R5.1/R5.2: load `roleCodes` + `permissions` for an admin from the
+	 * `admin_role_assignment` join. Single `findMany` avoids N+1 (R0-02 step 1).
+	 *
+	 * F-07 fix: filters on `role.isAdmin = true`, NOT `role.isSystem = false`.
+	 * `SUPER_ADMIN` system role has BOTH `isSystem=true` AND `isAdmin=true`,
+	 * so the old `isSystem:false` filter excluded the only role that the
+	 * super-admin shortcut (R4.2) depends on.
+	 */
+	private async loadAdminPermissions(
+		adminId: string,
+	): Promise<{ roleCodes: string[]; permissions: string[] }> {
+		const rows = await this.prisma.adminRoleAssignment.findMany({
+			where: { adminId, role: { tenantId: null, isAdmin: true } },
+			select: {
+				role: {
+					select: {
+						code: true,
+						permissions: {
+							select: { permission: { select: { code: true } } },
+						},
+					},
+				},
+			},
+		});
+		const roleCodes = [...new Set(rows.map((r) => r.role.code))];
+		const permissions = [
+			...new Set(
+				rows.flatMap((r) =>
+					r.role.permissions.map((p) => p.permission.code),
+				),
+			),
+		];
+		return { roleCodes, permissions };
+	}
+
+	/**
+	 * R8.2: legacy SUPER_ADMIN bootstrap path. When an admin whose `role`
+	 * enum column is `SUPER_ADMIN` logs in for the first time after RBAC
+	 * migration and has NO `admin_role_assignment` rows, auto-create the
+	 * assignment to the seeded system SUPER_ADMIN role.
+	 *
+	 * F-08 fix: wrapped in `prisma.$transaction` + `upsert` keyed on the
+	 * unique `[adminId, roleId]` constraint. Concurrent first-time logins
+	 * both return 200 with non-empty permissions.
+	 */
+	private async ensureSuperAdminAssignment(admin: {
+		id: string;
+		role: string;
+	}): Promise<void> {
+		if (admin.role !== SUPER_ADMIN_ROLE_CODE) return;
+
+		const count = await this.prisma.adminRoleAssignment.count({
+			where: { adminId: admin.id },
+		});
+		if (count > 0) return;
+
+		const superAdminRole = await this.prisma.role.findFirst({
+			where: {
+				code: SUPER_ADMIN_ROLE_CODE,
+				isAdmin: true,
+				tenantId: null,
+			},
+			select: { id: true },
+		});
+		if (!superAdminRole) {
+			// R8.2 path can't recover if the system role wasn't seeded.
+			// Caller will see empty permissions[]; guard denies everything
+			// until operator runs seed.
+			return;
+		}
+
+		await this.prisma.$transaction([
+			this.prisma.adminRoleAssignment.upsert({
+				where: {
+					adminId_roleId: { adminId: admin.id, roleId: superAdminRole.id },
+				},
+				update: {},
+				create: {
+					adminId: admin.id,
+					roleId: superAdminRole.id,
+					assignedBy: null,
+				},
+			}),
+		]);
 	}
 
 	/**
@@ -95,10 +187,20 @@ export class AuthService {
 			throw new ForbiddenException('Account disabled');
 		}
 
+		// R8.2: auto-assign before computing permissions so first login
+		// populates the joined data.
+		await this.ensureSuperAdminAssignment(admin);
+
+		const { roleCodes, permissions } = await this.loadAdminPermissions(
+			admin.id,
+		);
+
 		const identity: AdminIdentity = {
 			id: admin.id,
 			email: admin.email,
-			role: admin.role,
+			role: roleCodes.join(','),
+			roleCodes,
+			permissions,
 		};
 		const familyId = randomUUID();
 
@@ -107,10 +209,13 @@ export class AuthService {
 			where: { id: admin.id },
 			data: { lastLoginAt: new Date() },
 		});
+		// R6.2: actor_role_code is the role code authorizing this action.
+		// For login the actor is "themselves" — use roleCodes joined with ','.
 		await this.prisma.auditLog.create({
 			data: {
 				actorType: 'PLATFORM_ADMIN',
 				actorId: admin.id,
+				actorRoleCode: roleCodes.join(',') || null,
 				action: 'LOGIN',
 				ipAddress: ctx.ip,
 				userAgent: ctx.userAgent,
@@ -119,8 +224,9 @@ export class AuthService {
 
 		const accessToken = this.tokens.signAccess(identity, familyId);
 		const refreshToken = this.tokens.signRefresh(admin.id, familyId);
+		// F-09: pass adminId to maintain per-admin reverse index.
 		await this.redisGuard(() =>
-			this.store.open(familyId, refreshToken, this.refreshTtlSec),
+			this.store.open(familyId, refreshToken, this.refreshTtlSec, admin.id),
 		);
 
 		return {
@@ -133,18 +239,30 @@ export class AuthService {
 
 	async me(
 		adminId: string,
-	): Promise<{ id: string; email: string; fullName: string; role: string }> {
+	): Promise<{
+		id: string;
+		email: string;
+		fullName: string;
+		role: string;
+		roleCodes: string[];
+		permissions: string[];
+	}> {
 		const admin = await this.prisma.platformAdmin.findUnique({
 			where: { id: adminId },
 		});
 		if (!admin) {
 			throw new UnauthorizedException('Admin not found');
 		}
+		const { roleCodes, permissions } = await this.loadAdminPermissions(
+			admin.id,
+		);
 		return {
 			id: admin.id,
 			email: admin.email,
 			fullName: admin.fullName,
-			role: admin.role,
+			role: roleCodes.join(','),
+			roleCodes,
+			permissions,
 		};
 	}
 
@@ -152,7 +270,10 @@ export class AuthService {
 	 * Rotate refresh token. Re-load admin, tu choi neu khong ACTIVE (+revoke family),
 	 * re-derive role tu DB khi ky access moi. Reuse ngoai grace -> audit + 401.
 	 */
-	async refresh(rawRefreshToken: string): Promise<{
+	async refresh(
+		rawRefreshToken: string,
+		ctx?: RequestCtx,
+	): Promise<{
 		accessToken: string;
 		refreshToken: string;
 		refreshTtlSec: number;
@@ -163,7 +284,10 @@ export class AuthService {
 			where: { id: claims.sub },
 		});
 		if (admin?.status !== 'ACTIVE') {
-			await this.redisGuard(() => this.store.revokeFamily(claims.familyId));
+			// F-09: revokeFamily takes adminId to clean up the per-admin index.
+			await this.redisGuard(() =>
+				this.store.revokeFamily(claims.familyId, admin?.id),
+			);
 			throw new UnauthorizedException('Refresh not allowed');
 		}
 
@@ -183,7 +307,10 @@ export class AuthService {
 				data: {
 					actorType: 'PLATFORM_ADMIN',
 					actorId: admin.id,
+					actorRoleCode: null,
 					action: 'REFRESH_REUSE_DETECTED',
+					ipAddress: ctx?.ip,
+					userAgent: ctx?.userAgent,
 				},
 			});
 			throw new UnauthorizedException('Refresh token reuse detected');
@@ -192,10 +319,18 @@ export class AuthService {
 			throw new UnauthorizedException('Refresh session not found');
 		}
 
+		// R5.2: re-compute roleCodes + permissions from DB on rotate so the
+		// new access token reflects any role assignment changes since the
+		// previous sign.
+		const { roleCodes, permissions } = await this.loadAdminPermissions(
+			admin.id,
+		);
 		const identity: AdminIdentity = {
 			id: admin.id,
 			email: admin.email,
-			role: admin.role,
+			role: roleCodes.join(','),
+			roleCodes,
+			permissions,
 		};
 		const accessToken = this.tokens.signAccess(identity, claims.familyId);
 		return {
@@ -222,12 +357,14 @@ export class AuthService {
 		const ttl = claims.exp ? remainingTtlSec(claims.exp) : 1;
 		await this.redisGuard(async () => {
 			await this.store.blacklistAccess(rawAccessToken, ttl);
-			await this.store.revokeFamily(claims.familyId);
+			// F-09: revokeFamily takes adminId to clean up the per-admin index.
+			await this.store.revokeFamily(claims.familyId, claims.sub);
 		});
 		await this.prisma.auditLog.create({
 			data: {
 				actorType: 'PLATFORM_ADMIN',
 				actorId: claims.sub,
+				actorRoleCode: claims.roleCodes?.join(',') ?? claims.role ?? null,
 				action: 'LOGOUT',
 				ipAddress: ctx.ip,
 				userAgent: ctx.userAgent,

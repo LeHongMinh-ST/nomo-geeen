@@ -1,0 +1,25 @@
+# Session State
+<!-- Generated: 2026-07-18T10:10:03.249Z -->
+<!-- Branch: main -->
+
+## Key Files Modified
+- .opencode/package.json
+- AGENTS.md
+- DESIGN.md
+- backend/package.json
+- backend/pnpm-workspace.yaml
+- backend/prisma/schema.prisma
+- backend/src/app.module.ts
+- backend/src/main.ts
+- backend/src/platform/auth/auth.controller.ts
+- backend/src/platform/auth/auth.module.ts
+- backend/src/platform/auth/auth.service.spec.ts
+- backend/src/platform/auth/auth.service.ts
+- backend/src/platform/auth/refresh-token.store.ts
+- backend/src/platform/auth/strategies/access-token.strategy.ts
+- backend/src/platform/auth/token.service.spec.ts
+- backend/src/platform/auth/token.service.ts
+- backend/src/platform/redis/redis.service.ts
+- backend/test/auth-flow.e2e-spec.ts
+- backend/test/auth-refresh-logout.e2e-spec.ts
+- docs/architecture.md

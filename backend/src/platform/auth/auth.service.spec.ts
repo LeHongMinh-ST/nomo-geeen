@@ -29,9 +29,26 @@ describe('AuthService.login', () => {
 		status: 'ACTIVE',
 	};
 
+	// R0-02: loadAdminPermissions reads adminRoleAssignment + role.permission.
+	// Default fixture: 1 SUPER_ADMIN assignment with 2 admin perm codes.
+	const defaultAssignments = [
+		{
+			role: {
+				code: 'SUPER_ADMIN',
+				permissions: [
+					{ permission: { code: 'admin.user:view' } },
+					{ permission: { code: 'admin.role:create' } },
+				],
+			},
+		},
+	];
+	const defaultSuperAdminRole = { id: 'role-super' };
+
 	function build(overrides: {
 		admin?: typeof activeAdmin | null;
 		verifyResult?: boolean;
+		assignments?: typeof defaultAssignments | [];
+		assignmentCount?: number;
 	}) {
 		const prisma = {
 			platformAdmin: {
@@ -42,6 +59,65 @@ describe('AuthService.login', () => {
 					),
 				update: jest.fn().mockResolvedValue({}),
 			},
+			adminRoleAssignment: {
+				findMany: jest
+					.fn()
+					.mockResolvedValue(
+						overrides.assignments === undefined
+							? defaultAssignments
+							: overrides.assignments,
+					),
+				count: jest
+					.fn()
+					.mockResolvedValue(
+						overrides.assignmentCount === undefined
+							? overrides.assignments === undefined
+								? 1
+								: overrides.assignments.length
+							: overrides.assignmentCount,
+					),
+				upsert: jest.fn().mockResolvedValue({}),
+			},
+			role: {
+				findFirst: jest
+					.fn()
+					.mockResolvedValue(defaultSuperAdminRole),
+			},
+			$transaction: jest.fn(async (fnOrOps: unknown) => {
+				// Interactive transaction signature: receives a function. Pass a
+				// mock tx with relevant models and call fn(tx).
+				if (typeof fnOrOps === 'function') {
+					const tx = {
+						auditLog: {
+							create: jest.fn().mockResolvedValue({}),
+						},
+						platformAdmin: {
+							create: jest.fn().mockResolvedValue({ id: 'admin-2' }),
+							update: jest.fn().mockResolvedValue({}),
+						},
+						adminRoleAssignment: {
+							createMany: jest.fn().mockResolvedValue({ count: 0 }),
+							upsert: jest.fn().mockResolvedValue({}),
+						},
+						role: {
+							findUniqueOrThrow: jest.fn(),
+						},
+					};
+					return fnOrOps(tx);
+				}
+				// Array form: each item is either a Promise OR a function.
+				if (Array.isArray(fnOrOps)) {
+					for (const op of fnOrOps) {
+						if (typeof op === 'function') {
+							await op();
+						} else if (op && typeof (op as Promise<unknown>).then === 'function') {
+							await op;
+						}
+					}
+					return [];
+				}
+				return [];
+			}),
 			auditLog: { create: jest.fn().mockResolvedValue({}) },
 		} as unknown as PrismaService;
 		const passwords = {
@@ -63,7 +139,7 @@ describe('AuthService.login', () => {
 		};
 	}
 
-	it('returns tokens + admin on valid active-admin login (DB before Redis)', async () => {
+	it('returns tokens + admin (with roleCodes + permissions) on valid active-admin login (DB before Redis)', async () => {
 		const { service, prisma, store } = build({});
 		const result = await service.login('admin@nomogreen.vn', 'pw', {
 			ip: '1.2.3.4',
@@ -75,20 +151,29 @@ describe('AuthService.login', () => {
 			id: 'a1',
 			email: 'admin@nomogreen.vn',
 			role: 'SUPER_ADMIN',
+			roleCodes: ['SUPER_ADMIN'],
+			permissions: ['admin.user:view', 'admin.role:create'],
 			fullName: 'Root Admin',
 		});
-		// lastLoginAt updated + audit written + family opened
+		// lastLoginAt updated + audit written (with actor_role_code) + family opened
 		expect(prisma.platformAdmin.update).toHaveBeenCalledTimes(1);
 		expect(prisma.auditLog.create).toHaveBeenCalledWith({
 			data: expect.objectContaining({
 				actorType: 'PLATFORM_ADMIN',
 				actorId: 'a1',
+				actorRoleCode: 'SUPER_ADMIN',
 				action: 'LOGIN',
 				ipAddress: '1.2.3.4',
 				userAgent: 'jest',
 			}),
 		});
-		expect(store.open).toHaveBeenCalledTimes(1);
+		// F-09: store.open must receive adminId so the per-admin SET index is built.
+		expect(store.open).toHaveBeenCalledWith(
+			expect.any(String),
+			expect.any(String),
+			expect.any(Number),
+			'a1',
+		);
 		// durable-first invariant: DB writes must happen BEFORE Redis store.open
 		const updateOrder = (prisma.platformAdmin.update as jest.Mock).mock
 			.invocationCallOrder[0];
@@ -133,5 +218,29 @@ describe('AuthService.login', () => {
 		await expect(
 			service.login('admin@nomogreen.vn', 'pw', {}),
 		).rejects.toBeInstanceOf(ServiceUnavailableException);
+	});
+
+	it('R8.2: legacy SUPER_ADMIN with no assignments auto-creates row in transaction + upsert', async () => {
+		const { service, prisma } = build({
+			assignments: [],
+			assignmentCount: 0,
+		});
+		const result = await service.login('admin@nomogreen.vn', 'pw', {});
+		expect(result.admin.roleCodes).toEqual([]); // re-fetched after upsert returns empty for fresh admin
+		expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+		// First call inside transaction is the upsert
+		const upsertCalled = (prisma.adminRoleAssignment.upsert as jest.Mock).mock
+			.calls.length;
+		expect(upsertCalled).toBeGreaterThanOrEqual(1);
+	});
+
+	it('non-SUPER_ADMIN enum skips R8.2 auto-assignment', async () => {
+		const { service, prisma } = build({
+			admin: { ...activeAdmin, role: 'SUPPORT' },
+			assignments: [],
+			assignmentCount: 0,
+		});
+		await service.login('admin@nomogreen.vn', 'pw', {});
+		expect(prisma.$transaction).not.toHaveBeenCalled();
 	});
 });

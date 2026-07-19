@@ -85,14 +85,14 @@ const alerts: {
 		icon: Wallet,
 		label: "Hóa đơn quá hạn",
 		count: 7,
-		href: "/admin/giao-dich",
+		href: "/admin/transactions",
 		tone: "error",
 	},
 	{
 		icon: ServerCog,
 		label: "Cảnh báo hệ thống",
 		count: 2,
-		href: "/admin/tinh-trang",
+		href: "/admin/status",
 		tone: "error",
 	},
 ];
@@ -187,7 +187,7 @@ const statusBadge: Record<
 
 export default function AdminDashboardPage() {
 	return (
-		<div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
+		<div className="flex w-full flex-col gap-6">
 			{/* Page header */}
 			<div className="flex flex-col gap-1">
 				<h1 className="text-2xl font-bold tracking-tight text-foreground">
@@ -305,7 +305,7 @@ export default function AdminDashboardPage() {
 						Cửa hàng mới đăng ký
 					</h2>
 					<Link
-						href="/admin/cua-hang"
+						href="/admin/tenants"
 						className="text-base font-semibold text-primary transition-colors hover:text-[#43a047]"
 					>
 						Xem tất cả

@@ -211,7 +211,7 @@ export function ScanSheet({
 								type="button"
 								onClick={submit}
 								disabled={!code.trim()}
-								className="flex h-12 shrink-0 items-center gap-2 rounded-[10px] bg-primary px-5 text-base font-semibold text-white transition-colors duration-200 ease-out hover:bg-[#43a047] active:bg-[#2e7d32] disabled:cursor-not-allowed disabled:bg-[#a5d6a7]"
+								className="flex h-12 shrink-0 items-center gap-2 rounded-[10px] bg-primary px-5 text-base font-semibold text-white transition-colors duration-200 ease-out hover:bg-[#5cad45] active:bg-[#3f8530] disabled:cursor-not-allowed disabled:bg-[#a5d6a7]"
 							>
 								Thêm
 							</button>

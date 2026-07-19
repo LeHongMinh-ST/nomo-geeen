@@ -13,6 +13,8 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { ListFilterBar } from "@/components/app/shared/list-filter-bar";
+import { ListSkeleton } from "@/components/app/shared/list-skeleton";
 import { formatVND } from "@/lib/format";
 import {
 	brandName,
@@ -58,6 +60,13 @@ export function ProductList() {
 	// Desktop: trang hiện tại. Mobile: số thẻ đang hiển thị.
 	const [page, setPage] = useState(1);
 	const [mobileCount, setMobileCount] = useState(MOBILE_BATCH);
+	// Cờ tải giả lập (data còn mock đồng bộ) — thay bằng trạng thái fetch khi có API.
+	const [loading, setLoading] = useState(true);
+
+	useEffect(() => {
+		const timer = setTimeout(() => setLoading(false), 450);
+		return () => clearTimeout(timer);
+	}, []);
 
 	const filtered = useMemo(() => {
 		const q = query.trim().toLowerCase();
@@ -97,6 +106,8 @@ export function ProductList() {
 		setMenuId(null);
 	}
 
+	if (loading) return <ListSkeleton withToolbar rows={6} />;
+
 	return (
 		<div className="flex w-full flex-col gap-5">
 			{/* Page header */}
@@ -126,7 +137,7 @@ export function ProductList() {
 					</Link>
 					<Link
 						href="/san-pham/them"
-						className="flex h-11 items-center gap-2 rounded-full bg-primary px-5 text-base font-semibold text-white transition-colors duration-200 ease-out hover:bg-[#43a047] active:bg-[#2e7d32]"
+						className="flex h-11 items-center gap-2 rounded-full bg-primary px-5 text-base font-semibold text-white transition-colors duration-200 ease-out hover:bg-[#5cad45] active:bg-[#3f8530]"
 					>
 						<Plus className="size-5" aria-hidden />
 						Thêm sản phẩm
@@ -159,53 +170,27 @@ export function ProductList() {
 			</div>
 
 			{/* Bộ lọc — không modal */}
-			<div className="flex flex-col gap-3">
-				{/* Trạng thái tồn — segmented control chia đều, không cắt mép */}
-				<div className="grid grid-cols-4 gap-1 rounded-[12px] bg-[#f0f2f1] p-1">
-					{statusFilters.map((f) => (
-						<button
-							key={f.value}
-							type="button"
-							onClick={() => setStatus(f.value)}
-							className={`h-9 rounded-[9px] text-sm font-semibold transition-colors duration-200 ease-out ${
-								status === f.value
-									? "bg-card text-primary shadow-[0_1px_3px_rgba(0,0,0,0.08)]"
-									: "text-[#616161] hover:text-foreground"
-							}`}
-						>
-							{f.label}
-						</button>
-					))}
-				</div>
-				{/* Danh mục — pill cuộn ngang, ẩn scrollbar */}
-				<div className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4 lg:mx-0 lg:px-0">
-					<button
-						type="button"
-						onClick={() => setCategoryId("all")}
-						className={`h-9 shrink-0 rounded-full px-4 text-sm font-medium transition-colors duration-200 ease-out ${
-							categoryId === "all"
-								? "bg-accent text-accent-foreground"
-								: "border border-border bg-card text-[#616161] hover:bg-[#f5f5f5]"
-						}`}
-					>
-						Mọi danh mục
-					</button>
-					{categories.map((c) => (
-						<button
-							key={c.id}
-							type="button"
-							onClick={() => setCategoryId(c.id)}
-							className={`h-9 shrink-0 rounded-full px-4 text-sm font-medium transition-colors duration-200 ease-out ${
-								categoryId === c.id
-									? "bg-accent text-accent-foreground"
-									: "border border-border bg-card text-[#616161] hover:bg-[#f5f5f5]"
-							}`}
-						>
-							{c.name}
-						</button>
-					))}
-				</div>
-			</div>
+			<ListFilterBar
+				groups={[
+					{
+						key: "status",
+						label: "Trạng thái tồn",
+						value: status,
+						options: statusFilters,
+						onChange: (v) => setStatus(v as StatusFilter),
+					},
+					{
+						key: "category",
+						label: "Danh mục",
+						value: categoryId,
+						options: [
+							{ value: "all", label: "Mọi danh mục" },
+							...categories.map((c) => ({ value: c.id, label: c.name })),
+						],
+						onChange: setCategoryId,
+					},
+				]}
+			/>
 
 			{/* Kết quả */}
 			{filtered.length === 0 ? (
@@ -271,7 +256,7 @@ export function ProductList() {
 													>
 														<span
 															className="flex size-10 shrink-0 items-center justify-center rounded-[10px]"
-															style={{ backgroundColor: "#9e9d24" }}
+															style={{ backgroundColor: "#5cad45" }}
 														>
 															<Package
 																className="size-5 text-white"
@@ -347,7 +332,7 @@ export function ProductList() {
 			<Link
 				href="/san-pham/them"
 				aria-label="Thêm sản phẩm"
-				className="fixed bottom-fab-safe right-4 z-30 flex h-14 items-center gap-2 rounded-full bg-primary pl-4 pr-5 text-base font-semibold text-white shadow-[0_8px_20px_rgba(76,175,80,0.4)] transition-colors duration-200 ease-out active:bg-[#2e7d32] lg:hidden"
+				className="fixed bottom-fab-safe right-4 z-30 flex h-14 items-center gap-2 rounded-full bg-primary pl-4 pr-5 text-base font-semibold text-white shadow-[0_8px_20px_rgba(76,175,80,0.4)] transition-colors duration-200 ease-out active:bg-[#3f8530] lg:hidden"
 			>
 				<Plus className="size-6" aria-hidden />
 				Thêm
@@ -576,7 +561,7 @@ function EmptyState({ hasProducts }: { hasProducts: boolean }) {
 			{!hasProducts ? (
 				<Link
 					href="/san-pham/them"
-					className="flex h-12 items-center gap-2 rounded-[10px] bg-primary px-6 text-base font-semibold text-white transition-colors duration-200 ease-out hover:bg-[#43a047] active:bg-[#2e7d32]"
+					className="flex h-12 items-center gap-2 rounded-[10px] bg-primary px-6 text-base font-semibold text-white transition-colors duration-200 ease-out hover:bg-[#5cad45] active:bg-[#3f8530]"
 				>
 					<Plus className="size-5" aria-hidden />
 					Thêm sản phẩm

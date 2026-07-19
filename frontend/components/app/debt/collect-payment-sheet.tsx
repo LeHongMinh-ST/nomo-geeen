@@ -211,7 +211,7 @@ export function CollectPaymentSheet({
 						type="button"
 						disabled={!valid}
 						onClick={() => onConfirm(amountNum, method)}
-						className="flex h-14 w-full items-center justify-center gap-2 rounded-[10px] bg-primary text-lg font-bold text-white transition-colors duration-200 ease-out hover:bg-[#43a047] active:bg-[#2e7d32] disabled:cursor-not-allowed disabled:bg-[#a5d6a7]"
+						className="flex h-14 w-full items-center justify-center gap-2 rounded-[10px] bg-primary text-lg font-bold text-white transition-colors duration-200 ease-out hover:bg-[#5cad45] active:bg-[#3f8530] disabled:cursor-not-allowed disabled:bg-[#a5d6a7]"
 					>
 						<Check className="size-6" aria-hidden />
 						{amountNum > 0

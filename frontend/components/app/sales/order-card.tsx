@@ -25,7 +25,7 @@ export function OrderCard({ order }: { order: Order }) {
 		>
 			<span
 				className="flex size-12 shrink-0 items-center justify-center rounded-[12px]"
-				style={{ backgroundColor: "#43a047" }}
+				style={{ backgroundColor: "#5cad45" }}
 			>
 				<Package className="size-6 text-white" aria-hidden />
 			</span>

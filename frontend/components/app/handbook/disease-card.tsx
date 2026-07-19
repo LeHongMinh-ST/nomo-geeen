@@ -28,7 +28,7 @@ export function DiseaseCard({ disease }: { disease: Disease }) {
 			<div className="flex items-start gap-3">
 				<span
 					className="flex size-11 shrink-0 items-center justify-center rounded-[10px]"
-					style={{ backgroundColor: "#6d4c41" }}
+					style={{ backgroundColor: "#5cad45" }}
 				>
 					<Leaf className="size-5.5 text-white" aria-hidden />
 				</span>

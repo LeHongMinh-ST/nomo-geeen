@@ -1,0 +1,231 @@
+{
+  "feature_name": "admin-tenant-management",
+  "created_at": "2026-07-18T03:49:41Z",
+  "updated_at": "2026-07-18T19:45:00+07:00",
+  "language": "en",
+  "status": "ready_for_review",
+  "phase": "review",
+  "current_phase": "review",
+  "priority": "P1",
+  "effort": "L",
+  "tags": [
+    "platform-admin",
+    "tenant-management",
+    "rbac",
+    "audit",
+    "saas"
+  ],
+  "approvals": {
+    "requirements": {
+      "generated": true,
+      "approved": true
+    },
+    "design": {
+      "generated": true,
+      "approved": true
+    },
+    "tasks": {
+      "generated": true,
+      "approved": true
+    }
+  },
+  "scope_lock": {
+    "source": "Implement tenant management for platform administration, create and enforce the required permissions for each tenant-management operation.",
+    "in_scope": [
+      "Paginated and filtered tenant list for platform admins",
+      "Tenant detail view with aggregate counts",
+      "Edit tenant profile fields allowed by platform policy (name, tenantType, mode, logoUrl with HTTPS validation)",
+      "Tenant lifecycle status transitions ACTIVE, SUSPENDED, LOCKED with atomic conditional update (metadata-only; no session/Redis enforcement)",
+      "CSV export of tenant list subject to permission, formula-safe cells, and take:10001 bound",
+      "Server-side permission enforcement using admin.tenant:view, admin.tenant:edit, admin.tenant:approve, admin.tenant:export",
+      "Role grant matrix: SUPER_ADMIN bypass, SUPPORT all four admin.tenant:* codes, BILLING none",
+      "Audit records via AuditLogger.run for tenant profile changes, lifecycle changes, and exports",
+      "Admin frontend route /admin/cua-hang with permission-gated list, detail/edit, status actions, and export",
+      "Optimistic concurrency on profile PATCH via expectedUpdatedAt",
+      "Integration and negative-path verification against real Postgres, Redis, and the admin auth/RBAC foundation"
+    ],
+    "out_of_scope": [
+      "Tenant self-registration or public onboarding",
+      "Tenant user CRUD or tenant-scoped RBAC",
+      "Subscription, billing, invoice, or payment management",
+      "Tenant deletion or irreversible hard-delete",
+      "Tenant impersonation",
+      "Bulk status changes",
+      "Custom permission creation",
+      "Audit log viewer UI",
+      "MFA, OAuth, or SSO",
+      "Downstream status enforcement (session invalidation, Redis flush, tenant-API deny on SUSPENDED/LOCKED) — future tenant-status-enforcement spec",
+      "JWT claim TTL/revocation policy (owned by admin-rbac-user-management)"
+    ],
+    "expansion_policy": "requires-user-approval"
+  },
+  "dependencies": {
+    "blockedBy": [
+      "admin-rbac-user-management"
+    ],
+    "blocks": []
+  },
+  "task_files": [
+    "tasks/task-R0-01-permission-and-audit-foundation.md",
+    "tasks/task-R0-02-tenant-status-and-query-contracts.md",
+    "tasks/task-R1-01-tenant-list-detail-api.md",
+    "tasks/task-R1-02-tenant-edit-status-api.md",
+    "tasks/task-R1-03-tenant-export-api.md",
+    "tasks/task-R2-01-tenant-list-ui.md",
+    "tasks/task-R2-02-tenant-detail-actions-ui.md",
+    "tasks/task-R3-01-integration-and-permission-matrix.md"
+  ],
+  "task_registry": {
+    "tasks/task-R0-01-permission-and-audit-foundation.md": {
+      "id": "R0-01",
+      "title": "Permission and audit foundation",
+      "status": "done",
+      "dependencies": [],
+      "blocker": null,
+      "started_at": "2026-07-18T06:37:34Z",
+      "completed_at": "2026-07-18T07:05:00Z",
+      "last_updated_at": "2026-07-18T07:05:00Z"
+    },
+    "tasks/task-R0-02-tenant-status-and-query-contracts.md": {
+      "id": "R0-02",
+      "title": "Tenant status and query contracts",
+      "status": "done",
+      "dependencies": [
+        "tasks/task-R0-01-permission-and-audit-foundation.md"
+      ],
+      "blocker": null,
+      "started_at": "2026-07-18T07:10:00Z",
+      "completed_at": "2026-07-18T07:25:00Z",
+      "last_updated_at": "2026-07-18T07:25:00Z"
+    },
+    "tasks/task-R1-01-tenant-list-detail-api.md": {
+      "id": "R1-01",
+      "title": "Tenant list detail api",
+      "status": "done",
+      "dependencies": [
+        "tasks/task-R0-01-permission-and-audit-foundation.md",
+        "tasks/task-R0-02-tenant-status-and-query-contracts.md"
+      ],
+      "blocker": null,
+      "started_at": "2026-07-18T07:30:00Z",
+      "completed_at": "2026-07-18T07:40:00Z",
+      "last_updated_at": "2026-07-18T07:40:00Z"
+    },
+    "tasks/task-R1-02-tenant-edit-status-api.md": {
+      "id": "R1-02",
+      "title": "Tenant edit status api",
+      "status": "done",
+      "dependencies": [
+        "tasks/task-R0-01-permission-and-audit-foundation.md",
+        "tasks/task-R0-02-tenant-status-and-query-contracts.md",
+        "tasks/task-R1-01-tenant-list-detail-api.md"
+      ],
+      "blocker": null,
+      "started_at": "2026-07-18T07:40:00Z",
+      "completed_at": "2026-07-18T08:00:00Z",
+      "last_updated_at": "2026-07-18T08:00:00Z"
+    },
+    "tasks/task-R1-03-tenant-export-api.md": {
+      "id": "R1-03",
+      "title": "Tenant export api",
+      "status": "done",
+      "dependencies": [
+        "tasks/task-R0-01-permission-and-audit-foundation.md",
+        "tasks/task-R0-02-tenant-status-and-query-contracts.md",
+        "tasks/task-R1-01-tenant-list-detail-api.md"
+      ],
+      "blocker": null,
+      "started_at": "2026-07-18T07:40:00Z",
+      "completed_at": "2026-07-18T08:00:00Z",
+      "last_updated_at": "2026-07-18T08:00:00Z"
+    },
+    "tasks/task-R2-01-tenant-list-ui.md": {
+      "id": "R2-01",
+      "title": "Tenant list ui",
+      "status": "done",
+      "dependencies": [
+        "tasks/task-R1-01-tenant-list-detail-api.md",
+        "tasks/task-R1-03-tenant-export-api.md"
+      ],
+      "blocker": null,
+      "started_at": "2026-07-18T08:00:00Z",
+      "completed_at": "2026-07-18T08:20:00Z",
+      "last_updated_at": "2026-07-18T08:20:00Z"
+    },
+    "tasks/task-R2-02-tenant-detail-actions-ui.md": {
+      "id": "R2-02",
+      "title": "Tenant detail actions ui",
+      "status": "done",
+      "dependencies": [
+        "tasks/task-R1-01-tenant-list-detail-api.md",
+        "tasks/task-R1-02-tenant-edit-status-api.md",
+        "tasks/task-R2-01-tenant-list-ui.md"
+      ],
+      "blocker": null,
+      "started_at": "2026-07-18T08:00:00Z",
+      "completed_at": "2026-07-18T08:20:00Z",
+      "last_updated_at": "2026-07-18T08:20:00Z"
+    },
+    "tasks/task-R3-01-integration-and-permission-matrix.md": {
+      "id": "R3-01",
+      "title": "Integration and permission matrix",
+      "status": "done",
+      "dependencies": [
+        "tasks/task-R0-01-permission-and-audit-foundation.md",
+        "tasks/task-R0-02-tenant-status-and-query-contracts.md",
+        "tasks/task-R1-01-tenant-list-detail-api.md",
+        "tasks/task-R1-02-tenant-edit-status-api.md",
+        "tasks/task-R1-03-tenant-export-api.md",
+        "tasks/task-R2-01-tenant-list-ui.md",
+        "tasks/task-R2-02-tenant-detail-actions-ui.md"
+      ],
+      "blocker": null,
+      "started_at": "2026-07-18T08:20:00Z",
+      "completed_at": "2026-07-18T08:30:00Z",
+      "last_updated_at": "2026-07-18T19:45:00+07:00"
+    }
+  },
+  "blocker": null,
+  "progress": {
+    "init": "done",
+    "requirements": "done",
+    "research": "done",
+    "design": "done",
+    "tasks": "done",
+    "code": "done",
+    "test": "done",
+    "review": "done"
+  },
+  "timestamps": {
+    "init": "2026-07-18T03:49:41Z",
+    "requirements_done": "2026-07-18T03:52:00Z",
+    "research_done": "2026-07-18T03:53:00Z",
+    "design_done": "2026-07-18T03:54:00Z",
+    "tasks_done": "2026-07-18T10:55:21+07:00",
+    "code_done": "2026-07-18T10:16:00Z",
+    "test_done": "2026-07-18T10:16:00Z",
+    "review_done": "2026-07-18T13:15:00+07:00",
+    "validation_done": "2026-07-18T13:15:00+07:00"
+  },
+  "design_context": {
+    "discovery_mode": "full",
+    "discovery_reason": "Platform data, schema-backed lifecycle transitions, permission enforcement, audit logging, CSV export, and cross-layer admin UI.",
+    "execution_tier": "deep",
+    "validation_recommended": true
+  },
+  "validation": {
+    "status": "completed",
+    "session_count": 1,
+    "questions_asked": 4,
+    "last_validated_at": "2026-07-18T13:15:00+07:00"
+  },
+  "translation": {
+    "enabled": false,
+    "language": null,
+    "language_code": null,
+    "dir": null,
+    "sync": "always",
+    "last_synced_at": null
+  },
+  "ready_for_implementation": true
+}
