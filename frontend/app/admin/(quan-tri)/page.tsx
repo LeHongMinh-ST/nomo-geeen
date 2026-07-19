@@ -2,19 +2,18 @@ import type { LucideIcon } from "lucide-react";
 import {
 	ArrowUpRight,
 	Building2,
-	CircleCheck,
 	CreditCard,
 	MoreVertical,
 	ServerCog,
 	TrendingUp,
 	TriangleAlert,
-	UserPlus,
 	Users,
 	Wallet,
 } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { PlatformChart } from "@/components/admin/platform-chart";
+import { DashboardActivityPreview } from "@/components/admin/dashboard-activity-preview";
 import { formatVND } from "@/lib/format";
 
 export const metadata: Metadata = {
@@ -141,38 +140,6 @@ const recentStores: {
 	},
 ];
 
-const activities: {
-	icon: LucideIcon;
-	tone: string;
-	text: string;
-	time: string;
-}[] = [
-	{
-		icon: UserPlus,
-		tone: "#1e88e5",
-		text: "Cửa hàng “Nông sản Ba Miền” vừa đăng ký dùng thử",
-		time: "5 phút trước",
-	},
-	{
-		icon: CircleCheck,
-		tone: "#43a047",
-		text: "“Đại lý Phú Nông” nâng cấp lên Gói Chuyên nghiệp",
-		time: "38 phút trước",
-	},
-	{
-		icon: CreditCard,
-		tone: "#7e57c2",
-		text: "Thu 2.400.000₫ phí gói từ “Vật tư Minh Tâm”",
-		time: "1 giờ trước",
-	},
-	{
-		icon: TriangleAlert,
-		tone: "#f9a825",
-		text: "“Vật tư Đồng Xanh” có hóa đơn quá hạn 5 ngày",
-		time: "3 giờ trước",
-	},
-];
-
 const statusBadge: Record<
 	"active" | "trial" | "overdue",
 	{ label: string; className: string }
@@ -272,30 +239,7 @@ export default function AdminDashboardPage() {
 					<PlatformChart />
 				</section>
 
-				{/* Nhật ký hoạt động */}
-				<section className="flex flex-col gap-4 rounded-[16px] border border-border bg-card p-5 shadow-card">
-					<h2 className="text-lg font-semibold text-foreground">
-						Hoạt động gần đây
-					</h2>
-					<ul className="flex flex-col gap-4">
-						{activities.map((item) => (
-							<li key={item.text} className="flex gap-3">
-								<span
-									className="flex size-9 shrink-0 items-center justify-center rounded-full text-white"
-									style={{ backgroundColor: item.tone }}
-								>
-									<item.icon className="size-4.5" aria-hidden />
-								</span>
-								<div className="flex min-w-0 flex-col">
-									<p className="text-base leading-snug text-foreground">
-										{item.text}
-									</p>
-									<span className="text-sm text-[#9e9e9e]">{item.time}</span>
-								</div>
-							</li>
-						))}
-					</ul>
-				</section>
+				<DashboardActivityPreview />
 			</div>
 
 			{/* Cửa hàng mới — bảng (desktop) + thẻ (mobile) */}

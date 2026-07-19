@@ -162,25 +162,21 @@ export function RoleEditorForm(props: Props) {
 				disabled={submitting || !code || !name}
 				className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-[10px] bg-primary px-4 text-sm font-semibold text-white shadow-[0_2px_8px_rgba(92,173,69,0.25)] transition-all duration-200 ease-out hover:bg-primary-hover hover:shadow-[0_4px_14px_rgba(92,173,69,0.32)] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 disabled:shadow-none sm:flex-none"
 			>
-				{submitting
-					? "Đang lưu..."
-					: isEdit
-						? "Lưu thay đổi"
-						: "Tạo vai trò"}
+				{submitting ? "Đang lưu..." : isEdit ? "Lưu thay đổi" : "Tạo vai trò"}
 			</button>
 		</div>
 	);
 
 	return (
-		<form onSubmit={(e) => void handleSubmit(e)} className="flex flex-col gap-6">
+		<form
+			onSubmit={(e) => void handleSubmit(e)}
+			className="flex flex-col gap-6"
+		>
 			<div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
 				<aside className="flex flex-col gap-3 lg:sticky lg:top-20 lg:self-start">
 					{isEdit && role?.isSystem ? (
 						<div className="flex items-start gap-2 rounded-[10px] border border-amber-200/80 bg-amber-50 px-3 py-2.5 text-xs text-amber-800">
-							<AlertTriangle
-								className="mt-0.5 size-3.5 shrink-0"
-								aria-hidden
-							/>
+							<AlertTriangle className="mt-0.5 size-3.5 shrink-0" aria-hidden />
 							<div>
 								<p className="font-semibold">Vai trò hệ thống</p>
 								<p className="mt-0.5 text-amber-700/90">
@@ -309,7 +305,7 @@ function Field({
 	children: React.ReactNode;
 }) {
 	return (
-		<label className="block">
+		<div className="block">
 			<span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
 				{label}
 			</span>
@@ -319,6 +315,6 @@ function Field({
 					{hint}
 				</span>
 			) : null}
-		</label>
+		</div>
 	);
 }

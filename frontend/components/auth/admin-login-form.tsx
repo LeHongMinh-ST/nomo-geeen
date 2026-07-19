@@ -15,7 +15,7 @@ import { useAdminAuth } from "@/stores/admin-auth-store";
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function sanitizeNext(value: string | null): string {
-	if (!value || !value.startsWith("/admin") || value.startsWith("//")) {
+	if (!value?.startsWith("/admin") || value.startsWith("//")) {
 		return "/admin";
 	}
 	return value;

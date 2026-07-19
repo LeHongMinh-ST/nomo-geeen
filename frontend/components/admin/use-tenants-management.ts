@@ -1,20 +1,20 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useAdminAuth } from "@/stores/admin-auth-store";
 import {
+	exportTenantsCsv,
+	getTenant,
 	type ListTenantsQuery,
+	listTenants,
 	type TenantDetail,
 	type TenantListItem,
 	type TenantStatus,
 	type TransitionTenantInput,
-	type UpdateTenantInput,
-	exportTenantsCsv,
-	getTenant,
-	listTenants,
 	transitionTenant,
+	type UpdateTenantInput,
 	updateTenant,
 } from "@/lib/admin-api/tenants";
+import { useAdminAuth } from "@/stores/admin-auth-store";
 
 const MOBILE_BATCH = 8;
 
@@ -85,7 +85,7 @@ export function useTenantsManagement() {
 	// cham hon mount cua hook, refresh() return som va trang bi ket o
 	// skeleton vinh vien cho den lan soft-nav tiep theo.
 	useEffect(() => {
-		if (!hasHydrated) return;
+		if (!hasHydrated || !accessToken) return;
 		void refreshRef.current();
 	}, [hasHydrated, accessToken]);
 

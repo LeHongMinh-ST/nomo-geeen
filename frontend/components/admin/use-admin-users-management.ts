@@ -42,7 +42,7 @@ export function useAdminUsersManagement() {
 	// Mobile accumulator
 	const [mobileItems, setMobileItems] = useState<AdminPublicShape[]>([]);
 	const [mobileTotal, setMobileTotal] = useState(0);
-	const [mobileCount, setMobileCount] = useState(MOBILE_BATCH);
+	const [_mobileCount, setMobileCount] = useState(MOBILE_BATCH);
 	const [mobileLoading, setMobileLoading] = useState(false);
 
 	const refresh = useCallback(
@@ -102,11 +102,11 @@ export function useAdminUsersManagement() {
 		[accessToken],
 	);
 
-	// Reload mobile khi filter thay doi.
+	// Reload mobile khi loader thay doi; filter duoc ap dung o lop hien thi.
 	useEffect(() => {
 		setMobileCount(MOBILE_BATCH);
 		void loadMobile(MOBILE_BATCH);
-	}, [loadMobile, q, status]);
+	}, [loadMobile]);
 
 	const loadMoreMobile = useCallback(() => {
 		setMobileCount((c) => {

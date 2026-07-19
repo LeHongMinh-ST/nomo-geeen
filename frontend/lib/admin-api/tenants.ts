@@ -31,6 +31,14 @@ export interface TenantDetail extends TenantListItem {
 		subscriptions: number;
 		openTickets: number;
 	};
+	quotaUsage: {
+		users: number;
+		warehouses: number;
+		products: number;
+		customers: number;
+		ordersThisMonth: number;
+		storageBytes: string;
+	};
 }
 
 export interface ListTenantsResult {

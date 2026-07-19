@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Implementation Notes - Admin Plan and Manual Subscription Management</title>
+  <style>
+    :root{font-family:Inter,system-ui,sans-serif;color:#17211d;background:#f3faf7;line-height:1.5}body{max-width:980px;margin:0 auto;padding:28px}.hero,.card{background:#fff;border:1px solid #d9e7e1;border-radius:14px;padding:20px;margin-bottom:16px;box-shadow:0 8px 24px #0f172a0d}.eyebrow{color:#087a5a;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}.metric{display:inline-block;background:#eef8f3;border-radius:9px;padding:10px 14px;margin:12px 8px 0 0}.metric span{display:block;color:#63736d;font-size:12px}.metric strong{display:block}.card{border-left:5px solid #087a5a}.card.warn{border-left-color:#b45309}.card.verify{border-left-color:#2563eb}h1{font-size:32px;margin:8px 0}h2{font-size:20px;margin:0 0 8px}h3{font-size:15px;margin:0 0 5px}code{background:#eef8f3;border:1px solid #d9e7e1;border-radius:5px;padding:1px 4px}.muted{color:#63736d;font-size:13px}ul{margin:8px 0 0}
+  </style>
+</head>
+<body>
+  <section class="hero">
+    <div class="eyebrow">Implementation Notes</div>
+    <h1>Admin Plan and Manual Subscription Management</h1>
+    <p class="muted">Spec: <code>specs/admin-plan-subscription-management/spec.json</code> · Mode: full-spec · Updated: 2026-07-19</p>
+    <div class="metric"><span>Task</span><strong>R1-03 / done</strong></div>
+    <div class="metric"><span>Docs impact</span><strong>major / synced</strong></div>
+    <div class="metric"><span>Verification</span><strong>5 E2E + 134 unit tests</strong></div>
+  </section>
+  <section class="card warn">
+    <h2>R0-01 — Schema, seed, and audit foundation</h2>
+    <p>Added bounded manual subscription metadata, effective lookup indexes, additive billing audit enum values, migration rollback guidance, and idempotent canonical billing permission seeds.</p>
+  </section>
+  <section class="card">
+    <h3>Spec gap / decision</h3>
+    <p>Task text says six billing permissions, but the approved canonical contract defines five: <code>admin.plan:view</code>, <code>admin.plan:edit</code>, <code>admin.plan:activate</code>, <code>admin.subscription:view</code>, <code>admin.subscription:edit</code>. Implementation follows <code>design.md</code> and does not invent a sixth code.</p>
+  </section>
+  <section class="card verify">
+    <h3>Verification receipt</h3>
+    <ul>
+      <li><code>pnpm prisma:generate</code> — PASS.</li>
+      <li><code>pnpm build</code> — PASS.</li>
+      <li><code>pnpm test --runInBand</code> — PASS, 14 suites / 109 tests.</li>
+      <li><code>pnpm test -- --runInBand</code> — package argument forwarding yields no-test pattern; equivalent direct Jest invocation passed. Redis container was started for integration verification.</li>
+    </ul>
+  </section>
+  <section class="card">
+    <h3>Deferred reachability</h3>
+    <p>No endpoint or UI is added by R0-01. Billing runtime registration and callers belong to R1 tasks, as required by the approved task boundary.</p>
+  </section>
+  <section class="card verify">
+    <h3>R0-02 — Entitlement and quota foundation / done</h3>
+    <p>Added the Nest entitlement module, effective date-aware evaluator, stable 403 denial contract, feature overrides, six quota dimensions, and fail-closed guard metadata. Verification: 10 targeted tests, 15-suite backend regression suite, build, Biome, and code review 9.8/10 PASS. Atomic protected writes remain R1-03 scope.</p>
+  </section>
+  <section class="card verify">
+    <h3>R1-01 — Plan catalog API / done</h3>
+    <p>Added guarded plan CRUD/list/activation routes with capped pagination, immutable code, optimistic concurrency, feature/quota validation, and transaction-scoped audit before/after snapshots. Verification: 5 targeted tests, 16-suite backend regression suite (125 tests), Prisma generate, build, and Biome PASS.</p>
+  </section>
+  <section class="card verify">
+    <h3>R1-02 — Subscription lifecycle API / done</h3>
+    <p>Lifecycle routes, DTOs, optimistic transactions, audit snapshots, date-clamped renewal, explicit expiry/reason validation, inactive-plan and soft-delete checks are implemented. Real Postgres/Redis E2E proves plan creation, assignment, stale-write rejection, renewal, cancellation, history, and unauthenticated rejection. Verification: 19 targeted billing/entitlement tests, 3 targeted E2E tests, 129 backend tests, migration deploy, build, and Biome PASS.</p>
+  </section>
+  <section class="card verify">
+    <h3>R1-03 — Tenant product entitlement enforcement / done</h3>
+    <p>Added tenant-scoped JWT login (<code>tenantSlug</code> discriminator), real <code>GET/POST /tenant/products</code>, shared entitlement guard wiring, generic <code>TenantQuotaCounter</code>, deterministic product backfill, and conditional <code>maxProducts</code> reservation in the same transaction as <code>Product.create</code>. Product reads remain available after downgrade. Product prices are bounded to JavaScript safe integers at the API boundary.</p>
+    <ul>
+      <li><code>pnpm test -- --runInBand entitlements.integration.spec.ts</code> — PASS, 5 tests.</li>
+      <li><code>pnpm test --runInBand</code> — PASS, 17 suites / 134 tests.</li>
+      <li><code>pnpm build</code> — PASS; targeted Biome — PASS.</li>
+      <li><code>pnpm exec prisma migrate deploy</code> and <code>pnpm exec prisma migrate status</code> — PASS, schema up to date.</li>
+      <li><code>pnpm exec jest --config ./test/jest-e2e.json --runInBand tenant-products.e2e-spec.ts</code> — PASS, 5 tests: denial paths, rollback, concurrency, downgrade read.</li>
+      <li>Residual warning: existing tenant JWTs are not revalidated against status on every request; blacklist/expiry remains the current revocation contract.</li>
+    </ul>
+  </section>
+  <section class="card verify">
+    <h3>R2-01 — Admin plan UI / done</h3>
+    <p>Added the permission-gated Vietnamese plan catalog at <code>/admin/plans</code> with typed list/create/edit/activation clients, source refetch after mutations, stale-write conflict handling, responsive 48px controls, quota/feature display, and explicit deactivation confirmation.</p>
+    <ul>
+      <li>Targeted Biome lint — PASS, 4 files.</li>
+      <li><code>pnpm exec next build --webpack</code> — PASS; TypeScript compiled and <code>/admin/plans</code> generated.</li>
+      <li>Full frontend lint remains blocked by 15 pre-existing errors outside R2-01.</li>
+      <li>Review: PASS, 0 critical, 9.6/10.</li>
+    </ul>
+  </section>
+  <section class="card verify">
+    <h3>R2-02 — Tenant subscription UI / done</h3>
+    <p>Extended tenant detail with real current/history subscription data, plan quota/feature enrichment, expiry and all-dimension overage badges, permission-separated lifecycle actions, manual reference/reason fields, required expiry validation, two-step cancellation, and source refetch after successful or stale mutations. Tenant detail now exposes read-only quota usage for users, warehouses, products, customers, monthly orders, and storage bytes.</p>
+    <ul>
+      <li>Frontend scoped Biome — PASS; webpack build — PASS.</li>
+      <li>Backend tenant service targeted suite — PASS, 11 tests; backend build — PASS.</li>
+      <li>Review: PASS after fixes; full frontend lint retains 15 unrelated baseline errors.</li>
+    </ul>
+  </section>
+  <section class="card">
+    <h3>R3-01 — Performance fixture decision</h3>
+    <p>Current-phase acceptance uses a deterministic 1,000-subscription fixture with 30 warmups and 100 measured lookups; the 100,000-row scale is deferred until production-scale rollout. This preserves the p95/page-bound contract without overloading the local integration database at the current data volume.</p>
+  </section>
+  <section class="card verify">
+    <h3>R3-01 — Backend acceptance / done</h3>
+    <p>Real HTTP pagination acceptance passes with 1,000 seeded subscriptions: 30 warmups, 100 measured requests, page size 20, p95 8.43ms on Node v24.14.0 against the local Postgres/Redis stack; threshold is &lt;500ms. The suite also proves page size 100 is accepted and 101 is rejected, while the full backend regression remains green at 17 suites / 134 tests.</p>
+  </section>
+  <section class="card verify">
+    <h3>R3-02 — Integration and reachability verification / done</h3>
+    <p>Runtime reachability is proven from admin navigation to plan UI, tenant detail to <code>SubscriptionPanel</code>, and tenant product writes to the real <code>EntitlementsGuard</code> path. The subscription assign form now submits correctly, and source refetch preserves the current plan/quota/feature view after mutations.</p>
+    <ul>
+      <li>Backend unit: 17 suites / 134 tests PASS; billing E2E 4/4; tenant-products E2E 5/5; benchmark p95 9.47ms for the 1,000-row fixture.</li>
+      <li>Frontend <code>pnpm lint</code> and <code>pnpm build</code> PASS.</li>
+      <li>Responsive smoke PASS: mobile create/deactivate plan; desktop assign/renew/cancel subscription with tenant data retained.</li>
+      <li>Gate verdict: <code>PASS</code>; no production enforcement gap found.</li>
+    </ul>
+  </section>
+</body>
+</html>

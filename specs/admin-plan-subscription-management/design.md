@@ -163,6 +163,19 @@ sequenceDiagram
 
 Quota usage is computed from existing tenant counts/aggregates at the protected write boundary. The implementation must lock/conditionally update a tenant or period-scoped quota counter in the same transaction as the final create mutation; monthly orders use a period-scoped counter/conditional operation. A check-only helper is insufficient.
 
+### R1-03 production enforcement slice
+
+The first real tenant business write surface is the product catalog:
+
+| Method | Endpoint | Contract |
+|---|---|---|
+| GET | `/tenant/products` | Authenticated tenant context; reads remain available after downgrade |
+| POST | `/tenant/products` | `AccessTokenGuard`, tenant context, `EntitlementsGuard`, `@RequireFeature('inventory')`, `@RequireQuota('maxProducts')` |
+
+This slice introduces `TenantQuotaCounter` with `(tenantId, dimension, periodKey)` uniqueness and a `BigInt used` value. `maxProducts` uses `periodKey = "lifetime"`; the model is shaped for future monthly dimensions but only `maxProducts` is authoritative in R1-03. Existing non-deleted products are backfilled into the counter. The counter increment and `Product.create` execute in one Prisma transaction using a conditional update; the transaction re-checks the shared `EntitlementService` after the guard preflight. No entitlement algorithm is copied into `ProductService`.
+
+User, warehouse, customer, storage, and monthly-order writers remain deferred until their real tenant modules exist. Product reads are not entitlement-protected, so downgrade preserves access to existing data while blocking growth beyond a finite limit.
+
 ### Default permission grant matrix
 
 | Role | Default grants |

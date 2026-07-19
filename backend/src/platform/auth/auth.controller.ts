@@ -13,8 +13,10 @@ import type { Request, Response } from 'express';
 import { AuthService } from './auth.service';
 import { RequirePermission } from './decorators/require-permission.decorator';
 import { AdminLoginDto } from './dto/admin-login.dto';
+import { TenantLoginDto } from './dto/tenant-login.dto';
 import { AccessTokenGuard } from './guards/access-token.guard';
 import { PermissionGuard } from './guards/permission.guard';
+import { TenantAuthService } from './tenant-auth.service';
 import type { AdminIdentity } from './token.service';
 
 const REFRESH_COOKIE = 'nomo_admin_rt';
@@ -55,7 +57,16 @@ interface AuthedRequest extends Request {
 
 @Controller('auth')
 export class AuthController {
-	constructor(private readonly auth: AuthService) {}
+	constructor(
+		private readonly auth: AuthService,
+		private readonly tenantAuth: TenantAuthService,
+	) {}
+
+	@Post('login')
+	@HttpCode(200)
+	loginTenant(@Body() dto: TenantLoginDto) {
+		return this.tenantAuth.login(dto.tenantSlug, dto.identifier, dto.password);
+	}
 
 	@Post('admin/login')
 	@HttpCode(200)
@@ -104,9 +115,7 @@ export class AuthController {
 			return { accessToken: result.accessToken };
 		} catch (err) {
 			console.log(
-				`[auth/refresh] 401 reason=${
-					(err as Error).message ?? 'unknown'
-				}`,
+				`[auth/refresh] 401 reason=${(err as Error).message ?? 'unknown'}`,
 			);
 			throw err;
 		}
@@ -135,7 +144,9 @@ export class AuthController {
 			);
 			return admin;
 		} catch (err) {
-			console.log(`[auth/me] ERR reason=${(err as Error).message ?? 'unknown'}`);
+			console.log(
+				`[auth/me] ERR reason=${(err as Error).message ?? 'unknown'}`,
+			);
 			throw err;
 		}
 	}

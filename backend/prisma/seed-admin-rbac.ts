@@ -33,7 +33,9 @@ type AdminResource =
 	| 'role'
 	| 'permission'
 	| 'tenant'
+	| 'tenant-user'
 	| 'billing'
+	| 'audit'
 	| 'report'
 	| 'support';
 
@@ -47,6 +49,7 @@ type AdminAction =
 	| 'deactivate'
 	| 'reactivate'
 	| 'reset_password'
+	| 'manage'
 	| 'reply';
 
 // Canonical billing contract currently defines five codes (3 plan + 2 subscription).
@@ -75,8 +78,13 @@ const PERMISSIONS: Array<{ resource: AdminResource; actions: AdminAction[] }> =
 		},
 		{ resource: 'role', actions: ['view', 'create', 'edit', 'delete'] },
 		{ resource: 'permission', actions: ['view'] },
-		{ resource: 'tenant', actions: ['view', 'edit', 'approve', 'export'] },
+		{
+			resource: 'tenant',
+			actions: ['view', 'create', 'edit', 'approve', 'export'],
+		},
+		{ resource: 'tenant-user', actions: ['view', 'manage'] },
 		{ resource: 'billing', actions: ['view', 'edit', 'approve', 'export'] },
+		{ resource: 'audit', actions: ['view'] },
 		{ resource: 'report', actions: ['view', 'export'] },
 		{ resource: 'support', actions: ['view', 'edit', 'reply'] },
 	];
@@ -98,7 +106,9 @@ const RESOURCE_LABEL_VI: Record<string, string> = {
 	role: 'Vai trò',
 	permission: 'Quyền hệ thống',
 	tenant: 'Cửa hàng',
+	'tenant-user': 'Người dùng cửa hàng',
 	billing: 'Tài chính',
+	audit: 'Nhật ký hoạt động',
 	report: 'Báo cáo',
 	support: 'Hỗ trợ',
 	plan: 'Gói dịch vụ',
@@ -117,6 +127,7 @@ const ACTION_LABEL_VI: Record<string, string> = {
 	deactivate: 'Vô hiệu hoá',
 	reactivate: 'Kích hoạt lại',
 	reset_password: 'Đặt lại mật khẩu',
+	manage: 'Quản lý',
 	reply: 'Phản hồi',
 	activate: 'Kích hoạt',
 };
@@ -135,13 +146,17 @@ const PERMISSION_LABEL_OVERRIDE: Record<string, string> = {
 	'admin.role:delete': 'Xoá vai trò',
 	'admin.permission:view': 'Xem quyền hệ thống',
 	'admin.tenant:view': 'Xem cửa hàng',
+	'admin.tenant:create': 'Tạo cửa hàng',
 	'admin.tenant:edit': 'Sửa cửa hàng',
 	'admin.tenant:approve': 'Duyệt cửa hàng',
 	'admin.tenant:export': 'Xuất dữ liệu cửa hàng',
+	'admin.tenant-user:view': 'Xem người dùng cửa hàng',
+	'admin.tenant-user:manage': 'Quản lý người dùng cửa hàng',
 	'admin.billing:view': 'Xem tài chính',
 	'admin.billing:edit': 'Sửa hoá đơn',
 	'admin.billing:approve': 'Duyệt thanh toán',
 	'admin.billing:export': 'Xuất báo cáo tài chính',
+	'admin.audit:view': 'Xem nhật ký hoạt động',
 	'admin.report:view': 'Xem báo cáo',
 	'admin.report:export': 'Xuất báo cáo',
 	'admin.support:view': 'Xem yêu cầu hỗ trợ',
@@ -165,6 +180,14 @@ function labelFor(code: string, resource: string, action: string): string {
 // SUPER_ADMIN gets ALL admin codes via shortcut at guard layer (R4.2); we DO
 // NOT materialize grant rows for SUPER_ADMIN to keep the join light.
 // SUPPORT and BILLING get explicit subsets.
+// admin-tenant-provisioning (R0-01): SALER owns tenant onboarding + tenant-user
+// management. SUPER_ADMIN also covers these via the guard shortcut (no rows).
+const SALER_GRANTS: string[] = [
+	'admin.tenant:create',
+	'admin.tenant-user:view',
+	'admin.tenant-user:manage',
+	'admin.audit:view',
+];
 const SUPPORT_GRANTS: string[] = [
 	'admin.user:view',
 	'admin.user:edit',
@@ -303,7 +326,7 @@ async function main(): Promise<void> {
 		'[seed-admin-rbac] Seeding system roles SUPER_ADMIN, SALER, SUPPORT, BILLING...',
 	);
 	await seedSystemRole(SUPER_ADMIN_ROLE_CODE, 'Toan quyen', []);
-	await seedSystemRole('SALER', 'Kinh doanh', []);
+	await seedSystemRole('SALER', 'Kinh doanh', SALER_GRANTS);
 	await seedSystemRole('SUPPORT', 'Ho tro', SUPPORT_GRANTS);
 	await seedSystemRole('BILLING', 'Tai chinh', BILLING_GRANTS);
 

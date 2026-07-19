@@ -190,10 +190,7 @@ export function TenantList({
 
 			{/* Toolbar lọc — desktop hiển thị 1 hàng ngang, mobile/tablet xếp dọc. */}
 			<div className="flex flex-col gap-3 lg:flex-row lg:items-end">
-				<form
-					onSubmit={(e) => void submitSearch(e)}
-					className="block flex-1"
-				>
+				<form onSubmit={(e) => void submitSearch(e)} className="block flex-1">
 					<label className="block">
 						<span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
 							Tìm kiếm
@@ -215,7 +212,7 @@ export function TenantList({
 					</label>
 				</form>
 
-				<label className="block lg:w-[260px]">
+				<div className="block lg:w-[260px]">
 					<span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
 						Trạng thái
 					</span>
@@ -239,7 +236,7 @@ export function TenantList({
 							))}
 						</SelectContent>
 					</Select>
-				</label>
+				</div>
 			</div>
 
 			{actionError || error ? (

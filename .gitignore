@@ -4,8 +4,14 @@
 specs/_shared/
 plans/
 !plans/templates/
+!frontend/app/admin/
+!frontend/app/admin/(quan-tri)/
+!frontend/app/admin/(quan-tri)/plans/
+!frontend/app/admin/(quan-tri)/plans/page.tsx
 .cafekit-backup/
 .cafekit.lock
 
 # Node
 node_modules/
+.claude/
+.opencode/

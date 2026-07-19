@@ -2,12 +2,12 @@
 
 import { ArrowLeft, KeyRound } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { useHasPermission } from "@/hooks/use-has-permission";
-import { useAdminAuth } from "@/stores/admin-auth-store";
+import { useEffect, useState } from "react";
 import { useAdminUserResetPassword } from "@/components/admin/use-admin-user-detail";
 import { ListSkeleton } from "@/components/app/shared/list-skeleton";
+import { useHasPermission } from "@/hooks/use-has-permission";
+import { useAdminAuth } from "@/stores/admin-auth-store";
 
 export default function AdminUserResetPasswordPage() {
 	const router = useRouter();
@@ -105,7 +105,6 @@ export default function AdminUserResetPasswordPage() {
 							onChange={(e) => setPassword(e.target.value)}
 							required
 							minLength={12}
-							autoFocus
 							maxLength={128}
 							className="mt-1.5 w-full rounded-[10px] border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
 							placeholder="Tối thiểu 12 ký tự"

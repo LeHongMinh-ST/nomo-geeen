@@ -1,7 +1,7 @@
 # Task R0-02: Entitlement and quota foundation (P)
 
 **Requirement:** R0 — reusable backend entitlement contract
-**Status:** pending
+**Status:** done
 **Priority:** P1
 **Estimated Effort:** L
 **Dependencies:** task-R0-01-schema-seed-audit-foundation.md
@@ -21,13 +21,13 @@ No central service currently decides whether a tenant has a usable subscription,
 
 ## Steps
 
-- [ ] 1. Create `backend/src/platform/entitlements/entitlement.constants.ts`, `entitlement.service.ts`, DTO/types, and `entitlement-denial.exception.ts` implementing the canonical contracts in `design.md`.
+- [x] 1. Create `backend/src/platform/entitlements/entitlement.constants.ts`, `entitlement.service.ts`, DTO/types, and `entitlement-denial.exception.ts` implementing the canonical contracts in `design.md`.
   - Derive expiry at `now`, select the latest non-cancelled effective row, and expose stable denial reasons.
   - _Requirements: 2.2, 5.1, 5.2, 5.3, 5.4_
-- [ ] 2. Create `backend/src/platform/entitlements/entitlements.guard.ts` and decorator metadata for required feature/quota; create `entitlements.module.ts` and register it from `backend/src/app.module.ts`.
+- [x] 2. Create `backend/src/platform/entitlements/entitlements.guard.ts` and decorator metadata for required feature/quota; create `entitlements.module.ts` and register it from `backend/src/app.module.ts`.
   - Guard must use server-derived authenticated tenant context; route/body IDs must match it and never be trusted as the sole tenant selector.
   - _Requirements: 5.1, 5.2, 6.1, 9.1_
-- [ ] 3. Create `backend/src/platform/entitlements/entitlement.service.spec.ts` covering expiry, cancellation, flag overrides, unlimited quota, downgrade overage, and unavailable lookup.
+- [x] 3. Create `backend/src/platform/entitlements/entitlement.service.spec.ts` covering expiry, cancellation, flag overrides, unlimited quota, downgrade overage, and unavailable lookup.
   - _Requirements: 5.2, 5.3, 5.4, 6.2, 6.3_
 
 ## Requirements
@@ -51,25 +51,28 @@ No central service currently decides whether a tenant has a usable subscription,
 
 ## Completion Criteria
 
-- [ ] Service returns the canonical effective-entitlement shape for active, trial, expired, cancelled, and absent states.
-- [ ] Feature/flag and all six quota dimensions have deterministic stable denial behavior.
-- [ ] Guard is importable by a tenant controller and fails closed on lookup failure.
-- [ ] Unit tests prove expired denial, quota overflow, downgrade preservation, and no data deletion.
+- [x] Service returns the canonical effective-entitlement shape for active, trial, expired, cancelled, and absent states.
+- [x] Feature/flag and all six quota dimensions have deterministic stable denial behavior.
+- [x] Guard is importable by a tenant controller and fails closed on lookup failure.
+- [x] Unit tests prove expired denial, quota overflow, downgrade preservation, and no data deletion.
 
 ## Evidence
 
-- [ ] Automated verification
+- [x] Automated verification
   - Command(s): `cd backend && pnpm test -- --runInBand entitlement.service.spec.ts && pnpm build`
-  - Expected proof: evaluator/guard tests and Nest build pass.
-- [ ] Artifact / runtime verification
+  - Receipt: `pnpm exec jest --runInBand platform/entitlements/entitlement.service.spec.ts` PASS (10 tests); `pnpm build` PASS; full backend suite PASS (15 suites, 119 tests).
+- [x] Artifact / runtime verification
   - Inspect: `backend/src/platform/entitlements/entitlements.module.ts` export and `backend/src/app.module.ts` import.
   - Expect: service/guard are reachable from Nest DI.
-- [ ] Runtime reachability verification
+  - Receipt: `EntitlementsModule` is registered in `AppModule` and exports service/guard; `entitlement-denial.exception.ts` is a dedicated contract artifact.
+- [x] Runtime reachability verification
   - Entrypoint/caller: `EntitlementsGuard.canActivate()` from later protected tenant route task R1-03.
   - Expect: metadata is read and service approval is required before handler execution.
-- [ ] Contract / negative-path verification
+  - Receipt: guard requires server-derived tenant context, rejects tenant mismatch, requires server-derived quota usage, and fail-closes on lookup failure. Protected business route wiring remains deferred to R1-03.
+- [x] Contract / negative-path verification
   - Check: expired subscription, disabled feature flag, finite quota overflow, and database lookup error.
   - Expect: HTTP-layer exception maps to `EntitlementDenial` with 403 semantics; no allow-by-default.
+  - Receipt: targeted tests and review pass; no atomic-write claim made for this foundation task.
 
 ## Risk Assessment
 

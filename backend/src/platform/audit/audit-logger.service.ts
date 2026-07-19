@@ -83,6 +83,40 @@ export class AuditLogger {
 	}
 
 	/**
+	 * Ghi MỘT audit row bằng transaction client do caller cung cấp. Dùng khi
+	 * nhiều audit rows (vd `TENANT_CREATE` + `USER_CREATE`) phải commit/rollback
+	 * cùng một `$transaction` với các mutation nghiệp vụ. KHÔNG tự mở transaction
+	 * mới (khác `run()`), nên caller giữ nguyên tính nguyên tử của tx ngoài.
+	 */
+	async writeInTx(
+		tx: Prisma.TransactionClient,
+		input: AuditInput,
+	): Promise<void> {
+		if (!VALID_ACTIONS.has(input.action)) {
+			throw new BadRequestException(
+				`Unknown audit action: ${input.action as string}. Allowed: ${[...VALID_ACTIONS].join(', ')}`,
+			);
+		}
+		if (input.actorType === AuditActorType.SYSTEM && input.actorId !== null) {
+			throw new BadRequestException('SYSTEM actor must have actorId=null');
+		}
+		await tx.auditLog.create({
+			data: {
+				actorType: input.actorType,
+				actorId: input.actorId,
+				actorRoleCode: input.actorRoleCode,
+				action: input.action,
+				resource: input.resource,
+				resourceId: input.resourceId,
+				before: input.before as Prisma.InputJsonValue | undefined,
+				after: input.after as Prisma.InputJsonValue | undefined,
+				ipAddress: input.ipAddress,
+				userAgent: input.userAgent,
+			},
+		});
+	}
+
+	/**
 	 * Event-only audit row (no paired state mutation). Prefer `run()` when the
 	 * audit must share a transaction with a DB write.
 	 */

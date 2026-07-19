@@ -1,28 +1,27 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useAdminAuth } from "@/stores/admin-auth-store";
+import { useCallback, useEffect, useState } from "react";
 import {
 	type AdminPublicShape,
+	resetPassword as apiResetPassword,
 	type CreateAdminInput,
-	type UpdateAdminInput,
 	createAdmin,
 	deactivateAdmin,
 	getAdmin,
 	reactivateAdmin,
-	resetPassword as apiResetPassword,
+	type UpdateAdminInput,
 	updateAdmin,
 } from "@/lib/admin-api/admin-users";
-import { listRoles } from "@/lib/admin-api/roles";
 import type { RolePublicShape } from "@/lib/admin-api/roles";
+import { listRoles } from "@/lib/admin-api/roles";
+import { useAdminAuth } from "@/stores/admin-auth-store";
 
 /**
  * Hook cho /admin/admin-users/[id] (detail + edit + deactivate/reactivate).
  */
 export function useAdminUserDetail(id: string) {
 	const accessToken = useAdminAuth((s) => s.accessToken);
-	const router = useRouter();
 	const [admin, setAdmin] = useState<AdminPublicShape | null>(null);
 	const [roles, setRoles] = useState<RolePublicShape[]>([]);
 	const [loading, setLoading] = useState(true);
@@ -87,7 +86,16 @@ export function useAdminUserDetail(id: string) {
 		}
 	}, [accessToken, id, refresh]);
 
-	return { admin, roles, loading, saving, error, handleUpdate, handleDeactivate, handleReactivate };
+	return {
+		admin,
+		roles,
+		loading,
+		saving,
+		error,
+		handleUpdate,
+		handleDeactivate,
+		handleReactivate,
+	};
 }
 
 /**

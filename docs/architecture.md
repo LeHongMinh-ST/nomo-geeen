@@ -165,10 +165,22 @@ Lý do không tách DB/schema mỗi tenant ở Phase 1: số tenant nhỏ, tách
 - Seed permission map sẵn 3 role (xem `base_spec` §3.8). Owner/Manager quản lý nhân viên trong app; **seat** = `plan.max_users + tenant.seat_bonus`.
 - `QuotaGuard`: chặn tạo user khi `active_count >= effective_max_users`.
 - Admin Portal RBAC: `role.is_admin`, prefix `admin.`, `PermissionGuard`, JWT `roleCodes`/`permissions`.
-- Admin permission catalog: `GET /admin/permissions`; route admin dùng `AccessTokenGuard + PermissionGuard`.
+- Admin permission catalog: `GET /admin/permissions`; route admin dùng `AccessTokenGuard + PermissionGuard`; seed hiện có `admin.audit:view` cho SALER, còn SUPER_ADMIN bypass theo guard.
+- Audit query API: `GET /admin/audit-logs` và `GET /admin/audit-logs/:id` dùng `AccessTokenGuard + PermissionGuard` và yêu cầu `admin.audit:view`; list hỗ trợ phân trang, lọc bounded và thứ tự ổn định mới nhất trước. Detail trả `before`/`after` sau khi mask đệ quy key nhạy cảm; hiện chưa có retention hay export audit.
 - `FeatureGuard`: module theo plan ⊕ tenant override (`multi_user`, `roles_manager`, …).
 
 Chuỗi guard request tenant: `JwtAuthGuard → TenantGuard → FeatureGuard → RolesGuard` (+ `QuotaGuard` trên write tạo user/resource).
+
+## 6.3 Admin billing và entitlement
+
+- `BillingModule` quản lý catalog `Plan`, subscription thủ công và lịch sử audit; không gọi Stripe hay tự động thu tiền trong Phase 1.
+- `EntitlementsModule` là nguồn sự thật dùng chung để chọn subscription hiệu lực, kiểm tra feature/quota và fail-closed khi dữ liệu entitlement không khả dụng.
+- Tenant business enforcement hiện có production slice `POST/GET /tenant/products`: tenant JWT mang `tenantId` server-derived, Product create yêu cầu feature `inventory` và quota `maxProducts`.
+- `TenantQuotaCounter` dùng conditional increment trong cùng transaction với Product create; `maxProducts` dùng counter lifetime và migration backfill product chưa soft-delete. Downgrade chỉ chặn growth, không chặn read.
+- Tenant detail exposes read-only quota usage aggregates (users, warehouses, products, customers, monthly orders, storage bytes) for admin overage visibility; it does not replace authoritative entitlement evaluation.
+- Admin billing dùng `AccessTokenGuard + PermissionGuard` với quyền tách riêng `admin.plan:*` và `admin.subscription:*`; SUPER_ADMIN bypass theo RBAC hiện có.
+- `GET /admin/tenants/:tenantId/subscription` trả current + history theo trang, order ổn định `updatedAt DESC, id DESC`, giới hạn `pageSize` tối đa 100 và kèm `total`; acceptance HTTP hiện dùng fixture 1.000 dòng với p95 dưới 500ms.
+- Downgrade/cancel chỉ chặn write mới vượt quota hoặc entitlement; không xóa dữ liệu tenant hiện hữu.
 
 ---
 
@@ -247,7 +259,7 @@ Chỉ làm khi số liệu thực tế yêu cầu — không làm sớm:
 - ORM: **Prisma**.
 - API: **REST + OpenAPI**.
 - Auth: **JWT**, login **username | phone | email + password**; Saler/Admin tạo TK + **đặt/đổi MK giúp khách** (Audit Log). OTP/OAuth sau.
-- Subscription: entity gói có sẵn; **chia hạn mức / ma trận gói sau** (Phase 1 full feature Simple Mode).
+- Subscription: catalog plan + manual lifecycle + entitlement/quota enforcement; Stripe, invoice automation và self-service billing để sau.
 - Định danh tenant: **theo path** (`/minhtam`) — dùng subdomain sau, middleware thiết kế để đổi được mà không sửa nghiệp vụ.
 - Queue/Cache: **Redis + BullMQ**.
 - Storage: **Cloudflare R2** (prod) / MinIO (dev).
@@ -256,4 +268,4 @@ Chỉ làm khi số liệu thực tế yêu cầu — không làm sớm:
 **Hoãn / chốt sau:**
 
 - **SMS OTP**: chọn nhà cung cấp VN sau (khôi phục / xác minh SĐT — login phone Phase 1 dùng password, không OTP).
-- **Chia gói / hạn mức subscription**: sau khi bao quát đủ chức năng.
+- **Stripe, invoice automation và tenant self-service billing**: chưa triển khai trong Phase 1.

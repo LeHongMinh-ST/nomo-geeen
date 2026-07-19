@@ -147,6 +147,9 @@ enum AuditAction {
   TENANT_UPDATE
   TENANT_STATUS_CHANGE
   TENANT_EXPORT
+  // admin-tenant-provisioning (deploy migration before app code that emits these)
+  TENANT_CREATE
+  USER_CREATE
   PLAN_CREATE
   PLAN_UPDATE
   PLAN_ACTIVATE
@@ -221,6 +224,7 @@ model Tenant {
   paymentVouchers    PaymentVoucher[]
   diseases           Disease[]
   tenantSettings     TenantSettings?
+  quotaCounters      TenantQuotaCounter[]
 
   @@index([status])
   @@index([deletedAt])
@@ -931,6 +935,24 @@ model Product {
   @@index([tenantId, productKind])
   @@index([tenantId, isPinned])
   @@map("product")
+}
+
+// Atomic tenant-scoped quota reservations. `periodKey = lifetime` is used for
+// product counts; monthly dimensions can reuse this model later.
+model TenantQuotaCounter {
+  id         String   @id @default(uuid())
+  tenantId   String
+  dimension  String
+  periodKey  String
+  used       BigInt   @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, dimension, periodKey])
+  @@index([tenantId, dimension])
+  @@map("tenant_quota_counter")
 }
 
 model ProductUnitConversion {

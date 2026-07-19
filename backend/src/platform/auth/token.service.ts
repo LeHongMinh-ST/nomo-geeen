@@ -10,6 +10,13 @@ export interface AdminIdentity {
 	permissions: string[]; // NEW: flat permission codes for guard + FE gating
 }
 
+export interface TenantIdentity {
+	id: string;
+	tenantId: string;
+	username: string;
+	roleCode: string;
+}
+
 export interface AccessClaims {
 	sub: string;
 	email: string;
@@ -21,6 +28,8 @@ export interface AccessClaims {
 	jti?: string;
 	iat?: number;
 	exp?: number;
+	tenantId?: string;
+	userType?: 'admin' | 'tenant';
 }
 
 export interface RefreshClaims {
@@ -86,6 +95,24 @@ export class TokenService {
 		} as JwtSignOptions);
 	}
 
+	signTenant(user: TenantIdentity): string {
+		return this.jwt.sign(
+			{
+				sub: user.id,
+				email: user.username,
+				tenantId: user.tenantId,
+				role: user.roleCode,
+				userType: 'tenant',
+				type: 'access',
+				jti: randomUUID(),
+			},
+			{
+				secret: this.accessSecret,
+				expiresIn: this.accessTtl,
+			} as JwtSignOptions,
+		);
+	}
+
 	verifyAccess(token: string): AccessClaims {
 		let claims: AccessClaims;
 		try {
@@ -103,7 +130,10 @@ export class TokenService {
 		if (!claims.roleCodes || claims.roleCodes.length === 0) {
 			claims.roleCodes =
 				claims.role && claims.role.length > 0
-					? claims.role.split(',').map((s) => s.trim()).filter(Boolean)
+					? claims.role
+							.split(',')
+							.map((s) => s.trim())
+							.filter(Boolean)
 					: [];
 		}
 		if (!claims.permissions) {
@@ -150,7 +180,10 @@ export class TokenService {
 		if (!claims.roleCodes || claims.roleCodes.length === 0) {
 			claims.roleCodes =
 				claims.role && claims.role.length > 0
-					? claims.role.split(',').map((s) => s.trim()).filter(Boolean)
+					? claims.role
+							.split(',')
+							.map((s) => s.trim())
+							.filter(Boolean)
 					: [];
 		}
 		if (!claims.permissions) {

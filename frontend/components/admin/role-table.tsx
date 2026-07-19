@@ -3,9 +3,12 @@
 import { KeyRound, Plus, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import type { PermissionPublicShape, RolePublicShape } from "@/lib/admin-api/roles";
 import { DataPagination } from "@/components/app/shared/data-pagination";
 import { ListSkeleton } from "@/components/app/shared/list-skeleton";
+import type {
+	PermissionPublicShape,
+	RolePublicShape,
+} from "@/lib/admin-api/roles";
 import { cn } from "@/lib/utils";
 import { Can } from "./can-permission";
 import { RoleKpiStrip } from "./role-kpi-strip";
@@ -16,16 +19,11 @@ import {
 	RoleEmptyState,
 	ScopeBadge,
 } from "./role-row-extras";
-import {
-	RoleToolbar,
-	type ScopeFilter,
-	type SortKey,
-} from "./role-toolbar";
+import { RoleToolbar, type ScopeFilter, type SortKey } from "./role-toolbar";
 
 const PAGE_SIZE = 10;
 
-const SYSTEM_BADGE =
-	"bg-slate-100 text-slate-700 ring-1 ring-slate-200/80";
+const SYSTEM_BADGE = "bg-slate-100 text-slate-700 ring-1 ring-slate-200/80";
 
 interface Props {
 	roles: RolePublicShape[];
@@ -85,8 +83,7 @@ export function RoleTable({
 			if (detail?.id) setPendingDeleteId(detail.id);
 		}
 		window.addEventListener("role:request-delete", onRequest);
-		return () =>
-			window.removeEventListener("role:request-delete", onRequest);
+		return () => window.removeEventListener("role:request-delete", onRequest);
 	}, []);
 
 	const filtered = useMemo(() => {
@@ -113,6 +110,8 @@ export function RoleTable({
 		return sorted;
 	}, [roles, query, scope, sort]);
 
+	// Filter changes reset pagination; the values are intentionally dependencies.
+	// biome-ignore lint/correctness/useExhaustiveDependencies: filter changes reset pagination
 	useEffect(() => {
 		setPage(1);
 	}, [query, scope, sort]);
@@ -173,8 +172,8 @@ export function RoleTable({
 						Vai trò quản trị
 					</h1>
 					<p className="text-sm text-muted-foreground">
-						{kpi.total} vai trò · {kpi.system} hệ thống · {kpi.custom} tuỳ
-						chỉnh · {kpi.granted} quyền đang được cấp
+						{kpi.total} vai trò · {kpi.system} hệ thống · {kpi.custom} tuỳ chỉnh
+						· {kpi.granted} quyền đang được cấp
 					</p>
 				</div>
 				<Can permission="admin.role:create">
@@ -377,8 +376,8 @@ function EmptyTable() {
 					Chưa có vai trò nào
 				</p>
 				<p className="mx-auto max-w-md text-sm text-muted-foreground">
-					Tạo vai trò đầu tiên để gom nhóm quyền, sau đó gán cho tài khoản
-					quản trị trong khu quản trị nội bộ.
+					Tạo vai trò đầu tiên để gom nhóm quyền, sau đó gán cho tài khoản quản
+					trị trong khu quản trị nội bộ.
 				</p>
 			</div>
 			<Can permission="admin.role:create">

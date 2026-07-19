@@ -4,12 +4,12 @@ import {
 	Boxes,
 	Building2,
 	KeyRound,
+	type LucideIcon,
 	ScrollText,
 	ShieldCheck,
 	Sparkles,
 	Tag,
 	Users,
-	type LucideIcon,
 } from "lucide-react";
 import { useMemo } from "react";
 import type { PermissionPublicShape } from "@/lib/admin-api/roles";
@@ -115,8 +115,7 @@ export function PermissionGroupCard({
 	onToggleAll,
 }: Props) {
 	const Icon = RESOURCE_ICONS[resource] ?? Boxes;
-	const label =
-		RESOURCE_FALLBACK_LABELS[resource] ?? resource;
+	const label = RESOURCE_FALLBACK_LABELS[resource] ?? resource;
 	const tone =
 		RESOURCE_TONES[resource] ?? "bg-muted text-muted-foreground ring-border";
 
@@ -170,8 +169,7 @@ export function PermissionGroupCard({
 			<ul className="grid grid-cols-1 md:grid-cols-2 md:divide-x md:divide-border/60">
 				{filtered.map((p, idx) => {
 					const checked = selectedIds.has(p.id);
-					const isLastOdd =
-						idx === filtered.length - 1 && idx % 2 === 0;
+					const isLastOdd = idx === filtered.length - 1 && idx % 2 === 0;
 					return (
 						<li
 							key={p.id}
@@ -207,8 +205,7 @@ function PermissionRow({
 }) {
 	const actionTone =
 		ACTION_TONES[permission.action] ?? "text-muted-foreground bg-muted";
-	const actionLabel =
-		ACTION_LABELS_VI[permission.action] ?? permission.action;
+	const actionLabel = ACTION_LABELS_VI[permission.action] ?? permission.action;
 
 	return (
 		<label
@@ -237,6 +234,7 @@ function PermissionRow({
 						xmlns="http://www.w3.org/2000/svg"
 						aria-hidden
 					>
+						<title>Đã chọn</title>
 						<path
 							d="M1.5 5.5L4 8L8.5 2.5"
 							stroke="white"

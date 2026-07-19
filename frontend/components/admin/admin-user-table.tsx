@@ -12,8 +12,6 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import type { AdminPublicShape } from "@/lib/admin-api/admin-users";
-import type { RolePublicShape } from "@/lib/admin-api/roles";
 import { DataPagination } from "@/components/app/shared/data-pagination";
 import { ListSkeleton } from "@/components/app/shared/list-skeleton";
 import { LoadMoreSentinel } from "@/components/app/shared/load-more-sentinel";
@@ -24,10 +22,10 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import type { AdminPublicShape } from "@/lib/admin-api/admin-users";
+import type { RolePublicShape } from "@/lib/admin-api/roles";
 import { labelRoleCode } from "@/lib/admin-labels";
 import { Can } from "./can-permission";
-
-const PAGE_SIZE = 10;
 
 const STATUS_LABEL: Record<AdminPublicShape["status"], string> = {
 	ACTIVE: "Hoạt động",
@@ -60,7 +58,10 @@ interface Props {
 	mobileItems: AdminPublicShape[];
 	mobileTotal: number;
 	mobileLoading: boolean;
-	onFilter: (next: { q?: string; status?: "" | "ACTIVE" | "DISABLED" }) => Promise<void>;
+	onFilter: (next: {
+		q?: string;
+		status?: "" | "ACTIVE" | "DISABLED";
+	}) => Promise<void>;
 	onPageChange: (page: number) => Promise<void>;
 	onLoadMoreMobile: () => void;
 	onCreate: (input: {
@@ -187,9 +188,7 @@ export function AdminUserTable({
 		<div className="space-y-4">
 			<div className="flex flex-wrap items-center justify-between gap-3">
 				<div>
-					<h1 className="text-[26px] font-bold tracking-tight">
-						Tài khoản
-					</h1>
+					<h1 className="text-[26px] font-bold tracking-tight">Tài khoản</h1>
 					<p className="mt-1 text-sm text-muted-foreground">
 						Quản lý tài khoản quản trị nội bộ và phân quyền truy cập.
 					</p>
@@ -206,10 +205,7 @@ export function AdminUserTable({
 			</div>
 
 			<div className="flex flex-col gap-3 lg:flex-row lg:items-end">
-				<form
-					onSubmit={(e) => void submitSearch(e)}
-					className="block flex-1"
-				>
+				<form onSubmit={(e) => void submitSearch(e)} className="block flex-1">
 					<label className="block">
 						<span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
 							Tìm kiếm
@@ -231,7 +227,7 @@ export function AdminUserTable({
 					</label>
 				</form>
 
-				<label className="block lg:w-[260px]">
+				<div className="block lg:w-[260px]">
 					<span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
 						Trạng thái
 					</span>
@@ -255,7 +251,7 @@ export function AdminUserTable({
 							))}
 						</SelectContent>
 					</Select>
-				</label>
+				</div>
 			</div>
 
 			{actionError ? (
@@ -612,8 +608,8 @@ function EmptyTable() {
 					Chưa có quản trị viên nào
 				</p>
 				<p className="mx-auto max-w-md text-sm text-muted-foreground">
-					Thay đổi bộ lọc, hoặc thêm tài khoản quản trị đầu tiên để phân
-					quyền truy cập khu quản trị nội bộ.
+					Thay đổi bộ lọc, hoặc thêm tài khoản quản trị đầu tiên để phân quyền
+					truy cập khu quản trị nội bộ.
 				</p>
 			</div>
 			<Can permission="admin.user:create">

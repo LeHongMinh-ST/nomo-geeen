@@ -1,11 +1,11 @@
 {
   "feature_name": "admin-plan-subscription-management",
   "created_at": "2026-07-19T12:40:00+07:00",
-  "updated_at": "2026-07-19T12:40:01+07:00",
+  "updated_at": "2026-07-19T20:55:00+07:00",
   "language": "en",
   "status": "done",
   "phase": "review",
-  "current_phase": "review",
+  "current_phase": "develop",
   "priority": "P1",
   "effort": "L",
   "tags": [
@@ -39,6 +39,7 @@
       "Manual assign, change, renew, and cancel subscription operations",
       "Transactional audit history for every plan and subscription mutation",
       "Backend feature entitlement and quota enforcement primitives on tenant request paths",
+      "Production tenant product read/write slice with atomic maxProducts quota counter",
       "Non-destructive downgrade behavior and tests for expiry, quota overflow, and plan change",
       "Admin UI for plan catalog and tenant subscription actions"
     ],
@@ -75,92 +76,114 @@
     "tasks/task-R0-01-schema-seed-audit-foundation.md": {
       "id": "R0-01",
       "title": "Schema seed audit foundation",
-      "status": "pending",
+      "status": "done",
       "dependencies": [],
       "blocker": null,
-      "started_at": null,
-      "completed_at": null,
-      "last_updated_at": null
+      "started_at": "2026-07-19T05:48:21.181Z",
+      "completed_at": "2026-07-19T06:01:37.300Z",
+      "last_updated_at": "2026-07-19T06:01:37.300Z"
     },
     "tasks/task-R0-02-entitlement-quota-foundation.md": {
       "id": "R0-02",
       "title": "Entitlement quota foundation",
-      "status": "pending",
-      "dependencies": ["tasks/task-R0-01-schema-seed-audit-foundation.md"],
+      "status": "done",
+      "dependencies": [
+        "tasks/task-R0-01-schema-seed-audit-foundation.md"
+      ],
       "blocker": null,
-      "started_at": null,
-      "completed_at": null,
-      "last_updated_at": null
+      "started_at": "2026-07-19T06:03:41.935Z",
+      "completed_at": "2026-07-19T06:17:15.185Z",
+      "last_updated_at": "2026-07-19T06:17:15.185Z"
     },
     "tasks/task-R1-01-plan-catalog-api.md": {
       "id": "R1-01",
       "title": "Plan catalog api",
-      "status": "pending",
-      "dependencies": ["tasks/task-R0-01-schema-seed-audit-foundation.md"],
+      "status": "done",
+      "dependencies": [
+        "tasks/task-R0-01-schema-seed-audit-foundation.md"
+      ],
       "blocker": null,
-      "started_at": null,
-      "completed_at": null,
-      "last_updated_at": null
+      "started_at": "2026-07-19T06:17:40.355Z",
+      "completed_at": "2026-07-19T06:33:44.418Z",
+      "last_updated_at": "2026-07-19T06:33:44.418Z"
     },
     "tasks/task-R1-02-subscription-lifecycle-api.md": {
       "id": "R1-02",
       "title": "Subscription lifecycle api",
-      "status": "pending",
-      "dependencies": ["tasks/task-R0-01-schema-seed-audit-foundation.md", "tasks/task-R1-01-plan-catalog-api.md"],
+      "status": "done",
+      "dependencies": [
+        "tasks/task-R0-01-schema-seed-audit-foundation.md",
+        "tasks/task-R1-01-plan-catalog-api.md"
+      ],
       "blocker": null,
-      "started_at": null,
-      "completed_at": null,
-      "last_updated_at": null
+      "started_at": "2026-07-19T06:33:59.508Z",
+      "completed_at": "2026-07-19T07:18:00.000Z",
+      "last_updated_at": "2026-07-19T07:18:00.000Z"
     },
     "tasks/task-R1-03-entitlement-enforcement-integration.md": {
       "id": "R1-03",
       "title": "Entitlement enforcement integration",
-      "status": "pending",
-      "dependencies": ["tasks/task-R0-02-entitlement-quota-foundation.md", "tasks/task-R1-02-subscription-lifecycle-api.md"],
+      "status": "done",
+      "dependencies": [
+        "tasks/task-R0-02-entitlement-quota-foundation.md",
+        "tasks/task-R1-02-subscription-lifecycle-api.md"
+      ],
       "blocker": null,
-      "started_at": null,
-      "completed_at": null,
-      "last_updated_at": null
+      "started_at": "2026-07-19T14:52:00+07:00",
+      "completed_at": "2026-07-19T15:07:00+07:00",
+      "last_updated_at": "2026-07-19T15:07:00+07:00"
     },
     "tasks/task-R2-01-admin-plan-ui.md": {
       "id": "R2-01",
       "title": "Admin plan ui",
-      "status": "pending",
-      "dependencies": ["tasks/task-R1-01-plan-catalog-api.md"],
+      "status": "done",
+      "dependencies": [
+        "tasks/task-R1-01-plan-catalog-api.md"
+      ],
       "blocker": null,
-      "started_at": null,
-      "completed_at": null,
-      "last_updated_at": null
+      "started_at": "2026-07-19T15:20:00+07:00",
+      "completed_at": "2026-07-19T15:32:00+07:00",
+      "last_updated_at": "2026-07-19T16:20:00+07:00"
     },
     "tasks/task-R2-02-tenant-subscription-ui.md": {
       "id": "R2-02",
       "title": "Tenant subscription ui",
-      "status": "pending",
-      "dependencies": ["tasks/task-R1-02-subscription-lifecycle-api.md", "tasks/task-R2-01-admin-plan-ui.md"],
+      "status": "done",
+      "dependencies": [
+        "tasks/task-R1-02-subscription-lifecycle-api.md",
+        "tasks/task-R2-01-admin-plan-ui.md"
+      ],
       "blocker": null,
-      "started_at": null,
-      "completed_at": null,
-      "last_updated_at": null
+      "started_at": "2026-07-19T15:45:00+07:00",
+      "completed_at": "2026-07-19T16:12:00+07:00",
+      "last_updated_at": "2026-07-19T16:20:00+07:00"
     },
     "tasks/task-R3-01-backend-acceptance-tests.md": {
       "id": "R3-01",
       "title": "Backend acceptance tests",
-      "status": "pending",
-      "dependencies": ["tasks/task-R1-02-subscription-lifecycle-api.md", "tasks/task-R1-03-entitlement-enforcement-integration.md"],
+      "status": "done",
+      "dependencies": [
+        "tasks/task-R1-02-subscription-lifecycle-api.md",
+        "tasks/task-R1-03-entitlement-enforcement-integration.md"
+      ],
       "blocker": null,
-      "started_at": null,
-      "completed_at": null,
-      "last_updated_at": null
+      "started_at": "2026-07-19T16:20:00+07:00",
+      "completed_at": "2026-07-19T18:38:03+07:00",
+      "last_updated_at": "2026-07-19T18:38:03+07:00"
     },
     "tasks/task-R3-02-integration-reachability-verification.md": {
       "id": "R3-02",
       "title": "Integration reachability verification",
-      "status": "pending",
-      "dependencies": ["tasks/task-R2-01-admin-plan-ui.md", "tasks/task-R2-02-tenant-subscription-ui.md", "tasks/task-R3-01-backend-acceptance-tests.md"],
+      "status": "done",
+      "dependencies": [
+        "tasks/task-R2-01-admin-plan-ui.md",
+        "tasks/task-R2-02-tenant-subscription-ui.md",
+        "tasks/task-R3-01-backend-acceptance-tests.md"
+      ],
       "blocker": null,
-      "started_at": null,
-      "completed_at": null,
-      "last_updated_at": null
+      "started_at": "2026-07-19T19:00:00+07:00",
+      "completed_at": "2026-07-19T20:55:00+07:00",
+      "last_updated_at": "2026-07-19T20:55:00+07:00"
     }
   },
   "blocker": null,
@@ -170,9 +193,9 @@
     "research": "done",
     "design": "done",
     "tasks": "done",
-    "code": "pending",
-    "test": "pending",
-    "review": "pending"
+    "code": "done",
+    "test": "done",
+    "review": "done"
   },
   "timestamps": {
     "init": "2026-07-19T12:40:00+07:00",
@@ -180,10 +203,10 @@
     "research_done": "2026-07-19T12:40:03+07:00",
     "design_done": "2026-07-19T12:40:04+07:00",
     "tasks_done": "2026-07-19T12:40:05+07:00",
-    "code_done": null,
-    "test_done": null,
-    "review_done": "2026-07-19T12:40:06+07:00",
-    "validation_done": "2026-07-19T12:40:06+07:00"
+    "code_done": "2026-07-19T20:55:00+07:00",
+    "test_done": "2026-07-19T20:55:00+07:00",
+    "review_done": "2026-07-19T20:55:00+07:00",
+    "validation_done": "2026-07-19T12:42:48+07:00"
   },
   "design_context": {
     "discovery_mode": "full",
@@ -194,9 +217,9 @@
   },
   "validation": {
     "status": "completed",
-    "session_count": 1,
+    "session_count": 2,
     "questions_asked": 3,
-    "last_validated_at": "2026-07-19T12:40:06+07:00",
+    "last_validated_at": "2026-07-19T12:42:48+07:00",
     "red_team_report": "reports/red-team-report.md",
     "validation_log": "reports/validate-log.md"
   },

@@ -4,7 +4,7 @@ import {
 	HttpException,
 	NotFoundException,
 } from '@nestjs/common';
-import { AuditAction, TenantStatus } from '@prisma/client';
+import { AuditAction, Prisma, TenantStatus } from '@prisma/client';
 import { TenantsService } from './tenants.service';
 
 describe('TenantsService', () => {
@@ -32,11 +32,25 @@ describe('TenantsService', () => {
 		supportTicket: {
 			count: jest.fn(),
 		},
+		warehouse: { count: jest.fn() },
+		product: { count: jest.fn() },
+		customer: { count: jest.fn() },
+		sale: { count: jest.fn() },
+		storedFile: { aggregate: jest.fn() },
+		role: { findMany: jest.fn() },
+		$transaction: jest.fn(),
 	};
 
 	const audit = {
 		run: jest.fn(),
 		log: jest.fn(),
+		writeInTx: jest.fn(),
+	};
+
+	const passwords = {
+		hash: jest.fn(),
+		verify: jest.fn(),
+		generate: jest.fn(),
 	};
 
 	const ctx = {
@@ -51,13 +65,22 @@ describe('TenantsService', () => {
 	beforeEach(() => {
 		jest.clearAllMocks();
 		audit.run.mockImplementation(
-			async (
-				_input: unknown,
-				fn: (tx: typeof prisma) => Promise<unknown>,
-			) => fn(prisma as never),
+			async (_input: unknown, fn: (tx: typeof prisma) => Promise<unknown>) =>
+				fn(prisma as never),
 		);
 		audit.log.mockResolvedValue(undefined);
-		service = new TenantsService(prisma as never, audit as never);
+		prisma.warehouse.count.mockResolvedValue(0);
+		prisma.product.count.mockResolvedValue(0);
+		prisma.customer.count.mockResolvedValue(0);
+		prisma.sale.count.mockResolvedValue(0);
+		prisma.storedFile.aggregate.mockResolvedValue({
+			_sum: { sizeBytes: BigInt(0) },
+		});
+		service = new TenantsService(
+			prisma as never,
+			audit as never,
+			passwords as never,
+		);
 	});
 
 	describe('list', () => {
@@ -284,9 +307,11 @@ describe('TenantsService', () => {
 
 			const csv = await service.exportCsv({ page: 1, pageSize: 20 }, ctx);
 
-			expect(csv.startsWith('id,slug,name,tenantType,mode,status,createdAt,updatedAt\n')).toBe(
-				true,
-			);
+			expect(
+				csv.startsWith(
+					'id,slug,name,tenantType,mode,status,createdAt,updatedAt\n',
+				),
+			).toBe(true);
 			expect(csv).toContain("'=cmd|'/c calc'");
 			expect(audit.log).toHaveBeenCalledWith(
 				expect.objectContaining({
@@ -309,6 +334,103 @@ describe('TenantsService', () => {
 				service.exportCsv({ page: 1, pageSize: 20 }, ctx),
 			).rejects.toBeInstanceOf(HttpException);
 			expect(audit.log).not.toHaveBeenCalled();
+		});
+	});
+
+	describe('create', () => {
+		const dtoBase = {
+			tenant: {
+				name: 'Acme Store',
+				slug: 'acme',
+				tenantType: 'RETAIL_DEALER' as const,
+			},
+			owner: {
+				fullName: 'Owner',
+				username: 'owner',
+				password: 'OwnerPass!123',
+			},
+		};
+
+		// Reproduce the real @prisma/adapter-pg P2002 shape: no `meta.target`,
+		// info nested under driverAdapterError.cause.constraint.fields.
+		function knownRequestError(code: string, fields: string[]) {
+			return new Prisma.PrismaClientKnownRequestError('unique failed', {
+				code,
+				clientVersion: 'test',
+				meta: {
+					modelName: 'Tenant',
+					driverAdapterError: {
+						name: 'DriverAdapterError',
+						cause: {
+							originalCode: '23505',
+							originalMessage: `duplicate key value violates unique constraint "${fields.join('_')}_key"`,
+							kind: 'UniqueConstraintViolation',
+							constraint: { fields },
+						},
+					},
+				},
+			});
+		}
+
+		it('rejects when neither password nor generatePassword given (400 PASSWORD_MODE_INVALID)', async () => {
+			const dto = {
+				tenant: dtoBase.tenant,
+				owner: { fullName: 'Owner', username: 'owner' },
+			};
+			await expect(service.create(dto as never, ctx)).rejects.toBeInstanceOf(
+				BadRequestException,
+			);
+			expect(prisma.$transaction).not.toHaveBeenCalled();
+		});
+
+		it('rejects when both password and generatePassword given (400 PASSWORD_MODE_INVALID)', async () => {
+			const dto = {
+				tenant: dtoBase.tenant,
+				owner: {
+					fullName: 'Owner',
+					username: 'owner',
+					password: 'OwnerPass!123',
+					generatePassword: true,
+				},
+			};
+			await expect(service.create(dto as never, ctx)).rejects.toBeInstanceOf(
+				BadRequestException,
+			);
+			expect(prisma.$transaction).not.toHaveBeenCalled();
+		});
+
+		it('maps P2002 on username to 409 USERNAME_TAKEN', async () => {
+			passwords.hash.mockResolvedValue('hashed');
+			prisma.role.findMany.mockResolvedValue([]);
+			prisma.$transaction.mockRejectedValue(
+				knownRequestError('P2002', ['tenantId', 'username']),
+			);
+
+			await expect(service.create(dtoBase as never, ctx)).rejects.toMatchObject({
+				response: { reason: 'USERNAME_TAKEN' },
+			});
+		});
+
+		it('maps P2002 on slug to 409 SLUG_TAKEN', async () => {
+			passwords.hash.mockResolvedValue('hashed');
+			prisma.role.findMany.mockResolvedValue([]);
+			prisma.$transaction.mockRejectedValue(
+				knownRequestError('P2002', ['slug']),
+			);
+
+			await expect(service.create(dtoBase as never, ctx)).rejects.toMatchObject({
+				response: { reason: 'SLUG_TAKEN' },
+			});
+		});
+
+		it('rethrows unrelated P2002 without mislabeling as SLUG_TAKEN', async () => {
+			passwords.hash.mockResolvedValue('hashed');
+			prisma.role.findMany.mockResolvedValue([]);
+			// A role uniqueness violation (tenantId, code) — neither slug nor username.
+			const err = knownRequestError('P2002', ['tenantId', 'code']);
+			prisma.$transaction.mockRejectedValue(err);
+
+			await expect(service.create(dtoBase as never, ctx)).rejects.toBe(err);
 		});
 	});
 });

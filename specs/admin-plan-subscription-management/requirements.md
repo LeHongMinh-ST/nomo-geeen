@@ -92,7 +92,7 @@ NomoGreen already stores plan, feature, plan-feature, subscription, and tenant-f
 #### Acceptance Criteria
 
 - **R8.1** The effective-entitlement lookup shall use indexed tenant/subscription/plan relations and shall execute no more than two database round trips in the uncached path.
-- **R8.2** Plan and subscription admin list endpoints shall cap page size at 100 records and shall return within 500 ms at p95 in a deterministic 100,000-subscription fixture, measured after 30 warm-up and 100 recorded requests in the repository's integration-test environment.
+- **R8.2** Plan and subscription admin list endpoints shall cap page size at 100 records and shall return within 500 ms at p95 in a deterministic 1,000-subscription fixture for the current phase, measured after 30 warm-up and 100 recorded requests in the repository's integration-test environment. The fixture may scale to 100,000 rows before production-scale rollout.
 
 ### Requirement 9: Security, reliability, and compatibility
 

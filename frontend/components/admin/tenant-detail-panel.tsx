@@ -18,6 +18,7 @@ import type {
 	TenantType,
 } from "@/lib/admin-api/tenants";
 import { Can } from "./can-permission";
+import { SubscriptionPanel } from "./subscription-panel";
 
 const TYPE_OPTIONS: { value: TenantType; label: string }[] = [
 	{ value: "HOUSEHOLD", label: "Hộ gia đình" },
@@ -199,9 +200,7 @@ export function TenantDetailPanel({
 								Loại
 								<select
 									value={tenantType}
-									onChange={(e) =>
-										setTenantType(e.target.value as TenantType)
-									}
+									onChange={(e) => setTenantType(e.target.value as TenantType)}
 									className="mt-1.5 w-full rounded-[10px] border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
 								>
 									{TYPE_OPTIONS.map((o) => (
@@ -352,6 +351,7 @@ export function TenantDetailPanel({
 					</div>
 				</section>
 			</div>
+			<SubscriptionPanel tenant={localTenant} />
 		</div>
 	);
 }

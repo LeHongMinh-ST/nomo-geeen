@@ -9,16 +9,15 @@ import {
 import {
 	AuditAction,
 	AuditActorType,
-	type Prisma,
+	Prisma,
 	type TenantMode,
 	type TenantStatus,
 	type TenantType,
 } from '@prisma/client';
-import {
-	AuditLogger,
-	type AuditInput,
-} from '../audit/audit-logger.service';
+import { PasswordService } from '../auth/password.service';
+import { type AuditInput, AuditLogger } from '../audit/audit-logger.service';
 import { PrismaService } from '../prisma/prisma.service';
+import type { CreateTenantDto } from './dto/create-tenant.dto';
 import type { TenantQueryDto } from './dto/tenant-query.dto';
 import type { TenantStatusTransitionDto } from './dto/tenant-status-transition.dto';
 import type { UpdateTenantDto } from './dto/update-tenant.dto';
@@ -45,6 +44,14 @@ export interface TenantDetail extends TenantListItem {
 		subscriptions: number;
 		openTickets: number;
 	};
+	quotaUsage: {
+		users: number;
+		warehouses: number;
+		products: number;
+		customers: number;
+		ordersThisMonth: number;
+		storageBytes: string;
+	};
 }
 
 export interface ListTenantsResult {
@@ -60,6 +67,38 @@ export interface TenantAuditCtx {
 	ipAddress?: string;
 	userAgent?: string;
 }
+
+/** Public owner shape for the creation response — never exposes passwordHash. */
+export interface CreatedOwnerPublic {
+	id: string;
+	tenantId: string;
+	fullName: string;
+	username: string;
+	phone: string | null;
+	email: string | null;
+	roleCode: 'OWNER';
+	status: 'ACTIVE';
+	mustChangePassword: boolean;
+	createdAt: string;
+}
+
+export interface CreateTenantResult {
+	tenant: TenantListItem & { seatBonus: number };
+	owner: CreatedOwnerPublic;
+	generatedPassword: string | null;
+}
+
+/**
+ * Per-tenant roles seeded at creation. Grants are cloned from the matching
+ * system role template (tenantId=null) so a new store owns its own role rows.
+ */
+const PER_TENANT_ROLES = [
+	{ code: 'OWNER', name: 'Chủ cửa hàng', rank: 1 },
+	{ code: 'MANAGER', name: 'Quản lý', rank: 2 },
+	{ code: 'STAFF', name: 'Nhân viên', rank: 3 },
+] as const;
+
+const DEFAULT_SEAT_BONUS = 10;
 
 const LIST_SELECT = {
 	id: true,
@@ -91,7 +130,274 @@ export class TenantsService {
 	constructor(
 		private readonly prisma: PrismaService,
 		private readonly audit: AuditLogger,
+		private readonly passwords: PasswordService,
 	) {}
+
+	/**
+	 * Atomically create a Tenant + its first OWNER user + three per-tenant roles
+	 * (OWNER/MANAGER/STAFF, grants cloned from system templates) + audit rows,
+	 * all inside one `$transaction`. Any failure rolls back completely — a store
+	 * never exists without an owner. Uniqueness is enforced by DB constraints
+	 * (`tenant.slug`, `@@unique([tenantId, username])`) mapped to 409, no
+	 * read-then-write. Returns the generated password once iff it was generated.
+	 */
+	async create(
+		dto: CreateTenantDto,
+		ctx: TenantAuditCtx,
+	): Promise<CreateTenantResult> {
+		const { plaintext, generated } = this.resolvePassword(dto.owner);
+		const passwordHash = await this.passwords.hash(plaintext);
+
+		const seatBonus = dto.tenant.seatBonus ?? DEFAULT_SEAT_BONUS;
+		const mustChangePassword = dto.owner.mustChangePassword ?? false;
+
+		// Preload system role templates + their grants (outside the tx; static
+		// seed data). Missing templates is a seed/config error, not user input.
+		const templates = await this.prisma.role.findMany({
+			where: {
+				tenantId: null,
+				code: { in: PER_TENANT_ROLES.map((r) => r.code) },
+			},
+			select: {
+				code: true,
+				permissions: { select: { permissionId: true } },
+			},
+		});
+		const grantsByCode = new Map(
+			templates.map((t) => [t.code, t.permissions.map((p) => p.permissionId)]),
+		);
+
+		try {
+			return await this.prisma.$transaction(async (tx) => {
+				return await this.provision(tx, {
+					dto,
+					ctx,
+					passwordHash,
+					seatBonus,
+					mustChangePassword,
+					generatedPassword: generated ? plaintext : null,
+					grantsByCode,
+				});
+			});
+		} catch (error) {
+			throw this.mapCreateError(error);
+		}
+	}
+
+	private resolvePassword(owner: CreateTenantDto['owner']): {
+		plaintext: string;
+		generated: boolean;
+	} {
+		const hasPassword = typeof owner.password === 'string';
+		const wantsGenerate = owner.generatePassword === true;
+		if (hasPassword === wantsGenerate) {
+			// neither or both
+			throw new BadRequestException({
+				reason: 'PASSWORD_MODE_INVALID',
+				message:
+					'Provide exactly one of { password } or { generatePassword: true }',
+			});
+		}
+		return wantsGenerate
+			? { plaintext: this.passwords.generate(), generated: true }
+			: { plaintext: owner.password as string, generated: false };
+	}
+
+	private mapCreateError(error: unknown): unknown {
+		if (
+			error instanceof Prisma.PrismaClientKnownRequestError &&
+			error.code === 'P2002'
+		) {
+			const fields = this.uniqueViolationFields(error);
+			if (fields.includes('username')) {
+				return new ConflictException({
+					reason: 'USERNAME_TAKEN',
+					message: 'Owner username already exists in this tenant',
+				});
+			}
+			if (fields.includes('slug')) {
+				return new ConflictException({
+					reason: 'SLUG_TAKEN',
+					message: 'Tenant slug already exists',
+				});
+			}
+			// Any other unique violation (role/permission seeding) is not a
+			// user-facing slug/username conflict — surface it unmapped.
+			return error;
+		}
+		return error;
+	}
+
+	/**
+	 * Extract the offending column names from a P2002. Standard Prisma exposes
+	 * `meta.target`; the `@prisma/adapter-pg` driver (Prisma 7) instead nests the
+	 * info under `meta.driverAdapterError.cause.constraint.fields` and includes
+	 * the raw constraint name in `originalMessage` (e.g. `tenant_slug_key`).
+	 * Read all three so classification is adapter-agnostic.
+	 */
+	private uniqueViolationFields(
+		error: Prisma.PrismaClientKnownRequestError,
+	): string {
+		const parts: string[] = [];
+		const meta = error.meta as Record<string, unknown> | undefined;
+		const target = meta?.target;
+		if (Array.isArray(target)) parts.push(target.join(','));
+		else if (typeof target === 'string') parts.push(target);
+
+		const cause = (
+			meta?.driverAdapterError as { cause?: Record<string, unknown> } | undefined
+		)?.cause;
+		const constraint = cause?.constraint as
+			| { fields?: string[]; index?: string }
+			| undefined;
+		if (Array.isArray(constraint?.fields)) parts.push(constraint.fields.join(','));
+		if (typeof constraint?.index === 'string') parts.push(constraint.index);
+		if (typeof cause?.originalMessage === 'string') {
+			parts.push(cause.originalMessage);
+		}
+		return parts.join(',');
+	}
+
+	private async provision(
+		tx: Prisma.TransactionClient,
+		args: {
+			dto: CreateTenantDto;
+			ctx: TenantAuditCtx;
+			passwordHash: string;
+			seatBonus: number;
+			mustChangePassword: boolean;
+			generatedPassword: string | null;
+			grantsByCode: Map<string, string[]>;
+		},
+	): Promise<CreateTenantResult> {
+		const {
+			dto,
+			ctx,
+			passwordHash,
+			seatBonus,
+			mustChangePassword,
+			generatedPassword,
+			grantsByCode,
+		} = args;
+
+		// 1. Create the tenant, then its three per-tenant roles (roles need the
+		//    tenantId), then the OWNER user linked to the seeded OWNER role.
+		const tenant = await tx.tenant.create({
+			data: {
+				slug: dto.tenant.slug,
+				name: dto.tenant.name,
+				tenantType: dto.tenant.tenantType,
+				mode: 'SIMPLE', // Phase 1: derived server-side, not client-supplied
+				status: 'ACTIVE',
+				logoUrl: dto.tenant.logoUrl ?? null,
+				seatBonus,
+			},
+			select: LIST_SELECT,
+		});
+
+		const roleIdByCode = new Map<string, string>();
+		for (const spec of PER_TENANT_ROLES) {
+			const role = await tx.role.create({
+				data: {
+					tenantId: tenant.id,
+					code: spec.code,
+					name: spec.name,
+					isSystem: false,
+					isAdmin: false,
+					rank: spec.rank,
+				},
+				select: { id: true },
+			});
+			roleIdByCode.set(spec.code, role.id);
+			const grants = grantsByCode.get(spec.code) ?? [];
+			if (grants.length > 0) {
+				await tx.rolePermission.createMany({
+					data: grants.map((permissionId) => ({
+						roleId: role.id,
+						permissionId,
+					})),
+					skipDuplicates: true,
+				});
+			}
+		}
+
+		const ownerRoleId = roleIdByCode.get('OWNER');
+		if (!ownerRoleId) {
+			// Unreachable: PER_TENANT_ROLES always contains OWNER.
+			throw new Error('OWNER role not seeded');
+		}
+
+		const owner = await tx.user.create({
+			data: {
+				tenantId: tenant.id,
+				username: dto.owner.username,
+				email: dto.owner.email ?? null,
+				phone: dto.owner.phone ?? null,
+				passwordHash,
+				mustChangePassword,
+				fullName: dto.owner.fullName,
+				roleId: ownerRoleId,
+				status: 'ACTIVE',
+				createdByType: 'PLATFORM_ADMIN',
+				createdById: ctx.actorId,
+			},
+			select: {
+				id: true,
+				tenantId: true,
+				fullName: true,
+				username: true,
+				phone: true,
+				email: true,
+				mustChangePassword: true,
+				createdAt: true,
+			},
+		});
+
+		// 2. Audit rows share this same tx (writeInTx, never self-transacting run()).
+		const baseAudit: Omit<AuditInput, 'action' | 'resource' | 'resourceId'> = {
+			actorId: ctx.actorId,
+			actorType: AuditActorType.PLATFORM_ADMIN,
+			actorRoleCode: ctx.actorRoleCode,
+			ipAddress: ctx.ipAddress,
+			userAgent: ctx.userAgent?.slice(0, 512),
+		};
+		await this.audit.writeInTx(tx, {
+			...baseAudit,
+			action: AuditAction.TENANT_CREATE,
+			resource: 'tenant',
+			resourceId: tenant.id,
+			after: { slug: tenant.slug, name: tenant.name, seatBonus },
+		});
+		await this.audit.writeInTx(tx, {
+			...baseAudit,
+			action: AuditAction.USER_CREATE,
+			resource: 'user',
+			resourceId: owner.id,
+			after: {
+				tenantId: tenant.id,
+				username: owner.username,
+				roleCode: 'OWNER',
+			},
+		});
+
+		return {
+			tenant: { ...this.toListItem(tenant), seatBonus },
+			owner: {
+				id: owner.id,
+				tenantId: owner.tenantId,
+				fullName: owner.fullName,
+				username: owner.username,
+				phone: owner.phone,
+				email: owner.email,
+				roleCode: 'OWNER',
+				status: 'ACTIVE',
+				mustChangePassword: owner.mustChangePassword,
+				createdAt: owner.createdAt.toISOString(),
+			},
+			generatedPassword,
+		};
+	}
+
 
 	async list(query: TenantQueryDto): Promise<ListTenantsResult> {
 		const page = query.page ?? 1;
@@ -135,14 +441,42 @@ export class TenantsService {
 			throw new NotFoundException('Tenant not found');
 		}
 
-		const openTickets = await this.prisma.supportTicket.count({
-			where: {
-				tenantId: id,
-				status: {
-					in: [...TENANT_DETAIL_AGGREGATES.openTicketStatuses],
+		const monthStart = new Date();
+		monthStart.setUTCDate(1);
+		monthStart.setUTCHours(0, 0, 0, 0);
+		const nextMonth = new Date(monthStart);
+		nextMonth.setUTCMonth(nextMonth.getUTCMonth() + 1);
+		const [
+			openTickets,
+			warehouses,
+			products,
+			customers,
+			ordersThisMonth,
+			storage,
+		] = await Promise.all([
+			this.prisma.supportTicket.count({
+				where: {
+					tenantId: id,
+					status: {
+						in: [...TENANT_DETAIL_AGGREGATES.openTicketStatuses],
+					},
 				},
-			},
-		});
+			}),
+			this.prisma.warehouse.count({ where: { tenantId: id, deletedAt: null } }),
+			this.prisma.product.count({ where: { tenantId: id, deletedAt: null } }),
+			this.prisma.customer.count({ where: { tenantId: id, deletedAt: null } }),
+			this.prisma.sale.count({
+				where: {
+					tenantId: id,
+					deletedAt: null,
+					soldAt: { gte: monthStart, lt: nextMonth },
+				},
+			}),
+			this.prisma.storedFile.aggregate({
+				where: { tenantId: id, deletedAt: null },
+				_sum: { sizeBytes: true },
+			}),
+		]);
 
 		return {
 			...this.toListItem(row),
@@ -150,6 +484,14 @@ export class TenantsService {
 				users: row._count.users,
 				subscriptions: row._count.subscriptions,
 				openTickets,
+			},
+			quotaUsage: {
+				users: row._count.users,
+				warehouses,
+				products,
+				customers,
+				ordersThisMonth,
+				storageBytes: (storage._sum.sizeBytes ?? BigInt(0)).toString(),
 			},
 		};
 	}
@@ -315,10 +657,7 @@ export class TenantsService {
 		return this.findById(id);
 	}
 
-	async exportCsv(
-		query: TenantQueryDto,
-		ctx: TenantAuditCtx,
-	): Promise<string> {
+	async exportCsv(query: TenantQueryDto, ctx: TenantAuditCtx): Promise<string> {
 		const where = this.buildListWhere(query);
 		const rows = await this.prisma.tenant.findMany({
 			where,

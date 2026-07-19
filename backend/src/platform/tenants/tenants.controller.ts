@@ -3,6 +3,7 @@ import {
 	Controller,
 	Get,
 	Header,
+	HttpCode,
 	Param,
 	ParseUUIDPipe,
 	Patch,
@@ -18,13 +19,15 @@ import { RequirePermission } from '../auth/decorators/require-permission.decorat
 import { AccessTokenGuard } from '../auth/guards/access-token.guard';
 import { PermissionGuard } from '../auth/guards/permission.guard';
 import type { AdminIdentity } from '../auth/token.service';
+import { CreateTenantDto } from './dto/create-tenant.dto';
 import { TenantQueryDto } from './dto/tenant-query.dto';
 import { TenantStatusTransitionDto } from './dto/tenant-status-transition.dto';
 import { UpdateTenantDto } from './dto/update-tenant.dto';
 import {
-	TenantsService,
+	type CreateTenantResult,
 	type ListTenantsResult,
 	type TenantDetail,
+	TenantsService,
 } from './tenants.service';
 
 interface AuthedRequest extends Request {
@@ -35,6 +38,21 @@ interface AuthedRequest extends Request {
 @UseGuards(AccessTokenGuard, PermissionGuard)
 export class TenantsController {
 	constructor(private readonly service: TenantsService) {}
+
+	@Post()
+	@HttpCode(201)
+	@RequirePermission('admin.tenant:create')
+	create(
+		@Body() dto: CreateTenantDto,
+		@Req() req: AuthedRequest,
+	): Promise<CreateTenantResult> {
+		return this.service.create(dto, {
+			actorId: req.user.id,
+			actorRoleCode: req.user.roleCodes?.join(',') ?? null,
+			ipAddress: req.ip,
+			userAgent: req.get('user-agent') ?? undefined,
+		});
+	}
 
 	@Get()
 	@RequirePermission('admin.tenant:view')

@@ -97,6 +97,19 @@ Index: `status`, `deleted_at`.
 
 `effective_max_users = plan.max_users + seat_bonus` (null max_users = unlimited). `active_count` = user status ACTIVE|INVITED.
 
+### 4.1.1 `tenant_quota_counter` — Counter quota atomic
+
+Counter dùng cho quota tăng trưởng cần chống race condition tại write boundary.
+
+| Cột | Kiểu | Ghi chú |
+|---|---|---|
+| tenant_id | uuid FK | tenant sở hữu counter |
+| dimension | string | `maxProducts` hiện triển khai; mở rộng cho các chiều còn lại |
+| period_key | string | `lifetime` cho product; `YYYY-MM` dành cho quota theo tháng |
+| used | bigint | số lượng đã reserve, không lưu limit |
+
+Unique `(tenant_id, dimension, period_key)`. Product create cập nhật counter có điều kiện và tạo `product` trong cùng transaction; migration khởi tạo từ các product chưa soft delete.
+
 ## 4.2 `plan` — Gói dịch vụ (3.4)
 
 | Cột | Kiểu | Ghi chú |
@@ -160,8 +173,13 @@ Trial được mô hình hóa bằng `status = TRIALING` + `trial_ends_at` (khô
 | end_date | datetime? | mốc hết hạn chu kỳ hiện tại |
 | trial_ends_at | datetime? | 7/15/30 ngày (3.5) |
 | cancelled_at | datetime? | |
+| manual_reference | string? | tham chiếu giao dịch offline, tối đa 200 ký tự |
+| manual_reason | string? | lý do vận hành, tối đa 500 ký tự |
+| created_at / updated_at | datetime | optimistic concurrency + lịch sử |
 
-Index: `tenant_id`, `plan_id`, `status`.
+Index: `tenant_id`, `plan_id`, `status`, `updated_at`; truy vấn hiệu lực ưu tiên subscription không CANCELLED và thời gian bắt đầu/kết thúc.
+
+Subscription lifecycle thủ công tạo row mới khi đổi plan, đóng row cũ và không xóa lịch sử. Audit mutation dùng cùng transaction với thay đổi state. Hạ cấp chỉ chặn ghi mới vượt quota, không xóa dữ liệu tenant.
 
 ## 4.6 `invoice` — Lịch sử billing (3.6)
 

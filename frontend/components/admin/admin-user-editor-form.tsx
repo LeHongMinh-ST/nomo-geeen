@@ -48,11 +48,15 @@ export function AdminUserEditorForm(props: Props) {
 		() => props.roles.filter((r) => r.isAdmin),
 		[props.roles],
 	);
-	const initialRoleIds = isEdit
-		? props.roles
-				.filter((r) => (admin?.roles ?? []).includes(r.code))
-				.map((r) => r.id)
-		: [];
+	const initialRoleIds = useMemo(
+		() =>
+			isEdit
+				? props.roles
+						.filter((r) => (admin?.roles ?? []).includes(r.code))
+						.map((r) => r.id)
+				: [],
+		[isEdit, props.roles, admin?.roles],
+	);
 
 	const [fullName, setFullName] = useState(admin?.fullName ?? "");
 	const [email, setEmail] = useState("");
@@ -63,13 +67,15 @@ export function AdminUserEditorForm(props: Props) {
 	const [submitting, setSubmitting] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 
+	// Reset form khi chuyen sang admin khac. Dung `admin?.id` (string) thay vi
+	// ca object `admin` de tranh re-sync lien tuc khi parent re-render voi
+	// reference moi nhung cung noi dung.
 	useEffect(() => {
 		setFullName(admin?.fullName ?? "");
-		setEmail("");
-		setPassword("");
-		setRoleIds(new Set(initialRoleIds));
 		setError(null);
-	}, [admin, initialRoleIds]);
+		setRoleIds(new Set(initialRoleIds));
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [admin?.fullName, initialRoleIds]);
 
 	function toggle(id: string) {
 		setRoleIds((cur) => {

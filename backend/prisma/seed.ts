@@ -129,13 +129,9 @@ async function main() {
 	for (const p of PLANS) {
 		const plan = await prisma.plan.upsert({
 			where: { code: p.code },
-			update: {
-				name: p.name,
-				price: p.price,
-				maxUsers: p.maxUsers,
-				maxWarehouses: p.maxWarehouses,
-				maxStorageBytes: p.maxStorageBytes,
-			},
+			// Plans are operator-owned after first creation; never overwrite
+			// billing terms or quotas when the bootstrap seed is rerun.
+			update: {},
 			create: {
 				code: p.code,
 				name: p.name,

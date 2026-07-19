@@ -1,0 +1,222 @@
+{
+  "feature_name": "admin-tenant-provisioning",
+  "created_at": "2026-07-19T15:26:29+07:00",
+  "updated_at": "2026-07-19T16:55:00+07:00",
+  "language": "en",
+  "status": "in_progress",
+  "phase": "tasks",
+  "current_phase": "develop",
+  "priority": "P1",
+  "effort": "L",
+  "tags": [
+    "admin",
+    "tenant",
+    "provisioning",
+    "owner",
+    "user-management",
+    "seat",
+    "rbac",
+    "audit",
+    "schema"
+  ],
+  "approvals": {
+    "requirements": {
+      "generated": true,
+      "approved": true
+    },
+    "design": {
+      "generated": true,
+      "approved": true
+    },
+    "tasks": {
+      "generated": true,
+      "approved": true
+    }
+  },
+  "scope_lock": {
+    "source": "Tạo cửa hàng ở phía admin: khi tạo cho phép chọn user owner hoặc tạo mới user owner cho cửa hàng; áp dụng gói mặc định thấp nhất nếu chưa có data gói; đồng thời triển khai chức năng quản lý người dùng tenant (users, khác admin-users).",
+    "in_scope": [
+      "Admin transactional tenant creation (Tenant + first OWNER user) via new POST /admin/tenants",
+      "Create the OWNER user with a required username (user.username is NOT NULL); fullName + username + optional email/phone + password/generate",
+      "Seed three per-tenant roles OWNER/MANAGER/STAFF (tenantId=<new>) inside the creation tx, cloning grants from system role templates; link first OWNER to the per-tenant OWNER",
+      "Additive schema: AuditAction TENANT_CREATE and USER_CREATE enum values",
+      "New permission admin.tenant:create and admin.tenant-user:{view,manage} catalog + role grants (SUPER_ADMIN, SALER)",
+      "Tenant user management module (list/create/edit/change-role/deactivate/reactivate/reset-password) scoped by tenantId, distinct from platform admin-users",
+      "Seat enforcement: effective_max_users = (ACTIVE/TRIALING subscription plan.maxUsers ?? 0) + tenant.seatBonus; block create when no seat; first OWNER exempt at creation; optional seatBonus (1..999, default 10) settable at creation",
+      "Admin UI: Create-tenant form on tenant list, and tenant user management panel on tenant detail",
+      "Audit for tenant creation and every tenant-user mutation"
+    ],
+    "out_of_scope": [
+      "Assigning a subscription/plan during tenant creation (deferred to existing subscription UI/API in admin-plan-subscription-management)",
+      "Auto-seeding a starter plan when the plan table is empty (superseded by 'no plan at creation' decision)",
+      "Selecting a pre-existing user from another tenant as owner (users are tenant-scoped; only new owner is created)",
+      "Tenant self-service signup or in-tenant (Owner/Manager) staff management screens inside the store app",
+      "Advanced-mode roles (Warehouse/Cashier/Viewer) and custom role builder",
+      "Hard delete of tenants or users (soft delete/deactivate only)",
+      "Editing tenant slug after creation"
+    ],
+    "expansion_policy": "requires-user-approval"
+  },
+  "dependencies": {
+    "blockedBy": [
+      "admin-authentication",
+      "admin-rbac-user-management",
+      "admin-tenant-management"
+    ],
+    "blocks": [
+      "user-registration-authentication"
+    ]
+  },
+  "related_specs": [
+    {
+      "feature": "admin-system-activity-audit",
+      "relationship": "coordination-only; parallel implementation; shared AuditAction/seed contracts"
+    },
+    {
+      "feature": "user-registration-authentication",
+      "relationship": "blocks public registration until reusable tenant owner/role creation contract is available"
+    }
+  ],
+  "task_files": [
+    "tasks/task-R0-01-schema-permission-foundation.md",
+    "tasks/task-R1-01-tenant-owner-creation-api.md",
+    "tasks/task-R2-01-tenant-users-management-api.md",
+    "tasks/task-R3-01-create-tenant-ui.md",
+    "tasks/task-R3-02-tenant-users-panel-ui.md",
+    "tasks/task-R4-01-backend-acceptance-tests.md",
+    "tasks/task-R4-02-integration-reachability-verification.md"
+  ],
+  "task_registry": {
+    "tasks/task-R0-01-schema-permission-foundation.md": {
+      "id": "R0-01",
+      "title": "Schema permission foundation",
+      "status": "done",
+      "dependencies": [],
+      "blocker": null,
+      "started_at": "2026-07-19T16:30:00+07:00",
+      "completed_at": "2026-07-19T16:55:00+07:00",
+      "last_updated_at": "2026-07-19T16:55:00+07:00"
+    },
+    "tasks/task-R1-01-tenant-owner-creation-api.md": {
+      "id": "R1-01",
+      "title": "Tenant owner creation api",
+      "status": "done",
+      "dependencies": [
+        "tasks/task-R0-01-schema-permission-foundation.md"
+      ],
+      "blocker": null,
+      "started_at": "2026-07-19T16:56:00+07:00",
+      "completed_at": "2026-07-19T23:31:17+07:00",
+      "last_updated_at": "2026-07-19T23:31:17+07:00"
+    },
+    "tasks/task-R2-01-tenant-users-management-api.md": {
+      "id": "R2-01",
+      "title": "Tenant users management api",
+      "status": "in_progress",
+      "dependencies": [
+        "tasks/task-R0-01-schema-permission-foundation.md",
+        "tasks/task-R1-01-tenant-owner-creation-api.md"
+      ],
+      "blocker": null,
+      "started_at": "2026-07-19T23:33:00+07:00",
+      "completed_at": null,
+      "last_updated_at": "2026-07-19T23:33:00+07:00"
+    },
+    "tasks/task-R3-01-create-tenant-ui.md": {
+      "id": "R3-01",
+      "title": "Create tenant ui",
+      "status": "pending",
+      "dependencies": [
+        "tasks/task-R1-01-tenant-owner-creation-api.md"
+      ],
+      "blocker": null,
+      "started_at": null,
+      "completed_at": null,
+      "last_updated_at": null
+    },
+    "tasks/task-R3-02-tenant-users-panel-ui.md": {
+      "id": "R3-02",
+      "title": "Tenant users panel ui",
+      "status": "pending",
+      "dependencies": [
+        "tasks/task-R2-01-tenant-users-management-api.md"
+      ],
+      "blocker": null,
+      "started_at": null,
+      "completed_at": null,
+      "last_updated_at": null
+    },
+    "tasks/task-R4-01-backend-acceptance-tests.md": {
+      "id": "R4-01",
+      "title": "Backend acceptance tests",
+      "status": "pending",
+      "dependencies": [
+        "tasks/task-R1-01-tenant-owner-creation-api.md",
+        "tasks/task-R2-01-tenant-users-management-api.md"
+      ],
+      "blocker": null,
+      "started_at": null,
+      "completed_at": null,
+      "last_updated_at": null
+    },
+    "tasks/task-R4-02-integration-reachability-verification.md": {
+      "id": "R4-02",
+      "title": "Integration reachability verification",
+      "status": "pending",
+      "dependencies": [
+        "tasks/task-R1-01-tenant-owner-creation-api.md",
+        "tasks/task-R2-01-tenant-users-management-api.md",
+        "tasks/task-R3-01-create-tenant-ui.md",
+        "tasks/task-R3-02-tenant-users-panel-ui.md"
+      ],
+      "blocker": null,
+      "started_at": null,
+      "completed_at": null,
+      "last_updated_at": null
+    }
+  },
+  "blocker": null,
+  "progress": {
+    "init": "done",
+    "requirements": "done",
+    "research": "done",
+    "design": "done",
+    "tasks": "done",
+    "code": "in_progress",
+    "test": "pending",
+    "review": "done"
+  },
+  "timestamps": {
+    "init": "2026-07-19T15:26:29+07:00",
+    "requirements_done": null,
+    "research_done": null,
+    "design_done": null,
+    "tasks_done": null,
+    "code_done": null,
+    "test_done": null,
+    "review_done": "2026-07-19T16:12:00+07:00",
+    "validation_done": "2026-07-19T16:12:00+07:00"
+  },
+  "design_context": {
+    "discovery_mode": "full",
+    "discovery_reason": "Multi-table transactional creation (tenant+user+role link), additive schema enum change, new permission catalog entries, seat/quota enforcement, and cross-layer backend/frontend contracts.",
+    "execution_tier": "deep",
+    "validation_recommended": true,
+    "validation_recommended_reason": "Schema change, permission-sensitive admin APIs, transactional user provisioning, seat enforcement, and 5+ task files."
+  },
+  "validation": {
+    "status": "completed",
+    "session_count": 1,
+    "questions_asked": 4,
+    "last_validated_at": "2026-07-19T16:12:00+07:00"
+  },
+  "translation": {
+    "enabled": false,
+    "language": null,
+    "language_code": null,
+    "dir": null,
+    "sync": "always",
+    "last_synced_at": null
+  },
+  "ready_for_implementation": true
+}

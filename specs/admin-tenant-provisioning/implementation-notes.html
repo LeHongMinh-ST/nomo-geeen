@@ -1,0 +1,363 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Implementation Notes - admin-tenant-provisioning</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f7faf9;
+      --panel: #ffffff;
+      --ink: #17211d;
+      --muted: #63736d;
+      --line: #dfe8e4;
+      --soft: #eef7f3;
+      --brand: #087a5a;
+      --brand-2: #0ea5a0;
+      --decision: #0f766e;
+      --spec-gap: #b45309;
+      --tradeoff: #7c3aed;
+      --scope: #be123c;
+      --risk: #dc2626;
+      --verify: #2563eb;
+      --codebase: #475569;
+      --flash: #c2410c;
+      --shadow: 0 12px 32px rgba(15, 23, 42, 0.08);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background:
+        radial-gradient(circle at top left, rgba(14, 165, 160, 0.16), transparent 34rem),
+        linear-gradient(180deg, #f8fffd 0%, var(--bg) 34%, #eef7f3 100%);
+      color: var(--ink);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.55;
+    }
+
+    main {
+      width: min(1120px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 32px 0 56px;
+    }
+
+    .hero {
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.9);
+      box-shadow: var(--shadow);
+      padding: 28px;
+      display: grid;
+      gap: 18px;
+    }
+
+    .eyebrow {
+      color: var(--brand);
+      font-size: 12px;
+      font-weight: 760;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    h1, h2, h3 { margin: 0; line-height: 1.15; }
+    h1 { font-size: clamp(30px, 5vw, 52px); letter-spacing: 0; }
+    h2 { font-size: 22px; }
+    h3 { font-size: 16px; }
+
+    .summary {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .metric {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--soft);
+      padding: 12px 14px;
+      min-height: 76px;
+    }
+
+    .metric span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      margin-bottom: 6px;
+    }
+
+    .metric strong {
+      display: block;
+      font-size: 15px;
+      overflow-wrap: anywhere;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 280px minmax(0, 1fr);
+      gap: 20px;
+      margin-top: 20px;
+      align-items: start;
+    }
+
+    aside, .content-panel {
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.92);
+      box-shadow: var(--shadow);
+    }
+
+    aside {
+      padding: 18px;
+      position: sticky;
+      top: 18px;
+    }
+
+    .toc {
+      list-style: none;
+      padding: 0;
+      margin: 14px 0 0;
+      display: grid;
+      gap: 8px;
+    }
+
+    .toc a {
+      display: block;
+      color: var(--ink);
+      text-decoration: none;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 9px 10px;
+      background: #fbfefd;
+      font-size: 14px;
+    }
+
+    .toc a:hover { border-color: var(--brand-2); color: var(--brand); }
+
+    .content-panel {
+      padding: 20px;
+      display: grid;
+      gap: 16px;
+    }
+
+    .task-block {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      overflow: hidden;
+      background: #fff;
+    }
+
+    .task-header {
+      display: flex;
+      justify-content: space-between;
+      gap: 14px;
+      align-items: flex-start;
+      padding: 16px 18px;
+      background: linear-gradient(90deg, rgba(8, 122, 90, 0.1), rgba(14, 165, 160, 0.04));
+      border-bottom: 1px solid var(--line);
+    }
+
+    .task-meta {
+      color: var(--muted);
+      font-size: 13px;
+      margin-top: 6px;
+    }
+
+    .status {
+      border-radius: 999px;
+      padding: 5px 10px;
+      background: #ecfdf5;
+      color: var(--brand);
+      border: 1px solid rgba(8, 122, 90, 0.22);
+      font-size: 12px;
+      font-weight: 720;
+      white-space: nowrap;
+    }
+
+    .notes {
+      padding: 16px;
+      display: grid;
+      gap: 12px;
+    }
+
+    .note {
+      border: 1px solid var(--line);
+      border-left: 5px solid var(--brand);
+      border-radius: 12px;
+      padding: 14px 14px 14px 16px;
+      background: #fbfefd;
+      display: grid;
+      gap: 10px;
+    }
+
+    .note.decision { border-left-color: var(--decision); }
+    .note.spec-gap { border-left-color: var(--spec-gap); }
+    .note.tradeoff { border-left-color: var(--tradeoff); }
+    .note.scope-escape { border-left-color: var(--scope); }
+    .note.risk { border-left-color: var(--risk); }
+    .note.verification { border-left-color: var(--verify); }
+    .note.codebase-reality { border-left-color: var(--codebase); }
+    .note.flash { border-left-color: var(--flash); }
+
+    .note-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      border-radius: 999px;
+      padding: 4px 9px;
+      font-size: 12px;
+      font-weight: 780;
+      background: #eef7f3;
+      color: var(--brand);
+      border: 1px solid var(--line);
+    }
+
+    .note time {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .note p { margin: 0; }
+
+    .details {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .detail {
+      border-radius: 10px;
+      background: #f8fbfa;
+      border: 1px solid var(--line);
+      padding: 10px;
+      font-size: 13px;
+    }
+
+    .detail strong {
+      display: block;
+      color: var(--muted);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 4px;
+    }
+
+    code {
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+      font-size: 0.92em;
+      background: #eef7f3;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 1px 5px;
+    }
+
+    .empty {
+      color: var(--muted);
+      border: 1px dashed var(--line);
+      border-radius: 12px;
+      padding: 18px;
+      background: #fbfefd;
+    }
+
+    @media (max-width: 860px) {
+      main { width: min(100% - 20px, 1120px); padding-top: 18px; }
+      .summary, .layout, .details { grid-template-columns: 1fr; }
+      aside { position: static; }
+      .task-header, .note-head { flex-direction: column; align-items: flex-start; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <section class="hero">
+      <div class="eyebrow">CafeKit Implementation Notes</div>
+      <h1>admin-tenant-provisioning</h1>
+      <div class="summary">
+        <div class="metric"><span>Spec path</span><strong><code>specs/admin-tenant-provisioning/</code></strong></div>
+        <div class="metric"><span>Mode</span><strong>Full-Spec</strong></div>
+        <div class="metric"><span>Last updated</span><strong>2026-07-19 23:31 (+07)</strong></div>
+        <div class="metric"><span>Verification</span><strong>R0-01, R1-01 done · 5/7 tasks pending</strong></div>
+      </div>
+    </section>
+
+    <div class="layout">
+      <aside>
+        <h2>Task Timeline</h2>
+        <ul class="toc">
+          <!-- TASK_TOC_START -->
+          <li><a href="#task-R0-01">R0-01 · Schema permission foundation</a></li>
+          <li><a href="#task-R1-01">R1-01 · Tenant owner creation API</a></li>
+          <!-- TASK_TOC_END -->
+        </ul>
+      </aside>
+
+      <section class="content-panel">
+        <!-- NOTES_START -->
+        <article class="task-block" id="task-R0-01">
+          <div class="task-header">
+            <div>
+              <h2>R0-01 · Schema permission foundation</h2>
+              <div class="task-meta">File: <code>tasks/task-R0-01-schema-permission-foundation.md</code> · Requirement R4</div>
+            </div>
+            <span class="status">done</span>
+          </div>
+          <div class="notes">
+            <div class="note decision">
+              <div class="note-head"><span class="badge">decision</span><time>2026-07-19</time></div>
+              <p>Additive <code>AuditAction</code> enum values <code>TENANT_CREATE</code> + <code>USER_CREATE</code> shipped as a standalone migration <code>20260719000500_tenant_provisioning_audit_actions</code>, isolated from any transactional DDL. Postgres <code>ALTER TYPE ... ADD VALUE</code> is non-transactional-sensitive, so keeping it alone avoids bundling risk.</p>
+            </div>
+            <div class="note decision">
+              <div class="note-head"><span class="badge">decision</span><time>2026-07-19</time></div>
+              <p>SUPER_ADMIN is intentionally <strong>not</strong> materialized in <code>RolePermission</code> rows for the new codes — it is covered by the guard-layer shortcut (planned R4.2). Only SALER receives explicit grants for the three new codes. This keeps the role/permission join light and matches the existing seed convention.</p>
+            </div>
+            <div class="note codebase-reality">
+              <div class="note-head"><span class="badge">codebase-reality</span><time>2026-07-19</time></div>
+              <p>RBAC catalog lives in <code>prisma/seed-admin-rbac.ts</code> (run via <code>pnpm db:seed:rbac</code>), separate from the tenant-app <code>prisma/seed.ts</code>. New admin codes use the <code>admin.</code> prefix to avoid collision with the 10 legacy tenant permission codes.</p>
+            </div>
+            <div class="note verification">
+              <div class="note-head"><span class="badge">verification</span><time>2026-07-19</time></div>
+              <p><code>pnpm prisma:generate</code> (exit 0), <code>pnpm build</code> (exit 0), <code>prisma migrate deploy</code> (applied 000500, exit 0), <code>pnpm db:seed:rbac</code> (33 perms / 4 roles) + idempotent re-seed (unchanged). DB assertions: enum both true; 3 new perms with VN labels; SALER has all 3 grants; existing 4 tenant perms intact; SUPER_ADMIN materialized rows = 0. Biome clean. code-auditor verdict PASS, zero critical.</p>
+            </div>
+          </div>
+        </article>
+        <article class="task-block" id="task-R1-01">
+          <div class="task-header">
+            <div>
+              <h2>R1-01 · Tenant owner creation API</h2>
+              <div class="task-meta">File: <code>tasks/task-R1-01-tenant-owner-creation-api.md</code> · Requirements R1, R2</div>
+            </div>
+            <span class="status">done</span>
+          </div>
+          <div class="notes">
+            <div class="note risk">
+              <div class="note-head"><span class="badge">risk</span><time>2026-07-19</time></div>
+              <p><strong>Latent adapter-pg P2002 bug found &amp; fixed.</strong> Under <code>@prisma/adapter-pg</code>, a <code>P2002</code> error carries <strong>no</strong> <code>meta.target</code>. The original <code>mapCreateError</code> read only <code>meta.target</code>, so every unique violation defaulted to <code>SLUG_TAKEN</code> — <code>USERNAME_TAKEN</code> was unreachable and unrelated violations were mislabeled. The real fields live at <code>meta.driverAdapterError.cause.constraint.fields</code> (+ <code>originalMessage</code>). New <code>uniqueViolationFields()</code> reads both the standard and adapter locations to stay adapter-agnostic.</p>
+            </div>
+            <div class="note decision">
+              <div class="note-head"><span class="badge">decision</span><time>2026-07-19</time></div>
+              <p>Provisioning is a single <code>prisma.$transaction</code>: seed 3 per-tenant roles (OWNER/MANAGER/STAFF, grants cloned from system templates) → create tenant (<code>mode:SIMPLE</code>, <code>status:ACTIVE</code>, <code>seatBonus</code> default 10) → create OWNER user bound to the seeded OWNER role → two in-tx audit rows (<code>TENANT_CREATE</code>, <code>USER_CREATE</code>) via <code>AuditLogger.writeInTx</code>. Password hashed <strong>outside</strong> the tx; owner XOR password enforced in the service (<code>PASSWORD_MODE_INVALID</code>).</p>
+            </div>
+            <div class="note codebase-reality">
+              <div class="note-head"><span class="badge">codebase-reality</span><time>2026-07-19</time></div>
+              <p>Rollback cannot be triggered by spying <code>prisma.user.create</code> — the tx client is a distinct proxy. The reliable trigger is <code>jest.spyOn(audit, 'writeInTx')</code> (the shared singleton called inside the tx): first call resolves (real TENANT_CREATE row), second rejects → whole tx rolls back. Global <code>ValidationPipe</code> (<code>whitelist + forbidNonWhitelisted + transform</code>) means nested DTOs need <code>@IsDefined()+@IsObject()+@ValidateNested()+@Type()</code>; bare <code>@ValidateNested()</code> does not reject <code>undefined</code> (M1 fix).</p>
+            </div>
+            <div class="note verification">
+              <div class="note-head"><span class="badge">verification</span><time>2026-07-19</time></div>
+              <p><code>pnpm build</code> (exit 0); <code>pnpm test:e2e -- tenants-create</code> = <strong>7/7 passed</strong> (403 authz, 201 generated pwd, 201 explicit pwd, 409 SLUG_TAKEN, 400 missing-owner regression, 400 PASSWORD_MODE_INVALID, in-tx rollback → 0 orphan rows); <code>pnpm test -- tenants.service</code> = <strong>16/16 passed</strong> (incl. deterministic USERNAME_TAKEN/SLUG_TAKEN mapping via real adapter-pg P2002 payload). Biome clean on scope. code-auditor: 2 MAJOR (M1 missing-owner→500, M2 USERNAME_TAKEN unproven) resolved; m3/m4/m5 minors deferred as tech debt.</p>
+            </div>
+          </div>
+        </article>
+        <!-- NOTES_END -->
+      </section>
+    </div>
+  </main>
+</body>
+</html>

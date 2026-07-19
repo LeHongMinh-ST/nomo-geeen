@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Implementation Notes - admin-system-activity-audit</title>
+  <style>
+    body{margin:0;background:#f7faf9;color:#17211d;font:16px/1.55 system-ui,sans-serif}main{max-width:980px;margin:0 auto;padding:32px 16px}.hero,.task,.note{background:#fff;border:1px solid #dfe8e4;border-radius:16px;padding:20px;box-shadow:0 8px 24px #0f172a12}.task{margin-top:20px}.note{margin-top:12px;border-left:5px solid #087a5a;box-shadow:none}.meta{color:#63736d;font-size:14px}code{background:#eef7f3;padding:2px 5px;border-radius:5px}
+  </style>
+</head>
+<body><main>
+  <section class="hero"><p class="meta">IMPLEMENTATION NOTES · <code>specs/admin-system-activity-audit/spec.json</code></p><h1>Admin system activity audit</h1><p>Sequential task execution notes. Current mode: full-spec.</p></section>
+  <section class="task"><h2>R0-01 · Schema permission foundation <span class="meta">done</span></h2>
+    <div class="note"><strong>decision</strong><p>Audit access is cataloged as <code>admin.audit:view</code>, explicitly granted to SALER; SUPER_ADMIN remains covered by the existing guard shortcut. No index migration is added before R1 query-plan evidence exists.</p><p class="meta">2026-07-19T22:52:07+07:00</p></div>
+    <div class="note"><strong>verification</strong><p>Full backend tests: 17 suites / 136 tests passed; foundation contract: 7 tests passed; backend build and Biome checks passed. The repository test wrapper's extra separator was recorded; equivalent Jest invocation was used.</p><p class="meta">2026-07-19T23:02:00+07:00</p></div>
+  </section>
+  <section class="task"><h2>R1-01 · Audit query API <span class="meta">done</span></h2><p class="meta">Guarded list route with bounded filters, stable pagination, and standard errors.</p><div class="note"><strong>verification</strong><p>2 suites / 9 tests passed, build and Biome passed. Guards, route reachability, clamp behavior, filter/order/count, privacy select boundary, and DB error mapping verified.</p><p class="meta">2026-07-19T23:18:00+07:00</p></div></section>
+  <section class="task"><h2>R1-02 · Audit detail sanitization <span class="meta">done</span></h2><p class="meta">Recursive credential masking shared by list/detail mappings; detail route returns one event.</p><div class="note"><strong>verification</strong><p>4 suites / 19 tests passed, build and Biome passed. Nested aliases, 404/500, UUID parsing, guards, reachability, and ISO timestamps verified.</p><p class="meta">2026-07-19T23:34:00+07:00</p></div></section>
+  <section class="task"><h2>R2-01 · Coverage contract tests <span class="meta">in progress</span></h2><div class="note"><strong>verification</strong><p>Audit unit contract: 4 suites / 20 tests passed; build and Biome passed. An opt-in HTTP fixture includes 100,000 rows, but its authenticated run is blocked by fail-closed Redis connectivity (503 Auth store unavailable).</p><p class="meta">2026-07-19T23:58:00+07:00</p></div></section>
+  <section class="task"><h2>R3 · Admin audit experience <span class="meta">done</span></h2><div class="note"><strong>implementation</strong><p>Added typed audit client, permission-gated responsive audit page, detail masking display, and dashboard preview limited to five real rows. Frontend lint/build passed; route map includes <code>/admin/audit-log</code>. Seeded browser verification remains in R4.</p><p class="meta">2026-07-19T23:55:00+07:00</p></div></section>
+</main></body></html>
