@@ -150,7 +150,7 @@ When generating specs or structured project output, use the user's preferred lan
 - Response: Respond in Tiếng Việt.
 
 ### Rules
-- Markdown files: Plans → "/Users/minhlh.st/code/nomo-green/plans/" | Docs → "/Users/minhlh.st/code/nomo-green/docs/"
+- Markdown files: Plans → "/home/minhlh-hapo/code/nomo-geeen/plans/" | Docs → "/home/minhlh-hapo/code/nomo-geeen/docs/"
 - **DO NOT** create markdown files outside of those directories unless explicitly asked.
 - docs.maxLoc: 800 lines max per doc file
 - Follow **YAGNI · KISS · DRY** principles
