@@ -68,6 +68,25 @@
   - Check: all enum values and provisioning coordination.
   - Expect: no duplicate mutation logic and no removed enum/grant.
 
+### Verification run (2026-07-20)
+
+```bash
+pnpm --dir backend test -- --runInBand audit
+# PASS — 4 suites / 20 tests (AuditAction catalog, list/detail shape, masking, 400/404/500 mapping, guard 401/403)
+
+RUN_ADMIN_AUDIT_E2E=1 pnpm --dir backend test:e2e -- --runInBand admin-audit
+# PASS — 3/3 (authenticated list/detail, negative paths, masking; 100,000-row fixture, page size 20)
+
+pnpm --dir backend test -- --runInBand
+# PASS — regression 12 suites / 108 tests
+```
+
+- PASS: audit unit contract — 4 suites / 20 tests.
+- PASS: real HTTP E2E `admin-audit.e2e-spec.ts` — 3/3 (PostgreSQL 16 + Redis 7, Node v22.20.0).
+- PASS: performance fixture — 100,000 rows, first page 20 rows, p95 `36.36ms` (service-boundary p95 `51.46ms`) ≤ 500ms target.
+- PASS: regression unit set — 12 suites / 108 tests; backend build + Biome clean.
+- NOTE: full-repo E2E deferred by user request; pre-existing `auth-login.e2e-spec.ts` SameSite mismatch is out of scope, deferred to R4/release verification.
+
 ## Risk Assessment
 
 | Risk | Severity | Mitigation |
