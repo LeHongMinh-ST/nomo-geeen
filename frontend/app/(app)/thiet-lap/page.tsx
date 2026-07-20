@@ -80,6 +80,13 @@ const settingGroups: {
 		heading: "Tài khoản",
 		items: [
 			{
+				icon: UserRound,
+				label: "Nhân viên",
+				desc: "Tạo tài khoản và phân quyền nhân viên",
+				tile: "#1a6fa8",
+				href: "/thiet-lap/nhan-vien",
+			},
+			{
 				icon: KeyRound,
 				label: "Đổi mật khẩu",
 				desc: "Cập nhật mật khẩu đăng nhập",

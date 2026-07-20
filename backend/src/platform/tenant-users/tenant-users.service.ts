@@ -1,8 +1,10 @@
 import {
 	BadRequestException,
 	ConflictException,
+	ForbiddenException,
 	Injectable,
 	NotFoundException,
+	UnauthorizedException,
 } from '@nestjs/common';
 import {
 	AuditAction,
@@ -24,6 +26,8 @@ import type { UpdateTenantUserDto } from './dto/update-tenant-user.dto';
 export interface TenantUserAuditCtx {
 	actorId: string;
 	actorRoleCode: string | null;
+	actorType?: AuditActorType;
+	createdByType?: 'PLATFORM_ADMIN' | 'USER';
 	ipAddress?: string;
 	userAgent?: string;
 }
@@ -143,6 +147,13 @@ export class TenantUsersService {
 				async (tx) => {
 					// Seat re-checked inside the serializable tx to prevent overrun.
 					await this.assertSeatAvailable(tenantId, tx);
+					await this.assertTenantActorCanManage(
+						tenantId,
+						ctx,
+						'NONE',
+						tx,
+						dto.roleCode,
+					);
 					const roleId = await this.resolveRoleId(tenantId, dto.roleCode, tx);
 					const created = await tx.user.create({
 						data: {
@@ -155,7 +166,7 @@ export class TenantUsersService {
 							fullName: dto.fullName,
 							roleId,
 							status: 'ACTIVE',
-							createdByType: 'PLATFORM_ADMIN',
+							createdByType: ctx.createdByType ?? 'PLATFORM_ADMIN',
 							createdById: ctx.actorId,
 						},
 						select: USER_SELECT,
@@ -163,7 +174,7 @@ export class TenantUsersService {
 					// USER_CREATE audit shares the create tx (writeInTx, not run()).
 					await this.audit.writeInTx(tx, {
 						actorId: ctx.actorId,
-						actorType: AuditActorType.PLATFORM_ADMIN,
+						actorType: ctx.actorType ?? AuditActorType.PLATFORM_ADMIN,
 						actorRoleCode: ctx.actorRoleCode,
 						ipAddress: ctx.ipAddress,
 						userAgent: ctx.userAgent?.slice(0, 512),
@@ -193,9 +204,8 @@ export class TenantUsersService {
 		tenantId: string,
 		userId: string,
 		dto: UpdateTenantUserDto,
-		_ctx: TenantUserAuditCtx,
+		ctx: TenantUserAuditCtx,
 	): Promise<TenantUserPublic> {
-		await this.requireUserInTenant(tenantId, userId);
 		// Non-whitelisted fields (tenantId/status/roleId/roleCode/passwordHash)
 		// are rejected upstream by the global forbidNonWhitelisted ValidationPipe
 		// (400) before reaching here. This allowlist is defense-in-depth against
@@ -208,10 +218,31 @@ export class TenantUsersService {
 			});
 		}
 		try {
-			const user = await this.prisma.user.update({
-				where: { id: userId },
-				data,
-				select: USER_SELECT,
+			const user = await this.prisma.$transaction(async (tx) => {
+				const current = await this.requireUserInTenant(tenantId, userId, tx);
+				await this.assertTenantActorCanManage(
+					tenantId,
+					ctx,
+					current.role.code,
+					tx,
+				);
+				const updated = await tx.user.update({
+					where: { id: userId },
+					data,
+					select: USER_SELECT,
+				});
+				await this.writeAudit(
+					tx,
+					tenantId,
+					ctx,
+					AuditAction.USER_UPDATE,
+					updated.id,
+					{
+						before: this.auditUser(current),
+						after: this.auditUser(updated),
+					},
+				);
+				return updated;
 			});
 			return this.toPublic(user);
 		} catch (error) {
@@ -223,11 +254,18 @@ export class TenantUsersService {
 		tenantId: string,
 		userId: string,
 		dto: ChangeTenantUserRoleDto,
-		_ctx: TenantUserAuditCtx,
+		ctx: TenantUserAuditCtx,
 	): Promise<TenantUserPublic> {
 		return this.prisma.$transaction(
 			async (tx) => {
 				const current = await this.requireUserInTenant(tenantId, userId, tx);
+				await this.assertTenantActorCanManage(
+					tenantId,
+					ctx,
+					current.role.code,
+					tx,
+					dto.roleCode,
+				);
 				// Demoting the final active OWNER would orphan the store.
 				if (current.role.code === 'OWNER' && dto.roleCode !== 'OWNER') {
 					await this.assertNotLastOwner(tenantId, userId, tx);
@@ -238,6 +276,17 @@ export class TenantUsersService {
 					data: { roleId },
 					select: USER_SELECT,
 				});
+				await this.writeAudit(
+					tx,
+					tenantId,
+					ctx,
+					AuditAction.USER_ROLE_CHANGE,
+					user.id,
+					{
+						before: { roleCode: current.role.code },
+						after: { roleCode: dto.roleCode },
+					},
+				);
 				return this.toPublic(user);
 			},
 			{ isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
@@ -247,11 +296,17 @@ export class TenantUsersService {
 	async deactivate(
 		tenantId: string,
 		userId: string,
-		_ctx: TenantUserAuditCtx,
+		ctx: TenantUserAuditCtx,
 	): Promise<TenantUserPublic> {
 		return this.prisma.$transaction(
 			async (tx) => {
 				const current = await this.requireUserInTenant(tenantId, userId, tx);
+				await this.assertTenantActorCanManage(
+					tenantId,
+					ctx,
+					current.role.code,
+					tx,
+				);
 				if (current.status === 'DISABLED') {
 					return this.toPublic(current);
 				}
@@ -263,6 +318,17 @@ export class TenantUsersService {
 					data: { status: 'DISABLED' },
 					select: USER_SELECT,
 				});
+				await this.writeAudit(
+					tx,
+					tenantId,
+					ctx,
+					AuditAction.USER_DEACTIVATE,
+					user.id,
+					{
+						before: { status: current.status },
+						after: { status: user.status },
+					},
+				);
 				return this.toPublic(user);
 			},
 			{ isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
@@ -272,11 +338,17 @@ export class TenantUsersService {
 	async reactivate(
 		tenantId: string,
 		userId: string,
-		_ctx: TenantUserAuditCtx,
+		ctx: TenantUserAuditCtx,
 	): Promise<TenantUserPublic> {
 		return this.prisma.$transaction(
 			async (tx) => {
 				const current = await this.requireUserInTenant(tenantId, userId, tx);
+				await this.assertTenantActorCanManage(
+					tenantId,
+					ctx,
+					current.role.code,
+					tx,
+				);
 				if (current.status === 'ACTIVE') {
 					return this.toPublic(current);
 				}
@@ -287,6 +359,17 @@ export class TenantUsersService {
 					data: { status: 'ACTIVE' },
 					select: USER_SELECT,
 				});
+				await this.writeAudit(
+					tx,
+					tenantId,
+					ctx,
+					AuditAction.USER_REACTIVATE,
+					user.id,
+					{
+						before: { status: current.status },
+						after: { status: user.status },
+					},
+				);
 				return this.toPublic(user);
 			},
 			{ isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
@@ -297,20 +380,107 @@ export class TenantUsersService {
 		tenantId: string,
 		userId: string,
 		dto: ResetTenantUserPasswordDto,
-		_ctx: TenantUserAuditCtx,
+		ctx: TenantUserAuditCtx,
 	): Promise<ResetTenantUserPasswordResult> {
-		await this.requireUserInTenant(tenantId, userId);
 		const { plaintext, generated } = this.resolvePassword(
 			dto.newPassword,
 			dto.generatePassword,
 		);
 		const passwordHash = await this.passwords.hash(plaintext);
-		await this.prisma.user.update({
-			where: { id: userId },
-			data: { passwordHash, mustChangePassword: true },
-			select: { id: true },
+		await this.prisma.$transaction(async (tx) => {
+			const current = await this.requireUserInTenant(tenantId, userId, tx);
+			await this.assertTenantActorCanManage(
+				tenantId,
+				ctx,
+				current.role.code,
+				tx,
+			);
+			await tx.user.update({
+				where: { id: userId },
+				data: { passwordHash, mustChangePassword: true },
+				select: { id: true },
+			});
+			await this.writeAudit(
+				tx,
+				tenantId,
+				ctx,
+				AuditAction.USER_RESET_PASSWORD,
+				userId,
+				{
+					before: { mustChangePassword: current.mustChangePassword },
+					after: { mustChangePassword: true },
+				},
+			);
 		});
 		return { generatedPassword: generated ? plaintext : null };
+	}
+
+	private async assertTenantActorCanManage(
+		tenantId: string,
+		ctx: TenantUserAuditCtx,
+		targetRoleCode: string,
+		tx: Prisma.TransactionClient,
+		requestedRoleCode?: string,
+	): Promise<void> {
+		if (
+			(ctx.actorType ?? AuditActorType.PLATFORM_ADMIN) !== AuditActorType.USER
+		)
+			return;
+		const actor = await tx.user.findFirst({
+			where: {
+				id: ctx.actorId,
+				tenantId,
+				status: 'ACTIVE',
+				deletedAt: null,
+			},
+			select: { role: { select: { code: true } } },
+		});
+		if (!actor) throw new UnauthorizedException('User not found');
+		if (actor.role.code === 'OWNER') return;
+		if (
+			actor.role.code !== 'MANAGER' ||
+			targetRoleCode === 'OWNER' ||
+			requestedRoleCode === 'OWNER'
+		) {
+			throw new ForbiddenException('Tenant user management denied');
+		}
+	}
+
+	private async writeAudit(
+		tx: Prisma.TransactionClient,
+		tenantId: string,
+		ctx: TenantUserAuditCtx,
+		action: AuditAction,
+		resourceId: string,
+		data: { before?: unknown; after?: unknown },
+	): Promise<void> {
+		await this.audit.writeInTx(tx, {
+			actorId: ctx.actorId,
+			actorType: ctx.actorType ?? AuditActorType.PLATFORM_ADMIN,
+			actorRoleCode: ctx.actorRoleCode,
+			tenantId,
+			ipAddress: ctx.ipAddress,
+			userAgent: ctx.userAgent?.slice(0, 512),
+			action,
+			resource: 'user',
+			resourceId,
+			before: data.before,
+			after: data.after,
+		});
+	}
+
+	private auditUser(user: UserRow): Record<string, unknown> {
+		return {
+			id: user.id,
+			tenantId: user.tenantId,
+			fullName: user.fullName,
+			username: user.username,
+			phone: user.phone,
+			email: user.email,
+			status: user.status,
+			roleCode: user.role.code,
+			mustChangePassword: user.mustChangePassword,
+		};
 	}
 
 	// ---- helpers -------------------------------------------------------------

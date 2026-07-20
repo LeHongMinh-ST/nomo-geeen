@@ -150,6 +150,11 @@ enum AuditAction {
   // admin-tenant-provisioning (deploy migration before app code that emits these)
   TENANT_CREATE
   USER_CREATE
+  USER_UPDATE
+  USER_ROLE_CHANGE
+  USER_DEACTIVATE
+  USER_REACTIVATE
+  USER_RESET_PASSWORD
   PLAN_CREATE
   PLAN_UPDATE
   PLAN_ACTIVATE

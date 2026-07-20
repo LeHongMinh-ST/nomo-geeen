@@ -3,11 +3,12 @@ import { AuditModule } from '../audit/audit.module';
 import { AuthModule } from '../auth/auth.module';
 import { PrismaModule } from '../prisma/prisma.module';
 import { TenantUsersController } from './tenant-users.controller';
+import { TenantUsersTenantController } from './tenant-users-tenant.controller';
 import { TenantUsersService } from './tenant-users.service';
 
 @Module({
 	imports: [AuthModule, PrismaModule, AuditModule],
-	controllers: [TenantUsersController],
+	controllers: [TenantUsersController, TenantUsersTenantController],
 	providers: [TenantUsersService],
 	exports: [TenantUsersService],
 })
