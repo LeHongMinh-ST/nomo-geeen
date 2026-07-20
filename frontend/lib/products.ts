@@ -44,6 +44,10 @@ export type Product = {
 	manufacturerId?: string;
 	/** Đơn vị tồn kho gốc (base_spec §5.1). */
 	baseUnit: string;
+	baseUnitId?: string;
+	categoryLabel?: string;
+	brandLabel?: string;
+	manufacturerLabel?: string;
 	/** Các đơn vị nhập/bán quy đổi ra Base Unit. */
 	conversions: UnitConversion[];
 	costPrice: number;
@@ -53,6 +57,9 @@ export type Product = {
 	priceTiers: PriceTier[];
 	/** Tồn kho theo Base Unit. */
 	stock: number;
+	/** Runtime status from the tenant product API; seed products omit it. */
+	status?: "active" | "inactive";
+	recalled?: boolean;
 	/** Ngưỡng cảnh báo sắp hết. */
 	lowStockThreshold: number;
 	agro?: AgroInfo;

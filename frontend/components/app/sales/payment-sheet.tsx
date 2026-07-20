@@ -31,11 +31,16 @@ export function PaymentSheet({
 	total,
 	onClose,
 	onConfirm,
+	submitting = false,
 }: {
 	open: boolean;
 	total: number;
 	onClose: () => void;
-	onConfirm: (method: Exclude<PaymentMethod, "debt">) => void;
+		onConfirm: (
+		method: Exclude<PaymentMethod, "debt">,
+		amountPaid: number,
+	) => void;
+	submitting?: boolean;
 }) {
 	const [method, setMethod] = useState<Exclude<PaymentMethod, "debt">>("cash");
 	const [received, setReceived] = useState("");
@@ -226,12 +231,12 @@ export function PaymentSheet({
 				<div className="pb-safe border-t border-border bg-card px-4 py-3">
 					<button
 						type="button"
-						disabled={!enough}
-						onClick={() => onConfirm(method)}
+						disabled={!enough || submitting}
+						onClick={() => onConfirm(method, isCash ? receivedNum : total)}
 						className="flex h-14 w-full items-center justify-center gap-2 rounded-[10px] bg-primary text-lg font-bold text-white transition-colors duration-200 ease-out hover:bg-[#5cad45] active:bg-[#3f8530] disabled:cursor-not-allowed disabled:bg-[#a5d6a7]"
 					>
 						<Check className="size-6" aria-hidden />
-						Hoàn tất thu tiền
+						{submitting ? "Đang lưu đơn..." : "Hoàn tất thu tiền"}
 					</button>
 				</div>
 			</div>

@@ -1,16 +1,20 @@
 "use client";
 
 import { Package, ScanLine, Search, X } from "lucide-react";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ScanSheet } from "@/components/app/sales/scan-sheet";
 import { formatVND } from "@/lib/format";
 import {
 	getStockStatus,
 	type Product,
-	products as seedProducts,
 	stockStatusBadgeClass,
 	stockStatusLabel,
 } from "@/lib/products";
+import {
+	getProductLookups,
+	listTenantProducts,
+	mapTenantProduct,
+} from "@/lib/tenant-products-api";
 
 /**
  * Combobox tìm sản phẩm nhanh (DESIGN.md §8, §15) + nút quét mã vạch (mobile).
@@ -20,30 +24,55 @@ import {
 export function ProductPicker({
 	onSelect,
 	placeholder = "Tìm sản phẩm, quét mã...",
+	refreshKey = 0,
 }: {
 	onSelect: (product: Product) => void;
 	placeholder?: string;
+	refreshKey?: number;
 }) {
 	const [query, setQuery] = useState("");
 	const [open, setOpen] = useState(false);
 	const [scanOpen, setScanOpen] = useState(false);
+	const [products, setProducts] = useState<Product[]>([]);
+	const [loading, setLoading] = useState(true);
+	const [error, setError] = useState<string | null>(null);
+	const [retryKey, setRetryKey] = useState(0);
 	const inputRef = useRef<HTMLInputElement>(null);
 
+	useEffect(() => {
+		void refreshKey;
+		void retryKey;
+		async function loadProducts() {
+			setLoading(true);
+			setError(null);
+			try {
+				const [rows, catalog] = await Promise.all([
+					listTenantProducts(),
+					getProductLookups(),
+				]);
+				setProducts(rows.map((row) => mapTenantProduct(row, catalog)));
+			} catch {
+				setError("Không thể tải sản phẩm. Vui lòng thử lại.");
+			} finally {
+				setLoading(false);
+			}
+		}
+
+		void loadProducts();
+	}, [refreshKey, retryKey]);
+
 	const results = useMemo(() => {
-		const q = query.trim().toLowerCase();
-		if (!q) return seedProducts.slice(0, 6);
-		return seedProducts
-			.filter(
-				(p) =>
-					p.name.toLowerCase().includes(q) ||
-					p.sku.toLowerCase().includes(q) ||
-					(p.barcode?.includes(q) ?? false),
-			)
-			.slice(0, 8);
-	}, [query]);
+		return filterSellableProducts(products, query);
+	}, [products, query]);
 
 	function pick(product: Product) {
-		if (getStockStatus(product) === "out-of-stock") return;
+		if (
+			product.locked ||
+			product.recalled ||
+			product.status === "inactive" ||
+			getStockStatus(product) === "out-of-stock"
+		)
+			return;
 		onSelect(product);
 		setQuery("");
 		setOpen(false);
@@ -93,7 +122,22 @@ export function ProductPicker({
 							className="fixed inset-0 z-30 cursor-default"
 						/>
 						<div className="absolute inset-x-0 top-[calc(100%+6px)] z-40 max-h-[320px] overflow-y-auto rounded-[14px] border border-border bg-card p-1.5 shadow-[0_8px_30px_rgba(0,0,0,0.12)]">
-							{results.length === 0 ? (
+							{loading ? (
+								<p className="px-3 py-6 text-center text-base text-[#9e9e9e]">
+									Đang tải sản phẩm...
+								</p>
+							) : error ? (
+								<div className="flex flex-col items-center gap-2 px-3 py-6 text-center">
+									<p className="text-base text-destructive">{error}</p>
+									<button
+										type="button"
+										onClick={() => setRetryKey((value) => value + 1)}
+										className="text-base font-semibold text-primary"
+									>
+										Thử lại
+									</button>
+								</div>
+							) : results.length === 0 ? (
 								<p className="px-3 py-6 text-center text-base text-[#9e9e9e]">
 									Không tìm thấy sản phẩm phù hợp
 								</p>
@@ -159,6 +203,7 @@ export function ProductPicker({
 			<ScanSheet
 				open={scanOpen}
 				onClose={() => setScanOpen(false)}
+				products={products}
 				onFound={(product) => {
 					pick(product);
 					setScanOpen(false);
@@ -166,4 +211,24 @@ export function ProductPicker({
 			/>
 		</div>
 	);
+}
+
+export function filterSellableProducts(products: Product[], query: string) {
+	const q = query.trim().toLowerCase();
+	const sellable = products.filter(
+		(product) =>
+			!product.locked &&
+			!product.recalled &&
+			product.status !== "inactive" &&
+			getStockStatus(product) !== "out-of-stock",
+	);
+	if (!q) return sellable.slice(0, 6);
+	return sellable
+		.filter(
+			(product) =>
+				product.name.toLowerCase().includes(q) ||
+				product.sku.toLowerCase().includes(q) ||
+				(product.barcode?.toLowerCase().includes(q) ?? false),
+		)
+		.slice(0, 8);
 }

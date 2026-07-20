@@ -23,11 +23,12 @@ import {
 	resolveTierPrice,
 } from "@/lib/orders";
 import type { Product } from "@/lib/products";
+import { createQuickSale } from "@/lib/tenant-sales-api";
 
 /**
  * Màn Bán nhanh (DESIGN.md §15) — tối ưu một tay trên điện thoại.
  * Tìm sản phẩm → chỉnh SL (+/- + giá bậc tự áp) → Thu tiền / Ghi nợ.
- * FE-only: state cục bộ, chưa nối API.
+ * Nối API tạo đơn bán thật và tự làm mới tồn kho sau khi ghi nhận thành công.
  */
 
 type Toast = { method: PaymentMethod; total: number } | null;
@@ -38,6 +39,10 @@ export function QuickSale() {
 	const [payOpen, setPayOpen] = useState(false);
 	const [needCustomer, setNeedCustomer] = useState(false);
 	const [toast, setToast] = useState<Toast>(null);
+	const [refreshKey, setRefreshKey] = useState(0);
+	const [submitting, setSubmitting] = useState(false);
+	const [error, setError] = useState<string | null>(null);
+	const [idempotencyKey, setIdempotencyKey] = useState<string | null>(null);
 
 	const subtotal = lines.reduce((sum, l) => sum + lineTotal(l), 0);
 	const itemCount = lines.reduce((sum, l) => sum + l.qty, 0);
@@ -60,6 +65,7 @@ export function QuickSale() {
 				...current,
 				{
 					productId: product.id,
+					unitId: product.baseUnitId,
 					name: product.name,
 					unit: product.baseUnit,
 					qty: 1,
@@ -90,12 +96,51 @@ export function QuickSale() {
 		setLines((current) => current.filter((l) => l.productId !== productId));
 	}
 
-	function finish(method: PaymentMethod) {
-		setToast({ method, total: subtotal });
-		setLines([]);
-		setCustomerId(undefined);
-		setPayOpen(false);
-		window.setTimeout(() => setToast(null), 3200);
+	async function finish(method: PaymentMethod, amountPaid: number) {
+		if (submitting || lines.length === 0) return;
+		setSubmitting(true);
+		setError(null);
+		const key = idempotencyKey ?? crypto.randomUUID();
+		setIdempotencyKey(key);
+		try {
+			const result = await createQuickSale({
+				idempotencyKey: key,
+				...(customerId ? { customerId } : {}),
+				paymentMethod: method.toUpperCase() as
+					| "CASH"
+					| "TRANSFER"
+					| "QR"
+					| "DEBT",
+				amountPaid,
+				discountAmount: 0,
+				lines: lines.map((line) => ({
+					productId: line.productId,
+					unitId: line.unitId ?? "",
+					qty: line.qty,
+					unitPrice: line.price,
+				})),
+			});
+			setToast({ method, total: result.total });
+			setLines([]);
+			setCustomerId(undefined);
+			setPayOpen(false);
+			setIdempotencyKey(null);
+			setRefreshKey((value) => value + 1);
+			window.setTimeout(() => setToast(null), 3200);
+		} catch (cause) {
+			const reason = cause as { reason?: string; status?: number };
+			setError(
+				reason.reason === "INSUFFICIENT_STOCK"
+					? "Một sản phẩm vừa hết tồn. Vui lòng kiểm tra lại giỏ hàng."
+					: reason.reason === "INVALID_CUSTOMER"
+						? "Khách hàng chưa có trong dữ liệu thật. Vui lòng chọn khách hợp lệ hoặc bán khách lẻ."
+						: reason.status === 401
+							? "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại."
+							: "Không thể hoàn tất đơn. Giỏ hàng vẫn được giữ để thử lại.",
+			);
+		} finally {
+			setSubmitting(false);
+		}
 	}
 
 	function onDebt() {
@@ -104,13 +149,18 @@ export function QuickSale() {
 			window.setTimeout(() => setNeedCustomer(false), 2600);
 			return;
 		}
-		finish("debt");
+		void finish("debt", 0);
 	}
 
 	const empty = lines.length === 0;
 
 	return (
 		<div className="flex w-full flex-col gap-4">
+			{error ? (
+				<div className="rounded-[10px] bg-[#fff5f5] px-3 py-2 text-base text-destructive" role="alert">
+					{error}
+				</div>
+			) : null}
 			{/* Header + chọn khách */}
 			<div className="flex flex-wrap items-center justify-between gap-3">
 				<div className="flex flex-col gap-1">
@@ -125,7 +175,7 @@ export function QuickSale() {
 			</div>
 
 			{/* Tìm sản phẩm */}
-			<ProductPicker onSelect={addProduct} />
+			<ProductPicker onSelect={addProduct} refreshKey={refreshKey} />
 
 			{/* Giỏ hàng */}
 			{empty ? (
@@ -178,7 +228,8 @@ export function QuickSale() {
 				open={payOpen}
 				total={subtotal}
 				onClose={() => setPayOpen(false)}
-				onConfirm={(method) => finish(method)}
+				onConfirm={(method, amountPaid) => void finish(method, amountPaid)}
+				submitting={submitting}
 			/>
 
 			{/* Nhắc chọn khách khi Ghi nợ */}

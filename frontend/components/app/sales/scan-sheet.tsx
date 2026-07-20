@@ -2,8 +2,7 @@
 
 import { CameraOff, ScanLine, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import type { Product } from "@/lib/products";
-import { getProductByBarcode, getStockStatus } from "@/lib/products";
+import { getStockStatus, type Product } from "@/lib/products";
 import { useScrollLock } from "@/lib/use-scroll-lock";
 
 /**
@@ -16,10 +15,12 @@ export function ScanSheet({
 	open,
 	onClose,
 	onFound,
+	products,
 }: {
 	open: boolean;
 	onClose: () => void;
 	onFound: (product: Product) => void;
+	products: Product[];
 }) {
 	const videoRef = useRef<HTMLVideoElement>(null);
 	const [code, setCode] = useState("");
@@ -88,7 +89,9 @@ export function ScanSheet({
 	}, [open, onClose]);
 
 	function submit() {
-		const product = getProductByBarcode(code);
+		const product = products.find(
+			(item) => item.barcode?.trim() === code.trim(),
+		);
 		if (!product) {
 			setError("Không tìm thấy sản phẩm với mã này.");
 			return;

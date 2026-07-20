@@ -15,6 +15,7 @@ export type PaymentMethod = "cash" | "transfer" | "qr" | "debt";
 /** Một dòng hàng trong đơn / giỏ bán nhanh. */
 export type OrderLine = {
 	productId: string;
+	unitId?: string;
 	name: string;
 	unit: string;
 	qty: number;

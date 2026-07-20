@@ -1,0 +1,155 @@
+{
+  "feature_name": "tenant-sales-management",
+  "created_at": "2026-07-20T22:16:17+07:00",
+  "updated_at": "2026-07-20T23:45:11+07:00",
+  "language": "en",
+  "status": "done",
+  "phase": "done",
+  "current_phase": "done",
+  "priority": "P0",
+  "effort": "L",
+  "tags": ["tenant-sales", "quick-sale", "inventory", "debt", "frontend", "transactional-api"],
+  "approvals": {
+    "requirements": {
+      "generated": true,
+      "approved": true
+    },
+    "design": {
+      "generated": true,
+      "approved": true
+    },
+    "tasks": {
+      "generated": true,
+      "approved": true
+    }
+  },
+  "scope_lock": {
+    "source": "Implement the tenant quick-sale API and connect /ban-nhanh to real tenant product data",
+    "in_scope": [
+      "Completed tenant quick-sale API at POST /tenant/sales/quick",
+      "Server-side validation of tenant products, optional existing customer, payment, totals, and default warehouse",
+      "Atomic Sale/SaleLine creation, stock decrement, StockMovement creation, and optional customer DebtLedger entry",
+      "Tenant authorization, inventory entitlement, idempotency, rollback, and negative-path coverage",
+      "Real API-backed product selection on /ban-nhanh using the existing tenant product contract",
+      "Quick-sale submit loading, success, error preservation, and product refresh behavior",
+      "Backend and frontend acceptance/build/test verification"
+    ],
+    "out_of_scope": [
+      "Draft orders and order-list persistence",
+      "Sales returns",
+      "Customer CRUD/search API",
+      "Supplier and purchase workflows",
+      "Disease recommendation/consult flow",
+      "Offline persistence, receipt printing, tax, multi-warehouse selection, and batch allocation policy",
+      "Product CRUD changes"
+    ],
+    "expansion_policy": "requires-user-approval"
+  },
+  "dependencies": {
+    "blockedBy": [],
+    "blocks": []
+  },
+  "task_files": [
+    "tasks/task-R0-01-sales-contract-foundation.md",
+    "tasks/task-R1-01-quick-sale-api.md",
+    "tasks/task-R2-01-real-product-picker.md",
+    "tasks/task-R2-02-quick-sale-submit-flow.md",
+    "tasks/task-R3-01-sales-acceptance-reachability.md"
+  ],
+  "task_registry": {
+    "tasks/task-R0-01-sales-contract-foundation.md": {
+      "id": "R0-01",
+      "title": "Sales contract foundation",
+      "status": "done",
+      "dependencies": [],
+      "blocker": null,
+      "started_at": "2026-07-20T22:26:00+07:00",
+      "completed_at": "2026-07-20T22:28:00+07:00",
+      "last_updated_at": "2026-07-20T22:28:00+07:00"
+    },
+    "tasks/task-R1-01-quick-sale-api.md": {
+      "id": "R1-01",
+      "title": "Quick sale api",
+      "status": "done",
+      "dependencies": ["tasks/task-R0-01-sales-contract-foundation.md"],
+      "blocker": null,
+      "started_at": "2026-07-20T22:30:00+07:00",
+      "completed_at": "2026-07-20T23:09:48+07:00",
+      "last_updated_at": "2026-07-20T23:09:48+07:00"
+    },
+    "tasks/task-R2-01-real-product-picker.md": {
+      "id": "R2-01",
+      "title": "Real product picker",
+      "status": "done",
+      "dependencies": ["tasks/task-R0-01-sales-contract-foundation.md"],
+      "blocker": null,
+      "started_at": "2026-07-20T23:11:00+07:00",
+      "completed_at": "2026-07-20T23:19:52+07:00",
+      "last_updated_at": "2026-07-20T23:19:52+07:00"
+    },
+    "tasks/task-R2-02-quick-sale-submit-flow.md": {
+      "id": "R2-02",
+      "title": "Quick sale submit flow",
+      "status": "done",
+      "dependencies": ["tasks/task-R0-01-sales-contract-foundation.md", "tasks/task-R1-01-quick-sale-api.md", "tasks/task-R2-01-real-product-picker.md"],
+      "blocker": null,
+      "started_at": "2026-07-20T23:20:00+07:00",
+      "completed_at": "2026-07-20T23:45:11+07:00",
+      "last_updated_at": "2026-07-20T23:45:11+07:00"
+    },
+    "tasks/task-R3-01-sales-acceptance-reachability.md": {
+      "id": "R3-01",
+      "title": "Sales acceptance reachability",
+      "status": "done",
+      "dependencies": ["tasks/task-R1-01-quick-sale-api.md", "tasks/task-R2-01-real-product-picker.md", "tasks/task-R2-02-quick-sale-submit-flow.md"],
+      "blocker": null,
+      "started_at": "2026-07-20T23:45:11+07:00",
+      "completed_at": "2026-07-20T23:45:11+07:00",
+      "last_updated_at": "2026-07-20T23:45:11+07:00"
+    }
+  },
+  "blocker": null,
+  "progress": {
+    "init": "done",
+    "requirements": "done",
+    "research": "done",
+    "design": "done",
+    "tasks": "done",
+    "code": "done",
+    "test": "done",
+    "review": "done"
+  },
+  "timestamps": {
+    "init": "2026-07-20T22:16:17+07:00",
+    "requirements_done": "2026-07-20T22:20:00+07:00",
+    "research_done": "2026-07-20T22:19:00+07:00",
+    "design_done": "2026-07-20T22:21:00+07:00",
+    "tasks_done": "2026-07-20T22:24:00+07:00",
+    "code_done": "2026-07-20T23:45:11+07:00",
+    "test_done": "2026-07-20T23:45:11+07:00",
+    "review_done": "2026-07-20T22:22:54+07:00",
+    "validation_done": "2026-07-20T22:22:54+07:00"
+  },
+  "design_context": {
+    "discovery_mode": "light",
+    "discovery_reason": "Existing Prisma sales/inventory schema and tenant product API make this a bounded cross-layer vertical slice; full discovery is not needed because no new persistence model or provider is introduced.",
+    "execution_tier": "deep",
+    "validation_recommended": true,
+    "validation_recommended_reason": "Five task files plus transactional stock/debt writes, tenant authorization, and idempotency require red-team and validation review."
+  },
+  "validation": {
+    "status": "completed",
+    "session_count": 1,
+    "questions_asked": 4,
+    "last_validated_at": "2026-07-20T22:22:54+07:00"
+  },
+  "translation": {
+    "enabled": false,
+    "language": null,
+    "language_code": null,
+    "dir": null,
+    "sync": "always",
+    "last_synced_at": null
+  },
+  "ready_for_implementation": true
+}
