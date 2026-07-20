@@ -142,7 +142,7 @@ export default function LoginPage() {
 							Đăng nhập
 						</h2>
 						<p className="text-base text-muted-foreground">
-							Nhập số điện thoại và mật khẩu để tiếp tục bán hàng.
+							Nhập tên đăng nhập, email hoặc số điện thoại để tiếp tục bán hàng.
 						</p>
 					</div>
 

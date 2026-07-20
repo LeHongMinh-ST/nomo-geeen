@@ -6,27 +6,38 @@ import {
 	Post,
 	Req,
 	Res,
+	ServiceUnavailableException,
 	UnauthorizedException,
 	UseGuards,
 } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { AuthService } from './auth.service';
+import { AuthRequestPolicy } from './auth-request-policy';
 import { RequirePermission } from './decorators/require-permission.decorator';
 import { AdminLoginDto } from './dto/admin-login.dto';
+import { ChangeTenantPasswordDto } from './dto/change-tenant-password.dto';
 import { TenantLoginDto } from './dto/tenant-login.dto';
+import { TenantRegisterDto } from './dto/tenant-register.dto';
 import { AccessTokenGuard } from './guards/access-token.guard';
 import { PermissionGuard } from './guards/permission.guard';
+import { RefreshTokenStore } from './refresh-token.store';
 import { TenantAuthService } from './tenant-auth.service';
-import type { AdminIdentity } from './token.service';
+import {
+	type AccessClaims,
+	type AdminIdentity,
+	TokenService,
+} from './token.service';
 
 const REFRESH_COOKIE = 'nomo_admin_rt';
+const USER_REFRESH_COOKIE = 'nomo_user_rt';
 
 function cookieSecure(): boolean {
 	return process.env.AUTH_COOKIE_SECURE !== 'false';
 }
 
-function refreshCookieOptions(maxAgeMs?: number) {
+function refreshCookieOptions(maxAgeMs?: number, userCookie = false) {
 	const isDev = process.env.NODE_ENV !== 'production';
+	const sameSite: 'none' | 'strict' = userCookie ? 'none' : 'strict';
 	// SameSite=None + Secure=true can thiet de browser gui cookie HttpOnly
 	// cross-origin qua fetch() tu FE (:3000) den backend (:3001) voi
 	// credentials: 'include'. SameSite=Lax chi cho phep top-level navigation,
@@ -36,7 +47,7 @@ function refreshCookieOptions(maxAgeMs?: number) {
 	return {
 		httpOnly: true,
 		secure: isDev ? true : cookieSecure(),
-		sameSite: 'none' as const,
+		sameSite,
 		path: '/',
 		...(maxAgeMs !== undefined ? { maxAge: maxAgeMs } : {}),
 	};
@@ -60,12 +71,61 @@ export class AuthController {
 	constructor(
 		private readonly auth: AuthService,
 		private readonly tenantAuth: TenantAuthService,
+		private readonly tokens: TokenService,
+		private readonly sessions: RefreshTokenStore,
+		private readonly requestPolicy: AuthRequestPolicy,
 	) {}
 
 	@Post('login')
 	@HttpCode(200)
-	loginTenant(@Body() dto: TenantLoginDto) {
-		return this.tenantAuth.login(dto.tenantSlug, dto.identifier, dto.password);
+	async loginTenant(
+		@Body() dto: TenantLoginDto,
+		@Req() req: Request,
+		@Res({ passthrough: true }) res: Response,
+	) {
+		const result = await this.tenantAuth.login(dto.identifier, dto.password, {
+			ip: req.ip,
+			userAgent: req.get('user-agent') ?? undefined,
+		});
+		res.cookie(USER_REFRESH_COOKIE, result.refreshToken, {
+			...refreshCookieOptions(result.refreshTtlSec * 1000, true),
+			path: '/auth',
+		});
+		return { accessToken: result.accessToken, user: result.user };
+	}
+
+	@Post('register')
+	@HttpCode(201)
+	async register(
+		@Body() dto: TenantRegisterDto,
+		@Res({ passthrough: true }) res: Response,
+	) {
+		const result = await this.tenantAuth.register(dto);
+		res.cookie(USER_REFRESH_COOKIE, result.refreshToken, {
+			...refreshCookieOptions(result.refreshTtlSec * 1000, true),
+			path: '/auth',
+		});
+		return { accessToken: result.accessToken, user: result.user };
+	}
+
+	@Post('change-password')
+	@HttpCode(200)
+	async changePassword(
+		@Body() dto: ChangeTenantPasswordDto,
+		@Req() req: Request,
+	) {
+		const claims = this.tokens.verifyTenantAccess(bearerToken(req));
+		if (!claims.tenantId)
+			throw new UnauthorizedException('Invalid tenant token');
+		this.requestPolicy.assertAllowedCookieOrigin(req);
+		return {
+			user: await this.tenantAuth.changePassword(
+				claims.sub,
+				claims.tenantId,
+				claims.familyId,
+				dto,
+			),
+		};
 	}
 
 	@Post('admin/login')
@@ -95,9 +155,23 @@ export class AuthController {
 		@Req() req: Request,
 		@Res({ passthrough: true }) res: Response,
 	) {
-		const cookie = (req.cookies as Record<string, string> | undefined)?.[
-			REFRESH_COOKIE
-		];
+		const cookies = req.cookies as Record<string, string> | undefined;
+		const userCookie = cookies?.[USER_REFRESH_COOKIE];
+		const adminCookie = cookies?.[REFRESH_COOKIE];
+		if (userCookie) {
+			this.requestPolicy.assertSingleRefreshRealm(cookies);
+			this.requestPolicy.assertAllowedCookieOrigin(req);
+			const result = await this.tenantAuth.refreshUser(userCookie, {
+				ip: req.ip,
+				userAgent: req.get('user-agent') ?? undefined,
+			});
+			res.cookie(USER_REFRESH_COOKIE, result.refreshToken, {
+				...refreshCookieOptions(result.refreshTtlSec * 1000, true),
+				path: '/auth',
+			});
+			return { accessToken: result.accessToken, user: result.user };
+		}
+		const cookie = adminCookie;
 		if (!cookie) {
 			console.log('[auth/refresh] 401 reason=missing_cookie');
 			throw new UnauthorizedException('Missing refresh token');
@@ -125,6 +199,26 @@ export class AuthController {
 	@HttpCode(204)
 	async logout(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
 		const token = bearerToken(req);
+		let claims: AccessClaims;
+		try {
+			claims = this.tokens.verifyAccess(token);
+		} catch {
+			claims = this.tokens.decodeExpiredAccess(token);
+		}
+		if (claims.userType === 'tenant') {
+			this.requestPolicy.assertAllowedCookieOrigin(req);
+			if (!claims.tenantId)
+				throw new UnauthorizedException('Invalid tenant token');
+			await this.tenantAuth.logoutUser(token, {
+				ip: req.ip,
+				userAgent: req.get('user-agent') ?? undefined,
+			});
+			res.clearCookie(USER_REFRESH_COOKIE, {
+				...refreshCookieOptions(undefined, true),
+				path: '/auth',
+			});
+			return;
+		}
 		await this.auth.logout(token, {
 			ip: req.ip,
 			userAgent: req.get('user-agent') ?? undefined,
@@ -133,10 +227,26 @@ export class AuthController {
 	}
 
 	@Get('me')
-	@UseGuards(AccessTokenGuard)
-	async me(@Req() req: AuthedRequest) {
+	async me(@Req() req: Request) {
+		const token = bearerToken(req);
+		const claims = this.tokens.verifyAccess(token);
 		try {
-			const admin = await this.auth.me(req.user.id);
+			const blacklisted =
+				claims.userType === 'tenant'
+					? await this.sessions.isUserAccessBlacklisted(token)
+					: await this.sessions.isAccessBlacklisted(token);
+			if (blacklisted) throw new UnauthorizedException('Token revoked');
+		} catch (error) {
+			if (error instanceof UnauthorizedException) throw error;
+			throw new ServiceUnavailableException('Auth store unavailable');
+		}
+		if (claims.userType === 'tenant') {
+			if (!claims.tenantId)
+				throw new UnauthorizedException('Invalid tenant token');
+			return this.tenantAuth.meUser(claims.sub, claims.tenantId);
+		}
+		try {
+			const admin = await this.auth.me(claims.sub);
 			console.log(
 				`[auth/me] 200 adminId=${admin.id} roleCodes=${JSON.stringify(
 					admin.roleCodes,

@@ -111,4 +111,51 @@ describe('TokenService', () => {
 		expect(claims.sub).toBe('a1');
 		expect(claims.familyId).toBe('f9');
 	});
+
+	it('signs and verifies tenant access claims without changing admin claims', () => {
+		const token = service.signTenantAccess(
+			{
+				id: 'u1',
+				tenantId: 't1',
+				username: 'owner',
+				roleCode: 'OWNER',
+				permissions: ['product:view'],
+			},
+			'family-user-1',
+		);
+		const claims = service.verifyTenantAccess(token);
+		expect(claims).toEqual(
+			expect.objectContaining({
+				sub: 'u1',
+				tenantId: 't1',
+				username: 'owner',
+				role: 'OWNER',
+				permissions: ['product:view'],
+				familyId: 'family-user-1',
+				userType: 'tenant',
+				type: 'access',
+			}),
+		);
+	});
+
+	it('signs a tenant refresh claim with a separate realm marker', () => {
+		const token = service.signTenantRefresh('u1', 't1', 'family-user-2');
+		const claims = service.verifyTenantRefresh(token);
+		expect(claims).toEqual(
+			expect.objectContaining({
+				sub: 'u1',
+				tenantId: 't1',
+				familyId: 'family-user-2',
+				userType: 'tenant',
+				type: 'refresh',
+			}),
+		);
+	});
+
+	it('rejects an admin token at the tenant verification boundary', () => {
+		const token = service.signAccess(admin, 'admin-family');
+		expect(() => service.verifyTenantAccess(token)).toThrow(
+			UnauthorizedException,
+		);
+	});
 });

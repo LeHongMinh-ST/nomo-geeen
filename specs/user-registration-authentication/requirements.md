@@ -2,7 +2,7 @@
 
 ## Overview
 
-Deliver a complete tenant-user onboarding and authentication flow for NomoGreen. A new customer can register a store and its first OWNER, then users can log in with a tenant slug plus username, phone, or email and maintain a secure browser session.
+Deliver a complete tenant-user onboarding and authentication flow for NomoGreen. A new customer can register a store and its first OWNER, then users can log in with a username, phone, or email and maintain a secure browser session. In the current account model, each user belongs to exactly one tenant.
 
 Canonical language: English. User-facing labels and errors: Vietnamese.
 
@@ -21,7 +21,7 @@ Canonical language: English. User-facing labels and errors: Vietnamese.
 
 **Objective:** As a tenant user, I want to log in using a familiar identifier, so that I can access my store securely.
 
-- **R2.1** When an active user submits tenant slug, identifier, and password to `POST /auth/login`, the system shall resolve the user only within the active tenant and issue a tenant access token plus refresh cookie.
+- **R2.1** When an active user submits an identifier and password to `POST /auth/login`, the system shall resolve the active user and its single tenant membership, then issue a tenant access token plus refresh cookie.
 - **R2.2** The identifier resolver shall support username, email, and phone while preserving tenant scope and soft-delete rules.
 - **R2.3** If the tenant, user, identifier, or password is invalid, the system shall return a generic 401 response and perform decoy password verification when no matching user exists.
 - **R2.4** If the tenant or user is disabled, the system shall reject login with a stable non-success response and shall not issue tokens.
@@ -59,10 +59,10 @@ Canonical language: English. User-facing labels and errors: Vietnamese.
 
 ## R6 — Frontend registration and authentication
 
-**Objective:** As a store user, I want a clear mobile-friendly registration/login experience, so that I can enter the tenant context and recover a session without seeing technical errors.
+**Objective:** As a store user, I want a clear mobile-friendly registration/login experience, so that I can authenticate into my assigned store and recover a session without seeing technical errors.
 
 - **R6.1** When a user opens `/dang-ky`, the frontend shall collect tenant name/slug, owner full name, username, optional email/phone, and password with client-side advisory validation matching backend constraints.
-- **R6.2** When a user opens `/dang-nhap`, the frontend shall collect tenant slug, identifier, and password, call the real `/auth/login` API, keep the access token in memory only, and redirect to the user app after success.
+- **R6.2** When a user opens `/dang-nhap`, the frontend shall collect identifier and password, call the real `/auth/login` API, keep the access token in memory only, and redirect to the user app after success; tenant selection is deferred until multi-tenant memberships are supported.
 - **R6.3** The user session store shall hydrate through `/auth/refresh` and `/auth/me`, silently retry one 401 request after refresh, and clear state after refresh failure.
 - **R6.4** The frontend shall expose logout and prevent authenticated user routes from rendering before session hydration completes; it shall not reuse admin identity/store state.
 - **R6.5** The UI shall surface 400/401/403/409/429/503 states in Vietnamese while preserving entered non-secret fields, and shall show the forced-password-change path when required.

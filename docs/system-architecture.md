@@ -2,7 +2,7 @@
 
 ## Context
 
-NomoGreen consists of a Next.js web frontend and a NestJS backend. PostgreSQL is the durable system of record; Redis stores ephemeral refresh-token state and access-token/session controls. The Platform Admin portal is separate from tenant user workflows.
+NomoGreen consists of a Next.js web frontend and a NestJS backend. PostgreSQL is the durable system of record; Redis stores ephemeral refresh-token state and access-token/session controls. The Platform Admin portal is separate from tenant user workflows. Tenant authentication uses the same NestJS auth module with distinct JWT claims, cookie names, and Redis namespaces.
 
 ## Container view
 
@@ -24,6 +24,15 @@ flowchart LR
 - Domain services own mutations and call `AuditLogger` for mutation history.
 - `AuditModule` exports `AuditLogger` to consuming modules.
 - Prisma models and migrations define persistence contracts.
+- Tenant auth owns registration, identifier login, rotating `nomo_user_rt` sessions, `/auth/me`, logout, password change, and tenant permission resolution; it must not mutate admin `nomo_admin_rt` or `admin:*` session state.
+- `POST /auth/register` delegates tenant/owner/role creation to the provisioning service's single Prisma transaction, then opens a user-namespaced refresh family and returns only public identity fields.
+- `POST /auth/login` resolves username/email/phone across active tenants, reloads role permissions, records `lastLoginAt` with a tenant `LOGIN` audit row, and returns the same public identity/session contract. The current model assigns each user to exactly one tenant, so the client does not provide a tenant/store code. Ambiguous duplicate credentials fail generically; multi-tenant membership and tenant selection are deferred.
+- `POST /auth/refresh` dispatches only the explicit `nomo_user_rt` or `nomo_admin_rt` realm; user rotation uses `user:rt:*` keys and revokes the family on reuse. `POST /auth/logout` blacklists the bearer in the user namespace, revokes its family, clears the user cookie, and writes USER `LOGOUT`; Redis failures fail closed with 503.
+- `GET /auth/me` checks the realm-specific access blacklist and reloads the current active tenant user, tenant metadata, role, and permissions, so revoked or cross-tenant identities cannot be used as current state.
+- Tenant business routes use `TenantAccessTokenGuard` plus server-side `TenantPermissionGuard`; both derive scope from the verified bearer identity and current DB role grants. `mustChangePassword` blocks business routes while leaving `/auth/me`, session maintenance, logout, and `/auth/change-password` available.
+- `POST /auth/change-password` verifies the current password, updates the hash and clears `mustChangePassword` in an audited transaction, then revokes other user refresh families without returning credential material.
+- The frontend user session is separate from admin state: `user-auth-store` keeps only the short-lived access token in memory, hydrates through the HttpOnly refresh cookie plus `/auth/me`, and `user-fetch` single-flights one refresh and retries a request at most once.
+- User auth routes are `/dang-nhap`, `/dang-ky`, and `/doi-mat-khau`; they use typed user API/store contracts and `UserAuthGuard`, with Vietnamese validation/status messages and no admin store dependency.
 
 ## Admin request flow
 
@@ -54,7 +63,8 @@ The admin read boundary is `GET /admin/audit-logs` for bounded, stable newest-fi
 
 - Audit query and detail boundaries are available; there is no audit retention policy or audit export endpoint.
 - No global audit interceptor was found; coverage is service-owned and therefore must be reviewed when new mutation modules are added.
-- The admin navigation contains an audit-log link, but the matching route is not present in the current frontend tree.
+- The admin navigation contains the permission-gated `/admin/audit-log` route, and dashboard recent activity reads a bounded newest-audit query.
+- Tenant user registration/login UI remains governed by `specs/user-registration-authentication`; the backend session lifecycle is verified, while frontend auth state/screens and final integration acceptance remain pending.
 
 ## Deployment evidence gap
 

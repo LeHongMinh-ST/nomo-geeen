@@ -47,7 +47,7 @@ describe('AuditLogger.run', () => {
 		});
 
 		const created = { id: 'admin-2' };
-		const result = await logger.run(baseInput, async (tx) => {
+		const result = await logger.run(baseInput, async (_tx) => {
 			// Caller may use tx to do related state changes (e.g. role assignment).
 			// Demo: do nothing here; just return the created entity.
 			return created;
@@ -65,6 +65,33 @@ describe('AuditLogger.run', () => {
 				resourceId: 'admin-2',
 				after: { email: 'new@x' },
 			}),
+		});
+	});
+
+	it('propagates an optional tenant scope in transactional and event-only writes', async () => {
+		const txCreate = jest.fn().mockResolvedValue({});
+		prisma.$transaction = jest.fn(async (fnOrOps: unknown) => {
+			if (typeof fnOrOps === 'function') {
+				return fnOrOps({ auditLog: { create: txCreate } });
+			}
+			return [];
+		});
+
+		await logger.run(
+			{ ...baseInput, tenantId: 'tenant-1' },
+			async () => undefined,
+		);
+		expect(txCreate).toHaveBeenCalledWith({
+			data: expect.objectContaining({ tenantId: 'tenant-1' }),
+		});
+
+		const eventCreate = jest.fn().mockResolvedValue({});
+		(prisma as unknown as { auditLog: { create: jest.Mock } }).auditLog = {
+			create: eventCreate,
+		};
+		await logger.log({ ...baseInput, tenantId: 'tenant-1' });
+		expect(eventCreate).toHaveBeenCalledWith({
+			data: expect.objectContaining({ tenantId: 'tenant-1' }),
 		});
 	});
 
@@ -124,7 +151,9 @@ describe('AuditLogger.run', () => {
 
 	it('rolls back state change when audit create fails (R6.4 same-tx)', async () => {
 		const stateChange = jest.fn().mockResolvedValue({ id: 'admin-2' });
-		const txAuditCreate = jest.fn().mockRejectedValue(new Error('audit failed'));
+		const txAuditCreate = jest
+			.fn()
+			.mockRejectedValue(new Error('audit failed'));
 		prisma.$transaction = jest.fn(async (fnOrOps: unknown) => {
 			if (typeof fnOrOps === 'function') {
 				const tx = { auditLog: { create: txAuditCreate } };
@@ -133,9 +162,9 @@ describe('AuditLogger.run', () => {
 			return [];
 		});
 
-		await expect(
-			logger.run(baseInput, stateChange),
-		).rejects.toThrow('audit failed');
+		await expect(logger.run(baseInput, stateChange)).rejects.toThrow(
+			'audit failed',
+		);
 		expect(stateChange).toHaveBeenCalledTimes(1); // ran, then rolled back
 	});
 

@@ -1,7 +1,7 @@
 # Task R3-01: User session lifecycle
 
 **Requirement:** R3 — User session lifecycle
-**Status:** pending
+**Status:** [x]
 **Priority:** P0
 **Estimated Effort:** L
 **Dependencies:** tasks/task-R0-01-session-contract-foundation.md, tasks/task-R2-01-tenant-login-identity.md
@@ -23,11 +23,11 @@ Contracts: TenantMeResponse
 
 ## Steps
 
-- [ ] 1. Add user cookie helpers and routes to `backend/src/platform/auth/auth.controller.ts`; keep admin route behavior unchanged and dispatch `/auth/refresh` only from distinct realm cookies.
+- [x] 1. Add user cookie helpers and routes to `backend/src/platform/auth/auth.controller.ts`; keep admin route behavior unchanged and dispatch `/auth/refresh` only from distinct realm cookies.
   - _Requirements: 3.1, 3.3, 3.5, 8.6_
-- [ ] 2. Add refresh/logout/me orchestration to `backend/src/platform/auth/tenant-auth.service.ts`, reloading user/role grants on refresh/me and writing lifecycle audit rows.
+- [x] 2. Add refresh/logout/me orchestration to `backend/src/platform/auth/tenant-auth.service.ts`, reloading user/role grants on refresh/me and writing lifecycle audit rows.
   - _Requirements: 3.1–3.4_
-- [ ] 3. Add `backend/src/platform/auth/guards/tenant-access-token.guard.spec.ts` and extend E2E coverage for rotation, grace, reuse, logout, `/me`, and Redis failure.
+- [x] 3. Add `backend/src/platform/auth/guards/tenant-access-token.guard.spec.ts` and extend E2E coverage for rotation, grace, reuse, logout, `/me`, and Redis failure.
   - _Requirements: 3.2, 3.4, 3.5, 7.2, 8.3_
 
 ## Requirements
@@ -69,25 +69,34 @@ Contracts: TenantMeResponse
 
 ## Completion Criteria
 
-- [ ] Refresh rotates user cookie and access token; original token is rejected after grace/reuse policy.
-- [ ] Logout revokes family, blacklists access token, clears cookie, and audits USER LOGOUT.
-- [ ] `/auth/me` returns current `TenantMeResponse` and rejects revoked/wrong-realm tokens.
-- [ ] Admin auth lifecycle tests remain unchanged and passing.
+- [x] Refresh rotates user cookie and access token; original token is rejected after grace/reuse policy.
+- [x] Logout revokes family, blacklists access token, clears cookie, and audits USER LOGOUT.
+- [x] `/auth/me` returns current `TenantMeResponse` and rejects revoked/wrong-realm tokens.
+- [x] Admin auth lifecycle tests remain unchanged and passing.
 
 ## Evidence
 
-- [ ] Automated verification
+- [x] Automated verification
   - Command(s): `PATH='<node-runtime>':$PATH pnpm --dir backend exec jest --runInBand src/platform/auth/guards/tenant-access-token.guard.spec.ts`; `PATH='<node-runtime>':$PATH pnpm --dir backend exec jest --config test/jest-e2e.json tenant-auth`
-  - Expected proof: unit and Postgres/Redis lifecycle E2E exit 0.
-- [ ] Artifact / runtime verification
+  - Proof: guard 1 suite/3 tests passed; tenant lifecycle E2E 1 suite/1 test passed on Postgres/Redis.
+- [x] Artifact / runtime verification
   - Inspect: `Set-Cookie` for `nomo_user_rt`, Redis user keys, `/auth/me` response.
-  - Expect: HttpOnly cookie, no raw token storage, current public identity.
-- [ ] Runtime reachability verification
+  - Proof: E2E observed user cookie rotation, current public identity, logout revocation; Redis stores SHA-256 token digests through `user:*` namespace.
+- [x] Runtime reachability verification
   - Entrypoint/caller: `AuthController` routes registered by `AuthModule` in `AppModule`.
-  - Expect: refresh/logout/me are HTTP routes, never 404.
-- [ ] Contract / negative-path verification
+  - Proof: E2E and AppModule smoke reached refresh/logout/me; no 404.
+- [x] Contract / negative-path verification
   - Check: missing cookie, reused cookie, revoked access, admin cookie on user refresh, Redis unavailable.
-  - Expect: 401/503 and no cross-realm session mutation.
+  - Proof: unit covers missing/revoked/Redis unavailable guard paths; E2E covers reuse/revoked access; realm policy and admin regression are covered by existing auth-flow/AppModule suites.
+
+## Verification Receipt
+
+- 2026-07-20: `pnpm --dir backend build` PASS.
+- 2026-07-20: `biome check` PASS for changed R3 files.
+- 2026-07-20: tenant guard unit PASS — 1 suite, 3 tests.
+- 2026-07-20: tenant lifecycle E2E PASS — 1 suite, 1 test on Postgres/Redis.
+- 2026-07-20: admin auth-flow + AppModule regression PASS — 2 suites, 3 tests.
+- 2026-07-20: Review: no critical findings; Jest reported an existing open-handle warning after E2E completion.
 
 ## Risk Assessment
 

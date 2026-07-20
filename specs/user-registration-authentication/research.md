@@ -34,7 +34,7 @@
   - The final public registration URL shape must follow the existing app routing convention; the spec uses `/dang-ky` and `/dang-nhap` as the stable frontend routes.
 - **Downstream Task & Test Implications**:
   - Backend tasks must include negative paths for cross-tenant identifiers, disabled tenants/users, lockout, refresh reuse, logout, and forced password change.
-  - Frontend tasks must prove cookie credentials, refresh retry, in-memory token handling, tenant slug collection, keyboard/focus behavior, and responsive auth screens.
+  - Frontend tasks must prove cookie credentials, refresh retry, in-memory token handling, keyboard/focus behavior, and responsive auth screens; tenant selection is deferred because each current user has one tenant membership.
 
 ## Codebase Scout
 
@@ -119,4 +119,4 @@
 
 ## Unresolved Questions
 
-- Exact production hostname/tenant URL strategy remains owned by deployment configuration; the API contract uses `tenantSlug` explicitly for Phase 1.
+- Exact production hostname/tenant URL strategy remains owned by deployment configuration. The current account model assigns each user to exactly one tenant, so login resolves tenant identity from the credential match and `tenantSlug` remains response metadata; multi-tenant membership and tenant selection are deferred to a future phase.

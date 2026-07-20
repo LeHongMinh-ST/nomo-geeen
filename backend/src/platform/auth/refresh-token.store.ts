@@ -29,6 +29,29 @@ export function rtIdxKey(adminId: string): string {
 	return `admin:rtidx:${adminId}`;
 }
 
+export function userRtKey(familyId: string): string {
+	return `user:rt:${familyId}`;
+}
+
+export function userRtPrevKey(familyId: string): string {
+	return `user:rt:${familyId}:prev`;
+}
+
+export function userBlKey(token: string): string {
+	return `user:bl:${sha256(token)}`;
+}
+
+export function userRtIdxKey(userId: string): string {
+	return `user:rtidx:${userId}`;
+}
+
+export function userLoginAttemptKey(
+	tenantId: string,
+	identifier: string,
+): string {
+	return `user:login-attempt:${sha256(`${tenantId}:${identifier.trim().toLowerCase()}`)}`;
+}
+
 /**
  * TTL con lai (giay) tu JWT exp (epoch giay), floor toi thieu 1s.
  */
@@ -62,6 +85,12 @@ end
 redis.call('DEL', KEYS[1])
 redis.call('DEL', KEYS[2])
 return 'reuse'
+`;
+
+const LOGIN_ATTEMPT_LUA = `
+local count = redis.call('INCR', KEYS[1])
+if count == 1 then redis.call('EXPIRE', KEYS[1], ARGV[1]) end
+return count
 `;
 
 /**
@@ -136,5 +165,100 @@ export class RefreshTokenStore {
 		const allKeys = familyIds.flatMap((fid) => [rtKey(fid), rtPrevKey(fid)]);
 		await this.redis.del(...allKeys);
 		await this.redis.del(rtIdxKey(adminId));
+	}
+
+	async openUser(
+		familyId: string,
+		refreshToken: string,
+		ttlSec: number,
+		userId?: string,
+	): Promise<void> {
+		await this.redis.set(userRtKey(familyId), sha256(refreshToken), ttlSec);
+		if (userId) await this.redis.sadd(userRtIdxKey(userId), familyId);
+	}
+
+	async rotateUser(
+		familyId: string,
+		oldToken: string,
+		newToken: string,
+		ttlSec: number,
+		graceSec: number,
+	): Promise<RotateResult> {
+		const result = await this.redis.eval(
+			ROTATE_LUA,
+			2,
+			userRtKey(familyId),
+			userRtPrevKey(familyId),
+			sha256(oldToken),
+			sha256(newToken),
+			ttlSec,
+			graceSec,
+		);
+		return result as RotateResult;
+	}
+
+	async revokeUserFamily(familyId: string, userId?: string): Promise<void> {
+		await this.redis.del(userRtKey(familyId), userRtPrevKey(familyId));
+		if (userId) await this.redis.srem(userRtIdxKey(userId), familyId);
+	}
+
+	async blacklistUserAccess(token: string, ttlSec: number): Promise<void> {
+		await this.redis.set(userBlKey(token), '1', ttlSec);
+	}
+
+	async isUserAccessBlacklisted(token: string): Promise<boolean> {
+		return (await this.redis.get(userBlKey(token))) !== null;
+	}
+
+	async revokeAllForUser(userId: string): Promise<void> {
+		const familyIds = await this.redis.smembers(userRtIdxKey(userId));
+		if (familyIds.length === 0) return;
+		await this.redis.del(
+			...familyIds.flatMap((fid) => [userRtKey(fid), userRtPrevKey(fid)]),
+		);
+		await this.redis.del(userRtIdxKey(userId));
+	}
+
+	async revokeOtherUserFamilies(
+		userId: string,
+		keepFamilyId: string,
+	): Promise<void> {
+		const familyIds = await this.redis.smembers(userRtIdxKey(userId));
+		const otherFamilyIds = familyIds.filter(
+			(familyId) => familyId !== keepFamilyId,
+		);
+		if (otherFamilyIds.length === 0) return;
+		await this.redis.del(
+			...otherFamilyIds.flatMap((familyId) => [
+				userRtKey(familyId),
+				userRtPrevKey(familyId),
+			]),
+		);
+		await Promise.all(
+			otherFamilyIds.map((familyId) =>
+				this.redis.srem(userRtIdxKey(userId), familyId),
+			),
+		);
+	}
+
+	async recordUserLoginFailure(
+		tenantId: string,
+		identifier: string,
+		windowSec = Number(process.env.USER_LOGIN_WINDOW_SEC ?? 900),
+	): Promise<number> {
+		const count = await this.redis.eval(
+			LOGIN_ATTEMPT_LUA,
+			1,
+			userLoginAttemptKey(tenantId, identifier),
+			Math.max(1, windowSec),
+		);
+		return Number(count);
+	}
+
+	async clearUserLoginFailures(
+		tenantId: string,
+		identifier: string,
+	): Promise<void> {
+		await this.redis.del(userLoginAttemptKey(tenantId, identifier));
 	}
 }

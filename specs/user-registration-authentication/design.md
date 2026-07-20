@@ -202,6 +202,9 @@ stateDiagram-v2
 
 ### Frontend state
 
+- The current account invariant is one `User` → one `Tenant`; login therefore resolves the store from the authenticated user record and does not ask for a tenant/store code.
+- A tenant picker is intentionally out of scope. If a future account model allows one user to belong to multiple tenants, login must add an explicit tenant-selection step after credential verification.
+
 - `UserAuthStore` keeps `user`, `accessToken`, `loading`, `hasHydrated`, and methods `hydrate`, `login`, `register`, `logout`, `changePassword`, `setAccessToken`, `clear`.
 - Access token is memory-only; refresh cookie is browser-managed HttpOnly.
 - User API client deduplicates refresh and retries one request, then clears user session on failure.
@@ -210,7 +213,7 @@ stateDiagram-v2
 
 ### Domain Model
 
-- `Tenant` 1—N `User`; each user references one tenant-scoped `Role`; role grants resolve through `RolePermission` → `Permission`.
+- `Tenant` 1—N `User`; each user references exactly one tenant and one tenant-scoped `Role`; role grants resolve through `RolePermission` → `Permission`.
 - Registration creates the aggregate boundary Tenant + role templates + first OWNER user + audit rows.
 - Sessions are Redis-only ephemeral families; no raw credential is persisted.
 

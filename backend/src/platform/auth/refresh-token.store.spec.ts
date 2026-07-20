@@ -6,6 +6,10 @@ import {
 	rtKey,
 	rtPrevKey,
 	sha256,
+	userBlKey,
+	userLoginAttemptKey,
+	userRtKey,
+	userRtPrevKey,
 } from './refresh-token.store';
 
 /**
@@ -91,5 +95,30 @@ describe('RefreshTokenStore (real Redis)', () => {
 		expect(blKey('tok')).toBe(`admin:bl:${sha256('tok')}`);
 		// expired exp -> floored to 1
 		expect(remainingTtlSec(Date.now() / 1000 - 100)).toBe(1);
+		expect(userRtKey('f')).toBe('user:rt:f');
+		expect(userRtPrevKey('f')).toBe('user:rt:f:prev');
+		expect(userBlKey('tok')).toBe(`user:bl:${sha256('tok')}`);
+		expect(userLoginAttemptKey('tenant-1', ' Owner ')).toBe(
+			userLoginAttemptKey('tenant-1', 'owner'),
+		);
+	});
+
+	it('user refresh rotation uses only the user namespace', async () => {
+		const familyId = fam();
+		await store.openUser(familyId, 'u0', 60, 'user-1');
+		expect(await redis.get(userRtKey(familyId))).toBe(sha256('u0'));
+		expect(await redis.get(rtKey(familyId))).toBeNull();
+		expect(await store.rotateUser(familyId, 'u0', 'u1', 60, 5)).toBe('ok');
+		expect(await redis.get(userRtPrevKey(familyId))).toBe(sha256('u0'));
+		await store.revokeUserFamily(familyId, 'user-1');
+	});
+
+	it('user login failure counter is bounded by a Redis TTL', async () => {
+		const count = await store.recordUserLoginFailure('tenant-1', 'owner', 60);
+		expect(count).toBeGreaterThanOrEqual(1);
+		expect(
+			await redis.ttl(userLoginAttemptKey('tenant-1', 'owner')),
+		).toBeGreaterThan(0);
+		await store.clearUserLoginFailures('tenant-1', 'owner');
 	});
 });

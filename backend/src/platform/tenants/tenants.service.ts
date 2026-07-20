@@ -14,8 +14,8 @@ import {
 	type TenantStatus,
 	type TenantType,
 } from '@prisma/client';
-import { PasswordService } from '../auth/password.service';
 import { type AuditInput, AuditLogger } from '../audit/audit-logger.service';
+import { PasswordService } from '../auth/password.service';
 import { PrismaService } from '../prisma/prisma.service';
 import type { CreateTenantDto } from './dto/create-tenant.dto';
 import type { TenantQueryDto } from './dto/tenant-query.dto';
@@ -62,8 +62,10 @@ export interface ListTenantsResult {
 }
 
 export interface TenantAuditCtx {
-	actorId: string;
+	actorId: string | null;
 	actorRoleCode: string | null;
+	actorType?: AuditActorType;
+	createdByType?: 'PLATFORM_ADMIN' | 'USER';
 	ipAddress?: string;
 	userAgent?: string;
 }
@@ -86,6 +88,16 @@ export interface CreateTenantResult {
 	tenant: TenantListItem & { seatBonus: number };
 	owner: CreatedOwnerPublic;
 	generatedPassword: string | null;
+}
+
+export interface PublicTenantRegistrationInput {
+	tenantName: string;
+	slug: string;
+	fullName: string;
+	username: string;
+	email?: string;
+	phone?: string;
+	password: string;
 }
 
 /**
@@ -184,6 +196,33 @@ export class TenantsService {
 		}
 	}
 
+	async createPublic(
+		input: PublicTenantRegistrationInput,
+	): Promise<CreateTenantResult> {
+		return this.create(
+			{
+				tenant: {
+					name: input.tenantName,
+					slug: input.slug,
+					tenantType: 'HOUSEHOLD',
+				},
+				owner: {
+					fullName: input.fullName,
+					username: input.username,
+					email: input.email,
+					phone: input.phone,
+					password: input.password,
+				},
+			} as CreateTenantDto,
+			{
+				actorId: null,
+				actorRoleCode: 'OWNER',
+				actorType: AuditActorType.USER,
+				createdByType: 'USER',
+			},
+		);
+	}
+
 	private resolvePassword(owner: CreateTenantDto['owner']): {
 		plaintext: string;
 		generated: boolean;
@@ -245,12 +284,15 @@ export class TenantsService {
 		else if (typeof target === 'string') parts.push(target);
 
 		const cause = (
-			meta?.driverAdapterError as { cause?: Record<string, unknown> } | undefined
+			meta?.driverAdapterError as
+				| { cause?: Record<string, unknown> }
+				| undefined
 		)?.cause;
 		const constraint = cause?.constraint as
 			| { fields?: string[]; index?: string }
 			| undefined;
-		if (Array.isArray(constraint?.fields)) parts.push(constraint.fields.join(','));
+		if (Array.isArray(constraint?.fields))
+			parts.push(constraint.fields.join(','));
 		if (typeof constraint?.index === 'string') parts.push(constraint.index);
 		if (typeof cause?.originalMessage === 'string') {
 			parts.push(cause.originalMessage);
@@ -338,7 +380,7 @@ export class TenantsService {
 				fullName: dto.owner.fullName,
 				roleId: ownerRoleId,
 				status: 'ACTIVE',
-				createdByType: 'PLATFORM_ADMIN',
+				createdByType: ctx.createdByType ?? 'PLATFORM_ADMIN',
 				createdById: ctx.actorId,
 			},
 			select: {
@@ -355,8 +397,17 @@ export class TenantsService {
 
 		// 2. Audit rows share this same tx (writeInTx, never self-transacting run()).
 		const baseAudit: Omit<AuditInput, 'action' | 'resource' | 'resourceId'> = {
-			actorId: ctx.actorId,
-			actorType: AuditActorType.PLATFORM_ADMIN,
+			tenantId:
+				(ctx.actorType ?? AuditActorType.PLATFORM_ADMIN) === AuditActorType.USER
+					? tenant.id
+					: undefined,
+			actorId:
+				ctx.actorId ??
+				(owner.id &&
+				(ctx.actorType ?? AuditActorType.PLATFORM_ADMIN) === AuditActorType.USER
+					? owner.id
+					: null),
+			actorType: ctx.actorType ?? AuditActorType.PLATFORM_ADMIN,
 			actorRoleCode: ctx.actorRoleCode,
 			ipAddress: ctx.ipAddress,
 			userAgent: ctx.userAgent?.slice(0, 512),
@@ -397,7 +448,6 @@ export class TenantsService {
 			generatedPassword,
 		};
 	}
-
 
 	async list(query: TenantQueryDto): Promise<ListTenantsResult> {
 		const page = query.page ?? 1;

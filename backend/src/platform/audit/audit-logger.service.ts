@@ -1,7 +1,4 @@
-import {
-	BadRequestException,
-	Injectable,
-} from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { AuditAction, AuditActorType, type Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -16,6 +13,7 @@ import { PrismaService } from '../prisma/prisma.service';
  * - `action`: must be a valid AuditAction enum member (R6.5).
  */
 export interface AuditInput {
+	tenantId?: string;
 	actorId: string | null;
 	actorType: AuditActorType;
 	actorRoleCode: string | null;
@@ -57,15 +55,14 @@ export class AuditLogger {
 			);
 		}
 		if (input.actorType === AuditActorType.SYSTEM && input.actorId !== null) {
-			throw new BadRequestException(
-				'SYSTEM actor must have actorId=null',
-			);
+			throw new BadRequestException('SYSTEM actor must have actorId=null');
 		}
 
 		return this.prisma.$transaction(async (tx) => {
 			const result = await stateChange(tx);
 			await tx.auditLog.create({
 				data: {
+					tenantId: input.tenantId,
 					actorType: input.actorType,
 					actorId: input.actorId,
 					actorRoleCode: input.actorRoleCode,
@@ -102,6 +99,7 @@ export class AuditLogger {
 		}
 		await tx.auditLog.create({
 			data: {
+				tenantId: input.tenantId,
 				actorType: input.actorType,
 				actorId: input.actorId,
 				actorRoleCode: input.actorRoleCode,
@@ -127,12 +125,11 @@ export class AuditLogger {
 			);
 		}
 		if (input.actorType === AuditActorType.SYSTEM && input.actorId !== null) {
-			throw new BadRequestException(
-				'SYSTEM actor must have actorId=null',
-			);
+			throw new BadRequestException('SYSTEM actor must have actorId=null');
 		}
 		await this.prisma.auditLog.create({
 			data: {
+				tenantId: input.tenantId,
 				actorType: input.actorType,
 				actorId: input.actorId,
 				actorRoleCode: input.actorRoleCode,

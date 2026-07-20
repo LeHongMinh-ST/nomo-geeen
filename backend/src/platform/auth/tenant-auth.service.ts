@@ -1,7 +1,29 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { randomUUID } from 'node:crypto';
+import {
+	forwardRef,
+	Inject,
+	Injectable,
+	ServiceUnavailableException,
+	UnauthorizedException,
+} from '@nestjs/common';
+import { AuditAction, AuditActorType } from '@prisma/client';
+import { AuditLogger } from '../audit/audit-logger.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { TenantsService } from '../tenants/tenants.service';
+import type { ChangeTenantPasswordDto } from './dto/change-tenant-password.dto';
+import type { TenantRegisterDto } from './dto/tenant-register.dto';
 import { DECOY_HASH, PasswordService } from './password.service';
-import { TenantIdentity, TokenService } from './token.service';
+import { RefreshTokenStore, remainingTtlSec } from './refresh-token.store';
+import {
+	TenantAuthResponse,
+	TenantIdentity,
+	TokenService,
+} from './token.service';
+
+export type TenantRegistrationResult = TenantAuthResponse & {
+	refreshToken: string;
+	refreshTtlSec: number;
+};
 
 @Injectable()
 export class TenantAuthService {
@@ -9,36 +31,417 @@ export class TenantAuthService {
 		private readonly prisma: PrismaService,
 		private readonly passwords: PasswordService,
 		private readonly tokens: TokenService,
+		private readonly sessions: RefreshTokenStore,
+		private readonly audit: AuditLogger,
+		@Inject(forwardRef(() => TenantsService))
+		private readonly tenants: TenantsService,
 	) {}
 
+	async register(dto: TenantRegisterDto): Promise<TenantRegistrationResult> {
+		const familyId = randomUUID();
+		const refreshToken = this.tokens.signTenantRefresh(
+			'pending-user',
+			'pending-tenant',
+			familyId,
+		);
+		const refreshClaims = this.tokens.verifyTenantRefresh(refreshToken);
+		const refreshTtlSec = remainingTtlSec(refreshClaims.exp ?? 0);
+		await this.sessions.openUser(familyId, refreshToken, refreshTtlSec);
+
+		try {
+			const created = await this.tenants.createPublic({
+				tenantName: dto.tenantName,
+				slug: dto.slug,
+				fullName: dto.fullName,
+				username: dto.username,
+				email: dto.email,
+				phone: dto.phone,
+				password: dto.password,
+			});
+			const user = await this.prisma.user.findUniqueOrThrow({
+				where: { id: created.owner.id },
+				select: {
+					id: true,
+					tenantId: true,
+					username: true,
+					email: true,
+					phone: true,
+					fullName: true,
+					mustChangePassword: true,
+					tenant: { select: { slug: true, name: true } },
+					role: {
+						select: {
+							code: true,
+							permissions: {
+								select: { permission: { select: { code: true } } },
+							},
+						},
+					},
+				},
+			});
+			const permissions = user.role.permissions.map(
+				(grant) => grant.permission.code,
+			);
+			const identity: TenantIdentity = {
+				id: user.id,
+				tenantId: user.tenantId,
+				username: user.username,
+				roleCode: user.role.code,
+				permissions,
+				familyId,
+			};
+			const accessToken = this.tokens.signTenantAccess(identity, familyId);
+			const finalRefreshToken = this.tokens.signTenantRefresh(
+				user.id,
+				user.tenantId,
+				familyId,
+			);
+			await this.sessions.openUser(
+				familyId,
+				finalRefreshToken,
+				refreshTtlSec,
+				user.id,
+			);
+
+			return {
+				accessToken,
+				refreshToken: finalRefreshToken,
+				refreshTtlSec,
+				user: {
+					id: user.id,
+					tenantId: user.tenantId,
+					tenantSlug: user.tenant.slug,
+					tenantName: user.tenant.name,
+					username: user.username,
+					email: user.email,
+					phone: user.phone,
+					fullName: user.fullName,
+					role: user.role.code,
+					permissions,
+					mustChangePassword: user.mustChangePassword,
+				},
+			};
+		} catch (error) {
+			await this.sessions.revokeUserFamily(familyId);
+			throw error;
+		}
+	}
+
 	async login(
-		tenantSlug: string,
 		identifier: string,
 		password: string,
-	): Promise<{ accessToken: string }> {
+		context: { ip?: string; userAgent?: string } = {},
+	): Promise<TenantRegistrationResult> {
 		const value = identifier.trim();
-		const slug = tenantSlug.trim();
-		const user = await this.prisma.user.findFirst({
+		const candidates = await this.prisma.user.findMany({
 			where: {
 				status: 'ACTIVE',
 				deletedAt: null,
-				tenant: { slug, status: 'ACTIVE', deletedAt: null },
+				tenant: { status: 'ACTIVE', deletedAt: null },
 				OR: [{ username: value }, { email: value }, { phone: value }],
 			},
-			include: { role: { select: { code: true } } },
+			include: {
+				tenant: { select: { slug: true, name: true } },
+				role: {
+					select: {
+						code: true,
+						permissions: {
+							select: { permission: { select: { code: true } } },
+						},
+					},
+				},
+			},
 		});
-		const valid = await this.passwords.verify(
-			user?.passwordHash ?? DECOY_HASH,
-			password,
-		);
-		if (!user || !valid) throw new UnauthorizedException('Invalid credentials');
+		let matches: (typeof candidates)[number][] = [];
+		if (candidates.length === 0) {
+			await this.passwords.verify(DECOY_HASH, password);
+		} else {
+			matches = (
+				await Promise.all(
+					candidates.map(async (candidate) =>
+						(await this.passwords.verify(candidate.passwordHash, password))
+							? candidate
+							: null,
+					),
+				)
+			).filter(
+				(candidate): candidate is (typeof candidates)[number] =>
+					candidate !== null,
+			);
+		}
+		if (matches.length !== 1)
+			throw new UnauthorizedException('Invalid credentials');
+		const user = matches[0];
 
+		const permissions = user.role.permissions.map(
+			(grant) => grant.permission.code,
+		);
+		const familyId = randomUUID();
 		const identity: TenantIdentity = {
 			id: user.id,
 			tenantId: user.tenantId,
 			username: user.username,
 			roleCode: user.role.code,
+			permissions,
+			familyId,
 		};
-		return { accessToken: this.tokens.signTenant(identity) };
+		const accessToken = this.tokens.signTenantAccess(identity, familyId);
+		const refreshToken = this.tokens.signTenantRefresh(
+			user.id,
+			user.tenantId,
+			familyId,
+		);
+		const refreshTtlSec = remainingTtlSec(
+			this.tokens.verifyTenantRefresh(refreshToken).exp ?? 0,
+		);
+		await this.sessions.openUser(
+			familyId,
+			refreshToken,
+			refreshTtlSec,
+			user.id,
+		);
+		try {
+			await this.audit.run(
+				{
+					tenantId: user.tenantId,
+					actorId: user.id,
+					actorType: AuditActorType.USER,
+					actorRoleCode: user.role.code,
+					action: AuditAction.LOGIN,
+					resource: 'auth',
+					ipAddress: context.ip,
+					userAgent: context.userAgent,
+				},
+				(tx) =>
+					tx.user.update({
+						where: { id: user.id },
+						data: { lastLoginAt: new Date() },
+					}),
+			);
+			return {
+				accessToken,
+				refreshToken,
+				refreshTtlSec,
+				user: {
+					id: user.id,
+					tenantId: user.tenantId,
+					tenantSlug: user.tenant.slug,
+					tenantName: user.tenant.name,
+					username: user.username,
+					email: user.email,
+					phone: user.phone,
+					fullName: user.fullName,
+					role: user.role.code,
+					permissions,
+					mustChangePassword: user.mustChangePassword,
+				},
+			};
+		} catch (error) {
+			await this.sessions.revokeUserFamily(familyId, user.id);
+			throw error;
+		}
+	}
+
+	async refreshUser(
+		rawRefreshToken: string,
+		context: { ip?: string; userAgent?: string } = {},
+	): Promise<TenantRegistrationResult> {
+		const claims = this.tokens.verifyTenantRefresh(rawRefreshToken);
+		const user = await this.findActiveUser(claims.sub, claims.tenantId);
+		if (!user) throw new UnauthorizedException('Refresh not allowed');
+
+		const familyId = claims.familyId;
+		const identity = this.toIdentity(user, familyId);
+		const newRefresh = this.tokens.signTenantRefresh(
+			user.id,
+			user.tenantId,
+			familyId,
+		);
+		const ttlSec = remainingTtlSec(
+			this.tokens.verifyTenantRefresh(newRefresh).exp ?? 0,
+		);
+		const result = await this.userRedis(() =>
+			this.sessions.rotateUser(
+				familyId,
+				rawRefreshToken,
+				newRefresh,
+				ttlSec,
+				5,
+			),
+		);
+		if (result === 'reuse') {
+			await this.audit.log({
+				tenantId: user.tenantId,
+				actorId: user.id,
+				actorType: AuditActorType.USER,
+				actorRoleCode: user.role.code,
+				action: AuditAction.REFRESH_REUSE_DETECTED,
+				resource: 'auth',
+				ipAddress: context.ip,
+				userAgent: context.userAgent,
+			});
+			throw new UnauthorizedException('Refresh token reuse detected');
+		}
+		if (result === 'missing') {
+			throw new UnauthorizedException('Refresh session not found');
+		}
+		await this.userRedis(() =>
+			this.sessions.openUser(familyId, newRefresh, ttlSec, user.id),
+		);
+		return {
+			accessToken: this.tokens.signTenantAccess(identity, familyId),
+			refreshToken: newRefresh,
+			refreshTtlSec: ttlSec,
+			user: this.toPublicUser(user),
+		};
+	}
+
+	async logoutUser(
+		rawAccessToken: string,
+		context: { ip?: string; userAgent?: string } = {},
+	): Promise<void> {
+		const claims = this.tokens.verifyTenantAccess(rawAccessToken);
+		const user = await this.findActiveUser(claims.sub, claims.tenantId);
+		await this.userRedis(async () => {
+			await this.sessions.blacklistUserAccess(
+				rawAccessToken,
+				claims.exp ? remainingTtlSec(claims.exp) : 1,
+			);
+			await this.sessions.revokeUserFamily(claims.familyId, claims.sub);
+		});
+		await this.audit.log({
+			tenantId: claims.tenantId,
+			actorId: claims.sub,
+			actorType: AuditActorType.USER,
+			actorRoleCode: user?.role.code ?? claims.role ?? null,
+			action: AuditAction.LOGOUT,
+			resource: 'auth',
+			ipAddress: context.ip,
+			userAgent: context.userAgent,
+		});
+	}
+
+	async meUser(
+		userId: string,
+		tenantId: string,
+	): Promise<TenantAuthResponse['user']> {
+		const user = await this.findActiveUser(userId, tenantId);
+		if (!user) throw new UnauthorizedException('User not found');
+		return this.toPublicUser(user);
+	}
+
+	async changePassword(
+		userId: string,
+		tenantId: string,
+		familyId: string,
+		dto: ChangeTenantPasswordDto,
+	): Promise<TenantAuthResponse['user']> {
+		const user = await this.prisma.user.findFirst({
+			where: {
+				id: userId,
+				tenantId,
+				status: 'ACTIVE',
+				deletedAt: null,
+				tenant: { status: 'ACTIVE', deletedAt: null },
+			},
+			include: {
+				tenant: { select: { slug: true, name: true } },
+				role: {
+					select: {
+						code: true,
+						permissions: {
+							select: { permission: { select: { code: true } } },
+						},
+					},
+				},
+			},
+		});
+		if (!user) throw new UnauthorizedException('User not found');
+		if (
+			!(await this.passwords.verify(user.passwordHash, dto.currentPassword))
+		) {
+			throw new UnauthorizedException('Invalid current password');
+		}
+		const passwordHash = await this.passwords.hash(dto.newPassword);
+		await this.audit.run(
+			{
+				tenantId,
+				actorId: userId,
+				actorType: AuditActorType.USER,
+				actorRoleCode: user.role.code,
+				action: AuditAction.TENANT_UPDATE,
+				resource: 'auth',
+			},
+			(tx) =>
+				tx.user.update({
+					where: { id: userId },
+					data: { passwordHash, mustChangePassword: false },
+				}),
+		);
+		await this.userRedis(() =>
+			this.sessions.revokeOtherUserFamilies(userId, familyId),
+		);
+		return this.toPublicUser({ ...user, mustChangePassword: false });
+	}
+
+	private async findActiveUser(userId: string, tenantId?: string) {
+		return this.prisma.user.findFirst({
+			where: {
+				id: userId,
+				...(tenantId ? { tenantId } : {}),
+				status: 'ACTIVE',
+				deletedAt: null,
+				tenant: { status: 'ACTIVE', deletedAt: null },
+			},
+			include: {
+				tenant: { select: { slug: true, name: true } },
+				role: {
+					select: {
+						code: true,
+						permissions: { select: { permission: { select: { code: true } } } },
+					},
+				},
+			},
+		});
+	}
+
+	private toIdentity(
+		user: NonNullable<Awaited<ReturnType<TenantAuthService['findActiveUser']>>>,
+		familyId: string,
+	): TenantIdentity {
+		return {
+			id: user.id,
+			tenantId: user.tenantId,
+			username: user.username,
+			roleCode: user.role.code,
+			permissions: user.role.permissions.map((grant) => grant.permission.code),
+			familyId,
+		};
+	}
+
+	private toPublicUser(
+		user: NonNullable<Awaited<ReturnType<TenantAuthService['findActiveUser']>>>,
+	) {
+		return {
+			id: user.id,
+			tenantId: user.tenantId,
+			tenantSlug: user.tenant.slug,
+			tenantName: user.tenant.name,
+			username: user.username,
+			email: user.email,
+			phone: user.phone,
+			fullName: user.fullName,
+			role: user.role.code,
+			permissions: user.role.permissions.map((grant) => grant.permission.code),
+			mustChangePassword: user.mustChangePassword,
+		};
+	}
+
+	private async userRedis<T>(operation: () => Promise<T>): Promise<T> {
+		try {
+			return await operation();
+		} catch {
+			throw new ServiceUnavailableException('Auth store unavailable');
+		}
 	}
 }

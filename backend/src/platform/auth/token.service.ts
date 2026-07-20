@@ -15,7 +15,30 @@ export interface TenantIdentity {
 	tenantId: string;
 	username: string;
 	roleCode: string;
+	permissions?: string[];
+	familyId?: string;
 }
+
+export interface TenantAuthUser {
+	id: string;
+	tenantId: string;
+	tenantSlug: string;
+	tenantName: string;
+	username: string;
+	email: string | null;
+	phone: string | null;
+	fullName: string;
+	role: string;
+	permissions: string[];
+	mustChangePassword: boolean;
+}
+
+export interface TenantAuthResponse {
+	accessToken: string;
+	user: TenantAuthUser;
+}
+
+export type TenantMeResponse = TenantAuthUser;
 
 export interface AccessClaims {
 	sub: string;
@@ -25,6 +48,7 @@ export interface AccessClaims {
 	permissions?: string[]; // NEW: optional for OLD-shape tokens
 	type: 'access';
 	familyId: string;
+	username?: string;
 	jti?: string;
 	iat?: number;
 	exp?: number;
@@ -36,6 +60,8 @@ export interface RefreshClaims {
 	sub: string;
 	familyId: string;
 	type: 'refresh';
+	tenantId?: string;
+	userType?: 'admin' | 'tenant';
 	jti?: string;
 	iat?: number;
 	exp?: number;
@@ -96,12 +122,19 @@ export class TokenService {
 	}
 
 	signTenant(user: TenantIdentity): string {
+		return this.signTenantAccess(user, user.familyId ?? randomUUID());
+	}
+
+	signTenantAccess(user: TenantIdentity, familyId: string): string {
 		return this.jwt.sign(
 			{
 				sub: user.id,
 				email: user.username,
+				username: user.username,
 				tenantId: user.tenantId,
 				role: user.roleCode,
+				permissions: user.permissions ?? [],
+				familyId,
 				userType: 'tenant',
 				type: 'access',
 				jti: randomUUID(),
@@ -109,6 +142,27 @@ export class TokenService {
 			{
 				secret: this.accessSecret,
 				expiresIn: this.accessTtl,
+			} as JwtSignOptions,
+		);
+	}
+
+	signTenantRefresh(
+		userId: string,
+		tenantId: string,
+		familyId: string,
+	): string {
+		return this.jwt.sign(
+			{
+				sub: userId,
+				tenantId,
+				familyId,
+				userType: 'tenant',
+				type: 'refresh',
+				jti: randomUUID(),
+			},
+			{
+				secret: this.refreshSecret,
+				expiresIn: this.refreshTtl,
 			} as JwtSignOptions,
 		);
 	}
@@ -154,6 +208,22 @@ export class TokenService {
 		}
 		if (claims.type !== 'refresh') {
 			throw new UnauthorizedException('Wrong token type');
+		}
+		return claims;
+	}
+
+	verifyTenantAccess(token: string): AccessClaims {
+		const claims = this.verifyAccess(token);
+		if (claims.userType !== 'tenant' || !claims.tenantId || !claims.username) {
+			throw new UnauthorizedException('Wrong tenant token type');
+		}
+		return claims;
+	}
+
+	verifyTenantRefresh(token: string): RefreshClaims {
+		const claims = this.verifyRefresh(token);
+		if (claims.userType !== 'tenant' || !claims.tenantId) {
+			throw new UnauthorizedException('Wrong tenant refresh token type');
 		}
 		return claims;
 	}

@@ -14,7 +14,6 @@ describe('Tenant product entitlement enforcement (e2e)', () => {
 	let planId: string;
 	let subscriptionId: string;
 	let featureId: string;
-	let tenantSlug: string;
 	let roleId: string;
 	let userId: string;
 	let unitId: string;
@@ -51,7 +50,6 @@ describe('Tenant product entitlement enforcement (e2e)', () => {
 			},
 		});
 		tenantId = tenant.id;
-		tenantSlug = tenant.slug;
 		const role = await prisma.role.create({
 			data: {
 				tenantId,
@@ -62,6 +60,13 @@ describe('Tenant product entitlement enforcement (e2e)', () => {
 			},
 		});
 		roleId = role.id;
+		const productPermissions = await prisma.permission.findMany({
+			where: { code: { in: ['product:view', 'product:create'] } },
+			select: { id: true },
+		});
+		await prisma.rolePermission.createMany({
+			data: productPermissions.map(({ id }) => ({ roleId, permissionId: id })),
+		});
 		const user = await prisma.user.create({
 			data: {
 				tenantId,
@@ -106,7 +111,7 @@ describe('Tenant product entitlement enforcement (e2e)', () => {
 		unitId = unit.id;
 		const login = await request(app.getHttpServer())
 			.post('/auth/login')
-			.send({ tenantSlug, identifier: username, password })
+			.send({ identifier: username, password })
 			.expect(200);
 		accessToken = login.body.accessToken;
 	});

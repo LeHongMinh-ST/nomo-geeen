@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Implementation Notes - user-registration-authentication</title>
+  <style>
+    :root { color-scheme: light; --bg:#f4faf7; --panel:#fff; --ink:#17211d; --muted:#63736d; --line:#dfe8e4; --brand:#087a5a; --blue:#2563eb; --shadow:0 12px 32px rgba(15,23,42,.08); }
+    * { box-sizing:border-box; } body { margin:0; background:linear-gradient(180deg,#f8fffd,var(--bg)); color:var(--ink); font:15px/1.55 Inter,system-ui,sans-serif; }
+    main { width:min(1000px,calc(100% - 32px)); margin:auto; padding:32px 0 56px; } .hero,.task { background:rgba(255,255,255,.94); border:1px solid var(--line); border-radius:16px; box-shadow:var(--shadow); padding:22px; }
+    .eyebrow { color:var(--brand); font-size:12px; font-weight:750; letter-spacing:.08em; text-transform:uppercase; } h1,h2 { margin:0 0 10px; line-height:1.15; } h1 { font-size:clamp(30px,5vw,50px); } h2 { font-size:22px; }
+    .summary { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-top:18px; } .metric { background:#eef7f3; border:1px solid var(--line); border-radius:10px; padding:10px; } .metric span { display:block; color:var(--muted); font-size:12px; } .metric strong { display:block; }
+    .task { margin-top:20px; } .status { display:inline-block; border:1px solid #b7e3d1; border-radius:999px; padding:4px 9px; color:var(--brand); background:#ecfdf5; font-size:12px; font-weight:700; } .note { margin-top:14px; border:1px solid var(--line); border-left:5px solid var(--blue); border-radius:10px; padding:13px 15px; background:#fbfefd; } .note p { margin:0 0 8px; } .note p:last-child { margin-bottom:0; } code { font-family:ui-monospace,SFMono-Regular,monospace; font-size:.92em; background:#eef7f3; border:1px solid var(--line); border-radius:5px; padding:1px 4px; }
+    @media (max-width:640px) { .summary { grid-template-columns:1fr; } main { width:min(100% - 20px,1000px); padding-top:20px; } }
+  </style>
+</head>
+<body>
+  <main>
+    <section class="hero">
+      <div class="eyebrow">Implementation notes</div>
+      <h1>user-registration-authentication</h1>
+      <p>Task-aware implementation record for <code>specs/user-registration-authentication/spec.json</code>.</p>
+      <div class="summary"><div class="metric"><span>Mode</span><strong>Full spec</strong></div><div class="metric"><span>Active task</span><strong>R0-01</strong></div><div class="metric"><span>Status</span><strong>In progress</strong></div></div>
+    </section>
+    <section class="task">
+      <h2>R0-01 · Session contract foundation <span class="status">done</span></h2>
+      <div class="note"><p><strong>codebase-reality</strong></p><p>Existing tenant auth is access-only and the shared refresh store is admin-namespaced. The foundation adds explicit tenant claims, user Redis namespaces, optional tenant audit scope, and an injectable origin/realm policy while preserving admin methods.</p></div>
+      <div class="note"><p><strong>scope-escape</strong></p><p>Added <code>auth-request-policy.ts</code> and registered it in <code>AuthModule</code> because the task explicitly requires Origin validation and refresh-realm disambiguation to be reachable by later HTTP tasks.</p></div>
+      <div class="note"><p><strong>verification</strong></p><p>R0-01 closeout: exact token/refresh command 2 suites / 21 tests PASS against Redis 7; auth regression 7 suites / 49 tests PASS; audit logger 8 tests PASS; backend build and Biome check PASS. Manual spec/scope review 9.5/10 with 0 critical findings.</p></div>
+    </section>
+    <section class="task">
+      <h2>R2-01 · Tenant login and identity <span class="status">done</span></h2>
+      <div class="note"><p><strong>decision</strong></p><p>Each user currently belongs to exactly one tenant. Login resolves that tenant from a unique username/email/phone + password match. The client no longer sends a tenant code; ambiguous duplicate matches fail generically. The response still returns tenant metadata and current role grants. Multi-tenant membership and tenant selection are deferred.</p></div>
+      <div class="note"><p><strong>verification</strong></p><p>Tenant-auth unit 4/4, auth + provisioning regression 69/69, AppModule smoke 1/1, backend build and Biome checks pass.</p></div>
+    </section>
+    <section class="task">
+      <h2>R1-01 · Public registration <span class="status">done</span></h2>
+      <div class="note"><p><strong>codebase-reality</strong></p><p>Public registration delegates Tenant + OWNER + three role creation to the existing provisioning transaction through a forward-referenced <code>TenantsModule</code> boundary.</p></div>
+      <div class="note"><p><strong>verification</strong></p><p>Registration service tests 2/2, provisioning regression 18/18, backend build and Biome checks pass. The route returns the canonical public identity and sets the user refresh cookie without credential fields.</p></div>
+    </section>
+    <section class="task">
+      <h2>R3-01 · User session lifecycle <span class="status">done</span></h2>
+      <div class="note"><p><strong>implementation</strong></p><p><code>nomo_user_rt</code> refresh dispatch, atomic user rotation/reuse handling, current <code>/auth/me</code>, logout blacklist/family revocation, and fail-closed Redis behavior are wired without changing the admin realm.</p></div>
+      <div class="note"><p><strong>verification</strong></p><p>Tenant guard unit 3/3, tenant Postgres/Redis lifecycle E2E 1/1, admin auth-flow plus AppModule regression 3/3, backend build and Biome checks pass.</p></div>
+    </section>
+    <section class="task">
+      <h2>R4-01 · Authorization and password change <span class="status">done</span></h2>
+      <div class="note"><p><strong>implementation</strong></p><p>Business routes now use server-derived tenant permission grants and centrally enforce <code>mustChangePassword</code>. Authenticated password change updates the hash/flag transactionally and revokes other user families.</p></div>
+      <div class="note"><p><strong>verification</strong></p><p>Permission guard unit 3/3, forced-change tenant E2E 1/1, AppModule smoke 1/1, build and Biome pass.</p></div>
+    </section>
+    <section class="task">
+      <h2>R5-01 · Frontend user auth state <span class="status">done</span></h2>
+      <div class="note"><p><strong>implementation</strong></p><p>Added typed user auth API, memory-only Zustand session, independent route guard, and single-flight user fetch refresh/retry. Admin auth state remains separate.</p></div>
+      <div class="note"><p><strong>verification</strong></p><p>Next production build generated 39 routes and TypeScript passed; Biome lint passed across 203 frontend files.</p></div>
+    </section>
+    <section class="task">
+      <h2>R5-02 · Frontend user auth screens <span class="status">done</span></h2>
+      <div class="note"><p><strong>implementation</strong></p><p>Replaced mock login with tenant-aware login, added public registration and forced password-change routes, and kept admin auth isolated.</p></div>
+      <div class="note"><p><strong>verification</strong></p><p>Next build generated 41 routes, lint passed across 206 files, and Playwright reached login/registration with a 390×844 responsive snapshot and no browser errors.</p></div>
+    </section>
+    <section class="task">
+      <h2>R6-01 · Tenant auth acceptance tests <span class="status">done</span></h2>
+      <div class="note"><p><strong>verification</strong></p><p>Combined auth/product E2E passed 5 suites and 19 tests on Postgres/Redis, including tenant lifecycle, forced password change, permission boundary, and admin regression.</p></div>
+    </section>
+    <section class="task">
+      <h2>R7-01 · Integration and reachability <span class="status">done</span></h2>
+      <div class="note"><p><strong>verification</strong></p><p>User app guard, public auth routes, backend route chain, and browser reachability are verified. Desktop 1440×900 and mobile 390×844 snapshots pass; local p95 is login 105ms (Argon2 included), me 16ms, refresh 13ms.</p></div>
+    </section>
+  </main>
+</body>
+</html>
