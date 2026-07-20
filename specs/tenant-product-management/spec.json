@@ -1,0 +1,49 @@
+{
+  "feature_name": "tenant-product-management",
+  "title": "Tenant product management",
+  "status": "ready_for_review",
+  "phase": "tasks",
+  "current_phase": "develop",
+  "created_at": "2026-07-21T00:10:00+07:00",
+  "updated_at": "2026-07-21T01:10:00+07:00",
+  "ready_for_implementation": true,
+  "scope_lock": {
+    "in_scope": [
+      "Tenant-scoped product list, detail, create, update, and soft-delete",
+      "Tenant-scoped product catalog lookups for category, brand, manufacturer, and unit",
+      "Permission and inventory feature enforcement on write operations",
+      "User app product list and create/edit/delete flows backed by the API",
+      "Unit and E2E coverage for tenant isolation and negative authorization paths"
+    ],
+    "out_of_scope": [
+      "Stock movement, purchase, sales, batch, and inventory adjustment workflows",
+      "Catalog lookup CRUD and category manager persistence",
+      "Product images, conversions, price tiers, and handbook integration",
+      "Dashboard aggregation"
+    ]
+  },
+  "task_files": [
+    "tasks/task-R0-01-product-api-contract.md",
+    "tasks/task-R1-01-product-crud-and-lookups.md",
+    "tasks/task-R2-01-product-ui-api-integration.md",
+    "tasks/task-R3-01-product-acceptance-and-reachability.md"
+  ],
+  "task_registry": {
+    "tasks/task-R0-01-product-api-contract.md": {"id":"R0-01","title":"Product API contract","status":"done","dependencies":[],"blocker":null,"started_at":"2026-07-21T00:02:00+07:00","completed_at":"2026-07-21T00:10:00+07:00","last_updated_at":"2026-07-21T00:10:00+07:00"},
+    "tasks/task-R1-01-product-crud-and-lookups.md": {"id":"R1-01","title":"Product CRUD and lookups","status":"done","dependencies":["tasks/task-R0-01-product-api-contract.md"],"blocker":null,"started_at":"2026-07-21T00:15:00+07:00","completed_at":"2026-07-21T00:35:00+07:00","last_updated_at":"2026-07-21T00:35:00+07:00"},
+    "tasks/task-R2-01-product-ui-api-integration.md": {"id":"R2-01","title":"Product UI API integration","status":"done","dependencies":["tasks/task-R1-01-product-crud-and-lookups.md"],"blocker":null,"started_at":"2026-07-21T00:35:00+07:00","completed_at":"2026-07-21T00:55:00+07:00","last_updated_at":"2026-07-21T00:55:00+07:00"},
+    "tasks/task-R3-01-product-acceptance-and-reachability.md": {"id":"R3-01","title":"Product acceptance and reachability","status":"done","dependencies":["tasks/task-R1-01-product-crud-and-lookups.md","tasks/task-R2-01-product-ui-api-integration.md"],"blocker":null,"started_at":"2026-07-21T00:55:00+07:00","completed_at":"2026-07-21T01:10:00+07:00","last_updated_at":"2026-07-21T01:10:00+07:00"}
+  },
+  "progress": {"init":"done","requirements":"done","research":"done","design":"done","tasks":"done","code":"done","test":"done","review":"done"},
+  "approvals": {"requirements":{"generated":true,"approved":true},"design":{"generated":true,"approved":true},"tasks":{"generated":true,"approved":true}},
+  "priority": "P0",
+  "effort": "L",
+  "tags": ["tenant-product","crud","frontend","entitlements"],
+  "dependencies": {"blockedBy":["user-registration-authentication","tenant-user-management","admin-plan-subscription-management"],"blocks":[]},
+  "related_specs": [{"feature":"user-registration-authentication","relationship":"consumes tenant JWT and userFetch"},{"feature":"tenant-user-management","relationship":"consumes tenant permissions and role boundaries"},{"feature":"admin-plan-subscription-management","relationship":"consumes inventory feature and maxProducts quota"}],
+  "blocker": null,
+  "timestamps": {"init":"2026-07-21T00:00:00+07:00","requirements_done":"2026-07-21T00:03:00+07:00","research_done":"2026-07-21T00:05:00+07:00","design_done":"2026-07-21T00:07:00+07:00","tasks_done":"2026-07-21T00:10:00+07:00","validation_done":"2026-07-21T00:10:00+07:00"},
+  "design_context": {"discovery_mode":"light","discovery_reason":"Existing product API and mounted product UI; bounded CRUD integration.","execution_tier":"standard","validation_recommended":true},
+  "translation": {"enabled":false,"language":null,"language_code":null,"dir":null,"sync":"always","last_synced_at":null},
+  "validation": {"status":"completed","session_count":1,"questions_asked":0,"last_validated_at":"2026-07-21T00:10:00+07:00"}
+}

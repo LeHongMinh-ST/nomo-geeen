@@ -22,6 +22,7 @@ import {
 	stockStatusBadgeClass,
 	stockStatusLabel,
 } from "@/lib/products";
+import { deleteTenantProduct } from "@/lib/tenant-products-api";
 import { ProductForm } from "./product-form";
 
 /**
@@ -32,10 +33,14 @@ export function ProductDetail({ product }: { product: Product }) {
 	const router = useRouter();
 	const [editing, setEditing] = useState(false);
 	const [confirmDelete, setConfirmDelete] = useState(false);
+	const [deleteError, setDeleteError] = useState<string | null>(null);
+	const [deleting, setDeleting] = useState(false);
 
 	const status = getStockStatus(product);
 	const manufacturerName =
-		manufacturers.find((m) => m.id === product.manufacturerId)?.name ?? null;
+		product.manufacturerLabel ??
+		manufacturers.find((m) => m.id === product.manufacturerId)?.name ??
+		null;
 
 	if (editing) {
 		return (
@@ -126,8 +131,14 @@ export function ProductDetail({ product }: { product: Product }) {
 
 			{/* Thông tin cơ bản */}
 			<InfoSection icon={Tag} tile="#5cad45" title="Thông tin chung">
-				<InfoRow label="Danh mục" value={categoryName(product.categoryId)} />
-				<InfoRow label="Thương hiệu" value={brandName(product.brandId)} />
+				<InfoRow
+					label="Danh mục"
+					value={product.categoryLabel ?? categoryName(product.categoryId)}
+				/>
+				<InfoRow
+					label="Thương hiệu"
+					value={product.brandLabel ?? brandName(product.brandId)}
+				/>
 				{manufacturerName ? (
 					<InfoRow label="Nhà sản xuất" value={manufacturerName} />
 				) : null}
@@ -218,16 +229,29 @@ export function ProductDetail({ product }: { product: Product }) {
 						</button>
 						<button
 							type="button"
-							onClick={() => {
-								// TODO: gọi API xóa (soft delete) khi backend sẵn sàng.
-								router.push("/san-pham");
+							onClick={async () => {
+								setDeleting(true);
+								setDeleteError(null);
+								try {
+									await deleteTenantProduct(product.id);
+									router.push("/san-pham");
+								} catch {
+									setDeleteError("Không thể xóa sản phẩm. Vui lòng thử lại.");
+									setDeleting(false);
+								}
 							}}
+							disabled={deleting}
 							className="flex h-11 flex-1 items-center justify-center gap-2 rounded-[10px] bg-destructive text-base font-semibold text-white hover:bg-[#c62828]"
 						>
 							<Trash2 className="size-5" aria-hidden />
 							Xóa
 						</button>
 					</div>
+					{deleteError ? (
+						<p className="text-sm text-destructive" role="alert">
+							{deleteError}
+						</p>
+					) : null}
 				</div>
 			) : (
 				<button

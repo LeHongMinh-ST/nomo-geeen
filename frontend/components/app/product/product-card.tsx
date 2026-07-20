@@ -44,8 +44,10 @@ export function ProductCard({ product }: { product: Product }) {
 				</div>
 
 				<p className="text-sm text-[#616161]">
-					{categoryName(product.categoryId)}
-					{product.brandId ? ` · ${brandName(product.brandId)}` : ""}
+					{product.categoryLabel ?? categoryName(product.categoryId)}
+					{product.brandId
+						? ` · ${product.brandLabel ?? brandName(product.brandId)}`
+						: ""}
 				</p>
 
 				<div className="mt-1 flex items-end justify-between gap-2">

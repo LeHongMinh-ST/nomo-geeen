@@ -12,16 +12,19 @@ import {
 	Trash2,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
-import {
-	brands,
-	categories,
-	manufacturers,
-	type PriceTier,
-	type Product,
-	type UnitConversion,
-	units,
+import { useEffect, useState } from "react";
+import type {
+	PriceTier,
+	Product,
+	UnitConversion,
 } from "@/lib/products";
+import {
+	createTenantProduct,
+	getProductLookups,
+	updateTenantProduct,
+	type ProductInput,
+	type ProductLookups,
+} from "@/lib/tenant-products-api";
 
 /**
  * Form Thêm/Sửa sản phẩm — đầy đủ theo base_spec §5, §5.1, §11.
@@ -63,7 +66,7 @@ function toFormState(p?: Product): FormState {
 		categoryId: p?.categoryId ?? "",
 		brandId: p?.brandId ?? "",
 		manufacturerId: p?.manufacturerId ?? "",
-		baseUnit: p?.baseUnit ?? "",
+		baseUnit: p?.baseUnitId ?? "",
 		conversions: p?.conversions ?? [],
 		costPrice: p ? String(p.costPrice) : "",
 		salePrice: p ? String(p.salePrice) : "",
@@ -84,9 +87,11 @@ function toFormState(p?: Product): FormState {
 export function ProductForm({
 	mode,
 	product,
+	lookups: providedLookups,
 }: {
 	mode: FormMode;
 	product?: Product;
+	lookups?: ProductLookups;
 }) {
 	const router = useRouter();
 	const [form, setForm] = useState<FormState>(() => toFormState(product));
@@ -94,6 +99,21 @@ export function ProductForm({
 		Boolean(product?.agro?.activeIngredient),
 	);
 	const [saving, setSaving] = useState(false);
+	const [lookups, setLookups] = useState<ProductLookups | null>(
+		providedLookups ?? null,
+	);
+	const [error, setError] = useState<string | null>(null);
+	const selectedUnitName =
+		lookups?.units.find((unit) => unit.id === form.baseUnit)?.name ?? "";
+
+	useEffect(() => {
+		if (providedLookups) return;
+		void getProductLookups()
+			.then(setLookups)
+			.catch(() => {
+				setError("Không thể tải danh mục sản phẩm. Vui lòng thử lại.");
+			});
+	}, [providedLookups]);
 
 	function set<K extends keyof FormState>(key: K, value: FormState[K]) {
 		setForm((f) => ({ ...f, [key]: value }));
@@ -131,13 +151,36 @@ export function ProductForm({
 		);
 	}
 
-	function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+	async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
 		e.preventDefault();
 		setSaving(true);
-		// TODO: gọi API tạo/cập nhật sản phẩm khi backend sẵn sàng.
-		setTimeout(() => {
+		setError(null);
+		const input: ProductInput = {
+			sku: form.sku,
+			name: form.name,
+			barcode: form.barcode || undefined,
+			baseUnitId: form.baseUnit,
+			categoryId: form.categoryId || undefined,
+			brandId: form.brandId || undefined,
+			manufacturerId: form.manufacturerId || undefined,
+			costPrice: Number(form.costPrice || 0),
+			salePrice: Number(form.salePrice || 0),
+			wholesalePrice: form.wholesalePrice
+				? Number(form.wholesalePrice)
+				: undefined,
+			isLocked: form.locked,
+		};
+		try {
+			if (mode === "edit" && product) {
+				await updateTenantProduct(product.id, input);
+			} else {
+				await createTenantProduct(input);
+			}
 			router.push("/san-pham");
-		}, 400);
+		} catch {
+			setError("Không thể lưu sản phẩm. Vui lòng kiểm tra dữ liệu và thử lại.");
+			setSaving(false);
+		}
 	}
 
 	return (
@@ -193,7 +236,10 @@ export function ProductForm({
 							value={form.categoryId}
 							onChange={(v) => set("categoryId", v)}
 							placeholder="Chọn danh mục"
-							options={categories.map((c) => ({ value: c.id, label: c.name }))}
+							options={(lookups?.categories ?? []).map((c) => ({
+								value: c.id,
+								label: c.name,
+							}))}
 							required
 						/>
 					</Field>
@@ -202,7 +248,10 @@ export function ProductForm({
 							value={form.brandId}
 							onChange={(v) => set("brandId", v)}
 							placeholder="Chọn thương hiệu"
-							options={brands.map((b) => ({ value: b.id, label: b.name }))}
+							options={(lookups?.brands ?? []).map((b) => ({
+								value: b.id,
+								label: b.name,
+							}))}
 						/>
 					</Field>
 				</div>
@@ -212,7 +261,10 @@ export function ProductForm({
 						value={form.manufacturerId}
 						onChange={(v) => set("manufacturerId", v)}
 						placeholder="Chọn nhà sản xuất"
-						options={manufacturers.map((m) => ({ value: m.id, label: m.name }))}
+						options={(lookups?.manufacturers ?? []).map((m) => ({
+							value: m.id,
+							label: m.name,
+						}))}
 					/>
 				</Field>
 
@@ -238,7 +290,10 @@ export function ProductForm({
 						value={form.baseUnit}
 						onChange={(v) => set("baseUnit", v)}
 						placeholder="Chọn đơn vị (Chai, Kg, Gói...)"
-						options={units.map((u) => ({ value: u.name, label: u.name }))}
+						options={(lookups?.units ?? []).map((u) => ({
+							value: u.id,
+							label: u.name,
+						}))}
 						required
 					/>
 				</Field>
@@ -248,8 +303,8 @@ export function ProductForm({
 						Đơn vị quy đổi
 					</span>
 					<p className="text-sm text-[#616161]">
-						Nhập theo đơn vị lớn, tự quy đổi ra {form.baseUnit || "đơn vị gốc"}.
-						VD: 1 Bao = 50 Kg.
+						Nhập theo đơn vị lớn, tự quy đổi ra{" "}
+						{selectedUnitName || "đơn vị gốc"}. VD: 1 Bao = 50 Kg.
 					</p>
 
 					{form.conversions.map((c, i) => (
@@ -274,7 +329,7 @@ export function ProductForm({
 								className={`${inputClass} w-24 text-right`}
 							/>
 							<span className="w-16 shrink-0 text-sm text-[#616161]">
-								{form.baseUnit || "gốc"}
+								{selectedUnitName || "gốc"}
 							</span>
 							<button
 								type="button"
@@ -338,7 +393,7 @@ export function ProductForm({
 				</div>
 
 				<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-					<Field label={`Tồn kho hiện tại (${form.baseUnit || "gốc"})`}>
+					<Field label={`Tồn kho hiện tại (${selectedUnitName || "gốc"})`}>
 						<input
 							type="number"
 							inputMode="numeric"
@@ -368,8 +423,8 @@ export function ProductForm({
 						Giá theo bậc số lượng
 					</span>
 					<p className="text-sm text-[#616161]">
-						Mua càng nhiều giá càng tốt. VD: từ 50 {form.baseUnit || "đơn vị"} →
-						giá sỉ.
+						Mua càng nhiều giá càng tốt. VD: từ 50{" "}
+						{selectedUnitName || "đơn vị"} → giá sỉ.
 					</p>
 
 					{form.priceTiers.map((t, i) => (
@@ -387,7 +442,7 @@ export function ProductForm({
 								className={`${inputClass} w-20 text-right`}
 							/>
 							<span className="shrink-0 text-sm text-[#616161]">
-								{form.baseUnit || "đv"} →
+								{selectedUnitName || "đv"} →
 							</span>
 							<input
 								type="number"
@@ -520,6 +575,14 @@ export function ProductForm({
 					</div>
 				) : null}
 			</div>
+			{error ? (
+				<p
+					className="rounded-[10px] bg-[#fff5f5] px-3 py-2 text-sm text-destructive"
+					role="alert"
+				>
+					{error}
+				</p>
+			) : null}
 
 			{/* Hành động — desktop inline */}
 			<div className="hidden items-center justify-end gap-3 lg:flex">

@@ -25,7 +25,7 @@ const PRIVATE_HOST =
 	/^(localhost|127\.0\.0\.1|0\.0\.0\.0|10\.\d+\.\d+\.\d+|192\.168\.\d+\.\d+|172\.(1[6-9]|2\d|3[0-1])\.\d+\.\d+|\[::1\])$/i;
 // Match C0 controls (incl. CR/LF/tab) + DEL, built via unicode escapes so the
 // source file stays free of raw control bytes.
-const CONTROL_CHARS = new RegExp("[\u0000-\u001F\u007F]", "g");
+const CONTROL_CHARS = /[\u0000-\u001F\u007F]/g;
 
 /** Strip control chars / CRLF, trim surrounding whitespace. */
 function sanitize(value: unknown): unknown {

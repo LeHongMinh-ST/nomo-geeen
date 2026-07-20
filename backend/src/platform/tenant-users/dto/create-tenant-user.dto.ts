@@ -17,7 +17,7 @@ const PASSWORD_PATTERN =
 	/^(?=.*[A-Za-z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]).{12,}$/;
 // Match C0 controls (incl. CR/LF/tab) + DEL, built via unicode escapes so the
 // source file stays free of raw control bytes.
-const CONTROL_CHARS = new RegExp("[\u0000-\u001F\u007F]", "g");
+const CONTROL_CHARS = /[\u0000-\u001F\u007F]/g;
 
 /** Strip control chars / CRLF, trim surrounding whitespace. */
 export function sanitize(value: unknown): unknown {

@@ -36,4 +36,23 @@ export class CreateProductDto {
 	@IsOptional()
 	@IsUUID('4')
 	categoryId?: string;
+
+	@IsOptional()
+	@IsString()
+	barcode?: string;
+
+	@IsOptional()
+	@IsUUID('4')
+	brandId?: string;
+
+	@IsOptional()
+	@IsUUID('4')
+	manufacturerId?: string;
+
+	@IsOptional()
+	@Type(() => Number)
+	@IsInt()
+	@Min(0)
+	@Max(Number.MAX_SAFE_INTEGER)
+	wholesalePrice?: number;
 }

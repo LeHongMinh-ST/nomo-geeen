@@ -61,7 +61,16 @@ describe('Tenant product entitlement enforcement (e2e)', () => {
 		});
 		roleId = role.id;
 		const productPermissions = await prisma.permission.findMany({
-			where: { code: { in: ['product:view', 'product:create'] } },
+			where: {
+				code: {
+					in: [
+						'product:view',
+						'product:create',
+						'product:edit',
+						'product:delete',
+					],
+				},
+			},
 			select: { id: true },
 		});
 		await prisma.rolePermission.createMany({
@@ -185,6 +194,45 @@ describe('Tenant product entitlement enforcement (e2e)', () => {
 			.expect((response) => expect(response.body).toHaveLength(1));
 	});
 
+	it('supports tenant-scoped lookups, detail, update, and soft delete', async () => {
+		const list = await auth(
+			request(app.getHttpServer()).get('/tenant/products'),
+		).expect(200);
+		const productId = list.body[0].id as string;
+
+		const lookups = await auth(
+			request(app.getHttpServer()).get('/tenant/products/lookups'),
+		).expect(200);
+		expect(lookups.body.units).toEqual(
+			expect.arrayContaining([
+				{ id: unitId, code: `EA-${suffix}`, name: 'Each' },
+			]),
+		);
+
+		await auth(
+			request(app.getHttpServer()).get(`/tenant/products/${productId}`),
+		)
+			.expect(200)
+			.expect((response) => expect(response.body.id).toBe(productId));
+
+		await auth(
+			request(app.getHttpServer()).patch(`/tenant/products/${productId}`),
+		)
+			.send({ name: 'Updated product', salePrice: 12500 })
+			.expect(200)
+			.expect((response) => {
+				expect(response.body.name).toBe('Updated product');
+				expect(response.body.salePrice).toBe('12500');
+			});
+
+		await auth(
+			request(app.getHttpServer()).delete(`/tenant/products/${productId}`),
+		).expect(200);
+		await auth(
+			request(app.getHttpServer()).get(`/tenant/products/${productId}`),
+		).expect(404);
+	});
+
 	it('rolls back a reserved slot when Product creation fails', async () => {
 		await auth(request(app.getHttpServer()).post('/tenant/products'))
 			.send({ sku: 'E2E-BAD', name: 'Invalid unit', baseUnitId: tenantId })
@@ -234,7 +282,7 @@ describe('Tenant product entitlement enforcement (e2e)', () => {
 		});
 		await auth(request(app.getHttpServer()).get('/tenant/products'))
 			.expect(200)
-			.expect((response) => expect(response.body).toHaveLength(2));
+			.expect((response) => expect(response.body).toHaveLength(1));
 		const denied = await auth(
 			request(app.getHttpServer()).post('/tenant/products'),
 		)

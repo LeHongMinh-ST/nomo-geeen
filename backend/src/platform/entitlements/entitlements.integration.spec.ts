@@ -99,6 +99,9 @@ describe('tenant entitlement enforcement integration', () => {
 					},
 				]),
 			},
+			stock: {
+				groupBy: jest.fn().mockResolvedValue([]),
+			},
 		};
 		const service = new ProductsService(
 			prisma as never,

@@ -12,21 +12,26 @@ import {
 	Trash2,
 } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ListFilterBar } from "@/components/app/shared/list-filter-bar";
 import { ListSkeleton } from "@/components/app/shared/list-skeleton";
 import { formatVND } from "@/lib/format";
 import {
 	brandName,
-	categories,
 	categoryName,
 	getStockStatus,
 	type Product,
 	type StockStatus,
-	products as seedProducts,
 	stockStatusBadgeClass,
 	stockStatusLabel,
 } from "@/lib/products";
+import {
+	deleteTenantProduct,
+	getProductLookups,
+	listTenantProducts,
+	mapTenantProduct,
+	type ProductLookups,
+} from "@/lib/tenant-products-api";
 import { ProductCard } from "./product-card";
 
 /**
@@ -51,7 +56,8 @@ const PAGE_SIZE = 10;
 const MOBILE_BATCH = 8;
 
 export function ProductList() {
-	const [items, setItems] = useState<Product[]>(seedProducts);
+	const [items, setItems] = useState<Product[]>([]);
+	const [lookups, setLookups] = useState<ProductLookups | null>(null);
 	const [query, setQuery] = useState("");
 	const [categoryId, setCategoryId] = useState<string>("all");
 	const [status, setStatus] = useState<StatusFilter>("all");
@@ -60,13 +66,29 @@ export function ProductList() {
 	// Desktop: trang hiện tại. Mobile: số thẻ đang hiển thị.
 	const [page, setPage] = useState(1);
 	const [mobileCount, setMobileCount] = useState(MOBILE_BATCH);
-	// Cờ tải giả lập (data còn mock đồng bộ) — thay bằng trạng thái fetch khi có API.
 	const [loading, setLoading] = useState(true);
+	const [error, setError] = useState<string | null>(null);
+
+	const load = useCallback(async () => {
+		setLoading(true);
+		setError(null);
+		try {
+			const [rows, catalog] = await Promise.all([
+				listTenantProducts(),
+				getProductLookups(),
+			]);
+			setLookups(catalog);
+			setItems(rows.map((row) => mapTenantProduct(row, catalog)));
+		} catch {
+			setError("Không thể tải danh sách sản phẩm. Vui lòng thử lại.");
+		} finally {
+			setLoading(false);
+		}
+	}, []);
 
 	useEffect(() => {
-		const timer = setTimeout(() => setLoading(false), 450);
-		return () => clearTimeout(timer);
-	}, []);
+		void load();
+	}, [load]);
 
 	const filtered = useMemo(() => {
 		const q = query.trim().toLowerCase();
@@ -99,17 +121,43 @@ export function ProductList() {
 	const mobileRows = filtered.slice(0, mobileCount);
 	const mobileHasMore = mobileCount < filtered.length;
 
-	function handleDelete(id: string) {
-		// TODO: gọi API xóa (soft delete → Trash) khi backend sẵn sàng.
-		setItems((current) => current.filter((p) => p.id !== id));
-		setConfirmId(null);
-		setMenuId(null);
+	async function handleDelete(id: string) {
+		try {
+			await deleteTenantProduct(id);
+			setItems((current) => current.filter((p) => p.id !== id));
+			setConfirmId(null);
+			setMenuId(null);
+		} catch {
+			setError("Không thể xóa sản phẩm. Vui lòng thử lại.");
+		}
 	}
 
 	if (loading) return <ListSkeleton withToolbar rows={6} />;
+	if (error && !lookups) {
+		return (
+			<div className="rounded-[16px] border border-dashed border-border bg-card p-8 text-center">
+				<p className="text-base text-destructive">{error}</p>
+				<button
+					type="button"
+					onClick={() => void load()}
+					className="mt-4 h-11 rounded-[10px] bg-primary px-5 text-base font-semibold text-white"
+				>
+					Thử lại
+				</button>
+			</div>
+		);
+	}
 
 	return (
 		<div className="flex w-full flex-col gap-5">
+			{error ? (
+				<div
+					className="rounded-[10px] bg-[#fff5f5] px-3 py-2 text-sm text-destructive"
+					role="alert"
+				>
+					{error}
+				</div>
+			) : null}
 			{/* Page header */}
 			<div className="flex flex-wrap items-start justify-between gap-3">
 				<div className="flex flex-col gap-1">
@@ -185,7 +233,10 @@ export function ProductList() {
 						value: categoryId,
 						options: [
 							{ value: "all", label: "Mọi danh mục" },
-							...categories.map((c) => ({ value: c.id, label: c.name })),
+							...(lookups?.categories ?? []).map((c) => ({
+								value: c.id,
+								label: c.name,
+							})),
 						],
 						onChange: setCategoryId,
 					},
@@ -269,13 +320,15 @@ export function ProductList() {
 															</span>
 															<span className="text-sm text-[#9e9e9e]">
 																{p.sku}
-																{p.brandId ? ` · ${brandName(p.brandId)}` : ""}
+																{p.brandId
+																	? ` · ${p.brandLabel ?? brandName(p.brandId)}`
+																	: ""}
 															</span>
 														</span>
 													</Link>
 												</td>
 												<td className="px-4 py-3 text-base text-[#616161]">
-													{categoryName(p.categoryId)}
+													{p.categoryLabel ?? categoryName(p.categoryId)}
 												</td>
 												<td className="whitespace-nowrap px-4 py-3 text-right text-base font-bold text-foreground">
 													{formatVND(p.salePrice)}₫

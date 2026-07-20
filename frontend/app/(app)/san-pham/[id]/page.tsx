@@ -2,8 +2,14 @@
 
 import Link from "next/link";
 import { use } from "react";
+import { useEffect, useState } from "react";
 import { ProductDetail } from "@/components/app/product/product-detail";
-import { getProduct } from "@/lib/products";
+import { ListSkeleton } from "@/components/app/shared/list-skeleton";
+import {
+	getProductLookups,
+	getTenantProduct,
+	mapTenantProduct,
+} from "@/lib/tenant-products-api";
 
 export default function ChiTietSanPhamPage({
 	params,
@@ -11,7 +17,31 @@ export default function ChiTietSanPhamPage({
 	params: Promise<{ id: string }>;
 }) {
 	const { id } = use(params);
-	const product = getProduct(id);
+	const [state, setState] = useState<{
+		status: "loading" | "ready" | "error";
+		product?: ReturnType<typeof mapTenantProduct>;
+	}>({ status: "loading" });
+
+	useEffect(() => {
+		let active = true;
+		void Promise.all([getTenantProduct(id), getProductLookups()])
+			.then(([row, lookups]) => {
+				if (active)
+					setState({
+						status: "ready",
+						product: mapTenantProduct(row, lookups),
+					});
+			})
+			.catch(() => {
+				if (active) setState({ status: "error" });
+			});
+		return () => {
+			active = false;
+		};
+	}, [id]);
+
+	if (state.status === "loading") return <ListSkeleton rows={5} />;
+	const product = state.product;
 
 	if (!product) {
 		return (
