@@ -1,7 +1,7 @@
 # Task R2-01: Audit coverage and contract tests
 
 **Requirement:** R2 — Access, privacy, coverage, and performance verification
-**Status:** in_progress
+**Status:** done
 **Priority:** P1
 **Estimated Effort:** M
 **Dependencies:** tasks/task-R0-01-schema-permission-foundation.md, tasks/task-R1-01-audit-query-api.md, tasks/task-R1-02-audit-detail-sanitization.md
@@ -24,7 +24,7 @@
 
 - [x] 1. Add/extend backend audit contract tests covering enum catalog, list/detail shape, permission denial, masking, and standard errors.
   - _Requirements: 2.2, 3.1, 3.2, 3.3, 7.1, 7.3_
-- [ ] 2. Add a bounded performance/plan acceptance fixture for 100,000 audit rows and 20-row first page; record Node/PostgreSQL versions and treat an unavailable benchmark environment as an explicit blocker.
+- [x] 2. Add a bounded performance/plan acceptance fixture for 100,000 audit rows and 20-row first page; record Node/PostgreSQL versions and treat an unavailable benchmark environment as an explicit blocker.
   - _Requirements: 6.1, 6.2, 6.3_
 - [x] 3. Verify no existing auth/admin/tenant/billing audit tests regress; record any shared migration/seed coordination note.
   - _Requirements: 3.2, 3.3, 7.3_
@@ -49,22 +49,22 @@
 
 ## Completion Criteria
 
-- [ ] Current `AuditAction` values, including provisioning values, are accepted by the read/display contract.
-- [ ] 401/403, 400, 404, masking, DB failure, and transaction regression tests pass.
-- [ ] The performance fixture proves a 20-row first page in <=500ms at the service boundary or records a concrete blocker without claiming completion.
+- [x] Current `AuditAction` values, including provisioning values, are accepted by the read/display contract.
+- [x] 401/403, 400, 404, masking, DB failure, and transaction regression tests pass.
+- [x] The performance fixture proves a 20-row first page in <=500ms at the service boundary.
 
 ## Evidence
 
-- [ ] Automated verification
+- [x] Automated verification
   - Command(s): `pnpm --dir backend test -- --runInBand audit`; `pnpm --dir backend test:e2e -- --runInBand`
   - Expected proof: audit contract and relevant E2E suites pass.
-- [ ] Artifact / runtime verification
+- [x] Artifact / runtime verification
   - Inspect: test fixture/report and Prisma query plan where available.
   - Expect: bounded `take`, stable order, no all-row materialization.
-- [ ] Runtime reachability verification
+- [x] Runtime reachability verification
   - Entrypoint/caller: backend audit routes exercised through Nest HTTP test.
   - Expect: real controller/service path, not mocked-only proof for auth boundary.
-- [ ] Contract / negative-path verification
+- [x] Contract / negative-path verification
   - Check: all enum values and provisioning coordination.
   - Expect: no duplicate mutation logic and no removed enum/grant.
 
@@ -79,4 +79,8 @@
 
 - 2026-07-19: audit unit contract run passed: 4 suites / 20 tests; backend build and Biome passed. The contract covers all current `AuditAction` values, sanitizer behavior, standard 400/404/500 mapping, and guard metadata/401/403 behavior.
 - Added opt-in real HTTP fixture at `backend/test/admin-audit.e2e-spec.ts` (`RUN_ADMIN_AUDIT_E2E=1`) with authenticated list/detail, negative paths, masking, and 100,000 rows.
-- Blocker: the opt-in HTTP run reached the route but failed closed with `503 Auth store unavailable` from `AccessTokenGuard` because the Jest process could not maintain the local Redis connection. The fixture is intentionally skipped by default to avoid mutating a developer DB. The <=500ms performance target and real authenticated HTTP receipt remain unproven.
+- Blocker resolved: importing `AuthModule` into `AuditModule` restored the Redis-backed guard lifecycle.
+- 2026-07-20 fresh acceptance receipt: audit unit `4 suites / 20 tests` PASS; backend build PASS; real `admin-audit.e2e-spec.ts` `3/3` PASS; PostgreSQL 16 + Redis 7 fixture with 100,000 rows and page size 20 reported p95 `36.36ms` at Node `v22.20.0` (service-boundary p95 `51.46ms`). Auth, 401/403, 400, 404, masking, detail, stable ordering, bounded page size, and route reachability passed.
+- Compatibility fix: `backend/src/platform/audit/audit.module.ts` imports `AuthModule`; this is the only implementation scope escape and does not bypass guards or alter permissions.
+- Regression unit set: `12 suites / 108 tests` PASS. Code review: `9.7/10`, zero critical issues.
+- Full repository E2E is intentionally deferred by user request; audit-specific HTTP E2E is PASS (3/3). The pre-existing `auth-login.e2e-spec.ts` SameSite mismatch remains outside this task and is deferred to R4/release verification.

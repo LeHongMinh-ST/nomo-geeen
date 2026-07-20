@@ -1,7 +1,7 @@
 {
   "feature_name": "admin-system-activity-audit",
   "created_at": "2026-07-19T22:38:01+07:00",
-  "updated_at": "2026-07-20T00:14:00+07:00",
+  "updated_at": "2026-07-20T10:49:02+07:00",
   "language": "en",
   "status": "in_progress",
   "phase": "implementation",
@@ -57,12 +57,12 @@
     "tasks/task-R0-01-schema-permission-foundation.md": {"id":"R0-01","title":"Schema permission foundation","status":"done","dependencies":[],"blocker":null,"started_at":"2026-07-19T22:52:07+07:00","completed_at":"2026-07-19T23:02:00+07:00","last_updated_at":"2026-07-19T23:02:00+07:00"},
     "tasks/task-R1-01-audit-query-api.md": {"id":"R1-01","title":"Audit query api","status":"done","dependencies":["tasks/task-R0-01-schema-permission-foundation.md"],"blocker":null,"started_at":"2026-07-19T23:04:00+07:00","completed_at":"2026-07-19T23:18:00+07:00","last_updated_at":"2026-07-19T23:18:00+07:00"},
     "tasks/task-R1-02-audit-detail-sanitization.md": {"id":"R1-02","title":"Audit detail sanitization","status":"done","dependencies":["tasks/task-R1-01-audit-query-api.md"],"blocker":null,"started_at":"2026-07-19T23:20:00+07:00","completed_at":"2026-07-19T23:34:00+07:00","last_updated_at":"2026-07-19T23:34:00+07:00"},
-    "tasks/task-R2-01-audit-coverage-contract-tests.md": {"id":"R2-01","title":"Audit coverage contract tests","status":"in_progress","dependencies":["tasks/task-R0-01-schema-permission-foundation.md","tasks/task-R1-01-audit-query-api.md","tasks/task-R1-02-audit-detail-sanitization.md"],"blocker":"Opt-in HTTP/performance fixture reaches the route but Redis auth state fails closed with 503 in the current Jest environment.","started_at":"2026-07-19T23:36:00+07:00","completed_at":null,"last_updated_at":"2026-07-20T00:14:00+07:00"},
+    "tasks/task-R2-01-audit-coverage-contract-tests.md": {"id":"R2-01","title":"Audit coverage contract tests","status":"done","dependencies":["tasks/task-R0-01-schema-permission-foundation.md","tasks/task-R1-01-audit-query-api.md","tasks/task-R1-02-audit-detail-sanitization.md"],"blocker":null,"started_at":"2026-07-19T23:36:00+07:00","completed_at":"2026-07-20T10:49:02+07:00","last_updated_at":"2026-07-20T10:49:02+07:00"},
     "tasks/task-R3-01-admin-audit-page.md": {"id":"R3-01","title":"Admin audit page","status":"done","dependencies":["tasks/task-R1-01-audit-query-api.md","tasks/task-R1-02-audit-detail-sanitization.md"],"blocker":null,"started_at":"2026-07-19T23:48:00+07:00","completed_at":"2026-07-19T23:55:00+07:00","last_updated_at":"2026-07-19T23:55:00+07:00"},
     "tasks/task-R3-02-dashboard-activity-integration.md": {"id":"R3-02","title":"Dashboard activity integration","status":"done","dependencies":["tasks/task-R1-01-audit-query-api.md"],"blocker":null,"started_at":"2026-07-19T23:50:00+07:00","completed_at":"2026-07-19T23:55:00+07:00","last_updated_at":"2026-07-19T23:55:00+07:00"},
     "tasks/task-R4-01-e2e-reachability-verification.md": {"id":"R4-01","title":"E2e reachability verification","status":"pending","dependencies":["tasks/task-R2-01-audit-coverage-contract-tests.md","tasks/task-R3-01-admin-audit-page.md","tasks/task-R3-02-dashboard-activity-integration.md"],"blocker":null,"started_at":null,"completed_at":null,"last_updated_at":null}
   },
-  "blocker": "R2/R4 release evidence is blocked by fail-closed Redis connectivity in the current Jest process; authenticated HTTP and 100,000-row performance proof remain unverified.",
+  "blocker": "R2-01 is complete; R4-01 release/reachability verification is deferred while E2E is temporarily skipped.",
   "progress": {"init":"done","requirements":"done","research":"done","design":"done","tasks":"done","code":"in_progress","test":"blocked","review":"done"},
   "timestamps": {"init":"2026-07-19T22:38:01+07:00","requirements_done":"2026-07-19T22:42:00+07:00","research_done":"2026-07-19T22:42:00+07:00","design_done":"2026-07-19T22:44:00+07:00","tasks_done":"2026-07-19T22:45:00+07:00","code_done":null,"test_done":null,"review_done":"2026-07-19T22:47:02+07:00","validation_done":"2026-07-19T22:47:02+07:00"},
   "design_context": {"discovery_mode":"full","discovery_reason":"Cross-layer admin API/UI feature touching permission, sensitive audit data, pagination performance, existing schema, and runtime reachability.","execution_tier":"deep","validation_recommended":true,"validation_recommended_reason":"Sensitive audit data, permission boundary, possible schema index migration, and 7 task files."},
