@@ -171,6 +171,14 @@ export function TenantList({
 					>
 						<RefreshCcw className="size-4" aria-hidden />
 					</button>
+					<Can permission="admin.tenant:create">
+						<Link
+							href="/admin/tenants/tao"
+							className="inline-flex min-h-12 items-center gap-2 rounded-[10px] bg-primary px-4 text-sm font-semibold text-white transition-colors hover:bg-primary/90"
+						>
+							<Plus className="size-4" aria-hidden /> Tạo cửa hàng
+						</Link>
+					</Can>
 					<Can permission="admin.tenant:export">
 						<button
 							type="button"
@@ -399,16 +407,16 @@ export function TenantList({
 			{/* FAB mobile — DESIGN.md §7: pill nổi bật, lg:hidden.
 			    Admin portal không có bottom nav → đặt bottom-6.
 			    Chưa có route tạo cửa hàng → dẫn về danh sách User quản trị. */}
-			<Can permission="admin.tenant:edit">
+			<Can permission="admin.tenant:create">
 				<Link
-					href="/admin/admin-users"
+					href="/admin/tenants/tao"
 					aria-label="Thêm cửa hàng"
 					className="fixed bottom-6 right-4 z-20 inline-flex h-12 items-center gap-2 rounded-full bg-primary pl-3 pr-4 text-sm font-semibold text-white shadow-[0_8px_24px_rgba(92,173,69,0.35)] transition-transform duration-200 ease-out hover:scale-[1.02] active:scale-[0.98] lg:hidden"
 				>
 					<span className="flex size-7 items-center justify-center rounded-full bg-white/20">
 						<Plus className="size-4" aria-hidden />
 					</span>
-					Tạo mới
+					Tạo cửa hàng
 				</Link>
 			</Can>
 		</div>
@@ -590,13 +598,15 @@ function EmptyTable() {
 					quản lý cửa hàng trên nền tảng.
 				</p>
 			</div>
-			<Link
-				href="/admin/admin-users"
-				className="inline-flex h-11 items-center gap-2 rounded-[10px] bg-primary px-5 text-sm font-semibold text-white shadow-[0_4px_14px_rgba(92,173,69,0.25)] transition-all duration-200 ease-out hover:bg-primary/90 hover:shadow-[0_6px_20px_rgba(92,173,69,0.32)] active:scale-[0.98]"
-			>
-				<Plus className="size-4" aria-hidden />
-				Thêm cửa hàng
-			</Link>
+			<Can permission="admin.tenant:create">
+				<Link
+					href="/admin/tenants/tao"
+					className="inline-flex min-h-12 items-center gap-2 rounded-[10px] bg-primary px-5 text-sm font-semibold text-white shadow-[0_4px_14px_rgba(92,173,69,0.25)] transition-all duration-200 ease-out hover:bg-primary/90 hover:shadow-[0_6px_20px_rgba(92,173,69,0.32)] active:scale-[0.98]"
+				>
+					<Plus className="size-4" aria-hidden />
+					Thêm cửa hàng
+				</Link>
+			</Can>
 		</div>
 	);
 }

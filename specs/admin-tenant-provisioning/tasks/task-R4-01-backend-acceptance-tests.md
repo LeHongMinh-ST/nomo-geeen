@@ -1,7 +1,7 @@
 # Task R4-01: Backend acceptance tests
 
 **Requirement:** R1/R2/R3 acceptance; R8 — NFRs
-**Status:** pending
+**Status:** done
 **Priority:** P1
 **Estimated Effort:** M
 **Dependencies:** R1-01, R2-01
@@ -22,22 +22,22 @@
 
 ## Steps
 
-- [ ] 1. Tenant-creation e2e (`backend/test/tenants-create.e2e-spec.ts`): happy path 201 + public owner shape (incl. `seatBonus`, seeded per-tenant OWNER/MANAGER/STAFF roles, owner linked to per-tenant OWNER); forced owner-insert failure → full rollback (0 tenant rows AND 0 seeded role rows); duplicate slug → 409 `SLUG_TAKEN`; duplicate username → 409 `USERNAME_TAKEN`; password neither/both → 400 `PASSWORD_MODE_INVALID`; missing `admin.tenant:create` → 403; assert no `passwordHash` in any response.
+- [x] 1. Tenant-creation e2e (`backend/test/tenants-create.e2e-spec.ts`): happy path 201 + public owner shape (incl. `seatBonus`, seeded per-tenant OWNER/MANAGER/STAFF roles, owner linked to per-tenant OWNER); forced owner-insert failure → full rollback (0 tenant rows AND 0 seeded role rows); duplicate slug → 409 `SLUG_TAKEN`; duplicate username → 409 `USERNAME_TAKEN`; password neither/both → 400 `PASSWORD_MODE_INVALID`; missing `admin.tenant:create` → 403; assert no `passwordHash` in any response.
   - Business intent: prove atomic provisioning (tenant + roles + owner + audit) and authz.
   - Code detail: use E2E DB + seeded permissions; simulate failure via duplicate username within the tx; assert audit row survival semantics per design.
   - _Requirements: 1.1, 1.2, 1.3, 1.4, 2.2, 2.5, 2.6, 8.1, 8.2_
 
-- [ ] 2. Tenant-users e2e (`backend/test/tenant-users.e2e-spec.ts`): seat-full create → 409 `SEAT_LIMIT_REACHED` (threshold = plan `maxUsers` of ACTIVE/TRIALING subscription + `seatBonus`); reactivate when full → 409; deactivate/demote last OWNER → 409 `LAST_OWNER`; protected-field edit (tenantId/status/roleId/roleCode/passwordHash) → 400 `FIELD_NOT_ALLOWED`; role change via separate `PATCH :userId/role` succeeds; password reset sets `mustChangePassword=true`; cross-tenant `:userId` → 404; deactivate frees a seat.
+- [x] 2. Tenant-users e2e (`backend/test/tenant-users.e2e-spec.ts`): seat-full create → 409 `SEAT_LIMIT_REACHED` (threshold = plan `maxUsers` of ACTIVE/TRIALING subscription + `seatBonus`); reactivate when full → 409; deactivate/demote last OWNER → 409 `LAST_OWNER`; protected-field edit (tenantId/status/roleId/roleCode/passwordHash) → 400 `FIELD_NOT_ALLOWED`; role change via separate `PATCH :userId/role` succeeds; password reset sets `mustChangePassword=true`; cross-tenant `:userId` → 404; deactivate frees a seat.
   - Business intent: prove seat, last-owner, mass-assignment, reset, and isolation invariants.
   - Code detail: seed a tenant near cap; toggle `seatBonus`/subscription to exercise thresholds.
   - _Requirements: 3.3, 3.4, 3.5, 3.6, 3.7, 8.1_
 
-- [ ] 3. Regression guard: run existing `admin-tenant-management` / `admin-rbac-user-management` suites to confirm no regression.
+- [x] 3. Regression guard: run existing `admin-tenant-management` / `admin-rbac-user-management` suites to confirm no regression.
   - Business intent: protect existing behavior (R7.3).
   - Code detail: include in the same `pnpm test:e2e` run.
   - _Requirements: 3.7_
 
-- [ ] 4. Verification implementation
+- [x] 4. Verification implementation
   - Execute the full e2e run and capture PASS output with real assertion counts (no `0 tests + exit 0`).
   - _Requirements: 1.1, 3.3, 3.5, 3.7_
 
@@ -57,27 +57,35 @@
 
 ## Completion Criteria
 
-- [ ] Creation happy path, rollback (tenant + seeded roles), `SLUG_TAKEN`, `USERNAME_TAKEN`, `PASSWORD_MODE_INVALID`, and 403 all covered and passing (R1.1–R1.4, R2.2, R2.5, R2.6).
-- [ ] Seat, `FIELD_NOT_ALLOWED`, last-owner, seat-freeing, reset-forces-`mustChangePassword`, and cross-tenant cases covered and passing (R3.3–R3.7).
-- [ ] No response asserts contain `passwordHash`; existing suites still green (R8.1, R7.3).
-- [ ] Test run reports real assertion counts — not `NO_TESTS` or `0 tests + exit 0`.
+- [x] Creation happy path, rollback (tenant + seeded roles), `SLUG_TAKEN`, `USERNAME_TAKEN`, `PASSWORD_MODE_INVALID`, and 403 all covered and passing (R1.1–R1.4, R2.2, R2.5, R2.6).
+- [x] Seat, `FIELD_NOT_ALLOWED`, last-owner, seat-freeing, reset-forces-`mustChangePassword`, and cross-tenant cases covered and passing (R3.3–R3.7).
+- [x] No response asserts contain `passwordHash`; existing suites still green (R8.1, R7.3).
+- [x] Test run reports real assertion counts — not `NO_TESTS` or `0 tests + exit 0`.
 
 ## Evidence
 
 This section is both the task-level test plan and the proof checklist. Keep it short, exact, and executable.
 
-- [ ] Automated verification (e2e)
+- [x] Automated verification (e2e)
   - Command(s): `cd backend && pnpm test:e2e -- tenants-create tenant-users`
   - Expected proof: all listed cases PASS with non-zero assertion count; exit 0.
-- [ ] Artifact / runtime verification
+- [x] Artifact / runtime verification
   - Inspect: e2e reporter output; DB state after the rollback test.
   - Expect: named test cases PASS; zero tenant rows persisted after forced failure.
-- [ ] Runtime reachability verification
+- [x] Runtime reachability verification
   - Entrypoint/caller: tests hit real HTTP routes from `TenantsController`/`TenantUsersController`.
   - Expect: routes exercised through the Nest app, not service stubs.
-- [ ] Contract / negative-path verification
+- [x] Contract / negative-path verification
   - Check: each negative path (403/404/409 variants) asserted with exact status + stable reason.
   - Expect: correct codes/reasons; state unchanged after each failure.
+
+## Verification Receipt
+
+- `pnpm --dir backend prisma:generate` — PASS.
+- Acceptance E2E on `nomogreen_audit_acceptance` — PASS: 2 suites, 15 tests.
+- Regression E2E (`admin-tenants roles tenants-create tenant-users`) — PASS: 4 suites, 36 tests.
+- `pnpm --dir backend build` — PASS.
+- Real AppModule HTTP routes, PostgreSQL, Redis, rollback state, and negative paths verified.
 
 ## Risk Assessment
 
@@ -90,6 +98,6 @@ This section is both the task-level test plan and the proof checklist. Keep it s
 ---
 
 > **Parallel marker**: Append `(P)` to the title if this task can run concurrently with another (usually when serving different requirements).
-> **Test note**: If a test coverage sub-task can be deferred post-MVP, mark it with `- [ ]*`.
+> **Test note**: If a test coverage sub-task can be deferred post-MVP, mark it with `- [x]*`.
 > **Requirement mapping**: Every sub-task MUST end with `_Requirements: X.X_`. No mapping = invalid task file.
 > **Evidence rule**: No `## Evidence` section = invalid task file. Existing specs may use `## Task Test Plan & Verification Evidence` or legacy `## Verification & Evidence`; agents must support all three headings.

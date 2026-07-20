@@ -1,5 +1,8 @@
 @import "tailwindcss";
-@import "tw-animate-css";
+/* tw-animate-css: package chỉ khai báo exports."." với condition "style" mà
+   PostCSS transform của Turbopack (Next 16) không hiểu. Đi thẳng vào file
+   CSS đã build sẵn qua đường dẫn tương đối của PostCSS. */
+@import "../node_modules/tw-animate-css/dist/tw-animate.css";
 
 /* Be Vietnam Pro — self-hosted from /public/fronts (per DESIGN.md typography) */
 @font-face {

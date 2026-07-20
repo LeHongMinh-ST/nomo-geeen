@@ -3,14 +3,15 @@
 import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { TenantDetailPanel } from "@/components/admin/tenant-detail-panel";
+import { TenantUsersPanel } from "@/components/admin/tenant-users-panel";
 import { useHasPermission } from "@/hooks/use-has-permission";
 import {
 	getTenant,
-	transitionTenant,
-	updateTenant,
 	type TenantDetail,
 	type TenantStatus,
+	transitionTenant,
 	type UpdateTenantInput,
+	updateTenant,
 } from "@/lib/admin-api/tenants";
 import { useAdminAuth } from "@/stores/admin-auth-store";
 
@@ -83,9 +84,7 @@ export default function AdminTenantDetailPage() {
 	}
 
 	if (loading && !tenant) {
-		return (
-			<p className="text-sm text-muted-foreground">Đang tải cửa hàng…</p>
-		);
+		return <p className="text-sm text-muted-foreground">Đang tải cửa hàng…</p>;
 	}
 
 	if (!tenant) {
@@ -104,12 +103,15 @@ export default function AdminTenantDetailPage() {
 	}
 
 	return (
-		<TenantDetailPanel
-			tenant={tenant}
-			saving={saving}
-			error={error}
-			onSave={handleSave}
-			onTransition={handleTransition}
-		/>
+		<div className="space-y-4">
+			<TenantDetailPanel
+				tenant={tenant}
+				saving={saving}
+				error={error}
+				onSave={handleSave}
+				onTransition={handleTransition}
+			/>
+			<TenantUsersPanel tenantId={tenant.id} />
+		</div>
 	);
 }

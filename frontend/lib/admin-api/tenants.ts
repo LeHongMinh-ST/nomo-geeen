@@ -63,6 +63,40 @@ export interface UpdateTenantInput {
 	expectedUpdatedAt: string;
 }
 
+export interface CreateTenantRequest {
+	tenant: {
+		name: string;
+		slug: string;
+		tenantType: TenantType;
+		logoUrl?: string | null;
+		seatBonus?: number;
+	};
+	owner: {
+		fullName: string;
+		username: string;
+		phone?: string;
+		email?: string;
+		mustChangePassword?: boolean;
+	} & ({ password: string } | { generatePassword: true });
+}
+
+export interface TenantOwnerCreatedResponse {
+	tenant: TenantListItem & { seatBonus: number };
+	owner: {
+		id: string;
+		tenantId: string;
+		fullName: string;
+		username: string;
+		phone: string | null;
+		email: string | null;
+		roleCode: "OWNER";
+		status: "ACTIVE";
+		mustChangePassword: boolean;
+		createdAt: string;
+	};
+	generatedPassword: string | null;
+}
+
 export interface TransitionTenantInput {
 	status: TenantStatus;
 	reason?: string | null;
@@ -83,6 +117,17 @@ export async function listTenants(
 ): Promise<ListTenantsResult> {
 	return adminFetch<ListTenantsResult>(`/admin/tenants?${toQuery(params)}`, {
 		accessToken,
+	});
+}
+
+export async function createTenant(
+	accessToken: string,
+	body: CreateTenantRequest,
+): Promise<TenantOwnerCreatedResponse> {
+	return adminFetch<TenantOwnerCreatedResponse>("/admin/tenants", {
+		method: "POST",
+		accessToken,
+		body: JSON.stringify(body),
 	});
 }
 

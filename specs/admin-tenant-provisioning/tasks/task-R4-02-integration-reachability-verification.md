@@ -1,7 +1,7 @@
 # Task R4-02: Integration reachability verification
 
 **Requirement:** R7 — Integration & reachability
-**Status:** pending
+**Status:** done
 **Priority:** P1
 **Estimated Effort:** S
 **Dependencies:** R1-01, R2-01, R3-01, R3-02
@@ -22,22 +22,22 @@
 
 ## Steps
 
-- [ ] 1. Verify backend registration + HTTP reachability (wiring only): `TenantUsersModule` imported in `app.module.ts`; `POST /admin/tenants` and `admin/tenants/:tenantId/users*` resolve (not 404) and are guard-protected (401/403 without token/permission). Exhaustive status-code/business-rule assertions belong to R4-01 — here prove the routes are live and reachable, not re-test every negative path.
+- [x] 1. Verify backend registration + HTTP reachability (wiring only): `TenantUsersModule` imported in `app.module.ts`; `POST /admin/tenants` and `admin/tenants/:tenantId/users*` resolve (not 404) and are guard-protected (401/403 without token/permission). Exhaustive status-code/business-rule assertions belong to R4-01 — here prove the routes are live and reachable, not re-test every negative path.
   - Business intent: prove backend routes are registered and reachable, not just compiled.
   - Code detail: hit routes via Nest route table / curl; assert non-404 resolution + a single 401/403 gate sample. Do not duplicate R4-01's seat/last-owner/field-whitelist assertions.
   - _Requirements: 7.1_
 
-- [ ] 2. Verify FE reachability chain end-to-end: from admin navigation to tenant list, open "Tạo cửa hàng", submit to create a tenant, land on tenant detail, and see the users panel with seat usage — using a permitted operator.
+- [x] 2. Verify FE reachability chain end-to-end: from admin navigation to tenant list, open "Tạo cửa hàng", submit to create a tenant, land on tenant detail, and see the users panel with seat usage — using a permitted operator.
   - Business intent: prove the user-facing flow is fully wired.
   - Code detail: exercise via web/e2e or a scripted browser run; confirm gated visibility.
   - _Requirements: 7.2_
 
-- [ ] 3. Regression confirmation: run existing tenant/admin-user suites and a build; record results.
+- [x] 3. Regression confirmation: run existing tenant/admin-user suites and a build; record results.
   - Business intent: prove no existing behavior broke (R7.3).
   - Code detail: `pnpm build` + relevant e2e; capture output.
   - _Requirements: 7.3_
 
-- [ ] 4. Verification implementation
+- [x] 4. Verification implementation
   - Record a reachability receipt: route resolution proof, FE chain proof, and regression run output.
   - _Requirements: 7.1, 7.2, 7.3_
 
@@ -58,27 +58,43 @@
 
 ## Completion Criteria
 
-- [ ] `POST /admin/tenants` and `admin/tenants/:id/users*` resolve over HTTP and enforce permissions (R7.1).
-- [ ] Full FE chain (nav → list → create → detail → panel) demonstrably reachable for a permitted operator (R7.2).
-- [ ] Existing tenant/admin-user suites pass and build succeeds — no regression (R7.3).
-- [ ] Reachability receipt recorded; no orphaned route/module/panel remains.
+- [x] `POST /admin/tenants` and `admin/tenants/:id/users*` resolve over HTTP and enforce permissions (R7.1).
+- [x] Full FE chain (nav → list → create → detail → panel) demonstrably reachable for a permitted operator (R7.2).
+- [x] Existing tenant/admin-user suites pass and build succeeds — no regression (R7.3).
+- [x] Reachability receipt recorded; no orphaned route/module/panel remains.
 
 ## Evidence
 
 This section is both the task-level test plan and the proof checklist. Keep it short, exact, and executable.
 
-- [ ] Automated verification (smoke/e2e/build)
+- [x] Automated verification (smoke/e2e/build)
   - Command(s): `cd backend && pnpm build && pnpm test:e2e -- tenant-provisioning-reachability` and `cd frontend && pnpm build`
   - Expected proof: routes resolve, FE build passes, regression suites green; exit 0.
-- [ ] Artifact / runtime verification
+- [x] Artifact / runtime verification
   - Inspect: Nest route table / curl transcript; FE flow screenshots or e2e trace.
   - Expect: new routes listed and reachable; FE chain completes end-to-end.
-- [ ] Runtime reachability verification
+- [x] Runtime reachability verification
   - Entrypoint/caller: `app.module.ts` imports `TenantUsersModule`; FE actions mounted in the tenant pages.
   - Expect: no orphaned module/route/panel; every created surface reachable from a runtime entrypoint.
-- [ ] Contract / negative-path verification
+- [x] Contract / negative-path verification
   - Check: unauthenticated/unpermitted access to new routes; existing tenant flow unchanged.
   - Expect: 401/403 as designed; prior behavior and tests intact.
+
+## Verification Receipt
+
+- `pnpm --dir backend build` — PASS.
+- Regression E2E on `nomogreen_audit_acceptance` (`admin-tenants roles tenants-create tenant-users`) — PASS: 4 suites, 36 tests.
+- Nest runtime smoke on port 3011 — PASS: `GET /` 200; unauthenticated `POST /admin/tenants` 401; unauthenticated `GET /admin/tenants/:tenantId/users` 401; route table listed `TenantUsersModule`, `TenantsController`, and `TenantUsersController` routes.
+- `pnpm --dir frontend test` — PASS: 3 files, 5 tests.
+- `pnpm --dir frontend lint` — PASS.
+- `pnpm --dir frontend build` — PASS; route map included `/admin/tenants`, `/admin/tenants/tao`, `/admin/tenants/[id]`.
+- Next runtime smoke on port 3012 — PASS: all three tenant routes returned HTTP 200. Source trace confirmed admin nav → tenant list → create page/API → detail page → `TenantUsersPanel`.
+
+## Verification Receipt
+
+- Backend registration and unauthenticated HTTP guard smoke: PASS.
+- Frontend build, lint, component tests, and route HTTP smoke: PASS.
+- Authenticated operator browser journey: PASS. Logged in as a permitted SUPER_ADMIN through /admin/login, opened /admin/tenants, submitted the create form, reached /admin/tenants/:id, and observed Người dùng cửa hàng plus Chỗ người dùng đang dùng.
 
 ## Risk Assessment
 
@@ -91,6 +107,6 @@ This section is both the task-level test plan and the proof checklist. Keep it s
 ---
 
 > **Parallel marker**: Append `(P)` to the title if this task can run concurrently with another (usually when serving different requirements).
-> **Test note**: If a test coverage sub-task can be deferred post-MVP, mark it with `- [ ]*`.
+> **Test note**: If a test coverage sub-task can be deferred post-MVP, mark it with `- [x]*`.
 > **Requirement mapping**: Every sub-task MUST end with `_Requirements: X.X_`. No mapping = invalid task file.
 > **Evidence rule**: No `## Evidence` section = invalid task file. Existing specs may use `## Task Test Plan & Verification Evidence` or legacy `## Verification & Evidence`; agents must support all three headings.

@@ -1,6 +1,11 @@
 -- Tenant user identity and lifecycle contract.
 -- Existing users receive username=email for backward-compatible login.
 
+-- This enum is declared in schema.prisma but was missing from the original
+-- migration, which caused fresh/partially migrated databases to fail before
+-- adding the user identity columns.
+CREATE TYPE "CreatedByType" AS ENUM ('PLATFORM_ADMIN', 'USER');
+
 ALTER TYPE "PlatformAdminRole" ADD VALUE IF NOT EXISTS 'SALER';
 
 ALTER TABLE "user"
