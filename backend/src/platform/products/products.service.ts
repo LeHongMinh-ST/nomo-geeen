@@ -265,7 +265,11 @@ export class ProductsService {
 					},
 					select: this.productSelect(),
 				});
-				return this.toPublicProduct(product, tenantId);
+				const stock = await tx.stock.aggregate({
+					where: { tenantId, productId: product.id },
+					_sum: { qty: true },
+				});
+				return this.toPublicProduct(product, stock._sum.qty);
 			} catch (error) {
 				if (this.isSkuConflict(error))
 					throw new BadRequestException('SKU already exists');

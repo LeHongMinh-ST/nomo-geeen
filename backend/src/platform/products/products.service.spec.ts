@@ -78,6 +78,45 @@ describe('ProductsService', () => {
 		});
 	});
 
+	it('returns the tenant stock quantity after an update', async () => {
+		const { prisma, service } = makeService();
+		const tx = {
+			product: {
+				findFirst: jest.fn().mockResolvedValue({ id: 'product-1' }),
+				update: jest.fn().mockResolvedValue({
+					id: 'product-1',
+					sku: 'SKU-1',
+					name: 'Updated product',
+					barcode: null,
+					baseUnitId: 'unit-1',
+					categoryId: null,
+					brandId: null,
+					manufacturerId: null,
+					costPrice: 100n,
+					salePrice: 150n,
+					wholesalePrice: null,
+					isLocked: false,
+					isRecalled: false,
+					status: 'ACTIVE',
+					createdAt: new Date(),
+					updatedAt: new Date(),
+				}),
+			},
+			stock: { aggregate: jest.fn().mockResolvedValue({ _sum: { qty: 12n } }) },
+		};
+		(prisma as unknown as { $transaction: jest.Mock }).$transaction = jest.fn(
+			async (callback: (client: typeof tx) => unknown) => callback(tx),
+		);
+
+		await expect(
+			service.update('tenant-1', 'product-1', { name: 'Updated product' }),
+		).resolves.toEqual(expect.objectContaining({ stock: '12' }));
+		expect(tx.stock.aggregate).toHaveBeenCalledWith({
+			where: { tenantId: 'tenant-1', productId: 'product-1' },
+			_sum: { qty: true },
+		});
+	});
+
 	it('soft deletes only an active product in the tenant', async () => {
 		const { prisma, service } = makeService();
 		(prisma.product.updateMany as jest.Mock).mockResolvedValue({ count: 1 });
