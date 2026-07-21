@@ -1,6 +1,8 @@
 import { randomUUID } from 'node:crypto';
 import {
 	forwardRef,
+	HttpException,
+	HttpStatus,
 	Inject,
 	Injectable,
 	ServiceUnavailableException,
@@ -12,9 +14,11 @@ import { PrismaService } from '../prisma/prisma.service';
 import { TenantsService } from '../tenants/tenants.service';
 import type { ChangeTenantPasswordDto } from './dto/change-tenant-password.dto';
 import type { TenantRegisterDto } from './dto/tenant-register.dto';
+import type { UpdateTenantProfileDto } from './dto/update-tenant-profile.dto';
 import { DECOY_HASH, PasswordService } from './password.service';
 import { RefreshTokenStore, remainingTtlSec } from './refresh-token.store';
 import {
+	type AccessClaims,
 	TenantAuthResponse,
 	TenantIdentity,
 	TokenService,
@@ -24,6 +28,9 @@ export type TenantRegistrationResult = TenantAuthResponse & {
 	refreshToken: string;
 	refreshTtlSec: number;
 };
+
+// R5.1: nguong that bai truoc khi tam khoa (429). Dem theo (IP, identifier/slug).
+const LOGIN_MAX_ATTEMPTS = Number(process.env.USER_LOGIN_MAX_ATTEMPTS ?? 10);
 
 @Injectable()
 export class TenantAuthService {
@@ -37,7 +44,14 @@ export class TenantAuthService {
 		private readonly tenants: TenantsService,
 	) {}
 
-	async register(dto: TenantRegisterDto): Promise<TenantRegistrationResult> {
+	async register(
+		dto: TenantRegisterDto,
+		context: { ip?: string; userAgent?: string } = {},
+	): Promise<TenantRegistrationResult> {
+		// R5.1: throttle dang ky cong khai theo (IP, slug) — dung chinh sach
+		// bounded Redis nhu login. Fail-open khi Redis loi (R5.4).
+		const throttleScope = context.ip ?? '';
+		await this.assertLoginNotThrottled(throttleScope, `register:${dto.slug}`);
 		const familyId = randomUUID();
 		const refreshToken = this.tokens.signTenantRefresh(
 			'pending-user',
@@ -102,6 +116,8 @@ export class TenantAuthService {
 				refreshTtlSec,
 				user.id,
 			);
+			// Dang ky thanh cong: xoa bo dem cho (IP, slug).
+			await this.clearLoginThrottle(throttleScope, `register:${dto.slug}`);
 
 			return {
 				accessToken,
@@ -133,6 +149,10 @@ export class TenantAuthService {
 		context: { ip?: string; userAgent?: string } = {},
 	): Promise<TenantRegistrationResult> {
 		const value = identifier.trim();
+		// R5.1: dem va chan theo (IP, identifier). Increment truoc khi verify de
+		// tinh ca lan nay; clearLoginThrottle se xoa khi dang nhap thanh cong.
+		const throttleScope = context.ip ?? '';
+		await this.assertLoginNotThrottled(throttleScope, value);
 		const candidates = await this.prisma.user.findMany({
 			where: {
 				status: 'ACTIVE',
@@ -172,6 +192,8 @@ export class TenantAuthService {
 		if (matches.length !== 1)
 			throw new UnauthorizedException('Invalid credentials');
 		const user = matches[0];
+		// Dang nhap thanh cong: xoa bo dem that bai cho (IP, identifier).
+		await this.clearLoginThrottle(throttleScope, value);
 
 		const permissions = user.role.permissions.map(
 			(grant) => grant.permission.code,
@@ -298,9 +320,15 @@ export class TenantAuthService {
 
 	async logoutUser(
 		rawAccessToken: string,
+		claims: AccessClaims,
 		context: { ip?: string; userAgent?: string } = {},
 	): Promise<void> {
-		const claims = this.tokens.verifyTenantAccess(rawAccessToken);
+		// H1 fix: dung `claims` da duoc controller decode (ke ca token idle-het-han
+		// qua decodeExpiredAccess). KHONG verify strict lai rawAccessToken o day —
+		// verify strict se nem 401 voi token het han, khien blacklist/revoke/clear-cookie
+		// khong chay va phien "song lai" qua /auth/refresh du da bam Dang xuat (R3.3).
+		if (!claims.tenantId)
+			throw new UnauthorizedException('Invalid tenant token');
 		const user = await this.findActiveUser(claims.sub, claims.tenantId);
 		await this.userRedis(async () => {
 			await this.sessions.blacklistUserAccess(
@@ -328,6 +356,95 @@ export class TenantAuthService {
 		const user = await this.findActiveUser(userId, tenantId);
 		if (!user) throw new UnauthorizedException('User not found');
 		return this.toPublicUser(user);
+	}
+
+	/**
+	 * R5.1: chan khi so lan that bai vuot nguong (429). Dem theo (scope, identifier)
+	 * voi scope = IP (login/register cross-tenant). R5.4: throttle la best-effort —
+	 * loi Redis KHONG duoc chan xac thuc (fail-open), chi bo qua buoc dem.
+	 */
+	private async assertLoginNotThrottled(
+		scope: string,
+		identifier: string,
+	): Promise<void> {
+		if (!scope) return;
+		let count: number;
+		try {
+			count = await this.sessions.recordUserLoginFailure(scope, identifier);
+		} catch {
+			return; // fail-open: Redis loi thi khong chan (R5.4)
+		}
+		if (count > LOGIN_MAX_ATTEMPTS) {
+			throw new HttpException(
+				'Too many attempts. Please retry later.',
+				HttpStatus.TOO_MANY_REQUESTS,
+			);
+		}
+	}
+
+	private async clearLoginThrottle(
+		scope: string,
+		identifier: string,
+	): Promise<void> {
+		if (!scope) return;
+		try {
+			await this.sessions.clearUserLoginFailures(scope, identifier);
+		} catch {
+			// best-effort cleanup; khong anh huong ket qua dang nhap
+		}
+	}
+
+	async profile(userId: string, tenantId: string) {
+		const user = await this.findActiveUser(userId, tenantId);
+		if (!user) throw new UnauthorizedException('User not found');
+		const settings = await this.prisma.tenantSettings.findUnique({
+			where: { tenantId },
+			select: { address: true },
+		});
+		return { user: this.toPublicUser(user), address: settings?.address ?? '' };
+	}
+
+	async updateProfile(
+		userId: string,
+		tenantId: string,
+		dto: UpdateTenantProfileDto,
+	) {
+		const current = await this.findActiveUser(userId, tenantId);
+		if (!current) throw new UnauthorizedException('User not found');
+		await this.audit.run(
+			{
+				tenantId,
+				actorId: userId,
+				actorType: AuditActorType.USER,
+				actorRoleCode: current.role.code,
+				action: AuditAction.TENANT_UPDATE,
+				resource: 'profile',
+				resourceId: userId,
+			},
+			async (tx) => {
+				await tx.user.update({
+					where: { id: userId },
+					data: {
+						fullName: dto.fullName,
+						phone: dto.phone ?? null,
+						email: dto.email ?? null,
+					},
+				});
+				await tx.tenantSettings.upsert({
+					where: { tenantId },
+					create: { tenantId, address: dto.address ?? null },
+					update: { address: dto.address ?? null },
+				});
+				return true;
+			},
+		);
+		const updated = await this.findActiveUser(userId, tenantId);
+		if (!updated) throw new UnauthorizedException('User not found');
+		const settings = await this.prisma.tenantSettings.findUnique({
+			where: { tenantId },
+			select: { address: true },
+		});
+		return { user: this.toPublicUser(updated), address: settings?.address ?? '' };
 	}
 
 	async changePassword(

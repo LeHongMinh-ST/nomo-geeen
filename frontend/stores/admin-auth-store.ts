@@ -42,7 +42,7 @@ export const useAdminAuth = create<AuthState>((set, get) => ({
 
 		set({ loading: true });
 		try {
-			const refreshRes = await fetch(`${API_BASE}/auth/refresh`, {
+			const refreshRes = await fetch(`${API_BASE}/auth/refresh?realm=admin`, {
 				method: "POST",
 				credentials: "include",
 			});

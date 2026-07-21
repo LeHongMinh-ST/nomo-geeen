@@ -3,7 +3,9 @@ import {
 	Controller,
 	Get,
 	HttpCode,
+	Patch,
 	Post,
+	Query,
 	Req,
 	Res,
 	ServiceUnavailableException,
@@ -18,6 +20,7 @@ import { AdminLoginDto } from './dto/admin-login.dto';
 import { ChangeTenantPasswordDto } from './dto/change-tenant-password.dto';
 import { TenantLoginDto } from './dto/tenant-login.dto';
 import { TenantRegisterDto } from './dto/tenant-register.dto';
+import { UpdateTenantProfileDto } from './dto/update-tenant-profile.dto';
 import { AccessTokenGuard } from './guards/access-token.guard';
 import { PermissionGuard } from './guards/permission.guard';
 import { RefreshTokenStore } from './refresh-token.store';
@@ -30,6 +33,11 @@ import {
 
 const REFRESH_COOKIE = 'nomo_admin_rt';
 const USER_REFRESH_COOKIE = 'nomo_user_rt';
+type RefreshRealm = 'admin' | 'user';
+
+function requestedRefreshRealm(value: unknown): RefreshRealm | undefined {
+	return value === 'admin' || value === 'user' ? value : undefined;
+}
 
 function cookieSecure(): boolean {
 	return process.env.AUTH_COOKIE_SECURE !== 'false';
@@ -98,9 +106,13 @@ export class AuthController {
 	@HttpCode(201)
 	async register(
 		@Body() dto: TenantRegisterDto,
+		@Req() req: Request,
 		@Res({ passthrough: true }) res: Response,
 	) {
-		const result = await this.tenantAuth.register(dto);
+		const result = await this.tenantAuth.register(dto, {
+			ip: req.ip,
+			userAgent: req.get('user-agent') ?? undefined,
+		});
 		res.cookie(USER_REFRESH_COOKIE, result.refreshToken, {
 			...refreshCookieOptions(result.refreshTtlSec * 1000, true),
 			path: '/auth',
@@ -158,6 +170,43 @@ export class AuthController {
 		const cookies = req.cookies as Record<string, string> | undefined;
 		const userCookie = cookies?.[USER_REFRESH_COOKIE];
 		const adminCookie = cookies?.[REFRESH_COOKIE];
+		const realm = requestedRefreshRealm(req.query.realm);
+
+		if (realm === 'user') {
+			if (!userCookie) throw new UnauthorizedException('Missing user refresh token');
+			this.requestPolicy.assertAllowedCookieOrigin(req);
+			const result = await this.tenantAuth.refreshUser(userCookie, {
+				ip: req.ip,
+				userAgent: req.get('user-agent') ?? undefined,
+			});
+			res.cookie(USER_REFRESH_COOKIE, result.refreshToken, {
+				...refreshCookieOptions(result.refreshTtlSec * 1000, true),
+				path: '/auth',
+			});
+			return { accessToken: result.accessToken, user: result.user };
+		}
+
+		if (realm === 'admin') {
+			if (!adminCookie) throw new UnauthorizedException('Missing admin refresh token');
+			try {
+				const result = await this.auth.refresh(adminCookie, {
+					ip: req.ip,
+					userAgent: req.get('user-agent') ?? undefined,
+				});
+				res.cookie(
+					REFRESH_COOKIE,
+					result.refreshToken,
+					refreshCookieOptions(result.refreshTtlSec * 1000),
+				);
+				return { accessToken: result.accessToken };
+			} catch (err) {
+				console.log(
+					`[auth/refresh] 401 realm=admin reason=${(err as Error).message ?? 'unknown'}`,
+				);
+				throw err;
+			}
+		}
+
 		if (userCookie) {
 			this.requestPolicy.assertSingleRefreshRealm(cookies);
 			this.requestPolicy.assertAllowedCookieOrigin(req);
@@ -209,7 +258,7 @@ export class AuthController {
 			this.requestPolicy.assertAllowedCookieOrigin(req);
 			if (!claims.tenantId)
 				throw new UnauthorizedException('Invalid tenant token');
-			await this.tenantAuth.logoutUser(token, {
+			await this.tenantAuth.logoutUser(token, claims, {
 				ip: req.ip,
 				userAgent: req.get('user-agent') ?? undefined,
 			});
@@ -259,6 +308,24 @@ export class AuthController {
 			);
 			throw err;
 		}
+	}
+
+	@Get('profile')
+	async profile(@Req() req: Request) {
+		const claims = this.tokens.verifyTenantAccess(bearerToken(req));
+		if (!claims.tenantId) throw new UnauthorizedException('Invalid tenant token');
+		return this.tenantAuth.profile(claims.sub, claims.tenantId);
+	}
+
+	@Patch('profile')
+	async updateProfile(
+		@Body() dto: UpdateTenantProfileDto,
+		@Req() req: Request,
+	) {
+		const claims = this.tokens.verifyTenantAccess(bearerToken(req));
+		if (!claims.tenantId) throw new UnauthorizedException('Invalid tenant token');
+		this.requestPolicy.assertAllowedCookieOrigin(req);
+		return this.tenantAuth.updateProfile(claims.sub, claims.tenantId, dto);
 	}
 
 	/**

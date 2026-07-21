@@ -18,7 +18,7 @@ async function tryRefresh(): Promise<string | null> {
 	if (refreshPromise) return refreshPromise;
 	refreshPromise = (async () => {
 		try {
-			const res = await fetch(`${API_BASE}/auth/refresh`, {
+			const res = await fetch(`${API_BASE}/auth/refresh?realm=admin`, {
 				method: "POST",
 				credentials: "include",
 			});

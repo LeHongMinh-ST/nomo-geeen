@@ -76,6 +76,7 @@
 - 2026-07-20: combined auth/product E2E PASS — 5 suites / 19 tests; tenant performance run PASS — 2 tests.
 - 2026-07-20: tenant product fixture updated with explicit current-role product grants required by `TenantPermissionGuard`.
 - 2026-07-20: Review: no critical findings; Jest open-handle warning remains after E2E process completion.
+- 2026-07-21: Re-verify sau khi baseline lại Prisma migration + fix 2 bug UI auth (login báo lỗi server, logout nối store). Fresh run: `tenant-auth` E2E PASS 1 suite / 2 tests; regression `auth-flow`+`tenant-products` PASS 2 suites / 8 tests; FE type-check sạch; backend build PASS.
 
 ## Risk Assessment
 

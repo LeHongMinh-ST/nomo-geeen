@@ -1,6 +1,7 @@
 import type { INestApplication } from '@nestjs/common';
 import { ValidationPipe } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
+import { JwtService } from '@nestjs/jwt';
 import cookieParser from 'cookie-parser';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
@@ -66,14 +67,48 @@ describe('Tenant auth session lifecycle (e2e)', () => {
 		tenantId = registered.body.user.tenantId as string;
 		ownerId = registered.body.user.id as string;
 		const access0 = registered.body.accessToken as string;
-		const cookie0 = cookieValue(registered.headers['set-cookie']);
+		let cookie0 = cookieValue(registered.headers['set-cookie']);
 		expect(registered.body.user).not.toHaveProperty('passwordHash');
+
+		// Both realms may exist in the same browser. An explicit tenant refresh
+		// must ignore the admin cookie instead of returning an ambiguous-session error.
+		const explicitUserRefresh = await request(server)
+			.post('/auth/refresh?realm=user')
+			.set('Cookie', [cookie0, 'nomo_admin_rt=admin-session'])
+			.set('Origin', 'http://localhost:3000')
+			.expect(200);
+		cookie0 = cookieValue(explicitUserRefresh.headers['set-cookie']);
 
 		await request(server)
 			.get('/auth/me')
 			.set('Authorization', `Bearer ${access0}`)
 			.expect(200)
 			.expect(({ body }) => expect(body.id).toBe(ownerId));
+
+		await request(server)
+			.get('/auth/profile')
+			.set('Authorization', `Bearer ${access0}`)
+			.expect(200)
+			.expect(({ body }) => {
+				expect(body.user.id).toBe(ownerId);
+				expect(body.address).toBe('');
+			});
+		await request(server)
+			.patch('/auth/profile')
+			.set('Authorization', `Bearer ${access0}`)
+			.set('Origin', 'http://localhost:3000')
+			.send({
+				fullName: 'E2E Owner Updated',
+				phone: '0912345678',
+				email: `${username}-updated@example.com`,
+				address: 'Tổ 3, Cai Lậy, Tiền Giang',
+			})
+			.expect(200)
+			.expect(({ body }) => {
+				expect(body.user.fullName).toBe('E2E Owner Updated');
+				expect(body.user.phone).toBe('0912345678');
+				expect(body.address).toBe('Tổ 3, Cai Lậy, Tiền Giang');
+			});
 
 		await prisma.user.update({
 			where: { id: ownerId },
@@ -264,5 +299,73 @@ describe('Tenant auth session lifecycle (e2e)', () => {
 		expect(loginMs).toHaveLength(5);
 		expect(meMs).toHaveLength(5);
 		expect(refreshMs).toHaveLength(5);
+	});
+
+	// H1 (review 2026-07-21): logout voi access token da idle-het-han van phai
+	// thu hoi refresh family + blacklist, khong duoc "song lai" qua /auth/refresh.
+	it('revokes the session on logout even when the access token has expired', async () => {
+		const server = app.getHttpServer();
+		const login = await request(server)
+			.post('/auth/login')
+			.send({ identifier: username, password: 'Tenant-New-Pass2!' })
+			.expect(200);
+		const cookie = cookieValue(login.headers['set-cookie']);
+		const freshAccess = login.body.accessToken as string;
+
+		// Tao access token DA HET HAN nhung dung chu ky/claims (mo phong phien idle).
+		const jwt = app.get(JwtService);
+		const decoded = jwt.decode(freshAccess) as Record<string, unknown>;
+		const { exp: _exp, iat: _iat, jti: _jti, ...claims } = decoded;
+		const expiredAccess = jwt.sign(claims, {
+			secret: process.env.JWT_ACCESS_SECRET,
+			expiresIn: '-10s',
+		} as Parameters<JwtService['sign']>[1]);
+
+		// Logout bang token het han -> phai 204 va thu hoi phien.
+		await request(server)
+			.post('/auth/logout')
+			.set('Authorization', `Bearer ${expiredAccess}`)
+			.set('Origin', 'http://localhost:3000')
+			.expect(204);
+
+		// Cookie refresh phai bi vo hieu: /auth/refresh khong duoc cap token moi.
+		await request(server)
+			.post('/auth/refresh')
+			.set('Cookie', cookie)
+			.set('Origin', 'http://localhost:3000')
+			.expect(401);
+	});
+
+	// H2 (review 2026-07-21): dang nhap sai lien tuc phai bi 429 sau khi vuot nguong.
+	it('throttles repeated failed logins with 429', async () => {
+		const server = app.getHttpServer();
+		const maxAttempts = Number(process.env.USER_LOGIN_MAX_ATTEMPTS ?? 10);
+		let sawTooMany = false;
+		// Vuot nguong: gui maxAttempts+2 lan sai; cac lan dau 401, sau nguong -> 429.
+		for (let i = 0; i < maxAttempts + 2; i += 1) {
+			const res = await request(server)
+				.post('/auth/login')
+				.send({ identifier: username, password: 'wrong-password-000' });
+			if (res.status === 429) {
+				sawTooMany = true;
+				break;
+			}
+			expect(res.status).toBe(401);
+		}
+		expect(sawTooMany).toBe(true);
+
+		// Don dep bo dem de khong anh huong test khac (theo IP ::ffff:127.0.0.1 + identifier).
+		await app
+			.get(RefreshTokenStore)
+			.clearUserLoginFailures('::ffff:127.0.0.1', username)
+			.catch(() => undefined);
+		await app
+			.get(RefreshTokenStore)
+			.clearUserLoginFailures('127.0.0.1', username)
+			.catch(() => undefined);
+		await app
+			.get(RefreshTokenStore)
+			.clearUserLoginFailures('::1', username)
+			.catch(() => undefined);
 	});
 });

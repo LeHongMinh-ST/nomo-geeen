@@ -65,8 +65,16 @@ describe('Admin auth full lifecycle (e2e)', () => {
 			.send({ email, password })
 			.expect(200);
 		const access = login.body.accessToken as string;
-		const cookie0 = rt(login.headers['set-cookie']);
+		let cookie0 = rt(login.headers['set-cookie']);
 		expect(login.body.admin.email).toBe(email);
+
+		// Both realms may exist in the same browser. An explicit admin refresh
+		// must ignore the tenant cookie instead of returning an ambiguous-session error.
+		const explicitAdminRefresh = await request(server)
+			.post('/auth/refresh?realm=admin')
+			.set('Cookie', [cookie0, 'nomo_user_rt=tenant-session'])
+			.expect(200);
+		cookie0 = rt(explicitAdminRefresh.headers['set-cookie']);
 
 		// 2. Guarded /auth/me with the access token
 		const me = await request(server)

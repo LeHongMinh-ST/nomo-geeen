@@ -1,7 +1,10 @@
 # Task R3-01: User session lifecycle
 
 **Requirement:** R3 — User session lifecycle
-**Status:** [x]
+**Status:** BLOCKED (review 2026-07-21 — finding H1)
+
+> **BLOCKER H1:** `tenant-auth.service.ts:304` — `logoutUser()` gọi `verifyTenantAccess()` (verify strict) trên access token đã được controller `decodeExpiredAccess`. Khi access token idle-hết-hạn, verify ném 401 → `blacklistUserAccess` + `revokeUserFamily` + `clearCookie(nomo_user_rt)` KHÔNG chạy → phiên "sống lại" qua `/auth/refresh` dù người dùng đã bấm Đăng xuất. Vi phạm R3.3. Fix: truyền claims đã decode (hoặc dùng `decodeExpiredAccess`) vào `logoutUser` thay vì verify strict lại.
+
 **Priority:** P0
 **Estimated Effort:** L
 **Dependencies:** tasks/task-R0-01-session-contract-foundation.md, tasks/task-R2-01-tenant-login-identity.md

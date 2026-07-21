@@ -6,6 +6,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
+import { useUserAuth } from "@/stores/user-auth-store";
 import { MoreSheet } from "@/components/app/more-sheet";
 import {
 	bottomNavItems,
@@ -23,9 +24,21 @@ function isActive(pathname: string, href: string) {
 	return pathname === href;
 }
 
+function initials(name?: string) {
+	const words = (name ?? "").trim().split(/\s+/).filter(Boolean);
+	return words.slice(-2).map((word) => word[0]).join("").toUpperCase() || "NT";
+}
+
+function roleLabel(role?: string) {
+	return role === "OWNER" ? "Chủ cửa hàng" : role === "MANAGER" ? "Quản lý" : "Nhân viên";
+}
+
 export function AppShell({ children }: { children: React.ReactNode }) {
 	const pathname = usePathname();
 	const [moreOpen, setMoreOpen] = useState(false);
+	const user = useUserAuth((state) => state.user);
+	const displayName = user?.fullName ?? "Minh Tâm";
+	const displayRole = roleLabel(user?.role);
 
 	return (
 		<div className="min-h-[100dvh] bg-background">
@@ -42,10 +55,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 					/>
 					<span className="flex min-w-0 flex-col leading-tight">
 						<span className="truncate text-base font-bold tracking-tight text-foreground">
-							Vật tư Minh Tâm
+							{user?.tenantName ?? "Vật tư Minh Tâm"}
 						</span>
 						<span className="truncate text-sm text-[#9e9e9e]">
-							Vật tư nông nghiệp
+							Cửa hàng
 						</span>
 					</span>
 				</div>
@@ -92,18 +105,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 						href="/"
 						className="flex items-center gap-2.5 lg:hidden"
 					>
-						<Image
-							src="/images/logo2.png"
-							alt="NomoGreen"
-							width={36}
-							height={36}
-							className="size-9 rounded-[10px] object-contain"
-						/>
+						<span className="flex size-10 items-center justify-center rounded-full bg-accent text-base font-semibold text-accent-foreground">
+							{initials(user?.fullName)}
+						</span>
 						<span className="flex flex-col leading-tight">
 							<span className="text-base font-bold tracking-tight text-foreground">
-								Vật tư Minh Tâm
+								{displayName}
 							</span>
-							<span className="text-xs text-[#9e9e9e]">Chủ cửa hàng</span>
+							<span className="text-xs text-[#9e9e9e]">{displayRole}</span>
 						</span>
 					</Link>
 
@@ -137,13 +146,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 							className="hidden items-center gap-2.5 rounded-[10px] pl-1 pr-2 transition-colors duration-200 ease-out hover:bg-[#f5f5f5] lg:flex"
 						>
 							<span className="flex size-10 items-center justify-center rounded-full bg-accent text-base font-semibold text-accent-foreground">
-								MT
+								{initials(user?.fullName)}
 							</span>
 							<div className="flex flex-col leading-tight">
 								<span className="text-sm font-semibold text-foreground">
-									Minh Tâm
+									{displayName}
 								</span>
-								<span className="text-xs text-[#9e9e9e]">Chủ cửa hàng</span>
+								<span className="text-xs text-[#9e9e9e]">{displayRole}</span>
 							</div>
 						</Link>
 					</div>

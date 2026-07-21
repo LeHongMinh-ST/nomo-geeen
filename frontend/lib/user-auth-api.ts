@@ -12,6 +12,11 @@ export type TenantAuthUser = {
 	mustChangePassword: boolean;
 };
 
+export type TenantProfile = {
+	user: TenantAuthUser;
+	address: string;
+};
+
 export type TenantAuthResponse = {
 	accessToken: string;
 	user: TenantAuthUser;
@@ -51,11 +56,19 @@ async function requestJson<T>(
 	const headers = new Headers(init.headers);
 	if (!headers.has("Content-Type"))
 		headers.set("Content-Type", "application/json");
-	const response = await fetch(`${API_BASE}${path}`, {
-		...init,
-		headers,
-		credentials: "include",
-	});
+	let response: Response;
+	try {
+		response = await fetch(`${API_BASE}${path}`, {
+			...init,
+			headers,
+			credentials: "include",
+		});
+	} catch {
+		throw Object.assign(
+			new Error("Không thể kết nối máy chủ. Vui lòng kiểm tra backend đang chạy.",),
+			{ reason: "NETWORK_ERROR" },
+		) as UserApiError;
+	}
 	if (!response.ok) {
 		const body = (await response.json().catch(() => null)) as {
 			reason?: string;
@@ -92,12 +105,29 @@ export function loginUser(input: {
 }
 
 export function refreshUser(): Promise<TenantAuthResponse> {
-	return requestJson<TenantAuthResponse>("/auth/refresh", { method: "POST" });
+	return requestJson<TenantAuthResponse>("/auth/refresh?realm=user", { method: "POST" });
 }
 
 export function getCurrentUser(accessToken: string): Promise<TenantAuthUser> {
 	return requestJson<TenantAuthUser>("/auth/me", {
 		headers: { Authorization: `Bearer ${accessToken}` },
+	});
+}
+
+export function getCurrentProfile(accessToken: string): Promise<TenantProfile> {
+	return requestJson<TenantProfile>('/auth/profile', {
+		headers: { Authorization: `Bearer ${accessToken}` },
+	});
+}
+
+export function updateCurrentProfile(
+	accessToken: string,
+	input: { fullName: string; phone?: string; email?: string; address?: string },
+): Promise<TenantProfile> {
+	return requestJson<TenantProfile>('/auth/profile', {
+		method: 'PATCH',
+		headers: { Authorization: `Bearer ${accessToken}` },
+		body: JSON.stringify(input),
 	});
 }
 

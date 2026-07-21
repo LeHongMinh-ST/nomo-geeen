@@ -14,7 +14,7 @@ async function tryRefresh(): Promise<string | null> {
 	if (refreshPromise) return refreshPromise;
 	refreshPromise = (async () => {
 		try {
-			const response = await fetch(`${API_BASE}/auth/refresh`, {
+			const response = await fetch(`${API_BASE}/auth/refresh?realm=user`, {
 				method: "POST",
 				credentials: "include",
 			});
@@ -43,11 +43,19 @@ export async function userFetch<T>(
 	}
 	const token = init.accessToken ?? useUserAuth.getState().accessToken;
 	if (token) headers.set("Authorization", `Bearer ${token}`);
-	const response = await fetch(`${API_BASE}${path}`, {
-		...init,
-		headers,
-		credentials: "include",
-	});
+	let response: Response;
+	try {
+		response = await fetch(`${API_BASE}${path}`, {
+			...init,
+			headers,
+			credentials: "include",
+		});
+	} catch {
+		throw Object.assign(
+			new Error("Không thể kết nối máy chủ. Vui lòng kiểm tra backend đang chạy."),
+			{ reason: "NETWORK_ERROR" },
+		) as UserApiError;
+	}
 
 	if (response.status === 401 && !init._retried) {
 		const next = await tryRefresh();

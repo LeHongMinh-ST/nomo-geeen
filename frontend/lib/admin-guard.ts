@@ -43,7 +43,7 @@ export async function getAdminSession(): Promise<AdminSession | null> {
 	}
 
 	// Buoc 1: refresh de lay access token moi + rotate cookie.
-	const refreshRes = await fetch(`${API_BASE}/auth/refresh`, {
+	const refreshRes = await fetch(`${API_BASE}/auth/refresh?realm=admin`, {
 		method: "POST",
 		headers: {
 			Cookie: cookieHeader,

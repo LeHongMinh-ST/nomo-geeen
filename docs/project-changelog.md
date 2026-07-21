@@ -8,6 +8,7 @@ Format theo [Keep a Changelog](https://keepachangelog.com/), tuân thủ [Semant
 ## [Unreleased]
 
 ### Added
+- **Tenant profile settings API** — added authenticated `GET/PATCH /auth/profile`, atomically updating the tenant user's full name/contact fields and `TenantSettings.address` with tenant audit logging; Settings and app-shell desktop/mobile identity now read and persist the current auth profile.
 - **Tenant supplier management** — added tenant-scoped supplier CRUD/search/soft-delete hardening plus authenticated `/nha-cung-cap` list, detail, create, edit, delete, pagination, validation-error, and read-only payable UI flows. Supplier purchase history, debt vouchers, and cooperation-policy editing remain out of scope.
 - **Tenant customer management** — wired authenticated `/khach-hang` list, search, detail, create, edit, and soft-delete screens to tenant customer APIs with read-only server balance; transaction history and debt mutation remain out of scope.
 - **Tenant product management** — added tenant-scoped product detail, catalog lookups, update, and soft-delete APIs with live permission/feature enforcement; replaced user-app product seed mutations with authenticated API-backed list, detail, create, edit, and delete flows. Inventory mutations remain out of scope.
@@ -36,6 +37,8 @@ Format theo [Keep a Changelog](https://keepachangelog.com/), tuân thủ [Semant
 - **Tenant auth acceptance coverage** — added deterministic Postgres/Redis tenant lifecycle E2E and re-ran admin auth plus tenant product regressions: 5 suites / 19 tests passing.
 
 ### Fixed
+- **Settings network error** — translated unavailable backend/network failures in user API requests into an actionable Vietnamese message and documented the shared authenticated request boundary.
+- **Auth realm isolation on shared devices** — refresh requests now declare `admin` or `user`, so simultaneous admin and tenant HttpOnly cookies are rotated independently without cross-session token mixing; legacy single-cookie refresh remains compatible.
 - **Supplier management review follow-up** — restored mobile supplier pagination, debounced and race-safe search loading, aligned `INACTIVE` updates with `deletedAt` soft-delete retention, and clarified supplier type mapping ownership.
 - Fixed frontend verification drift by adding the required `lowStockThreshold` field to the product-picker test fixture; supplier management unit/E2E, client tests, typecheck, lint, build, and route reachability now pass.
 - Corrected Prisma DI for RBAC services, added `GET /admin/permissions`, restricted role grants to `admin.*`, fixed frontend permission-ID mapping, and restored backend test type safety.

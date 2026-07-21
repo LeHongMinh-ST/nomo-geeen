@@ -3,6 +3,7 @@
 import { create } from "zustand";
 import {
 	changeUserPassword,
+	updateCurrentProfile,
 	getCurrentUser,
 	loginUser,
 	logoutUser,
@@ -23,6 +24,7 @@ type UserAuthState = {
 		currentPassword: string,
 		newPassword: string,
 	) => Promise<void>;
+	updateProfile: (input: Parameters<typeof updateCurrentProfile>[1]) => Promise<string>;
 	logout: () => Promise<void>;
 	clear: () => void;
 	setAccessToken: (token: string | null) => void;
@@ -87,6 +89,19 @@ export const useUserAuth = create<UserAuthState>((set, get) => ({
 				newPassword,
 			);
 			set({ user: response.user });
+		} finally {
+			set({ loading: false });
+		}
+	},
+
+	updateProfile: async (input) => {
+		const token = get().accessToken;
+		if (!token) throw new Error('Phiên đăng nhập đã hết hạn.');
+		set({ loading: true });
+		try {
+			const response = await updateCurrentProfile(token, input);
+			set({ user: response.user });
+			return response.address;
 		} finally {
 			set({ loading: false });
 		}

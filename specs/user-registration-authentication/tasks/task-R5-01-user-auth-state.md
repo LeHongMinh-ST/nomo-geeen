@@ -1,7 +1,10 @@
 # Task R5-01: User auth state and API client (P)
 
 **Requirement:** R5 — Frontend session state
-**Status:** [x]
+**Status:** BLOCKED (review 2026-07-21 — finding H2)
+
+> **BLOCKER H2:** Redis login-throttle helpers (`recordUserLoginFailure`, `clearUserLoginFailures`, `userLoginAttemptKey`, `LOGIN_ATTEMPT_LUA`) tồn tại nhưng KHÔNG có caller nào trong mã production (chỉ xuất hiện ở `refresh-token.store.spec.ts`); không có `ThrottlerGuard`. Login/register không bao giờ phát 429 → vi phạm contract R5.1/R5.4 và Security Assessment (bounded Redis throttle). Fix: wire enforcement vào `tenant-auth.service.login/register` rồi ném 429 khi vượt ngưỡng.
+
 **Priority:** P0
 **Estimated Effort:** M
 **Dependencies:** tasks/task-R3-01-user-session-lifecycle.md, tasks/task-R4-01-authorization-password-change.md
