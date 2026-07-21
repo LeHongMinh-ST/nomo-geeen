@@ -73,6 +73,11 @@ describe('TenantsService', () => {
 		prisma.product.count.mockResolvedValue(0);
 		prisma.customer.count.mockResolvedValue(0);
 		prisma.sale.count.mockResolvedValue(0);
+		prisma.role.findMany.mockResolvedValue([
+			{ code: 'OWNER', permissions: [] },
+			{ code: 'MANAGER', permissions: [] },
+			{ code: 'STAFF', permissions: [] },
+		]);
 		prisma.storedFile.aggregate.mockResolvedValue({
 			_sum: { sizeBytes: BigInt(0) },
 		});
@@ -372,6 +377,20 @@ describe('TenantsService', () => {
 			});
 		}
 
+		it('fails before transaction when a system role template is missing', async () => {
+			prisma.role.findMany.mockResolvedValue([
+				{ code: 'OWNER', permissions: [] },
+				{ code: 'STAFF', permissions: [] },
+			]);
+
+			await expect(service.create(dtoBase as never, ctx)).rejects.toMatchObject(
+				{
+					response: { reason: 'ROLE_TEMPLATE_MISSING' },
+				},
+			);
+			expect(prisma.$transaction).not.toHaveBeenCalled();
+		});
+
 		it('rejects when neither password nor generatePassword given (400 PASSWORD_MODE_INVALID)', async () => {
 			const dto = {
 				tenant: dtoBase.tenant,
@@ -401,31 +420,32 @@ describe('TenantsService', () => {
 
 		it('maps P2002 on username to 409 USERNAME_TAKEN', async () => {
 			passwords.hash.mockResolvedValue('hashed');
-			prisma.role.findMany.mockResolvedValue([]);
 			prisma.$transaction.mockRejectedValue(
 				knownRequestError('P2002', ['tenantId', 'username']),
 			);
 
-			await expect(service.create(dtoBase as never, ctx)).rejects.toMatchObject({
-				response: { reason: 'USERNAME_TAKEN' },
-			});
+			await expect(service.create(dtoBase as never, ctx)).rejects.toMatchObject(
+				{
+					response: { reason: 'USERNAME_TAKEN' },
+				},
+			);
 		});
 
 		it('maps P2002 on slug to 409 SLUG_TAKEN', async () => {
 			passwords.hash.mockResolvedValue('hashed');
-			prisma.role.findMany.mockResolvedValue([]);
 			prisma.$transaction.mockRejectedValue(
 				knownRequestError('P2002', ['slug']),
 			);
 
-			await expect(service.create(dtoBase as never, ctx)).rejects.toMatchObject({
-				response: { reason: 'SLUG_TAKEN' },
-			});
+			await expect(service.create(dtoBase as never, ctx)).rejects.toMatchObject(
+				{
+					response: { reason: 'SLUG_TAKEN' },
+				},
+			);
 		});
 
 		it('rethrows unrelated P2002 without mislabeling as SLUG_TAKEN', async () => {
 			passwords.hash.mockResolvedValue('hashed');
-			prisma.role.findMany.mockResolvedValue([]);
 			// A role uniqueness violation (tenantId, code) — neither slug nor username.
 			const err = knownRequestError('P2002', ['tenantId', 'code']);
 			prisma.$transaction.mockRejectedValue(err);

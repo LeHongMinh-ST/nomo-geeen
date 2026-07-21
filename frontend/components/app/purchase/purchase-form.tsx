@@ -14,7 +14,7 @@ import {
 	Wallet,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { SupplierPicker } from "@/components/app/purchase/supplier-picker";
 import { ProductPicker } from "@/components/app/sales/product-picker";
 import { formatVND } from "@/lib/format";
@@ -25,12 +25,13 @@ import {
 	type PurchaseStatus,
 	purchaseLineTotal,
 } from "@/lib/purchases";
+import { createTenantPurchase } from "@/lib/tenant-purchases-api";
 
 /**
  * Form tạo phiếu nhập (DESIGN.md §24 — trang riêng, không modal).
  * Chọn NCC → thêm SP (đơn vị nhập + quy đổi Base Unit + lô/HSD) → chiết khấu
  * + vận chuyển → hình thức thanh toán → Lưu nháp / Hoàn thành.
- * FE-only: state cục bộ, chưa nối API.
+ * API-backed: form state is submitted to the tenant purchase API.
  */
 
 const payments: { value: PurchasePayment; label: string; icon: LucideIcon }[] =
@@ -48,13 +49,19 @@ export function PurchaseForm() {
 	const [shipping, setShipping] = useState("");
 	const [payment, setPayment] = useState<PurchasePayment>("cash");
 	const [note, setNote] = useState("");
+	const [pending, setPending] = useState(false);
+	const [error, setError] = useState<string | null>(null);
+	const retryKey = useRef(crypto.randomUUID());
 
 	const subtotal = lines.reduce((sum, l) => sum + purchaseLineTotal(l), 0);
 	const discountNum = Number(discount.replace(/\D/g, "")) || 0;
 	const shippingNum = Number(shipping.replace(/\D/g, "")) || 0;
 	const total = Math.max(0, subtotal - discountNum + shippingNum);
 	const empty = lines.length === 0;
-	const canSave = !empty && Boolean(supplierId);
+	const canSave =
+		!empty &&
+		Boolean(supplierId) &&
+		lines.every((line) => Boolean(line.unitId));
 
 	function addProduct(product: Product) {
 		setLines((current) => {
@@ -71,6 +78,7 @@ export function PurchaseForm() {
 				{
 					productId: product.id,
 					name: product.name,
+					unitId: product.baseUnitId,
 					unit: conv?.unit ?? product.baseUnit,
 					factor: conv?.factor ?? 1,
 					qty: 1,
@@ -101,13 +109,58 @@ export function PurchaseForm() {
 		setLines((current) => current.filter((l) => l.productId !== productId));
 	}
 
-	function save(_status: PurchaseStatus) {
-		// TODO: gọi API tạo phiếu (Draft lưu nháp / Completed cộng tồn Base Unit + ghi nợ NCC).
-		router.push("/nhap-hang");
+	async function save(status: PurchaseStatus) {
+		if (!supplierId || !canSave || pending) return;
+		setPending(true);
+		setError(null);
+		try {
+			await createTenantPurchase({
+				idempotencyKey: retryKey.current,
+				supplierId,
+				status: status === "completed" ? "COMPLETED" : "DRAFT",
+				discountAmount: discountNum,
+				shippingFee: shippingNum,
+				amountPaid: payment === "debt" ? 0 : total,
+				paymentMethod:
+					payment === "transfer"
+						? "BANK_TRANSFER"
+						: payment === "debt"
+							? "DEBT"
+							: "CASH",
+				note: note || undefined,
+				lines: lines.map((line) => ({
+					productId: line.productId,
+					unitId: line.unitId as string,
+					qty: String(line.qty),
+					unitPrice: line.cost,
+					lineDiscount: 0,
+					batchCode: line.batch,
+					expiresAt: line.expiry,
+				})),
+			});
+			router.push("/nhap-hang");
+		} catch (reason) {
+			setError(
+				reason instanceof Error
+					? reason.message
+					: "Không thể lưu phiếu nhập. Vui lòng thử lại.",
+			);
+		} finally {
+			setPending(false);
+		}
 	}
 
 	return (
 		<div className="mx-auto flex w-full max-w-2xl flex-col gap-5 pb-[calc(168px+env(safe-area-inset-bottom,0px))] lg:mx-0 lg:pb-0">
+			{error ? (
+				<div
+					role="alert"
+					className="rounded-[10px] border border-destructive bg-[#fdecea] px-4 py-3 text-sm text-destructive"
+				>
+					{error}
+				</div>
+			) : null}
+
 			{/* Header */}
 			<div className="flex items-start gap-3">
 				<button
@@ -257,7 +310,7 @@ export function PurchaseForm() {
 			<div className="fixed inset-x-0 bottom-nav-safe z-30 flex items-center gap-3 border-t border-border bg-card px-4 py-3 lg:static lg:justify-end lg:border-0 lg:bg-transparent lg:px-0 lg:py-0">
 				<button
 					type="button"
-					disabled={!canSave}
+					disabled={!canSave || pending}
 					onClick={() => save("draft")}
 					className="flex h-14 flex-1 items-center justify-center gap-2 rounded-[10px] border border-border bg-white text-base font-semibold text-foreground transition-colors duration-200 ease-out hover:bg-[#f5f5f5] disabled:cursor-not-allowed disabled:opacity-50 lg:h-12 lg:flex-none lg:px-6"
 				>

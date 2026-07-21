@@ -99,6 +99,23 @@ describe('TenantUsersService', () => {
 			});
 		});
 
+		it('caps an excessively large page to keep skip bounded', async () => {
+			mockTenantExists();
+			prisma.user.findMany.mockResolvedValue([]);
+			prisma.user.count.mockResolvedValue(0);
+			mockSeat(0, 10);
+
+			const result = await service.list(TENANT_ID, {
+				page: Number.MAX_SAFE_INTEGER,
+				pageSize: 50,
+			});
+
+			expect(result.page).toBe(1_000_000);
+			expect(prisma.user.findMany).toHaveBeenCalledWith(
+				expect.objectContaining({ skip: (1_000_000 - 1) * 50 }),
+			);
+		});
+
 		it('caps pageSize at 100', async () => {
 			mockTenantExists();
 			prisma.user.findMany.mockResolvedValue([]);

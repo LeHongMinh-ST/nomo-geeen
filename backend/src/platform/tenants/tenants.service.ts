@@ -4,6 +4,7 @@ import {
 	HttpException,
 	HttpStatus,
 	Injectable,
+	InternalServerErrorException,
 	NotFoundException,
 } from '@nestjs/common';
 import {
@@ -175,6 +176,16 @@ export class TenantsService {
 				permissions: { select: { permissionId: true } },
 			},
 		});
+		const templateCodes = new Set(templates.map((template) => template.code));
+		const missingTemplates = PER_TENANT_ROLES.filter(
+			(role) => !templateCodes.has(role.code),
+		).map((role) => role.code);
+		if (missingTemplates.length > 0) {
+			throw new InternalServerErrorException({
+				reason: 'ROLE_TEMPLATE_MISSING',
+				message: 'System role templates are not configured',
+			});
+		}
 		const grantsByCode = new Map(
 			templates.map((t) => [t.code, t.permissions.map((p) => p.permissionId)]),
 		);

@@ -202,6 +202,49 @@ describe('Admin tenant-user management (e2e)', () => {
 		expect(typeof res.body.generatedPassword).toBe('string');
 	});
 
+	it('supports duplicate email and phone values within one tenant', async () => {
+		const tenantId = await provisionTenant(`tu-contacts-${ts}`, 10);
+		const first = await auth(
+			request(app.getHttpServer()).post(`/admin/tenants/${tenantId}/users`),
+			superToken,
+		)
+			.send({
+				fullName: 'Contact One',
+				username: `contact-one-${ts}`,
+				roleCode: 'STAFF',
+				email: 'shared-contact@example.com',
+				phone: '0900000000',
+				generatePassword: true,
+			})
+			.expect(201);
+		await auth(
+			request(app.getHttpServer()).post(`/admin/tenants/${tenantId}/users`),
+			superToken,
+		)
+			.send({
+				fullName: 'Contact Two',
+				username: `contact-two-${ts}`,
+				roleCode: 'STAFF',
+				email: 'shared-contact@example.com',
+				phone: '0900000000',
+				generatePassword: true,
+			})
+			.expect(201);
+		expect(first.body.user.email).toBe('shared-contact@example.com');
+	});
+
+	it('caps an excessively large page at the HTTP boundary', async () => {
+		const tenantId = await provisionTenant(`tu-page-cap-${ts}`, 10);
+		const res = await auth(
+			request(app.getHttpServer()).get(
+				`/admin/tenants/${tenantId}/users?page=99999999999999999999&pageSize=50`,
+			),
+			superToken,
+		).expect(200);
+		expect(res.body.page).toBe(1_000_000);
+		expect(res.body.pageSize).toBe(50);
+	});
+
 	it('409 SEAT_LIMIT_REACHED when the tenant is full', async () => {
 		// seatBonus=1, no subscription → effectiveMaxUsers=1, owner fills it.
 		const tenantId = await provisionTenant(`tu-seat-${ts}`, 1);

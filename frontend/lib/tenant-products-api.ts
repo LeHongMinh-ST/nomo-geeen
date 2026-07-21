@@ -1,5 +1,5 @@
-import { userFetch } from "@/lib/user-fetch";
 import type { Product } from "@/lib/products";
+import { userFetch } from "@/lib/user-fetch";
 
 export type TenantProduct = {
 	id: string;
@@ -19,6 +19,12 @@ export type TenantProduct = {
 	stock: string;
 	createdAt: string;
 	updatedAt?: string;
+	conversions?: Array<{
+		unitId: string;
+		factor: number;
+		kind: "PURCHASE" | "BOTH";
+		unit: string;
+	}>;
 };
 
 export type ProductLookups = {
@@ -67,7 +73,12 @@ export function mapTenantProduct(
 		manufacturerLabel: manufacturer?.name,
 		baseUnit: unit?.name ?? "—",
 		baseUnitId: row.baseUnitId,
-		conversions: [],
+		conversions: (row.conversions ?? []).map((conversion) => ({
+			unitId: conversion.unitId,
+			factor: conversion.factor,
+			kind: conversion.kind,
+			unit: conversion.unit,
+		})),
 		costPrice: Number(row.costPrice),
 		salePrice: Number(row.salePrice),
 		wholesalePrice: row.wholesalePrice ? Number(row.wholesalePrice) : undefined,

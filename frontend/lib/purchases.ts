@@ -16,6 +16,7 @@ export type PurchasePayment = "cash" | "transfer" | "debt";
 /** Một dòng hàng trong phiếu nhập. */
 export type PurchaseLine = {
 	productId: string;
+	unitId?: string;
 	name: string;
 	/** Đơn vị nhập (có thể là đơn vị lớn: Thùng, Bao...). */
 	unit: string;
@@ -33,9 +34,11 @@ export type PurchaseLine = {
 
 export type Purchase = {
 	id: string;
+	idempotencyKey?: string;
 	/** Mã phiếu nhập hiển thị (PN-0031). */
 	code: string;
 	supplierId: string;
+	supplierName?: string;
 	lines: PurchaseLine[];
 	/** Chiết khấu tuyệt đối (₫). */
 	discount: number;
@@ -90,8 +93,10 @@ export function purchaseItemCount(p: Pick<Purchase, "lines">): number {
 	return p.lines.length;
 }
 
-export function supplierLabel(p: Pick<Purchase, "supplierId">): string {
-	return getSupplier(p.supplierId)?.name ?? "—";
+export function supplierLabel(
+	p: Pick<Purchase, "supplierId" | "supplierName">,
+): string {
+	return p.supplierName ?? getSupplier(p.supplierId)?.name ?? "—";
 }
 
 /* Tạo dòng nhập mẫu từ catalog. */

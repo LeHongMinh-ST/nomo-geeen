@@ -6,15 +6,13 @@ import {
 	CheckCircle2,
 	Layers,
 	PackagePlus,
-	Phone,
 	Truck,
 	XCircle,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { formatDate, formatVND } from "@/lib/format";
-import { getProduct } from "@/lib/products";
 import {
 	type Purchase,
 	type PurchaseStatus,
@@ -27,27 +25,93 @@ import {
 	purchaseTotal,
 	supplierLabel,
 } from "@/lib/purchases";
-import { getSupplier } from "@/lib/suppliers";
+import {
+	cancelTenantPurchase,
+	completeTenantPurchase,
+	getTenantPurchase,
+	mapTenantPurchase,
+} from "@/lib/tenant-purchases-api";
 
 /**
  * Chi tiết phiếu nhập (DESIGN.md §24 — trang riêng, không modal).
  * Phiếu Nháp: Hoàn thành / Hủy. Phiếu Hoàn thành: chỉ Hủy (inline confirm §21).
  * Hiển thị lô/HSD từng dòng và tổng quy đổi Base Unit.
- * FE-only: đổi trạng thái cục bộ, chưa nối API.
+ * API-backed: actions refetch the authoritative purchase state.
  */
-export function PurchaseDetail({ purchase: initial }: { purchase: Purchase }) {
+export function PurchaseDetail({ purchaseId }: { purchaseId: string }) {
+	const [purchase, setPurchase] = useState<Purchase | null>(null);
+	const [loading, setLoading] = useState(true);
+	const [error, setError] = useState<string | null>(null);
+	const [pending, setPending] = useState(false);
 	const router = useRouter();
-	const [purchase, setPurchase] = useState<Purchase>(initial);
 	const [confirmCancel, setConfirmCancel] = useState(false);
+	useEffect(() => {
+		let active = true;
+		setLoading(true);
+		getTenantPurchase(purchaseId)
+			.then((item) => {
+				if (active) {
+					setPurchase(mapTenantPurchase(item));
+					setError(null);
+				}
+			})
+			.catch((reason) => {
+				if (active)
+					setError(
+						reason instanceof Error
+							? reason.message
+							: "Không thể tải phiếu nhập",
+					);
+			})
+			.finally(() => {
+				if (active) setLoading(false);
+			});
+		return () => {
+			active = false;
+		};
+	}, [purchaseId]);
 
-	const supplier = getSupplier(purchase.supplierId);
+	if (loading)
+		return (
+			<div className="rounded-[16px] border border-border bg-card px-6 py-14 text-center">
+				Đang tải phiếu nhập...
+			</div>
+		);
+	if (error || !purchase)
+		return (
+			<div
+				role="alert"
+				className="rounded-[16px] border border-dashed border-destructive bg-card px-6 py-14 text-center text-destructive"
+			>
+				{error ?? "Không tìm thấy phiếu nhập"}
+			</div>
+		);
 	const subtotal = purchaseSubtotal(purchase);
 	const total = purchaseTotal(purchase);
 
-	function setStatus(status: PurchaseStatus) {
-		// TODO: gọi API cập nhật (Completed cộng tồn theo Base Unit / Cancelled hoàn tồn).
-		setPurchase((p) => ({ ...p, status }));
-		setConfirmCancel(false);
+	async function setStatus(status: PurchaseStatus) {
+		if (!purchase || pending) return;
+		setPending(true);
+		try {
+			const item =
+				status === "completed"
+					? await completeTenantPurchase(
+							purchase.id,
+							purchase.idempotencyKey ?? purchase.id,
+						)
+					: await cancelTenantPurchase(purchase.id);
+			setPurchase(mapTenantPurchase(item));
+			setError(null);
+			setConfirmCancel(false);
+		} catch (reason) {
+			setError(
+				reason instanceof Error
+					? reason.message
+					: "Không thể cập nhật phiếu nhập",
+			);
+		} finally {
+			setPending(false);
+		}
 	}
 
 	return (
@@ -96,12 +160,6 @@ export function PurchaseDetail({ purchase: initial }: { purchase: Purchase }) {
 						<span className="text-lg font-semibold text-foreground">
 							{supplierLabel(purchase)}
 						</span>
-						{supplier?.phone ? (
-							<span className="flex items-center gap-1.5 text-sm text-[#616161]">
-								<Phone className="size-4" aria-hidden />
-								{supplier.phone}
-							</span>
-						) : null}
 					</div>
 				</div>
 			</section>
@@ -113,7 +171,6 @@ export function PurchaseDetail({ purchase: initial }: { purchase: Purchase }) {
 				</h2>
 				<ul className="flex flex-col divide-y divide-border">
 					{purchase.lines.map((l) => {
-						const product = getProduct(l.productId);
 						return (
 							<li
 								key={`${l.productId}-${l.batch ?? ""}-${l.expiry ?? ""}`}
@@ -130,10 +187,11 @@ export function PurchaseDetail({ purchase: initial }: { purchase: Purchase }) {
 										{l.name}
 									</span>
 									<span className="text-sm text-[#9e9e9e]">
-										{formatVND(l.cost)}₫ × {l.qty} {l.unit}
-										{product
-											? ` = ${new Intl.NumberFormat("vi-VN").format(purchaseLineBaseQty(l))} ${product.baseUnit}`
-											: ""}
+										{formatVND(l.cost)}₫ × {l.qty} {l.unit}` = $
+										{new Intl.NumberFormat("vi-VN").format(
+											purchaseLineBaseQty(l),
+										)}{" "}
+										đơn vị gốc`
 									</span>
 									{/* Lô + HSD */}
 									{l.batch || l.expiry ? (
@@ -205,7 +263,7 @@ export function PurchaseDetail({ purchase: initial }: { purchase: Purchase }) {
 			) : null}
 
 			{/* Hành động — dính đáy mobile, inline desktop */}
-			{purchase.status !== "cancelled" ? (
+			{purchase.status !== "cancelled" && !pending ? (
 				<div className="fixed inset-x-0 bottom-nav-safe z-30 border-t border-border bg-card px-4 py-3 lg:static lg:border-0 lg:bg-transparent lg:px-0 lg:py-0">
 					{confirmCancel ? (
 						<div className="flex items-center gap-3">
@@ -221,7 +279,7 @@ export function PurchaseDetail({ purchase: initial }: { purchase: Purchase }) {
 							</button>
 							<button
 								type="button"
-								onClick={() => setStatus("cancelled")}
+								onClick={() => void setStatus("cancelled")}
 								className="h-12 rounded-[10px] bg-destructive px-5 text-base font-semibold text-white hover:bg-[#c62828]"
 							>
 								Hủy phiếu
@@ -240,7 +298,7 @@ export function PurchaseDetail({ purchase: initial }: { purchase: Purchase }) {
 							{purchase.status === "draft" ? (
 								<button
 									type="button"
-									onClick={() => setStatus("completed")}
+									onClick={() => void setStatus("completed")}
 									className="flex h-14 flex-1 items-center justify-center gap-2 rounded-[10px] bg-primary text-lg font-bold text-white transition-colors duration-200 ease-out hover:bg-[#5cad45] active:bg-[#3f8530] lg:h-12 lg:flex-none lg:px-8"
 								>
 									<CheckCircle2 className="size-6" aria-hidden />

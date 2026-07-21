@@ -3,7 +3,7 @@ import {
 	Injectable,
 	NotFoundException,
 } from '@nestjs/common';
-import type { Prisma } from '@prisma/client';
+import { ConversionKind, Prisma } from '@prisma/client';
 import { EntitlementService } from '../entitlements/entitlement.service';
 import { TenantQuotaCounterService } from '../entitlements/tenant-quota-counter.service';
 import { PrismaService } from '../prisma/prisma.service';
@@ -28,6 +28,12 @@ type ProductRow = {
 	status: string;
 	createdAt: Date;
 	updatedAt?: Date;
+	conversions?: Array<{
+		unitId: string;
+		factorToBase: Prisma.Decimal;
+		kind: string;
+		unit: { id: string; code: string; name: string };
+	}>;
 };
 
 @Injectable()
@@ -99,6 +105,17 @@ export class ProductsService {
 				status: true,
 				createdAt: true,
 				updatedAt: true,
+				conversions: {
+					where: {
+						kind: { in: [ConversionKind.PURCHASE, ConversionKind.BOTH] },
+					},
+					select: {
+						unitId: true,
+						factorToBase: true,
+						kind: true,
+						unit: { select: { id: true, code: true, name: true } },
+					},
+				},
 			},
 		});
 		if (!product) throw new NotFoundException('Product not found');
@@ -305,7 +322,16 @@ export class ProductsService {
 			status: true,
 			createdAt: true,
 			updatedAt: true,
-		} as const;
+			conversions: {
+				where: { kind: { in: [ConversionKind.PURCHASE, ConversionKind.BOTH] } },
+				select: {
+					unitId: true,
+					factorToBase: true,
+					kind: true,
+					unit: { select: { id: true, code: true, name: true } },
+				},
+			},
+		} as const satisfies Prisma.ProductSelect;
 	}
 
 	private toPublicProduct(product: ProductRow, stockQty?: unknown) {
@@ -315,6 +341,12 @@ export class ProductsService {
 			salePrice: product.salePrice.toString(),
 			wholesalePrice: product.wholesalePrice?.toString() ?? null,
 			stock: stockQty?.toString() ?? '0',
+			conversions: (product.conversions ?? []).map((conversion) => ({
+				unitId: conversion.unitId,
+				factor: Number(conversion.factorToBase),
+				kind: conversion.kind,
+				unit: conversion.unit.name,
+			})),
 		};
 	}
 

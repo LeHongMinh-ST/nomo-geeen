@@ -1,13 +1,11 @@
 "use client";
 
 import { Check, ChevronDown, Search, Truck, X } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import {
-	getSupplier,
-	type Supplier,
-	suppliers as seedSuppliers,
-	supplierTypeLabel,
-} from "@/lib/suppliers";
+	listTenantSuppliers,
+	type TenantSupplier,
+} from "@/lib/tenant-suppliers-api";
 import { useScrollLock } from "@/lib/use-scroll-lock";
 
 /**
@@ -22,7 +20,18 @@ export function SupplierPicker({
 	onChange: (supplierId: string) => void;
 }) {
 	const [open, setOpen] = useState(false);
-	const selected = value ? getSupplier(value) : undefined;
+	const [selected, setSelected] = useState<TenantSupplier | undefined>();
+	useEffect(() => {
+		if (!value) {
+			setSelected(undefined);
+			return;
+		}
+		listTenantSuppliers({ search: value, pageSize: 20 })
+			.then((response) =>
+				setSelected(response.items.find((item) => item.id === value)),
+			)
+			.catch(() => setSelected(undefined));
+	}, [value]);
 
 	return (
 		<>
@@ -68,8 +77,22 @@ function SupplierSheet({
 	onPick: (id: string) => void;
 }) {
 	const [query, setQuery] = useState("");
+	const [results, setResults] = useState<TenantSupplier[]>([]);
+	const [loading, setLoading] = useState(false);
+	const [error, setError] = useState<string | null>(null);
 
 	useScrollLock(open);
+	useEffect(() => {
+		if (!open) return;
+		setLoading(true);
+		listTenantSuppliers({ search: query || undefined, page: 1, pageSize: 20 })
+			.then((response) => {
+				setResults(response.items);
+				setError(null);
+			})
+			.catch(() => setError("Không thể tải nhà cung cấp"))
+			.finally(() => setLoading(false));
+	}, [open, query]);
 
 	useEffect(() => {
 		if (!open) return;
@@ -79,17 +102,6 @@ function SupplierSheet({
 		window.addEventListener("keydown", onKey);
 		return () => window.removeEventListener("keydown", onKey);
 	}, [open, onClose]);
-
-	const results = useMemo(() => {
-		const q = query.trim().toLowerCase();
-		if (!q) return seedSuppliers;
-		return seedSuppliers.filter(
-			(s) =>
-				s.name.toLowerCase().includes(q) ||
-				s.phone.includes(q) ||
-				s.code.toLowerCase().includes(q),
-		);
-	}, [query]);
 
 	return (
 		<div
@@ -145,6 +157,19 @@ function SupplierSheet({
 				</div>
 
 				<div className="pb-safe flex-1 overflow-y-auto overscroll-contain px-3 pb-6">
+					{loading ? (
+						<p className="px-3 py-6 text-center text-base text-[#9e9e9e]">
+							Đang tải...
+						</p>
+					) : null}
+					{error ? (
+						<p
+							role="alert"
+							className="px-3 py-6 text-center text-base text-destructive"
+						>
+							{error}
+						</p>
+					) : null}
 					{results.map((s) => (
 						<SupplierRow
 							key={s.id}
@@ -169,7 +194,7 @@ function SupplierRow({
 	selected,
 	onPick,
 }: {
-	supplier: Supplier;
+	supplier: TenantSupplier;
 	selected: boolean;
 	onPick: () => void;
 }) {
@@ -191,11 +216,11 @@ function SupplierRow({
 						{supplier.name}
 					</span>
 					<span className="shrink-0 rounded-full bg-[#f5f5f5] px-2 py-0.5 text-xs font-medium text-[#616161]">
-						{supplierTypeLabel[supplier.type]}
+						{supplier.supplierType ?? "Nhà cung cấp"}
 					</span>
 				</span>
 				<span className="text-sm text-[#9e9e9e]">
-					{supplier.code} · {supplier.phone}
+					{supplier.code} · {supplier.phone ?? "Chưa có SĐT"}
 				</span>
 			</span>
 			{selected ? (

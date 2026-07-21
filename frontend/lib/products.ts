@@ -9,6 +9,8 @@ export type StockStatus = "in-stock" | "low-stock" | "out-of-stock";
 export type UnitConversion = {
 	/** Tên đơn vị (Thùng, Bao, Chai...). */
 	unit: string;
+	unitId?: string;
+	kind?: "PURCHASE" | "BOTH";
 	/** Số Base Unit tương ứng 1 đơn vị này. */
 	factor: number;
 };

@@ -7,11 +7,14 @@ import { AuditModule } from './platform/audit/audit.module';
 import { AuthModule } from './platform/auth/auth.module';
 import { BillingModule } from './platform/billing/billing.module';
 import { EntitlementsModule } from './platform/entitlements/entitlements.module';
+import { InventoryModule } from './platform/inventory/inventory.module';
 import { PrismaModule } from './platform/prisma/prisma.module';
 import { ProductsModule } from './platform/products/products.module';
-import { SalesModule } from './platform/sales/sales.module';
+import { PurchasesModule } from './platform/purchases/purchases.module';
 import { RedisModule } from './platform/redis/redis.module';
 import { RolesModule } from './platform/roles/roles.module';
+import { SalesModule } from './platform/sales/sales.module';
+import { SuppliersModule } from './platform/suppliers/suppliers.module';
 import { TenantUsersModule } from './platform/tenant-users/tenant-users.module';
 import { TenantsModule } from './platform/tenants/tenants.module';
 
@@ -29,6 +32,9 @@ import { TenantsModule } from './platform/tenants/tenants.module';
 		TenantUsersModule,
 		EntitlementsModule,
 		ProductsModule,
+		PurchasesModule,
+		SuppliersModule,
+		InventoryModule,
 		SalesModule,
 	],
 	controllers: [AppController],

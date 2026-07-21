@@ -1,163 +1,162 @@
 "use client";
-
-import { CalendarClock, Search, Warehouse } from "lucide-react";
+import { Search, Warehouse } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { InventoryCard } from "@/components/app/inventory/inventory-card";
 import { DataPagination } from "@/components/app/shared/data-pagination";
 import { ListFilterBar } from "@/components/app/shared/list-filter-bar";
 import { ListSkeleton } from "@/components/app/shared/list-skeleton";
-import { LoadMoreSentinel } from "@/components/app/shared/load-more-sentinel";
-import { formatDate, formatVND } from "@/lib/format";
+import { formatVND } from "@/lib/format";
 import {
-	type ExpiryStatus,
-	earliestExpiry,
-	expiryStatusBadgeClass,
-	expiryStatusLabel,
-	getInventory,
-	getStockStatus,
-	inventory,
-	itemExpiryStatus,
-	type StockStatus,
-	products as seedProducts,
-	stockStatusBadgeClass,
-	stockStatusLabel,
-} from "@/lib/inventory";
+	type InventoryListItem,
+	listTenantInventory,
+} from "@/lib/tenant-inventory-api";
 
-/**
- * Danh sách tồn kho — responsive (DESIGN.md §12).
- * Mobile: card list + tải dần. Desktop (lg+): bảng + phân trang.
- * Hai bộ lọc segmented: trạng thái tồn + trạng thái HSD.
- */
-
-type StockFilter = "all" | StockStatus;
+type StockFilter = "all" | "in-stock" | "low-stock" | "out-of-stock";
 type ExpiryFilter = "all" | "expiring" | "expired";
-
-const stockFilters: { value: StockFilter; label: string }[] = [
+function expiryStatus(item: InventoryListItem): "expiring" | "expired" | null {
+	if (!item.nextExpiry) return null;
+	const expiry = new Date(item.nextExpiry).getTime();
+	return expiry < Date.now()
+		? "expired"
+		: expiry <= Date.now() + 30 * 86400000
+			? "expiring"
+			: null;
+}
+const stockFilters = [
 	{ value: "all", label: "Tất cả" },
 	{ value: "in-stock", label: "Còn hàng" },
 	{ value: "low-stock", label: "Sắp hết" },
 	{ value: "out-of-stock", label: "Hết hàng" },
 ];
-
-const expiryFilters: { value: ExpiryFilter; label: string }[] = [
+const expiryFilters: Array<{ value: ExpiryFilter; label: string }> = [
 	{ value: "all", label: "Mọi HSD" },
 	{ value: "expiring", label: "Sắp hết hạn" },
 	{ value: "expired", label: "Đã hết hạn" },
 ];
-
-const PAGE_SIZE = 10;
-const MOBILE_BATCH = 8;
-
-/** Map productId → trạng thái HSD tổng hợp (tính 1 lần). */
-const expiryByProduct = new Map<string, ExpiryStatus>(
-	inventory.map((i) => [i.productId, itemExpiryStatus(i)]),
-);
-
+function stockStatus(item: InventoryListItem): Exclude<StockFilter, "all"> {
+	const qty = Number(item.qty);
+	return qty <= 0 ? "out-of-stock" : qty <= 10 ? "low-stock" : "in-stock";
+}
+function badge(status: Exclude<StockFilter, "all">) {
+	return status === "out-of-stock"
+		? "bg-[#ffebee] text-[#c62828]"
+		: status === "low-stock"
+			? "bg-[#fff8e1] text-[#f57f17]"
+			: "bg-[#e8f5e9] text-[#2e7d32]";
+}
+function statusLabel(status: Exclude<StockFilter, "all">) {
+	return status === "out-of-stock"
+		? "Hết hàng"
+		: status === "low-stock"
+			? "Sắp hết"
+			: "Còn hàng";
+}
 export function InventoryList() {
+	const [items, setItems] = useState<InventoryListItem[]>([]);
 	const [query, setQuery] = useState("");
 	const [stock, setStock] = useState<StockFilter>("all");
 	const [expiry, setExpiry] = useState<ExpiryFilter>("all");
 	const [page, setPage] = useState(1);
-	const [mobileCount, setMobileCount] = useState(MOBILE_BATCH);
+	const [total, setTotal] = useState(0);
 	const [loading, setLoading] = useState(true);
-
+	const [error, setError] = useState<string | null>(null);
 	useEffect(() => {
-		const timer = setTimeout(() => setLoading(false), 450);
-		return () => clearTimeout(timer);
-	}, []);
-
-	const filtered = useMemo(() => {
-		const q = query.trim().toLowerCase();
-		return seedProducts.filter((p) => {
-			if (stock !== "all" && getStockStatus(p) !== stock) return false;
-			if (expiry !== "all" && expiryByProduct.get(p.id) !== expiry)
-				return false;
-			if (!q) return true;
-			return (
-				p.name.toLowerCase().includes(q) || p.sku.toLowerCase().includes(q)
-			);
-		});
-	}, [query, stock, expiry]);
-
-	// biome-ignore lint/correctness/useExhaustiveDependencies: reset khi tiêu chí lọc đổi
-	useEffect(() => {
-		setPage(1);
-		setMobileCount(MOBILE_BATCH);
-	}, [query, stock, expiry]);
-
-	const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-	const safePage = Math.min(page, pageCount);
-	const pageRows = filtered.slice(
-		(safePage - 1) * PAGE_SIZE,
-		safePage * PAGE_SIZE,
+		let active = true;
+		setLoading(true);
+		listTenantInventory({ page, pageSize: 20, search: query || undefined })
+			.then((r) => {
+				if (active) {
+					setItems(r.items);
+					setTotal(r.total);
+					setError(null);
+				}
+			})
+			.catch((e) => {
+				if (active)
+					setError(e instanceof Error ? e.message : "Không thể tải tồn kho");
+			})
+			.finally(() => {
+				if (active) setLoading(false);
+			});
+		return () => {
+			active = false;
+		};
+	}, [page, query]);
+	const filtered = useMemo(
+		() =>
+			items
+				.filter((i) => stock === "all" || stockStatus(i) === stock)
+				.filter((i) => expiry === "all" || expiryStatus(i) === expiry),
+		[items, stock, expiry],
 	);
-
-	const mobileRows = filtered.slice(0, mobileCount);
-	const mobileHasMore = mobileCount < filtered.length;
-
-	// Đếm cảnh báo cho khối tóm tắt.
-	const lowCount = seedProducts.filter(
-		(p) => getStockStatus(p) === "low-stock",
+	const lowCount = items.filter((i) => stockStatus(i) === "low-stock").length;
+	const outCount = items.filter(
+		(i) => stockStatus(i) === "out-of-stock",
 	).length;
-	const outCount = seedProducts.filter(
-		(p) => getStockStatus(p) === "out-of-stock",
+	const expiringCount = items.filter(
+		(i) => expiryStatus(i) === "expiring",
 	).length;
-	const expiringCount = seedProducts.filter(
-		(p) => expiryByProduct.get(p.id) === "expiring",
+	const expiredCount = items.filter(
+		(i) => expiryStatus(i) === "expired",
 	).length;
-	const expiredCount = seedProducts.filter(
-		(p) => expiryByProduct.get(p.id) === "expired",
-	).length;
-
 	if (loading) return <ListSkeleton withToolbar rows={6} />;
-
+	if (error)
+		return (
+			<div
+				role="alert"
+				className="rounded-[16px] border border-dashed border-destructive bg-card px-6 py-14 text-center text-destructive"
+			>
+				<p>{error}</p>
+				<button
+					type="button"
+					onClick={() => setPage((p) => p)}
+					className="mt-4 rounded-[10px] bg-primary px-4 py-2 font-semibold text-white"
+				>
+					Thử lại
+				</button>
+			</div>
+		);
 	return (
 		<div className="flex w-full flex-col gap-5">
-			{/* Page header */}
 			<div className="flex flex-col gap-1">
 				<div className="flex items-center gap-2">
 					<h1 className="text-2xl font-bold tracking-tight text-foreground">
 						Tồn kho
 					</h1>
 					<span className="rounded-full bg-[#e3f2fd] px-2.5 py-0.5 text-sm font-semibold text-[#1565c0]">
-						{seedProducts.length}
+						{total}
 					</span>
 				</div>
 				<p className="text-base text-[#616161]">
-					Số lượng tồn, lô và hạn sử dụng theo từng sản phẩm.
+					Số lượng tồn và giá vốn theo dữ liệu tenant.
 				</p>
 			</div>
-
-			{/* Khối cảnh báo */}
 			<div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
 				<AlertTile
 					label="Sắp hết"
 					count={lowCount}
-					tone="warning"
 					onClick={() => setStock("low-stock")}
+					tone="warning"
 				/>
 				<AlertTile
 					label="Hết hàng"
 					count={outCount}
-					tone="error"
 					onClick={() => setStock("out-of-stock")}
+					tone="error"
 				/>
 				<AlertTile
 					label="Sắp hết hạn"
 					count={expiringCount}
-					tone="warning"
 					onClick={() => setExpiry("expiring")}
+					tone="warning"
 				/>
 				<AlertTile
 					label="Đã hết hạn"
 					count={expiredCount}
-					tone="error"
 					onClick={() => setExpiry("expired")}
+					tone="error"
 				/>
 			</div>
-
-			{/* Tìm kiếm */}
 			<div className="relative">
 				<Search
 					className="pointer-events-none absolute left-3.5 top-1/2 size-4.5 -translate-y-1/2 text-[#9e9e9e]"
@@ -166,13 +165,14 @@ export function InventoryList() {
 				<input
 					type="search"
 					value={query}
-					onChange={(e) => setQuery(e.target.value)}
+					onChange={(e) => {
+						setPage(1);
+						setQuery(e.target.value);
+					}}
 					placeholder="Tìm tên, mã SKU..."
-					className="h-12 w-full rounded-[10px] border border-border bg-white pl-11 pr-4 text-base text-foreground placeholder:text-[#9e9e9e] transition-colors duration-200 ease-out focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/25 md:h-11"
+					className="h-12 w-full rounded-[10px] border border-border bg-white pl-11 pr-4 text-base"
 				/>
 			</div>
-
-			{/* Bộ lọc */}
 			<ListFilterBar
 				groups={[
 					{
@@ -191,145 +191,70 @@ export function InventoryList() {
 					},
 				]}
 			/>
-
 			{filtered.length === 0 ? (
 				<EmptyState />
 			) : (
 				<>
-					{/* Mobile — card list + tải dần */}
-					<div className="flex flex-col gap-3 lg:hidden">
-						{mobileRows.map((p) => (
-							<InventoryCard
-								key={p.id}
-								product={p}
-								expiryStatus={expiryByProduct.get(p.id) ?? "none"}
-							/>
+					<div className="grid gap-3 lg:grid-cols-2">
+						{filtered.map((item) => (
+							<InventoryCard key={item.productId} item={item} />
 						))}
-						{mobileHasMore ? (
-							<LoadMoreSentinel
-								onReach={() =>
-									setMobileCount((c) =>
-										Math.min(c + MOBILE_BATCH, filtered.length),
-									)
-								}
-							/>
-						) : (
-							<p className="py-2 text-center text-sm text-[#9e9e9e]">
-								Đã hiển thị tất cả {filtered.length} mặt hàng
-							</p>
-						)}
 					</div>
-
-					{/* Desktop — bảng đầy đủ + phân trang */}
-					<div className="hidden flex-col gap-3 lg:flex">
-						<div className="overflow-hidden rounded-[16px] border border-border bg-card shadow-card">
-							<table className="w-full border-collapse text-left">
-								<thead>
-									<tr className="bg-[#f5f5f5] text-sm text-[#616161]">
-										<th className="min-w-[220px] px-4 py-3 font-semibold">
-											Sản phẩm
-										</th>
-										<th className="min-w-[110px] whitespace-nowrap px-4 py-3 text-right font-semibold">
-											Tồn kho
-										</th>
-										<th className="min-w-[120px] whitespace-nowrap px-4 py-3 text-right font-semibold">
-											Giá trị tồn
-										</th>
-										<th className="min-w-[140px] whitespace-nowrap px-4 py-3 font-semibold">
-											HSD gần nhất
-										</th>
-										<th className="min-w-[110px] whitespace-nowrap px-4 py-3 font-semibold">
-											Trạng thái
-										</th>
-									</tr>
-								</thead>
-								<tbody>
-									{pageRows.map((p) => {
-										const st = getStockStatus(p);
-										const es = expiryByProduct.get(p.id) ?? "none";
-										const item = getInventory(p.id);
-										const exp = item ? earliestExpiry(item) : undefined;
-										return (
-											<tr
-												key={p.id}
-												className="border-t border-border transition-colors hover:bg-accent"
-											>
-												<td className="px-4 py-3">
-													<Link
-														href={`/ton-kho/${p.id}`}
-														className="flex items-center gap-3"
-													>
-														<span
-															className="flex size-10 shrink-0 items-center justify-center rounded-[10px]"
-															style={{ backgroundColor: "#5cad45" }}
-														>
-															<Warehouse
-																className="size-5 text-white"
-																aria-hidden
-															/>
-														</span>
-														<span className="flex min-w-0 flex-col">
-															<span className="font-semibold text-foreground">
-																{p.name}
-															</span>
-															<span className="text-sm text-[#9e9e9e]">
-																{p.sku}
-															</span>
-														</span>
-													</Link>
-												</td>
-												<td className="whitespace-nowrap px-4 py-3 text-right text-base text-foreground">
-													{formatVND(p.stock)}{" "}
-													<span className="text-sm text-[#9e9e9e]">
-														{p.baseUnit}
-													</span>
-												</td>
-												<td className="whitespace-nowrap px-4 py-3 text-right text-base font-bold text-foreground">
-													{formatVND(p.stock * p.costPrice)}₫
-												</td>
-												<td className="whitespace-nowrap px-4 py-3">
-													{es !== "none" && exp ? (
-														<span
-															className={`inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2.5 py-1 text-sm font-semibold ${expiryStatusBadgeClass[es]}`}
-														>
-															<CalendarClock className="size-3.5" aria-hidden />
-															{es === "expired"
-																? expiryStatusLabel.expired
-																: formatDate(exp)}
-														</span>
-													) : (
-														<span className="text-sm text-[#9e9e9e]">—</span>
-													)}
-												</td>
-												<td className="px-4 py-3">
-													<span
-														className={`inline-flex whitespace-nowrap rounded-full px-3 py-1 text-sm font-semibold ${stockStatusBadgeClass[st]}`}
-													>
-														{stockStatusLabel[st]}
-													</span>
-												</td>
-											</tr>
-										);
-									})}
-								</tbody>
-							</table>
-						</div>
-
-						<DataPagination
-							page={safePage}
-							pageCount={pageCount}
-							total={filtered.length}
-							pageSize={PAGE_SIZE}
-							noun="mặt hàng"
-							onPage={setPage}
-						/>
-					</div>
+					<DataPagination
+						page={page}
+						pageCount={Math.max(1, Math.ceil(total / 20))}
+						total={total}
+						pageSize={20}
+						noun="mặt hàng"
+						onPage={setPage}
+					/>
 				</>
 			)}
 		</div>
 	);
 }
-
+function InventoryCard({ item }: { item: InventoryListItem }) {
+	const status = stockStatus(item);
+	return (
+		<Link
+			href={`/ton-kho/${item.productId}`}
+			className="flex items-start gap-3 rounded-[16px] border border-border bg-card p-4 shadow-card"
+		>
+			<span className="flex size-12 shrink-0 items-center justify-center rounded-[12px] bg-[#5cad45]">
+				<Warehouse className="size-6 text-white" aria-hidden />
+			</span>
+			<div className="min-w-0 flex-1">
+				<div className="flex items-start justify-between gap-2">
+					<p className="font-semibold text-foreground">{item.productName}</p>
+					<span
+						className={
+							"rounded-full px-2.5 py-0.5 text-xs font-semibold " +
+							badge(status)
+						}
+					>
+						{statusLabel(status)}
+					</span>
+				</div>
+				<p className="text-sm text-[#616161]">{item.sku}</p>
+				{item.nextExpiry ? (
+					<p className="mt-1 text-xs text-[#616161]">
+						HSD gần nhất:{" "}
+						{new Date(item.nextExpiry).toLocaleDateString("vi-VN")}
+					</p>
+				) : null}
+				<div className="mt-2 flex justify-between text-sm">
+					<span>
+						Tồn:{" "}
+						<b>
+							{formatVND(Number(item.qty))} {item.baseUnit}
+						</b>
+					</span>
+					<b>{formatVND(Number(item.qty) * Number(item.avgCost))}₫</b>
+				</div>
+			</div>
+		</Link>
+	);
+}
 function AlertTile({
 	label,
 	count,
@@ -341,36 +266,30 @@ function AlertTile({
 	tone: "warning" | "error";
 	onClick: () => void;
 }) {
-	const cls =
-		tone === "error"
-			? "bg-[#ffebee] text-[#c62828]"
-			: "bg-[#fff8e1] text-[#f57f17]";
 	return (
 		<button
 			type="button"
 			onClick={onClick}
-			className={`flex flex-col items-start gap-0.5 rounded-[14px] px-4 py-3 text-left transition-transform duration-150 ease-out active:scale-[0.98] ${cls}`}
+			className={
+				"flex flex-col items-start rounded-[14px] px-4 py-3 text-left " +
+				(tone === "error"
+					? "bg-[#ffebee] text-[#c62828]"
+					: "bg-[#fff8e1] text-[#f57f17]")
+			}
 		>
 			<span className="text-[26px] font-bold leading-none">{count}</span>
 			<span className="text-sm font-medium">{label}</span>
 		</button>
 	);
 }
-
 function EmptyState() {
 	return (
-		<div className="flex flex-col items-center gap-4 rounded-[16px] border border-dashed border-border bg-card px-6 py-14 text-center">
-			<span className="flex size-16 items-center justify-center rounded-full bg-[#f5f5f5]">
-				<Warehouse className="size-8 text-[#9e9e9e]" aria-hidden />
-			</span>
-			<div className="flex flex-col gap-1">
-				<h2 className="text-lg font-semibold text-foreground">
-					Không tìm thấy mặt hàng
-				</h2>
-				<p className="text-base text-[#616161]">
-					Thử đổi từ khóa hoặc bỏ bớt bộ lọc.
-				</p>
-			</div>
+		<div className="rounded-[16px] border border-dashed border-border bg-card px-6 py-14 text-center">
+			<Warehouse className="mx-auto size-8 text-[#9e9e9e]" aria-hidden />
+			<h2 className="mt-3 text-lg font-semibold">Chưa có dữ liệu tồn kho</h2>
+			<p className="mt-1 text-base text-[#616161]">
+				Hoàn thành phiếu nhập để cập nhật tồn kho.
+			</p>
 		</div>
 	);
 }

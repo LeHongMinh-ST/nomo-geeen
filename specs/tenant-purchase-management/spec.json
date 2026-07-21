@@ -1,0 +1,199 @@
+{
+  "feature_name": "tenant-purchase-management",
+  "created_at": "2026-07-21T11:00:00+07:00",
+  "updated_at": "2026-07-21T16:30:00+07:00",
+  "language": "en",
+  "status": "completed",
+  "phase": "tasks",
+  "current_phase": "complete",
+  "priority": "P0",
+  "effort": "XL",
+  "tags": [
+    "tenant-purchase",
+    "inventory",
+    "supplier",
+    "debt",
+    "conversion",
+    "frontend",
+    "transactional-api"
+  ],
+  "approvals": {
+    "requirements": {
+      "generated": true,
+      "approved": true
+    },
+    "design": {
+      "generated": true,
+      "approved": true
+    },
+    "tasks": {
+      "generated": true,
+      "approved": true
+    }
+  },
+  "scope_lock": {
+    "source": "Implement tenant purchase management so /nhap-hang stops using seed data and completing a purchase atomically increases stock, records stock movement, and updates supplier payable; /ton-kho must consume real inventory data.",
+    "in_scope": [
+      "Tenant-scoped purchase draft creation, listing, detail, completion, and cancellation rules in Simple Mode",
+      "One default warehouse resolved server-side; no multi-warehouse selection or transfer",
+      "Supplier CRUD and lookup needed by purchase flows, with tenant isolation and existing supplier permissions",
+      "Purchase-unit to base-unit conversion using existing product conversion records and server-side validation",
+      "Atomic Purchase/PurchaseLine, Stock, StockMovement, Supplier.balance, and supplier DebtLedger effects on completion",
+      "Payment split between amountPaid and debtAmount, without standalone payment-voucher management",
+      "Authenticated API clients and real data wiring for /nhap-hang and /ton-kho",
+      "Backend, frontend, integration, E2E, rollback, authorization, and conversion acceptance verification"
+    ],
+    "out_of_scope": [
+      "Purchase returns and supplier payment-voucher workflows",
+      "Advanced purchase order, approval, receiving, or partial-receipt workflow",
+      "Multi-warehouse selection, warehouse transfer, FIFO costing, or new batch-allocation policy",
+      "Product CRUD, category CRUD, product conversion CRUD, or changes to sales behavior",
+      "Offline persistence, receipt printing, tax/accounting integration, reporting/dashboard aggregation",
+      "Import/export and bulk supplier migration"
+    ],
+    "expansion_policy": "requires-user-approval"
+  },
+  "dependencies": {
+    "blockedBy": [
+      {
+        "feature": "tenant-product-management",
+        "relationship": "consumes tenant products, units, and product conversion records"
+      },
+      {
+        "feature": "tenant-sales-management",
+        "relationship": "shares stock, stock movement, warehouse, and debt invariants"
+      }
+    ],
+    "blocks": []
+  },
+  "task_files": [
+    "tasks/task-R0-01-purchase-contract-foundation.md",
+    "tasks/task-R1-01-purchase-domain-api.md",
+    "tasks/task-R1-02-supplier-management.md",
+    "tasks/task-R2-01-purchase-ui-integration.md",
+    "tasks/task-R2-02-inventory-ui-integration.md",
+    "tasks/task-R3-01-purchase-acceptance-reachability.md"
+  ],
+  "task_registry": {
+    "tasks/task-R0-01-purchase-contract-foundation.md": {
+      "id": "R0-01",
+      "title": "Purchase contract foundation",
+      "status": "done",
+      "dependencies": [],
+      "blocker": null,
+      "started_at": "2026-07-21T11:30:00+07:00",
+      "completed_at": "2026-07-21T11:52:00+07:00",
+      "last_updated_at": "2026-07-21T11:52:00+07:00"
+    },
+    "tasks/task-R1-01-purchase-domain-api.md": {
+      "id": "R1-01",
+      "title": "Purchase domain api",
+      "status": "done",
+      "dependencies": [
+        "tasks/task-R0-01-purchase-contract-foundation.md"
+      ],
+      "blocker": null,
+      "started_at": "2026-07-21T12:10:00+07:00",
+      "completed_at": "2026-07-21T13:05:00+07:00",
+      "last_updated_at": "2026-07-21T13:05:00+07:00"
+    },
+    "tasks/task-R1-02-supplier-management.md": {
+      "id": "R1-02",
+      "title": "Supplier management",
+      "status": "done",
+      "dependencies": [
+        "tasks/task-R0-01-purchase-contract-foundation.md"
+      ],
+      "blocker": null,
+      "started_at": "2026-07-21T13:25:00+07:00",
+      "completed_at": "2026-07-21T14:10:00+07:00",
+      "last_updated_at": "2026-07-21T14:10:00+07:00"
+    },
+    "tasks/task-R2-01-purchase-ui-integration.md": {
+      "id": "R2-01",
+      "title": "Purchase ui integration",
+      "status": "done",
+      "dependencies": [
+        "tasks/task-R0-01-purchase-contract-foundation.md",
+        "tasks/task-R1-01-purchase-domain-api.md",
+        "tasks/task-R1-02-supplier-management.md"
+      ],
+      "blocker": null,
+      "started_at": "2026-07-21T14:20:00+07:00",
+      "completed_at": "2026-07-21T15:00:00+07:00",
+      "last_updated_at": "2026-07-21T15:00:00+07:00"
+    },
+    "tasks/task-R2-02-inventory-ui-integration.md": {
+      "id": "R2-02",
+      "title": "Inventory ui integration",
+      "status": "done",
+      "dependencies": [
+        "tasks/task-R0-01-purchase-contract-foundation.md",
+        "tasks/task-R1-01-purchase-domain-api.md"
+      ],
+      "blocker": null,
+      "started_at": "2026-07-21T15:20:00+07:00",
+      "completed_at": "2026-07-21T15:45:00+07:00",
+      "last_updated_at": "2026-07-21T13:48:00+07:00"
+    },
+    "tasks/task-R3-01-purchase-acceptance-reachability.md": {
+      "id": "R3-01",
+      "title": "Purchase acceptance reachability",
+      "status": "done",
+      "dependencies": [
+        "tasks/task-R1-01-purchase-domain-api.md",
+        "tasks/task-R1-02-supplier-management.md",
+        "tasks/task-R2-01-purchase-ui-integration.md",
+        "tasks/task-R2-02-inventory-ui-integration.md"
+      ],
+      "blocker": null,
+      "started_at": "2026-07-21T16:00:00+07:00",
+      "completed_at": "2026-07-21T16:30:00+07:00",
+      "last_updated_at": "2026-07-21T13:48:00+07:00"
+    }
+  },
+  "blocker": null,
+  "progress": {
+    "init": "done",
+    "requirements": "done",
+    "research": "done",
+    "design": "done",
+    "tasks": "done",
+    "code": "done",
+    "test": "done",
+    "review": "done"
+  },
+  "timestamps": {
+    "init": "2026-07-21T11:00:00+07:00",
+    "requirements_done": "2026-07-21T11:22:00+07:00",
+    "research_done": "2026-07-21T11:22:00+07:00",
+    "design_done": "2026-07-21T11:22:00+07:00",
+    "tasks_done": "2026-07-21T11:22:00+07:00",
+    "code_done": "2026-07-21T13:48:00+07:00",
+    "test_done": "2026-07-21T13:48:00+07:00",
+    "review_done": "2026-07-21T11:22:00+07:00",
+    "validation_done": "2026-07-21T13:48:00+07:00"
+  },
+  "design_context": {
+    "discovery_mode": "full",
+    "discovery_reason": "Schema-sensitive, transactional, tenant-authorized purchase and supplier expansion with conversion and two user-facing routes.",
+    "execution_tier": "deep",
+    "validation_recommended": true,
+    "validation_recommended_reason": "Six task files cover schema-sensitive transaction effects, supplier permissions, unit conversion, two frontend routes, and critical-path rollback/tenant isolation."
+  },
+  "validation": {
+    "status": "completed",
+    "session_count": 1,
+    "questions_asked": 3,
+    "last_validated_at": "2026-07-21T11:22:00+07:00"
+  },
+  "translation": {
+    "enabled": false,
+    "language": null,
+    "language_code": null,
+    "dir": null,
+    "sync": "always",
+    "last_synced_at": null
+  },
+  "ready_for_implementation": true
+}

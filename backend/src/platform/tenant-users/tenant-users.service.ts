@@ -73,6 +73,7 @@ export interface ResetTenantUserPasswordResult {
 }
 
 const MAX_PAGE_SIZE = 100;
+const MAX_PAGE = 1_000_000;
 
 // Prisma `select` yielding exactly TenantUserPublic (+ role relation for code).
 const USER_SELECT = {
@@ -105,7 +106,10 @@ export class TenantUsersService {
 		opts: { page: number; pageSize: number },
 	): Promise<ListTenantUsersResult> {
 		await this.requireTenant(tenantId);
-		const page = Math.max(opts.page, 1);
+		const requestedPage = Number.isFinite(opts.page)
+			? Math.trunc(opts.page)
+			: 1;
+		const page = Math.min(Math.max(requestedPage, 1), MAX_PAGE);
 		const pageSize = Math.min(Math.max(opts.pageSize, 1), MAX_PAGE_SIZE);
 
 		const [rows, total, seatUsage] = await Promise.all([

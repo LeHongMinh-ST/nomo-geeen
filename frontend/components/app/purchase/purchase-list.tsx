@@ -24,9 +24,13 @@ import {
 	purchaseStatusBadgeClass,
 	purchaseStatusLabel,
 	purchaseTotal,
-	purchases as seedPurchases,
 	supplierLabel,
 } from "@/lib/purchases";
+import {
+	cancelTenantPurchase,
+	listTenantPurchases,
+	mapTenantPurchase,
+} from "@/lib/tenant-purchases-api";
 
 /**
  * Danh sách phiếu nhập — responsive (DESIGN.md §12).
@@ -46,8 +50,17 @@ const statusFilters: { value: StatusFilter; label: string }[] = [
 const PAGE_SIZE = 10;
 const MOBILE_BATCH = 8;
 
+function apiStatus(
+	status: StatusFilter,
+): "DRAFT" | "COMPLETED" | "CANCELLED" | undefined {
+	return status === "all"
+		? undefined
+		: (status.toUpperCase() as "DRAFT" | "COMPLETED" | "CANCELLED");
+}
 export function PurchaseList() {
-	const [items, setItems] = useState<Purchase[]>(seedPurchases);
+	const [items, setItems] = useState<Purchase[]>([]);
+	const [error, setError] = useState<string | null>(null);
+	const [pendingId, setPendingId] = useState<string | null>(null);
 	const [query, setQuery] = useState("");
 	const [status, setStatus] = useState<StatusFilter>("all");
 	const [confirmId, setConfirmId] = useState<string | null>(null);
@@ -57,9 +70,35 @@ export function PurchaseList() {
 	const [loading, setLoading] = useState(true);
 
 	useEffect(() => {
-		const timer = setTimeout(() => setLoading(false), 450);
-		return () => clearTimeout(timer);
-	}, []);
+		let active = true;
+		setLoading(true);
+		listTenantPurchases({
+			page: 1,
+			pageSize: 20,
+			search: query || undefined,
+			status: status === "all" ? undefined : apiStatus(status),
+		})
+			.then((response) => {
+				if (active) {
+					setItems(response.items.map(mapTenantPurchase));
+					setError(null);
+				}
+			})
+			.catch((reason: unknown) => {
+				if (active)
+					setError(
+						reason instanceof Error
+							? reason.message
+							: "Không thể tải danh sách phiếu nhập",
+					);
+			})
+			.finally(() => {
+				if (active) setLoading(false);
+			});
+		return () => {
+			active = false;
+		};
+	}, [query, status]);
 
 	const filtered = useMemo(() => {
 		const q = query.trim().toLowerCase();
@@ -89,18 +128,32 @@ export function PurchaseList() {
 	const mobileRows = filtered.slice(0, mobileCount);
 	const mobileHasMore = mobileCount < filtered.length;
 
-	function handleCancel(id: string) {
-		// TODO: gọi API hủy phiếu (Cancelled + hoàn tồn nếu đã cộng) khi backend sẵn sàng.
-		setItems((current) =>
-			current.map((p) =>
-				p.id === id ? { ...p, status: "cancelled" as PurchaseStatus } : p,
-			),
-		);
-		setConfirmId(null);
-		setMenuId(null);
+	async function handleCancel(id: string) {
+		setPendingId(id);
+		try {
+			await cancelTenantPurchase(id);
+			setItems((current) =>
+				current.map((p) =>
+					p.id === id ? { ...p, status: "cancelled" as PurchaseStatus } : p,
+				),
+			);
+			setError(null);
+		} catch (reason) {
+			setError(
+				reason instanceof Error ? reason.message : "Không thể hủy phiếu nhập",
+			);
+		} finally {
+			setPendingId(null);
+			setConfirmId(null);
+			setMenuId(null);
+		}
 	}
 
 	if (loading) return <ListSkeleton withToolbar rows={6} />;
+	if (error)
+		return (
+			<ErrorState message={error} onRetry={() => setQuery((value) => value)} />
+		);
 
 	return (
 		<div className="flex w-full flex-col gap-5">
@@ -265,7 +318,7 @@ export function PurchaseList() {
 												<RowMenu
 													open={menuId === p.id}
 													confirming={confirmId === p.id}
-													canCancel={p.status !== "cancelled"}
+													canCancel={p.status === "draft" && pendingId !== p.id}
 													onToggle={() =>
 														setMenuId(menuId === p.id ? null : p.id)
 													}
@@ -275,7 +328,7 @@ export function PurchaseList() {
 														setMenuId(null);
 													}}
 													onCancelConfirm={() => setConfirmId(null)}
-													onConfirm={() => handleCancel(p.id)}
+													onConfirm={() => void handleCancel(p.id)}
 													viewHref={`/nhap-hang/${p.id}`}
 												/>
 											</td>
@@ -421,6 +474,30 @@ function RowMenu({
 					</div>
 				</>
 			) : null}
+		</div>
+	);
+}
+
+function ErrorState({
+	message,
+	onRetry,
+}: {
+	message: string;
+	onRetry: () => void;
+}) {
+	return (
+		<div
+			role="alert"
+			className="rounded-[16px] border border-dashed border-destructive bg-card px-6 py-12 text-center"
+		>
+			<p className="text-base text-destructive">{message}</p>
+			<button
+				type="button"
+				onClick={onRetry}
+				className="mt-4 rounded-[10px] bg-primary px-4 py-2 font-semibold text-white"
+			>
+				Thử lại
+			</button>
 		</div>
 	);
 }
