@@ -1,0 +1,143 @@
+{
+  "feature_name": "tenant-supplier-management",
+  "created_at": "2026-07-21T17:27:59+07:00",
+  "updated_at": "2026-07-21T17:37:45+07:00",
+  "language": "en",
+  "status": "in_progress",
+  "phase": "tasks",
+  "current_phase": "tasks",
+  "priority": "P1",
+  "effort": "M",
+  "tags": [
+    "tenant-supplier",
+    "crud",
+    "lookup",
+    "balance",
+    "frontend",
+    "tenant-isolation"
+  ],
+  "approvals": {
+    "requirements": {
+      "generated": true,
+      "approved": true
+    },
+    "design": {
+      "generated": true,
+      "approved": true
+    },
+    "tasks": {
+      "generated": true,
+      "approved": true
+    }
+  },
+  "scope_lock": {
+    "source": "Implement tenant-supplier-management (base_spec section 7) scoped to CRUD + read-only payable balance. Full-stack: harden the existing /tenant/suppliers backend to the customer-module contract, then wire the /nha-cung-cap screens off seed data (lib/suppliers, lib/debts) onto the real API. No debt ledger, no payment vouchers, no purchase-history rendering, no import/export, no credit-control editing.",
+    "in_scope": [
+      "Tenant-scoped supplier list with search by name/code/phone and bounded pagination (pageSize <= 20)",
+      "Supplier detail read with contact fields, supplier type, tax code, and read-only payable balance",
+      "Supplier create and update with tenant isolation and validation (code and name both required)",
+      "Supplier soft delete preserving historical references (purchase, debt) via deletedAt + status INACTIVE",
+      "Read-only display of server-derived Outstanding Payable balance; supplier code uniqueness per tenant",
+      "Authenticated API client and real data wiring for /nha-cung-cap list, detail, form, and delete",
+      "Backend unit/controller/E2E and frontend client tests covering isolation, validation, duplicate-code conflict, and permission denial"
+    ],
+    "out_of_scope": [
+      "Supplier purchase/order history rendering (deferred to purchase spec)",
+      "Debt ledger management, payment vouchers (phieu chi), payables collection, or balance mutation from this module",
+      "Cooperation policy editing workflows: discount %, credit limit, payment term (credit control)",
+      "Import/export, bulk migration, deduplication, or merge",
+      "Advanced mode, RBAC changes, or new permission/feature namespaces"
+    ],
+    "expansion_policy": "requires-user-approval"
+  },
+  "dependencies": {
+    "blockedBy": [],
+    "blocks": []
+  },
+  "task_files": [
+    "tasks/task-R1-01-supplier-domain-api.md",
+    "tasks/task-R2-01-supplier-ui-integration.md",
+    "tasks/task-R3-01-supplier-reachability.md"
+  ],
+  "task_registry": {
+    "tasks/task-R1-01-supplier-domain-api.md": {
+      "id": "R1-01",
+      "title": "Supplier domain API hardening",
+      "status": "pending",
+      "dependencies": [],
+      "blocker": null,
+      "started_at": null,
+      "completed_at": null,
+      "last_updated_at": null
+    },
+    "tasks/task-R2-01-supplier-ui-integration.md": {
+      "id": "R2-01",
+      "title": "Supplier UI integration",
+      "status": "pending",
+      "dependencies": [
+        "tasks/task-R1-01-supplier-domain-api.md"
+      ],
+      "blocker": null,
+      "started_at": null,
+      "completed_at": null,
+      "last_updated_at": null
+    },
+    "tasks/task-R3-01-supplier-reachability.md": {
+      "id": "R3-01",
+      "title": "Supplier reachability & end-to-end verification",
+      "status": "pending",
+      "dependencies": [
+        "tasks/task-R1-01-supplier-domain-api.md",
+        "tasks/task-R2-01-supplier-ui-integration.md"
+      ],
+      "blocker": null,
+      "started_at": null,
+      "completed_at": null,
+      "last_updated_at": null
+    }
+  },
+  "blocker": null,
+  "progress": {
+    "init": "done",
+    "requirements": "done",
+    "research": "done",
+    "design": "done",
+    "tasks": "done",
+    "code": "pending",
+    "test": "pending",
+    "review": "pending"
+  },
+  "timestamps": {
+    "init": "2026-07-21T17:27:59+07:00",
+    "requirements_done": "2026-07-21T17:37:45+07:00",
+    "research_done": "2026-07-21T17:37:45+07:00",
+    "design_done": "2026-07-21T17:37:45+07:00",
+    "tasks_done": "2026-07-21T17:37:45+07:00",
+    "code_done": null,
+    "test_done": null,
+    "review_done": null,
+    "validation_done": null
+  },
+  "design_context": {
+    "discovery_mode": "light",
+    "discovery_reason": "Tenant-scoped CRUD mirroring the existing customers/suppliers module pattern. Supplier model, permissions (supplier:*), and the /tenant/suppliers controller+service already exist; no schema change or DB transaction is required. Work is contract-hardening plus frontend seed-to-API wiring.",
+    "execution_tier": "standard",
+    "validation_recommended": false,
+    "validation_recommended_reason": "Non-transactional CRUD slice with no schema/migration and no money mutation (balance stays read-only). Four task files under threshold; grounding + structural validation remain the quality floor."
+  },
+  "validation": {
+    "status": "not_started",
+    "session_count": 0,
+    "questions_asked": 0,
+    "last_validated_at": null
+  },
+  "translation": {
+    "enabled": false,
+    "language": null,
+    "language_code": null,
+    "dir": null,
+    "sync": "always",
+    "last_synced_at": null
+  },
+  "ready_for_implementation": true
+}
