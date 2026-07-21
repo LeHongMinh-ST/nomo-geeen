@@ -66,7 +66,7 @@ export class SuppliersService {
 
 	async findById(tenantId: string, id: string) {
 		const supplier = await this.prisma.supplier.findFirst({
-			where: { id, tenantId, deletedAt: null },
+			where: { id, tenantId, deletedAt: null, status: 'ACTIVE' },
 		});
 		if (!supplier) throw new NotFoundException('Supplier not found');
 		return this.toResponse(supplier);
@@ -94,16 +94,21 @@ export class SuppliersService {
 
 	async update(tenantId: string, id: string, dto: UpdateSupplierDto) {
 		const current = await this.prisma.supplier.findFirst({
-			where: { id, tenantId, deletedAt: null },
+			where: { id, tenantId, deletedAt: null, status: 'ACTIVE' },
 		});
 		if (!current) throw new NotFoundException('Supplier not found');
 		const data = this.normalize(dto);
 		if (dto.code !== undefined && !data.code) throw this.invalidInput();
 		if (dto.name !== undefined && !data.name) throw this.invalidInput();
 		try {
+			const deactivation = dto.status === 'INACTIVE';
 			const supplier = await this.prisma.supplier.update({
 				where: { id },
-				data: { ...data, ...(dto.status ? { status: dto.status } : {}) },
+				data: {
+					...data,
+					...(dto.status ? { status: dto.status } : {}),
+					...(deactivation ? { deletedAt: new Date() } : {}),
+				},
 			});
 			return this.toResponse(supplier);
 		} catch (error) {
@@ -114,7 +119,7 @@ export class SuppliersService {
 
 	async remove(tenantId: string, id: string) {
 		const current = await this.prisma.supplier.findFirst({
-			where: { id, tenantId, deletedAt: null },
+			where: { id, tenantId, deletedAt: null, status: 'ACTIVE' },
 		});
 		if (!current) throw new NotFoundException('Supplier not found');
 		await this.prisma.supplier.update({

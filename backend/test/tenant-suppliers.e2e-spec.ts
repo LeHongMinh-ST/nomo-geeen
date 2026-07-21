@@ -12,12 +12,16 @@ describe('Tenant suppliers (e2e)', () => {
 	let prisma: PrismaService;
 	let tenantId: string;
 	let planId: string;
+	let featureId: string;
 	let roleId: string;
 	let createPermissionId: string;
+	let viewPermissionId: string;
 	let purchaseId: string;
 	let supplierId: string;
 	let warehouseId: string;
 	let accessToken: string;
+	let otherTenantId: string;
+	let otherSupplierId: string;
 	const suffix = Date.now();
 	const username = `e2e-supplier-${suffix}`;
 	const password = 'Supplier-E2E-Pw1';
@@ -38,6 +42,7 @@ describe('Tenant suppliers (e2e)', () => {
 			update: {},
 			create: { code: 'inventory', name: 'Inventory', group: 'core' },
 		});
+		featureId = feature.id;
 		const codes = [
 			'supplier:view',
 			'supplier:create',
@@ -59,6 +64,7 @@ describe('Tenant suppliers (e2e)', () => {
 			),
 		);
 		createPermissionId = permissions[1].id;
+		viewPermissionId = permissions[0].id;
 		purchaseId = permissions[4].id;
 		const tenant = await prisma.tenant.create({
 			data: {
@@ -134,6 +140,31 @@ describe('Tenant suppliers (e2e)', () => {
 			},
 		});
 		supplierId = supplier.id;
+		const otherTenant = await prisma.tenant.create({
+			data: {
+				slug: `e2e-supplier-other-${suffix}`,
+				name: 'Other Supplier Tenant',
+				status: 'ACTIVE', tenantType: 'RETAIL_DEALER', mode: 'SIMPLE',
+			},
+		});
+		otherTenantId = otherTenant.id;
+		const otherRole = await prisma.role.create({
+			data: {
+				tenantId: otherTenantId, code: 'OWNER', name: 'Owner', isSystem: false, rank: 1,
+				permissions: { create: permissions.map((permission) => ({ permissionId: permission.id })) },
+			},
+		});
+		await prisma.user.create({
+			data: {
+				tenantId: otherTenantId, username: `e2e-supplier-other-${suffix}`,
+				passwordHash: await passwords.hash(password), fullName: 'Other Supplier',
+				roleId: otherRole.id, status: 'ACTIVE',
+			},
+		});
+		const otherSupplier = await prisma.supplier.create({
+			data: { tenantId: otherTenantId, code: 'OTHER-01', name: 'Other Tenant Supplier', status: 'ACTIVE' },
+		});
+		otherSupplierId = otherSupplier.id;
 		const purchase = await prisma.purchase.create({
 			data: {
 				tenantId,
@@ -151,10 +182,19 @@ describe('Tenant suppliers (e2e)', () => {
 			.expect(200);
 		accessToken = login.body.accessToken;
 	});
-	afterAll(async () => {
+		afterAll(async () => {
 		if (!app || !prisma) return;
+		if (otherTenantId) {
+			await prisma.supplier.deleteMany({ where: { tenantId: otherTenantId } });
+			await prisma.user.deleteMany({ where: { tenantId: otherTenantId } });
+			await prisma.rolePermission.deleteMany({ where: { role: { tenantId: otherTenantId } } });
+			await prisma.role.deleteMany({ where: { tenantId: otherTenantId } });
+			await prisma.tenant.delete({ where: { id: otherTenantId } });
+		}
 		await prisma.purchase.deleteMany({ where: { tenantId } });
 		await prisma.supplier.deleteMany({ where: { tenantId } });
+		await prisma.stockMovement.deleteMany({ where: { tenantId } });
+		await prisma.stock.deleteMany({ where: { tenantId } });
 		await prisma.warehouse.deleteMany({ where: { tenantId } });
 		await prisma.tenant.delete({ where: { id: tenantId } });
 		await prisma.plan.delete({ where: { id: planId } });
@@ -164,7 +204,7 @@ describe('Tenant suppliers (e2e)', () => {
 		const created = await request(app.getHttpServer())
 			.post('/tenant/suppliers')
 			.set('Authorization', `Bearer ${accessToken}`)
-			.send({ code: 'NEW-01', name: 'New Supplier', phone: '0909' })
+			.send({ code: 'NEW-01', name: 'New Supplier', phone: '0909', balance: 999999 })
 			.expect(201);
 		expect(created.body).toEqual(
 			expect.objectContaining({
@@ -185,8 +225,18 @@ describe('Tenant suppliers (e2e)', () => {
 		await request(app.getHttpServer())
 			.post('/tenant/suppliers')
 			.set('Authorization', `Bearer ${accessToken}`)
+			.send({ code: '   ', name: 'Missing code' })
+			.expect(422)
+			.expect(({ body }) => expect(body.reason).toBe('VALIDATION_ERROR'));
+		await request(app.getHttpServer())
+			.post('/tenant/suppliers')
+			.set('Authorization', `Bearer ${accessToken}`)
 			.send({ code: 'NEW-01', name: 'Duplicate' })
 			.expect(409);
+		await request(app.getHttpServer())
+			.get(`/tenant/suppliers/${otherSupplierId}`)
+			.set('Authorization', `Bearer ${accessToken}`)
+			.expect(404);
 		await request(app.getHttpServer())
 			.patch(`/tenant/suppliers/${created.body.id}`)
 			.set('Authorization', `Bearer ${accessToken}`)
@@ -215,6 +265,27 @@ describe('Tenant suppliers (e2e)', () => {
 			await prisma.rolePermission.create({
 				data: { roleId, permissionId: createPermissionId },
 			});
+		}
+		await prisma.planFeature.delete({ where: { planId_featureId: { planId, featureId } } });
+		try {
+			await request(app.getHttpServer())
+				.post('/tenant/suppliers')
+				.set('Authorization', `Bearer ${accessToken}`)
+				.send({ code: 'NO-FEATURE', name: 'No Inventory' })
+				.expect(403);
+		} finally {
+			await prisma.planFeature.create({ data: { planId, featureId } });
+		}
+		await prisma.rolePermission.delete({
+			where: { roleId_permissionId: { roleId, permissionId: viewPermissionId } },
+		});
+		try {
+			await request(app.getHttpServer())
+				.get('/tenant/suppliers')
+				.set('Authorization', `Bearer ${accessToken}`)
+				.expect(403);
+		} finally {
+			await prisma.rolePermission.create({ data: { roleId, permissionId: viewPermissionId } });
 		}
 		await request(app.getHttpServer())
 			.delete(`/tenant/suppliers/${supplierId}`)

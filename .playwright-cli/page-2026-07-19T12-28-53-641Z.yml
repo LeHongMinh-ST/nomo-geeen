@@ -1,0 +1,21 @@
+- main [ref=e2]:
+  - generic [ref=e3]:
+    - generic [ref=e4]:
+      - img "NomoGreen" [ref=e5]
+      - paragraph [ref=e7]: Dành cho quản trị viên NomoGreen.
+    - generic [ref=e9]:
+      - generic [ref=e10]:
+        - generic [ref=e11]: Email quản trị
+        - textbox "Email quản trị" [ref=e13]:
+          - /placeholder: ten@argonext.vn
+      - generic [ref=e14]:
+        - generic [ref=e15]: Mật khẩu
+        - generic [ref=e16]:
+          - textbox "Mật khẩu" [ref=e17]:
+            - /placeholder: Nhập mật khẩu quản trị
+          - button "Hiện mật khẩu" [ref=e18]
+      - button "Đăng nhập quản trị" [ref=e22]
+    - paragraph [ref=e23]:
+      - text: Bạn là chủ cửa hàng?
+      - link "Về trang đăng nhập" [ref=e24] [cursor=pointer]:
+        - /url: /dang-nhap

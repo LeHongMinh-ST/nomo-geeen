@@ -1,0 +1,190 @@
+- generic [active] [ref=e1]:
+  - button "Open Next.js Dev Tools" [ref=e11] [cursor=pointer]
+  - alert [ref=e15]: Trang chủ · NomoGreen
+  - generic [ref=e76]:
+    - complementary [ref=e77]:
+      - generic [ref=e78]:
+        - img "NomoGreen" [ref=e79]
+        - generic [ref=e80]:
+          - generic [ref=e81]: Vật tư Minh Tâm
+          - generic [ref=e82]: Vật tư nông nghiệp
+      - navigation [ref=e83]:
+        - link [ref=e84] [cursor=pointer]:
+          - /url: /
+        - generic [ref=e90]:
+          - paragraph [ref=e91]: Bán hàng
+          - list [ref=e92]:
+            - listitem [ref=e93]:
+              - link [ref=e94] [cursor=pointer]:
+                - /url: /ban-nhanh
+            - listitem [ref=e100]:
+              - link [ref=e101] [cursor=pointer]:
+                - /url: /don-ban-hang
+            - listitem [ref=e107]:
+              - link [ref=e108] [cursor=pointer]:
+                - /url: /so-tay
+        - generic [ref=e112]:
+          - paragraph [ref=e113]: Kho & Hàng hóa
+          - list [ref=e114]:
+            - listitem [ref=e115]:
+              - link [ref=e116] [cursor=pointer]:
+                - /url: /san-pham
+            - listitem [ref=e122]:
+              - link [ref=e123] [cursor=pointer]:
+                - /url: /nhap-hang
+            - listitem [ref=e129]:
+              - link [ref=e130] [cursor=pointer]:
+                - /url: /ton-kho
+        - generic [ref=e135]:
+          - paragraph [ref=e136]: Đối tác
+          - list [ref=e137]:
+            - listitem [ref=e138]:
+              - link [ref=e139] [cursor=pointer]:
+                - /url: /khach-hang
+            - listitem [ref=e146]:
+              - link [ref=e147] [cursor=pointer]:
+                - /url: /nha-cung-cap
+            - listitem [ref=e154]:
+              - link [ref=e155] [cursor=pointer]:
+                - /url: /cong-no
+        - generic [ref=e163]:
+          - paragraph [ref=e164]: Khác
+          - list [ref=e165]:
+            - listitem [ref=e166]:
+              - link [ref=e167] [cursor=pointer]:
+                - /url: /bao-cao
+            - listitem [ref=e171]:
+              - link [ref=e172] [cursor=pointer]:
+                - /url: /thiet-lap
+    - generic [ref=e177]:
+      - banner [ref=e178]:
+        - searchbox "Tìm sản phẩm, khách hàng..." [ref=e180]
+        - generic [ref=e181]:
+          - button "Thông báo" [ref=e182]
+          - link "MT Minh Tâm Chủ cửa hàng" [ref=e187] [cursor=pointer]:
+            - /url: /thiet-lap
+            - generic [ref=e188]: MT
+            - generic [ref=e189]:
+              - generic [ref=e190]: Minh Tâm
+              - generic [ref=e191]: Chủ cửa hàng
+      - main [ref=e192]:
+        - generic [ref=e194]:
+          - generic [ref=e195]:
+            - generic [ref=e196]:
+              - paragraph [ref=e197]: Thứ Sáu, 18 tháng 7
+              - heading "Chào anh Tâm" [level=1] [ref=e198]
+            - link "Bán hàng" [ref=e199] [cursor=pointer]:
+              - /url: /ban-nhanh
+          - region "Doanh thu hôm nay" [ref=e205]:
+            - generic [ref=e206]:
+              - generic [ref=e207]:
+                - generic [ref=e208]: Doanh thu hôm nay
+                - generic [ref=e209]: +8%
+              - paragraph [ref=e213]: 12.480.000₫
+              - generic [ref=e214]:
+                - generic [ref=e215]: so với hôm qua
+                - generic [ref=e216]: ·
+                - generic [ref=e217]: 27 đơn
+          - region "Số liệu tháng và công nợ" [ref=e218]:
+            - generic [ref=e219]:
+              - generic [ref=e220]: Doanh thu tháng
+              - generic [ref=e221]: 284.600.000₫
+              - generic [ref=e222]: +12%
+            - link "Phải thu 48.350.000₫ 12 khách" [ref=e226] [cursor=pointer]:
+              - /url: /cong-no
+              - generic [ref=e227]: Phải thu
+              - generic [ref=e228]: 48.350.000₫
+              - generic [ref=e229]: 12 khách
+          - region "Cần chú ý" [ref=e232]:
+            - generic [ref=e233]:
+              - heading "Cần chú ý" [level=2] [ref=e234]
+              - generic [ref=e235]: 13 việc
+            - list [ref=e236]:
+              - listitem [ref=e237]:
+                - link "6 Hàng sắp hết" [ref=e238] [cursor=pointer]:
+                  - /url: /ton-kho
+                  - generic [ref=e246]:
+                    - generic [ref=e247]: "6"
+                    - generic [ref=e248]: Hàng sắp hết
+              - listitem [ref=e251]:
+                - link "4 Nợ đến hạn" [ref=e252] [cursor=pointer]:
+                  - /url: /cong-no
+                  - generic [ref=e258]:
+                    - generic [ref=e259]: "4"
+                    - generic [ref=e260]: Nợ đến hạn
+              - listitem [ref=e263]:
+                - link "3 Hàng sắp hết hạn" [ref=e264] [cursor=pointer]:
+                  - /url: /ton-kho
+                  - generic [ref=e268]:
+                    - generic [ref=e269]: "3"
+                    - generic [ref=e270]: Hàng sắp hết hạn
+          - region "Lối tắt nhanh" [ref=e273]:
+            - heading "Lối tắt nhanh" [level=2] [ref=e274]
+            - generic [ref=e275]:
+              - link "Bán hàng" [ref=e276] [cursor=pointer]:
+                - /url: /ban-nhanh
+              - link "Nhập hàng" [ref=e283] [cursor=pointer]:
+                - /url: /nhap-hang
+              - link "Thu nợ" [ref=e290] [cursor=pointer]:
+                - /url: /cong-no
+          - generic [ref=e299]:
+            - generic [ref=e300]:
+              - generic [ref=e301]:
+                - heading "Doanh thu 7 ngày" [level=2] [ref=e302]
+                - generic [ref=e303]: nghìn ₫
+              - generic [ref=e304]:
+                - generic [ref=e305]:
+                  - 'button "T2: 8.200.000 đồng" [ref=e306]':
+                    - generic [ref=e307]: "8200"
+                    - generic [ref=e309]: T2
+                  - 'button "T3: 10.500.000 đồng" [ref=e310]':
+                    - generic [ref=e311]: "10500"
+                    - generic [ref=e313]: T3
+                  - 'button "T4: 7.400.000 đồng" [ref=e314]':
+                    - generic [ref=e315]: "7400"
+                    - generic [ref=e317]: T4
+                  - 'button "T5: 13.100.000 đồng" [ref=e318]':
+                    - generic [ref=e319]: "13100"
+                    - generic [ref=e321]: T5
+                  - 'button "T6: 11.800.000 đồng" [ref=e322]':
+                    - generic [ref=e323]: "11800"
+                    - generic [ref=e325]: T6
+                  - 'button "T7: 15.600.000 đồng" [ref=e326]':
+                    - generic [ref=e327]: "15600"
+                    - generic [ref=e329]: T7
+                  - 'button "CN: 12.480.000 đồng (hôm nay)" [pressed] [ref=e330]':
+                    - generic [ref=e331]: "12480"
+                    - generic [ref=e333]: CN
+                - generic [ref=e334]:
+                  - generic [ref=e335]: Cao nhất trong tuần
+                  - generic [ref=e336]: 15.600.000₫
+            - generic [ref=e337]:
+              - generic [ref=e338]:
+                - heading "Bán chạy trong tháng" [level=2] [ref=e339]
+                - link "Xem tất cả" [ref=e340] [cursor=pointer]:
+                  - /url: /bao-cao
+              - list [ref=e341]:
+                - listitem [ref=e342]:
+                  - generic [ref=e343]: "1"
+                  - generic [ref=e344]:
+                    - paragraph [ref=e345]: Phân bón NPK Đầu Trâu 20-20-15
+                    - paragraph [ref=e346]: Đã bán 148
+                  - generic [ref=e347]: 37.000.000₫
+                - listitem [ref=e348]:
+                  - generic [ref=e349]: "2"
+                  - generic [ref=e350]:
+                    - paragraph [ref=e351]: Thuốc trừ sâu Regent 800WG
+                    - paragraph [ref=e352]: Đã bán 96
+                  - generic [ref=e353]: 14.400.000₫
+                - listitem [ref=e354]:
+                  - generic [ref=e355]: "3"
+                  - generic [ref=e356]:
+                    - paragraph [ref=e357]: Hạt giống lúa OM5451
+                    - paragraph [ref=e358]: Đã bán 72
+                  - generic [ref=e359]: 10.800.000₫
+                - listitem [ref=e360]:
+                  - generic [ref=e361]: "4"
+                  - generic [ref=e362]:
+                    - paragraph [ref=e363]: Vôi bột nông nghiệp
+                    - paragraph [ref=e364]: Đã bán 65
+                  - generic [ref=e365]: 3.250.000₫

@@ -176,6 +176,7 @@ Chuỗi guard request tenant: `JwtAuthGuard → TenantGuard → FeatureGuard →
 - `BillingModule` quản lý catalog `Plan`, subscription thủ công và lịch sử audit; không gọi Stripe hay tự động thu tiền trong Phase 1.
 - `EntitlementsModule` là nguồn sự thật dùng chung để chọn subscription hiệu lực, kiểm tra feature/quota và fail-closed khi dữ liệu entitlement không khả dụng.
 - Tenant business enforcement hiện có production slice `POST/GET /tenant/products`: tenant JWT mang `tenantId` server-derived, Product create yêu cầu feature `inventory` và quota `maxProducts`.
+- Tenant product management extends the slice with tenant-scoped `GET /tenant/products/lookups`, `GET /tenant/products/:id`, `PATCH /tenant/products/:id`, and soft-delete `DELETE /tenant/products/:id`; writes require live product permissions plus the `inventory` feature, while reads expose only tenant-owned catalog and stock summary data.
 - `TenantQuotaCounter` dùng conditional increment trong cùng transaction với Product create; `maxProducts` dùng counter lifetime và migration backfill product chưa soft-delete. Downgrade chỉ chặn growth, không chặn read.
 - Tenant detail exposes read-only quota usage aggregates (users, warehouses, products, customers, monthly orders, storage bytes) for admin overage visibility; it does not replace authoritative entitlement evaluation.
 - Admin billing dùng `AccessTokenGuard + PermissionGuard` với quyền tách riêng `admin.plan:*` và `admin.subscription:*`; SUPER_ADMIN bypass theo RBAC hiện có.

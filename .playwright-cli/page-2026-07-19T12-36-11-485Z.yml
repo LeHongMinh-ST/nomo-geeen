@@ -1,0 +1,199 @@
+- generic [active] [ref=e1]:
+  - button "Open Next.js Dev Tools" [ref=e30] [cursor=pointer]
+  - alert [ref=e34]: Bảng điều khiển · Quản trị NomoGreen
+  - generic [ref=e58]:
+    - complementary [ref=e59]:
+      - img "NomoGreen" [ref=e61]
+      - navigation [ref=e62]:
+        - generic [ref=e63]:
+          - paragraph [ref=e64]: Tổng quan
+          - list [ref=e65]:
+            - listitem [ref=e66]:
+              - link [ref=e67] [cursor=pointer]:
+                - /url: /admin
+        - generic [ref=e75]:
+          - paragraph [ref=e76]: Quản lý
+          - list [ref=e77]:
+            - listitem [ref=e78]:
+              - link [ref=e79] [cursor=pointer]:
+                - /url: /admin/tenants
+            - listitem [ref=e85]:
+              - link [ref=e86] [cursor=pointer]:
+                - /url: /admin/plans
+        - generic [ref=e92]:
+          - paragraph [ref=e93]: Vận hành
+          - list [ref=e94]:
+            - listitem [ref=e95]:
+              - link [ref=e96] [cursor=pointer]:
+                - /url: /admin/transactions
+            - listitem [ref=e100]:
+              - link [ref=e101] [cursor=pointer]:
+                - /url: /admin/audit-log
+        - generic [ref=e106]:
+          - paragraph [ref=e107]: Hệ thống
+          - list [ref=e108]:
+            - listitem [ref=e109]:
+              - link [ref=e110] [cursor=pointer]:
+                - /url: /admin/admin-users
+            - listitem [ref=e117]:
+              - link [ref=e118] [cursor=pointer]:
+                - /url: /admin/status
+            - listitem [ref=e122]:
+              - link [ref=e123] [cursor=pointer]:
+                - /url: /admin/settings
+      - link "← Về khu cửa hàng" [ref=e129] [cursor=pointer]:
+        - /url: /dang-nhap
+    - generic [ref=e130]:
+      - banner [ref=e131]:
+        - searchbox "Tìm cửa hàng, người dùng, giao dịch..." [ref=e133]
+        - generic [ref=e134]:
+          - button "Thông báo" [ref=e135]
+          - button "PS Platform Super Admin SUPER_ADMIN" [ref=e141]:
+            - generic [ref=e142]: PS
+            - generic [ref=e143]:
+              - generic [ref=e144]: Platform Super Admin
+              - generic [ref=e145]: SUPER_ADMIN
+      - main [ref=e148]:
+        - generic [ref=e149]:
+          - generic [ref=e150]:
+            - heading "Bảng điều khiển" [level=1] [ref=e151]
+            - paragraph [ref=e152]: Tổng quan toàn nền tảng NomoGreen · cập nhật hôm nay 17/07/2026.
+          - generic [ref=e153]:
+            - generic [ref=e154]:
+              - generic [ref=e155]: "+42"
+              - generic [ref=e165]:
+                - generic [ref=e166]: "1.284"
+                - generic [ref=e167]: Cửa hàng đang hoạt động
+            - generic [ref=e168]:
+              - generic [ref=e169]: "+128"
+              - generic [ref=e180]:
+                - generic [ref=e181]: "3.916"
+                - generic [ref=e182]: Người dùng
+            - generic [ref=e183]:
+              - generic [ref=e184]: +14%
+              - generic [ref=e193]:
+                - generic [ref=e194]: 268.000.000₫
+                - generic [ref=e195]: Doanh thu nền tảng tháng này
+            - generic [ref=e196]:
+              - generic [ref=e197]: +6%
+              - generic [ref=e205]:
+                - generic [ref=e206]: "8.472"
+                - generic [ref=e207]: Giao dịch hôm nay
+          - generic [ref=e208]:
+            - link "18 Gói sắp hết hạn" [ref=e209] [cursor=pointer]:
+              - /url: /admin/goi-dich-vu
+              - generic [ref=e213]:
+                - generic [ref=e214]: "18"
+                - generic [ref=e215]: Gói sắp hết hạn
+            - link "7 Hóa đơn quá hạn" [ref=e219] [cursor=pointer]:
+              - /url: /admin/transactions
+              - generic [ref=e224]:
+                - generic [ref=e225]: "7"
+                - generic [ref=e226]: Hóa đơn quá hạn
+            - link "2 Cảnh báo hệ thống" [ref=e230] [cursor=pointer]:
+              - /url: /admin/status
+              - generic [ref=e243]:
+                - generic [ref=e244]: "2"
+                - generic [ref=e245]: Cảnh báo hệ thống
+          - generic [ref=e249]:
+            - generic [ref=e250]:
+              - generic [ref=e251]:
+                - heading "Doanh thu nền tảng 6 tháng" [level=2] [ref=e252]
+                - generic [ref=e253]: "Đơn vị: triệu ₫"
+              - generic [ref=e254]:
+                - generic [ref=e255]:
+                  - 'button "Tháng T2: 142.000.000 đồng" [ref=e256]':
+                    - generic [ref=e257]: 142tr
+                    - generic [ref=e259]: T2
+                  - 'button "Tháng T3: 168.000.000 đồng" [ref=e260]':
+                    - generic [ref=e261]: 168tr
+                    - generic [ref=e263]: T3
+                  - 'button "Tháng T4: 155.000.000 đồng" [ref=e264]':
+                    - generic [ref=e265]: 155tr
+                    - generic [ref=e267]: T4
+                  - 'button "Tháng T5: 201.000.000 đồng" [ref=e268]':
+                    - generic [ref=e269]: 201tr
+                    - generic [ref=e271]: T5
+                  - 'button "Tháng T6: 234.000.000 đồng" [ref=e272]':
+                    - generic [ref=e273]: 234tr
+                    - generic [ref=e275]: T6
+                  - 'button "Tháng T7: 268.000.000 đồng" [ref=e276]':
+                    - generic [ref=e277]: 268tr
+                    - generic [ref=e279]: T7
+                - generic [ref=e280]:
+                  - generic [ref=e281]: Cao nhất 6 tháng
+                  - generic [ref=e282]: 268.000.000₫
+            - generic [ref=e283]:
+              - heading "Hoạt động gần đây" [level=2] [ref=e284]
+              - list [ref=e285]:
+                - listitem [ref=e286]:
+                  - generic [ref=e291]:
+                    - paragraph [ref=e292]: Cửa hàng “Nông sản Ba Miền” vừa đăng ký dùng thử
+                    - generic [ref=e293]: 5 phút trước
+                - listitem [ref=e294]:
+                  - generic [ref=e299]:
+                    - paragraph [ref=e300]: “Đại lý Phú Nông” nâng cấp lên Gói Chuyên nghiệp
+                    - generic [ref=e301]: 38 phút trước
+                - listitem [ref=e302]:
+                  - generic [ref=e306]:
+                    - paragraph [ref=e307]: Thu 2.400.000₫ phí gói từ “Vật tư Minh Tâm”
+                    - generic [ref=e308]: 1 giờ trước
+                - listitem [ref=e309]:
+                  - generic [ref=e313]:
+                    - paragraph [ref=e314]: “Vật tư Đồng Xanh” có hóa đơn quá hạn 5 ngày
+                    - generic [ref=e315]: 3 giờ trước
+          - generic [ref=e316]:
+            - generic [ref=e317]:
+              - heading "Cửa hàng mới đăng ký" [level=2] [ref=e318]
+              - link "Xem tất cả" [ref=e319] [cursor=pointer]:
+                - /url: /admin/tenants
+            - table [ref=e321]:
+              - rowgroup [ref=e322]:
+                - row [ref=e323]:
+                  - columnheader "Cửa hàng" [ref=e324]
+                  - columnheader "Chủ cửa hàng" [ref=e325]
+                  - columnheader "Gói dịch vụ" [ref=e326]
+                  - columnheader "Ngày tham gia" [ref=e327]
+                  - columnheader "Trạng thái" [ref=e328]
+                  - columnheader "Hành động" [ref=e329]
+              - rowgroup [ref=e330]:
+                - row [ref=e331]:
+                  - cell "Vật tư Minh Tâm" [ref=e332]
+                  - cell "Nguyễn Minh Tâm" [ref=e333]
+                  - cell "Gói Chuyên nghiệp" [ref=e334]
+                  - cell "17/07/2026" [ref=e335]
+                  - cell "Đang hoạt động" [ref=e336]
+                  - cell [ref=e338]:
+                    - button "Hành động" [ref=e339]
+                - row [ref=e344]:
+                  - cell "Nông sản Ba Miền" [ref=e345]
+                  - cell "Trần Văn Bảy" [ref=e346]
+                  - cell "Gói Cơ bản" [ref=e347]
+                  - cell "16/07/2026" [ref=e348]
+                  - cell "Dùng thử" [ref=e349]
+                  - cell [ref=e351]:
+                    - button "Hành động" [ref=e352]
+                - row [ref=e357]:
+                  - cell "Đại lý Phú Nông" [ref=e358]
+                  - cell "Lê Thị Hoa" [ref=e359]
+                  - cell "Gói Chuyên nghiệp" [ref=e360]
+                  - cell "15/07/2026" [ref=e361]
+                  - cell "Đang hoạt động" [ref=e362]
+                  - cell [ref=e364]:
+                    - button "Hành động" [ref=e365]
+                - row [ref=e370]:
+                  - cell "Vật tư Đồng Xanh" [ref=e371]
+                  - cell "Phạm Quốc Cường" [ref=e372]
+                  - cell "Gói Cơ bản" [ref=e373]
+                  - cell "14/07/2026" [ref=e374]
+                  - cell "Quá hạn" [ref=e375]
+                  - cell [ref=e377]:
+                    - button "Hành động" [ref=e378]
+                - row [ref=e383]:
+                  - cell "Cửa hàng Hạt Vàng" [ref=e384]
+                  - cell "Võ Thị Mai" [ref=e385]
+                  - cell "Gói Dùng thử" [ref=e386]
+                  - cell "13/07/2026" [ref=e387]
+                  - cell "Dùng thử" [ref=e388]
+                  - cell [ref=e390]:
+                    - button "Hành động" [ref=e391]

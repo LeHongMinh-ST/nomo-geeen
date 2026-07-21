@@ -1,0 +1,104 @@
+- generic [active] [ref=e1]:
+  - button "Open Next.js Dev Tools" [ref=e11] [cursor=pointer]
+  - alert [ref=e15]: Thêm nhà cung cấp · NomoGreen
+  - generic [ref=e76]:
+    - complementary [ref=e77]:
+      - generic [ref=e78]:
+        - img "NomoGreen" [ref=e79]
+        - generic [ref=e80]:
+          - generic [ref=e81]: Vật tư Minh Tâm
+          - generic [ref=e82]: Vật tư nông nghiệp
+      - navigation [ref=e83]:
+        - link [ref=e84] [cursor=pointer]:
+          - /url: /
+        - generic [ref=e90]:
+          - paragraph [ref=e91]: Bán hàng
+          - list [ref=e92]:
+            - listitem [ref=e93]:
+              - link [ref=e94] [cursor=pointer]:
+                - /url: /ban-nhanh
+            - listitem [ref=e100]:
+              - link [ref=e101] [cursor=pointer]:
+                - /url: /don-ban-hang
+            - listitem [ref=e107]:
+              - link [ref=e108] [cursor=pointer]:
+                - /url: /so-tay
+        - generic [ref=e112]:
+          - paragraph [ref=e113]: Kho & Hàng hóa
+          - list [ref=e114]:
+            - listitem [ref=e115]:
+              - link [ref=e116] [cursor=pointer]:
+                - /url: /san-pham
+            - listitem [ref=e122]:
+              - link [ref=e123] [cursor=pointer]:
+                - /url: /nhap-hang
+            - listitem [ref=e129]:
+              - link [ref=e130] [cursor=pointer]:
+                - /url: /ton-kho
+        - generic [ref=e135]:
+          - paragraph [ref=e136]: Đối tác
+          - list [ref=e137]:
+            - listitem [ref=e138]:
+              - link [ref=e139] [cursor=pointer]:
+                - /url: /khach-hang
+            - listitem [ref=e146]:
+              - link [ref=e147] [cursor=pointer]:
+                - /url: /nha-cung-cap
+            - listitem [ref=e154]:
+              - link [ref=e155] [cursor=pointer]:
+                - /url: /cong-no
+        - generic [ref=e163]:
+          - paragraph [ref=e164]: Khác
+          - list [ref=e165]:
+            - listitem [ref=e166]:
+              - link [ref=e167] [cursor=pointer]:
+                - /url: /bao-cao
+            - listitem [ref=e171]:
+              - link [ref=e172] [cursor=pointer]:
+                - /url: /thiet-lap
+    - generic [ref=e177]:
+      - banner [ref=e178]:
+        - searchbox "Tìm sản phẩm, khách hàng..." [ref=e180]
+        - generic [ref=e181]:
+          - button "Thông báo" [ref=e182]
+          - link "MT Minh Tâm Chủ cửa hàng" [ref=e187] [cursor=pointer]:
+            - /url: /thiet-lap
+            - generic [ref=e188]: MT
+            - generic [ref=e189]:
+              - generic [ref=e190]: Minh Tâm
+              - generic [ref=e191]: Chủ cửa hàng
+      - main [ref=e192]:
+        - generic [ref=e388]:
+          - generic [ref=e389]:
+            - heading "Thêm nhà cung cấp" [level=1] [ref=e397]
+            - generic [ref=e398]:
+              - generic [ref=e399]: Tên nhà cung cấp*
+              - 'textbox "VD: Vật tư Bình Điền" [ref=e400]'
+            - generic [ref=e401]:
+              - generic [ref=e402]:
+                - generic [ref=e403]: Mã NCC*
+                - textbox "NCC-001" [ref=e405]
+              - generic [ref=e406]:
+                - generic [ref=e407]: Loại NCC
+                - combobox [ref=e409]:
+                  - option "Nhà sản xuất"
+                  - option "Nhà phân phối" [selected]
+                  - option "Đại lý"
+            - generic [ref=e410]:
+              - generic [ref=e411]: Số điện thoại
+              - textbox "0901 234 567" [ref=e413]
+            - generic [ref=e414]:
+              - generic [ref=e415]: Người liên hệ
+              - textbox "Tên người liên hệ" [ref=e417]
+            - generic [ref=e418]:
+              - generic [ref=e419]: Email
+              - textbox "ncc@example.com" [ref=e420]
+            - generic [ref=e421]:
+              - generic [ref=e422]: Địa chỉ
+              - textbox "Địa chỉ nhà cung cấp" [ref=e424]
+            - generic [ref=e425]:
+              - generic [ref=e426]: Mã số thuế
+              - textbox "Mã số thuế" [ref=e427]
+          - generic [ref=e428]:
+            - button "Hủy" [ref=e429]
+            - button "Lưu thay đổi" [ref=e430]

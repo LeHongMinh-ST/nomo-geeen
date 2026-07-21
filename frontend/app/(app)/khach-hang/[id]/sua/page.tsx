@@ -1,33 +1,33 @@
 "use client";
 
 import Link from "next/link";
-import { use } from "react";
+import { use, useEffect, useState } from "react";
 import { CustomerForm } from "@/components/app/customer/customer-form";
-import { getCustomer } from "@/lib/customers";
+import { type Customer, getCustomer } from "@/lib/tenant-customers-api";
 
-export default function SuaKhachHangPage({
+export default function EditCustomerPage({
 	params,
 }: {
 	params: Promise<{ id: string }>;
 }) {
 	const { id } = use(params);
-	const customer = getCustomer(id);
-
-	if (!customer) {
+	const [customer, setCustomer] = useState<Customer | null>(null);
+	const [error, setError] = useState(false);
+	useEffect(() => {
+		getCustomer(id)
+			.then(setCustomer)
+			.catch(() => setError(true));
+	}, [id]);
+	if (error)
 		return (
-			<div className="mx-auto flex w-full max-w-2xl flex-col items-center gap-4 rounded-[16px] border border-dashed border-border bg-card px-6 py-14 text-center lg:mx-0">
-				<h1 className="text-lg font-semibold text-foreground">
-					Không tìm thấy khách hàng
-				</h1>
-				<Link
-					href="/khach-hang"
-					className="flex h-12 items-center rounded-[10px] bg-primary px-6 text-base font-semibold text-white transition-colors duration-200 ease-out hover:bg-[#5cad45] active:bg-[#3f8530]"
-				>
+			<div className="text-center">
+				<p>Không tìm thấy khách hàng</p>
+				<Link href="/khach-hang" className="text-primary">
 					Về danh sách khách hàng
 				</Link>
 			</div>
 		);
-	}
-
+	if (!customer)
+		return <p className="text-[#616161]">Đang tải khách hàng...</p>;
 	return <CustomerForm mode="edit" customer={customer} />;
 }

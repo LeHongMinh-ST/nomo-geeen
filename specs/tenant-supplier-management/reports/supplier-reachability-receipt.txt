@@ -1,0 +1,25 @@
+Tenant supplier reachability receipt
+===================================
+
+Date: 2026-07-21
+
+Backend:
+- pnpm --dir backend test -- --runInBand suppliers -> PASS, 2 suites, 9 tests.
+- pnpm --dir backend test:e2e -- --runInBand tenant-suppliers.e2e-spec.ts -> PASS, 1 suite, 1 test.
+
+Frontend:
+- pnpm --dir frontend test -- tenant-suppliers-api.test.ts -> PASS, 8 files, 15 tests.
+- pnpm --dir frontend exec tsc --noEmit --pretty false -> PASS (run sequentially after build generation).
+- pnpm --dir frontend lint -> PASS, 221 files.
+- pnpm --dir frontend build -> PASS; routes /nha-cung-cap, /nha-cung-cap/[id], /nha-cung-cap/[id]/sua and /nha-cung-cap/them generated.
+- node .claude/scripts/validate-spec-output.cjs specs/tenant-supplier-management -> PASS.
+
+Reachability:
+- No @/lib/suppliers or @/lib/debts imports remain in the supplier route/component surface.
+- Supplier routes import API-backed components; purchase/supplier-picker.tsx still calls listTenantSuppliers.
+- Browser navigation to http://localhost:3000/nha-cung-cap reached the route and redirected unauthenticated users to /dang-nhap?next=%2Fnha-cung-cap, proving the route guard is mounted. Authenticated CRUD/isolation proof is covered by the backend E2E suite.
+- Additional browser proof: logged in as the seeded tenant owner, opened `/nha-cung-cap`, observed the API-backed empty state (`0` suppliers), search field, and create link, then opened `/nha-cung-cap/them` and observed the API form fields.
+
+Fix applied:
+- Added lowStockThreshold: 0 to the product-picker test fixture after Product.lowStockThreshold became required. This removed the only remaining frontend typecheck failure without changing the public Product contract.
+- Review follow-up verified: mobile pagination is visible, search uses a 250ms debounce with stale-response protection, and `PATCH status=INACTIVE` writes `deletedAt` as well.

@@ -1,0 +1,47 @@
+- generic [active] [ref=e1]:
+  - button "Open Next.js Dev Tools" [ref=e71] [cursor=pointer]
+  - alert [ref=e75]: Đăng ký cửa hàng · NomoGreen
+  - main [ref=e76]:
+    - generic [ref=e77]:
+      - generic [ref=e78]:
+        - img "NomoGreen" [ref=e79]
+        - generic [ref=e80]: Bắt đầu miễn phí
+      - generic [ref=e81]:
+        - generic [ref=e82]:
+          - paragraph [ref=e83]: Cửa hàng mới
+          - heading "Tạo không gian bán hàng" [level=1] [ref=e84]
+          - paragraph [ref=e85]: Bạn sẽ là chủ cửa hàng và có thể bắt đầu thêm sản phẩm ngay.
+        - generic [ref=e86]:
+          - generic [ref=e87]:
+            - generic [ref=e88]:
+              - generic [ref=e89]: Tên cửa hàng
+              - textbox "Tên cửa hàng" [ref=e91]:
+                - /placeholder: Cửa hàng của tôi
+            - generic [ref=e92]:
+              - generic [ref=e93]: Mã cửa hàng
+              - textbox "Mã cửa hàng" [ref=e95]:
+                - /placeholder: cua-hang-cua-toi
+          - generic [ref=e96]:
+            - generic [ref=e97]: Họ và tên chủ cửa hàng
+            - textbox "Họ và tên chủ cửa hàng" [ref=e99]:
+              - /placeholder: Nguyễn Văn An
+          - generic [ref=e100]:
+            - generic [ref=e101]:
+              - generic [ref=e102]: Tên đăng nhập
+              - textbox "Tên đăng nhập" [ref=e104]:
+                - /placeholder: nguyenan
+            - generic [ref=e105]:
+              - generic [ref=e106]: Email (không bắt buộc)
+              - textbox "Email (không bắt buộc)" [ref=e108]:
+                - /placeholder: ban@cuahang.vn
+          - generic [ref=e109]:
+            - generic [ref=e110]: Mật khẩu
+            - generic [ref=e111]:
+              - textbox "Mật khẩu" [ref=e112]:
+                - /placeholder: Ít nhất 12 ký tự
+              - button "Hiện mật khẩu" [ref=e113]
+          - button "Tạo cửa hàng miễn phí" [ref=e117]
+          - paragraph [ref=e120]:
+            - text: Đã có tài khoản?
+            - link "Đăng nhập" [ref=e121] [cursor=pointer]:
+              - /url: /dang-nhap

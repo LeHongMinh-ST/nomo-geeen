@@ -1,0 +1,5 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e3]:
+    - img "NomoGreen" [ref=e4]
+    - generic [ref=e5]: Đang tải phiên làm việc...
+  - button "Open Next.js Dev Tools" [ref=e11] [cursor=pointer]

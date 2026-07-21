@@ -1,7 +1,7 @@
 # Task R3-01: Supplier reachability & end-to-end verification
 
 **Requirement:** R8 — Reachability, seed-removal proof, and full-slice verification
-**Status:** pending
+**Status:** done
 **Priority:** P2
 **Estimated Effort:** S
 **Dependencies:** R1-01, R2-01
@@ -22,17 +22,17 @@
 
 ## Steps
 
-- [ ] 1. Prove `/nha-cung-cap` renders API-backed data end to end
+- [x] 1. Prove `/nha-cung-cap` renders API-backed data end to end
   - Business intent: confirm the user-facing supplier workflow is real, not mock.
   - Code detail: run the stack; exercise list → search → detail → create → update → soft-delete against a seeded tenant; capture request/response or screen proof for each step.
   - _Requirements: 8.1, 8.3_
 
-- [ ] 2. Prove no seed/mock path survives and the picker still works
+- [x] 2. Prove no seed/mock path survives and the picker still works
   - Business intent: guarantee the migration is complete and nothing regressed.
   - Code detail: `grep -R "@/lib/suppliers\|@/lib/debts"` over the supplier surface returns nothing; verify `purchase/supplier-picker.tsx` still lists suppliers from the API.
   - _Requirements: 8.2_
 
-- [ ] 3. Consolidate the verification receipt
+- [x] 3. Consolidate the verification receipt
   - Business intent: single source of proof for closeout.
   - Code detail: record backend (R1-01) + frontend (R2-01) command outputs plus the reachability checks; if a Prisma P3009 DB failure blocks E2E, record it as an explicit environment blocker with the failing command.
   - _Requirements: 8.3_
@@ -53,10 +53,10 @@
 
 ## Completion Criteria
 
-- [ ] List/detail/create/update/soft-delete proven API-backed from `/nha-cung-cap`.
-- [ ] Grep proof shows no seed/mock import in the supplier surface; picker still works.
-- [ ] Consolidated verification receipt exists with real command output or an explicit blocker.
-- [ ] No orphaned screen/route; every migrated component is reached from a `nha-cung-cap` route.
+- [x] List/detail/create/update/soft-delete proven API-backed from `/nha-cung-cap`.
+- [x] Grep proof shows no seed/mock import in the supplier surface; picker still works.
+- [x] Consolidated verification receipt exists with real command output or an explicit blocker.
+- [x] No orphaned screen/route; every migrated component is reached from a `nha-cung-cap` route.
 
 ## Evidence
 
@@ -72,16 +72,18 @@ Select the proof by task risk; do not run every test type for every task.
 - Scaffold/release task: include smoke build/test/dev-server checks.
 - Performance/security checks are required only when the requirement, risk, or touched surface calls for them.
 
-- [ ] Automated verification (full slice)
+- [x] Automated verification (full slice)
   - Command(s): `cd backend && npx jest suppliers` , `cd frontend && npx jest tenant-suppliers-api && npm run build`
   - Expected proof: backend + frontend suites PASS and build succeeds; counts non-zero.
-- [ ] Artifact / runtime verification
+- [x] Artifact / runtime verification
   - Inspect: running `/nha-cung-cap` list/detail/form and network calls to `/tenant/suppliers`
   - Expect: create/update/soft-delete round-trip against the API with correct payable and status.
-- [ ] Runtime reachability verification
+- [x] Runtime reachability verification
   - Entrypoint/caller: `frontend/app/(app)/nha-cung-cap/**` routes and `purchase/supplier-picker.tsx`
   - Expect: every migrated component is imported from a live route; picker still resolves suppliers from the API.
-- [ ] Contract / negative-path verification
+- [x] Contract / negative-path verification
+
+**Verification receipt:** PASS. Full receipt: `specs/tenant-supplier-management/reports/supplier-reachability-receipt.txt`. Backend unit/E2E, frontend test/typecheck/lint/build, import proof, route guard browser proof, and spec validator all passed.
   - Check: `grep -R "@/lib/suppliers\|@/lib/debts" frontend/app/(app)/nha-cung-cap frontend/components`; cross-tenant/soft-deleted supplier not visible.
   - Expect: no matches; deleted/cross-tenant suppliers excluded end to end.
 

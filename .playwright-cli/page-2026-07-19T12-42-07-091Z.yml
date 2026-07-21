@@ -1,0 +1,97 @@
+- generic [active] [ref=e1]:
+  - button "Open Next.js Dev Tools" [ref=e11] [cursor=pointer]
+  - alert [ref=e15]: NomoGreen
+  - generic [ref=e39]:
+    - complementary [ref=e40]:
+      - img "NomoGreen" [ref=e42]
+      - navigation [ref=e43]:
+        - generic [ref=e44]:
+          - paragraph [ref=e45]: Tổng quan
+          - list [ref=e46]:
+            - listitem [ref=e47]:
+              - link [ref=e48] [cursor=pointer]:
+                - /url: /admin
+        - generic [ref=e55]:
+          - paragraph [ref=e56]: Quản lý
+          - list [ref=e57]:
+            - listitem [ref=e58]:
+              - link [ref=e59] [cursor=pointer]:
+                - /url: /admin/tenants
+            - listitem [ref=e65]:
+              - link [ref=e66] [cursor=pointer]:
+                - /url: /admin/plans
+        - generic [ref=e73]:
+          - paragraph [ref=e74]: Vận hành
+          - list [ref=e75]:
+            - listitem [ref=e76]:
+              - link [ref=e77] [cursor=pointer]:
+                - /url: /admin/transactions
+            - listitem [ref=e81]:
+              - link [ref=e82] [cursor=pointer]:
+                - /url: /admin/audit-log
+        - generic [ref=e87]:
+          - paragraph [ref=e88]: Hệ thống
+          - list [ref=e89]:
+            - listitem [ref=e90]:
+              - link [ref=e91] [cursor=pointer]:
+                - /url: /admin/admin-users
+            - listitem [ref=e98]:
+              - link [ref=e99] [cursor=pointer]:
+                - /url: /admin/status
+            - listitem [ref=e103]:
+              - link [ref=e104] [cursor=pointer]:
+                - /url: /admin/settings
+      - link "← Về khu cửa hàng" [ref=e110] [cursor=pointer]:
+        - /url: /dang-nhap
+    - generic [ref=e111]:
+      - banner [ref=e112]:
+        - searchbox "Tìm cửa hàng, người dùng, giao dịch..." [ref=e114]
+        - generic [ref=e115]:
+          - button "Thông báo" [ref=e116]
+          - button "PS Platform Super Admin SUPER_ADMIN" [ref=e122]:
+            - generic [ref=e123]: PS
+            - generic [ref=e124]:
+              - generic [ref=e125]: Platform Super Admin
+              - generic [ref=e126]: SUPER_ADMIN
+      - main [ref=e129]:
+        - generic [ref=e130]:
+          - generic [ref=e131]:
+            - generic [ref=e132]:
+              - generic [ref=e133]:
+                - heading "Gói dịch vụ" [level=1] [ref=e134]
+                - generic [ref=e135]: 3 đang bật
+              - paragraph [ref=e136]: Quản lý tính năng và hạn mức cho các cửa hàng
+            - generic [ref=e137]:
+              - button "Làm mới danh sách gói" [ref=e138]: Làm mới
+              - button "Thêm gói" [ref=e144]
+          - region "Danh sách gói dịch vụ" [ref=e146]:
+            - article [ref=e147]:
+              - generic [ref=e148]:
+                - generic [ref=e154]:
+                  - generic [ref=e155]:
+                    - heading "Enterprise" [level=2] [ref=e156]
+                    - generic [ref=e157]: Đang bật
+                  - paragraph [ref=e158]:
+                    - code [ref=e159]: enterprise
+                    - text: · 499.000đ · Theo tháng
+                - button "Mở rộng Enterprise" [ref=e160]
+            - article [ref=e163]:
+              - generic [ref=e164]:
+                - generic [ref=e170]:
+                  - generic [ref=e171]:
+                    - heading "Professional" [level=2] [ref=e172]
+                    - generic [ref=e173]: Đang bật
+                  - paragraph [ref=e174]:
+                    - code [ref=e175]: professional
+                    - text: · 199.000đ · Theo tháng
+                - button "Mở rộng Professional" [ref=e176]
+            - article [ref=e179]:
+              - generic [ref=e180]:
+                - generic [ref=e186]:
+                  - generic [ref=e187]:
+                    - heading "Starter" [level=2] [ref=e188]
+                    - generic [ref=e189]: Đang bật
+                  - paragraph [ref=e190]:
+                    - code [ref=e191]: starter
+                    - text: · 0đ · Theo tháng
+                - button "Mở rộng Starter" [ref=e192]

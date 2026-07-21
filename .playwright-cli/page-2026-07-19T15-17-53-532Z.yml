@@ -1,0 +1,125 @@
+- generic [ref=e1]:
+  - button "Open Next.js Dev Tools" [ref=e7] [cursor=pointer]
+  - alert [ref=e11]: NomoGreen
+  - generic [ref=e35]:
+    - complementary [ref=e36]:
+      - img "NomoGreen" [ref=e38]
+      - navigation [ref=e39]:
+        - generic [ref=e40]:
+          - paragraph [ref=e41]: Tổng quan
+          - list [ref=e42]:
+            - listitem [ref=e43]:
+              - link [ref=e44] [cursor=pointer]:
+                - /url: /admin
+        - generic [ref=e51]:
+          - paragraph [ref=e52]: Quản lý
+          - list [ref=e53]:
+            - listitem [ref=e54]:
+              - link [ref=e55] [cursor=pointer]:
+                - /url: /admin/tenants
+            - listitem [ref=e61]:
+              - link [ref=e62] [cursor=pointer]:
+                - /url: /admin/plans
+        - generic [ref=e69]:
+          - paragraph [ref=e70]: Vận hành
+          - list [ref=e71]:
+            - listitem [ref=e72]:
+              - link [ref=e73] [cursor=pointer]:
+                - /url: /admin/transactions
+            - listitem [ref=e77]:
+              - link [ref=e78] [cursor=pointer]:
+                - /url: /admin/audit-log
+        - generic [ref=e83]:
+          - paragraph [ref=e84]: Hệ thống
+          - list [ref=e85]:
+            - listitem [ref=e86]:
+              - link [ref=e87] [cursor=pointer]:
+                - /url: /admin/admin-users
+            - listitem [ref=e94]:
+              - link [ref=e95] [cursor=pointer]:
+                - /url: /admin/status
+            - listitem [ref=e99]:
+              - link [ref=e100] [cursor=pointer]:
+                - /url: /admin/settings
+      - link "← Về khu cửa hàng" [ref=e106] [cursor=pointer]:
+        - /url: /dang-nhap
+    - generic [ref=e107]:
+      - banner [ref=e108]:
+        - searchbox "Tìm cửa hàng, người dùng, giao dịch..." [ref=e110]
+        - generic [ref=e111]:
+          - button "Thông báo" [ref=e112]
+          - button "PS Platform Super Admin SUPER_ADMIN" [ref=e118]:
+            - generic [ref=e119]: PS
+            - generic [ref=e120]:
+              - generic [ref=e121]: Platform Super Admin
+              - generic [ref=e122]: SUPER_ADMIN
+      - main [ref=e125]:
+        - generic [ref=e126]:
+          - generic [ref=e127]:
+            - generic [ref=e128]:
+              - generic [ref=e129]:
+                - heading "Gói dịch vụ" [level=1] [ref=e130]
+                - generic [ref=e131]: 3 đang bật
+              - paragraph [ref=e132]: Quản lý tính năng và hạn mức cho các cửa hàng
+            - generic [ref=e133]:
+              - button "Làm mới danh sách gói" [ref=e134]: Làm mới
+              - button "Thêm gói" [ref=e140]
+          - region "Danh sách gói dịch vụ" [ref=e142]:
+            - article [ref=e143]:
+              - button "Enterprise Đang bật enterprise · 499.000đ · Theo tháng" [active] [ref=e144] [cursor=pointer]:
+                - generic [ref=e150]:
+                  - generic [ref=e151]:
+                    - heading "Enterprise" [level=2] [ref=e152]
+                    - generic [ref=e153]: Đang bật
+                  - paragraph [ref=e154]:
+                    - code [ref=e155]: enterprise
+                    - text: · 499.000đ · Theo tháng
+              - generic [ref=e191]:
+                - generic [ref=e192]:
+                  - generic [ref=e193]:
+                    - paragraph [ref=e194]: Người dùng
+                    - paragraph [ref=e195]: "20"
+                  - generic [ref=e196]:
+                    - paragraph [ref=e197]: Kho
+                    - paragraph [ref=e198]: "5"
+                  - generic [ref=e199]:
+                    - paragraph [ref=e200]: Sản phẩm
+                    - paragraph [ref=e201]: Không giới hạn
+                  - generic [ref=e202]:
+                    - paragraph [ref=e203]: Khách hàng
+                    - paragraph [ref=e204]: Không giới hạn
+                  - generic [ref=e205]:
+                    - paragraph [ref=e206]: Đơn/tháng
+                    - paragraph [ref=e207]: Không giới hạn
+                  - generic [ref=e208]:
+                    - paragraph [ref=e209]: Dung lượng
+                    - paragraph [ref=e210]: 21474836480 bytes
+                - generic [ref=e211]:
+                  - generic [ref=e212]: advanced_mode
+                  - generic [ref=e213]: barcode
+                  - generic [ref=e214]: batch
+                  - generic [ref=e215]: debt
+                  - generic [ref=e216]: inventory
+                  - generic [ref=e217]: quantity_tier_pricing
+                  - generic [ref=e218]: tax
+                - generic [ref=e219]:
+                  - button "Chỉnh sửa" [ref=e220]
+                  - button "Tắt gói" [ref=e223]
+            - article [ref=e159]:
+              - button "Professional Đang bật professional · 199.000đ · Theo tháng" [ref=e160] [cursor=pointer]:
+                - generic [ref=e166]:
+                  - generic [ref=e167]:
+                    - heading "Professional" [level=2] [ref=e168]
+                    - generic [ref=e169]: Đang bật
+                  - paragraph [ref=e170]:
+                    - code [ref=e171]: professional
+                    - text: · 199.000đ · Theo tháng
+            - article [ref=e175]:
+              - button "Starter Đang bật starter · 0đ · Theo tháng" [ref=e176] [cursor=pointer]:
+                - generic [ref=e182]:
+                  - generic [ref=e183]:
+                    - heading "Starter" [level=2] [ref=e184]
+                    - generic [ref=e185]: Đang bật
+                  - paragraph [ref=e186]:
+                    - code [ref=e187]: starter
+                    - text: · 0đ · Theo tháng

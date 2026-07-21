@@ -29,6 +29,15 @@ export type SupplierInput = {
 	taxCode?: string;
 };
 const base = "/tenant/suppliers";
+const supplierTypeLabels: Record<string, string> = {
+	manufacturer: "Nhà sản xuất",
+	distributor: "Nhà phân phối",
+	agent: "Đại lý",
+};
+
+export function supplierTypeLabel(value: string | null) {
+	return value ? (supplierTypeLabels[value] ?? value) : "Chưa phân loại";
+}
 export function listTenantSuppliers(
 	params: { page?: number; pageSize?: number; search?: string } = {},
 ): Promise<SupplierListResponse> {
@@ -38,6 +47,9 @@ export function listTenantSuppliers(
 	return userFetch<SupplierListResponse>(
 		query.size ? `${base}?${query.toString()}` : base,
 	);
+}
+export function getTenantSupplier(id: string): Promise<TenantSupplier> {
+	return userFetch<TenantSupplier>(`${base}/${id}`);
 }
 export function createTenantSupplier(
 	input: SupplierInput,

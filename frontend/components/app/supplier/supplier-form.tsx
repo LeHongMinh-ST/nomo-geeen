@@ -1,65 +1,32 @@
 "use client";
 
-import {
-	Building2,
-	ChevronDown,
-	Handshake,
-	Hash,
-	MapPin,
-	Phone,
-	Truck,
-	User,
-} from "lucide-react";
+import { ChevronDown, Hash, MapPin, Phone, Truck, User } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import type { UserApiError } from "@/lib/user-auth-api";
 import {
-	type Supplier,
-	type SupplierType,
-	supplierTypeLabel,
-} from "@/lib/suppliers";
+	createTenantSupplier,
+	updateTenantSupplier,
+	type SupplierInput,
+	type TenantSupplier,
+} from "@/lib/tenant-suppliers-api";
 
-/**
- * Form Thêm/Sửa nhà cung cấp (base_spec §7).
- * Chia section: thông tin cơ bản + chính sách hợp tác (thu gọn được, tùy chọn).
- * Mobile-first (DESIGN.md): nút Lưu dính đáy full-width. FE-only: chưa nối API.
- */
-
-type FormMode = "create" | "edit";
-
-type FormState = {
-	code: string;
-	name: string;
-	type: SupplierType;
-	contact: string;
-	contactRole: string;
-	phone: string;
-	address: string;
-	taxCode: string;
-	discountPercent: string;
-	creditLimit: string;
-	paymentTerm: string;
-};
-
-const typeOptions: { value: SupplierType; label: string }[] = [
-	{ value: "manufacturer", label: supplierTypeLabel.manufacturer },
-	{ value: "distributor", label: supplierTypeLabel.distributor },
-	{ value: "agent", label: supplierTypeLabel.agent },
+const typeOptions = [
+	{ value: "manufacturer", label: "Nhà sản xuất" },
+	{ value: "distributor", label: "Nhà phân phối" },
+	{ value: "agent", label: "Đại lý" },
 ];
-
-function toFormState(s?: Supplier): FormState {
+type FormState = SupplierInput;
+function initial(s?: TenantSupplier): FormState {
 	return {
 		code: s?.code ?? "",
 		name: s?.name ?? "",
-		type: s?.type ?? "distributor",
-		contact: s?.contact ?? "",
-		contactRole: s?.contactRole ?? "",
+		supplierType: s?.supplierType ?? "distributor",
+		contactName: s?.contactName ?? "",
 		phone: s?.phone ?? "",
+		email: s?.email ?? "",
 		address: s?.address ?? "",
 		taxCode: s?.taxCode ?? "",
-		discountPercent:
-			s?.discountPercent != null ? String(s.discountPercent) : "",
-		creditLimit: s?.creditLimit != null ? String(s.creditLimit) : "",
-		paymentTerm: s?.paymentTerm ?? "",
 	};
 }
 
@@ -67,61 +34,66 @@ export function SupplierForm({
 	mode,
 	supplier,
 }: {
-	mode: FormMode;
-	supplier?: Supplier;
+	mode: "create" | "edit";
+	supplier?: TenantSupplier;
 }) {
 	const router = useRouter();
-	const [form, setForm] = useState<FormState>(() => toFormState(supplier));
-	const [policyOpen, setPolicyOpen] = useState<boolean>(
-		Boolean(
-			supplier?.discountPercent != null ||
-				supplier?.creditLimit != null ||
-				supplier?.paymentTerm,
-		),
-	);
+	const [form, setForm] = useState<FormState>(() => initial(supplier));
 	const [saving, setSaving] = useState(false);
-
+	const [error, setError] = useState("");
 	function set<K extends keyof FormState>(key: K, value: FormState[K]) {
-		setForm((f) => ({ ...f, [key]: value }));
+		setForm((current) => ({ ...current, [key]: value }));
+		setError("");
 	}
-
-	function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-		e.preventDefault();
+	async function submit(event: React.FormEvent) {
+		event.preventDefault();
+		if (!form.code.trim() || !form.name.trim()) {
+			setError("Mã và tên nhà cung cấp là bắt buộc.");
+			return;
+		}
 		setSaving(true);
-		// TODO: gọi API tạo/cập nhật nhà cung cấp khi backend sẵn sàng.
-		setTimeout(() => {
+		setError("");
+		try {
+			if (mode === "create") await createTenantSupplier(form);
+			else if (supplier) await updateTenantSupplier(supplier.id, form);
 			router.push("/nha-cung-cap");
-		}, 400);
+		} catch (e) {
+			const apiError = e as UserApiError;
+			setError(
+				apiError.reason === "DUPLICATE_SUPPLIER_CODE"
+					? "Mã nhà cung cấp đã tồn tại trong cửa hàng."
+					: apiError.reason === "VALIDATION_ERROR"
+						? "Vui lòng kiểm tra mã và tên nhà cung cấp."
+						: apiError.message || "Không thể lưu nhà cung cấp.",
+			);
+		} finally {
+			setSaving(false);
+		}
 	}
-
-	const submitLabel = saving
-		? "Đang lưu..."
-		: mode === "create"
-			? "Thêm nhà cung cấp"
-			: "Lưu thay đổi";
-
 	return (
 		<form
-			onSubmit={handleSubmit}
+			onSubmit={submit}
 			className="mx-auto flex w-full max-w-2xl flex-col gap-5 pb-24 lg:mx-0 lg:pb-6"
 		>
-			{/* Section 1: Thông tin cơ bản */}
 			<section className="flex flex-col gap-4 rounded-[16px] border border-border bg-card p-5 shadow-card">
 				<div className="flex items-center gap-3">
-					<span
-						className="flex size-10 shrink-0 items-center justify-center rounded-[10px]"
-						style={{ backgroundColor: "#1a6fa8" }}
-					>
+					<span className="flex size-10 items-center justify-center rounded-[10px] bg-[#1a6fa8]">
 						<Truck className="size-5 text-white" aria-hidden />
 					</span>
-					<h2 className="text-lg font-semibold text-foreground">
-						Thông tin cơ bản
-					</h2>
+					<h1 className="text-lg font-semibold">
+						{mode === "create" ? "Thêm nhà cung cấp" : "Sửa nhà cung cấp"}
+					</h1>
 				</div>
-
+				{error ? (
+					<div
+						role="alert"
+						className="rounded-[10px] border border-[#f0b8b5] bg-[#fff5f4] p-3 text-base text-[#b42318]"
+					>
+						{error}
+					</div>
+				) : null}
 				<Field label="Tên nhà cung cấp" required>
 					<input
-						type="text"
 						required
 						value={form.name}
 						onChange={(e) => set("name", e.target.value)}
@@ -129,13 +101,11 @@ export function SupplierForm({
 						className={inputClass}
 					/>
 				</Field>
-
 				<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 					<Field label="Mã NCC" required>
 						<div className="relative">
 							<Hash className={iconClass} aria-hidden />
 							<input
-								type="text"
 								required
 								value={form.code}
 								onChange={(e) => set("code", e.target.value)}
@@ -144,189 +114,114 @@ export function SupplierForm({
 							/>
 						</div>
 					</Field>
-					<Field label="Loại NCC" required>
-						<Select
-							value={form.type}
-							onChange={(v) => set("type", v as SupplierType)}
-							options={typeOptions}
-						/>
+					<Field label="Loại NCC">
+						<div className="relative">
+							<select
+								value={form.supplierType ?? "distributor"}
+								onChange={(e) => set("supplierType", e.target.value)}
+								className={`${inputClass} appearance-none pr-10`}
+							>
+								{typeOptions.map((option) => (
+									<option key={option.value} value={option.value}>
+										{option.label}
+									</option>
+								))}
+							</select>
+							<ChevronDown
+								className="pointer-events-none absolute right-3.5 top-1/2 size-4.5 -translate-y-1/2 text-[#9e9e9e]"
+								aria-hidden
+							/>
+						</div>
 					</Field>
 				</div>
-
-				<Field label="Số điện thoại" required>
+				<Field label="Số điện thoại">
 					<div className="relative">
 						<Phone className={iconClass} aria-hidden />
 						<input
 							type="tel"
-							required
-							inputMode="tel"
-							value={form.phone}
+							value={form.phone ?? ""}
 							onChange={(e) => set("phone", e.target.value)}
-							placeholder="0283 822 xxxx"
+							placeholder="0901 234 567"
 							className={`${inputClass} pl-10.5`}
 						/>
 					</div>
 				</Field>
-
-				<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-					<Field label="Người liên hệ">
-						<div className="relative">
-							<User className={iconClass} aria-hidden />
-							<input
-								type="text"
-								value={form.contact}
-								onChange={(e) => set("contact", e.target.value)}
-								placeholder="VD: A. Dũng"
-								className={`${inputClass} pl-10.5`}
-							/>
-						</div>
-					</Field>
-					<Field label="Chức vụ">
+				<Field label="Người liên hệ">
+					<div className="relative">
+						<User className={iconClass} aria-hidden />
 						<input
-							type="text"
-							value={form.contactRole}
-							onChange={(e) => set("contactRole", e.target.value)}
-							placeholder="VD: Trưởng vùng"
-							className={inputClass}
+							value={form.contactName ?? ""}
+							onChange={(e) => set("contactName", e.target.value)}
+							placeholder="Tên người liên hệ"
+							className={`${inputClass} pl-10.5`}
 						/>
-					</Field>
-				</div>
-
+					</div>
+				</Field>
+				<Field label="Email">
+					<input
+						type="email"
+						value={form.email ?? ""}
+						onChange={(e) => set("email", e.target.value)}
+						placeholder="ncc@example.com"
+						className={inputClass}
+					/>
+				</Field>
 				<Field label="Địa chỉ">
 					<div className="relative">
 						<MapPin className={iconClass} aria-hidden />
 						<input
-							type="text"
-							value={form.address}
+							value={form.address ?? ""}
 							onChange={(e) => set("address", e.target.value)}
-							placeholder="VD: KCN Long An"
+							placeholder="Địa chỉ nhà cung cấp"
 							className={`${inputClass} pl-10.5`}
 						/>
 					</div>
 				</Field>
-
 				<Field label="Mã số thuế">
-					<div className="relative">
-						<Building2 className={iconClass} aria-hidden />
-						<input
-							type="text"
-							inputMode="numeric"
-							value={form.taxCode}
-							onChange={(e) => set("taxCode", e.target.value)}
-							placeholder="0301234567"
-							className={`${inputClass} pl-10.5`}
-						/>
-					</div>
+					<input
+						value={form.taxCode ?? ""}
+						onChange={(e) => set("taxCode", e.target.value)}
+						placeholder="Mã số thuế"
+						className={inputClass}
+					/>
 				</Field>
 			</section>
-
-			{/* Section 2: Chính sách hợp tác (thu gọn được) */}
-			<div className="overflow-hidden rounded-[16px] border border-border bg-card shadow-card">
-				<button
-					type="button"
-					onClick={() => setPolicyOpen((o) => !o)}
-					className="flex w-full items-center gap-3 p-5 text-left"
-				>
-					<span
-						className="flex size-10 shrink-0 items-center justify-center rounded-[10px]"
-						style={{ backgroundColor: "#1a6fa8" }}
-					>
-						<Handshake className="size-5 text-white" aria-hidden />
-					</span>
-					<span className="flex min-w-0 flex-1 flex-col">
-						<span className="text-lg font-semibold text-foreground">
-							Chính sách hợp tác
-						</span>
-						<span className="text-sm text-[#616161]">
-							Chiết khấu, hạn mức, thời hạn thanh toán (tùy chọn)
-						</span>
-					</span>
-					<ChevronDown
-						className={`size-5 shrink-0 text-[#9e9e9e] transition-transform duration-200 ${
-							policyOpen ? "rotate-180" : ""
-						}`}
-						aria-hidden
-					/>
-				</button>
-
-				{policyOpen ? (
-					<div className="flex flex-col gap-4 border-t border-border p-5">
-						<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-							<Field label="Chiết khấu (%)">
-								<input
-									type="number"
-									inputMode="numeric"
-									min={0}
-									max={100}
-									value={form.discountPercent}
-									onChange={(e) => set("discountPercent", e.target.value)}
-									placeholder="0"
-									className={`${inputClass} text-right`}
-								/>
-							</Field>
-							<Field label="Hạn mức công nợ (₫)">
-								<input
-									type="number"
-									inputMode="numeric"
-									min={0}
-									value={form.creditLimit}
-									onChange={(e) => set("creditLimit", e.target.value)}
-									placeholder="0"
-									className={`${inputClass} text-right`}
-								/>
-							</Field>
-						</div>
-						<Field label="Thời hạn / hình thức thanh toán">
-							<input
-								type="text"
-								value={form.paymentTerm}
-								onChange={(e) => set("paymentTerm", e.target.value)}
-								placeholder="VD: Công nợ 30 ngày"
-								className={inputClass}
-							/>
-						</Field>
-					</div>
-				) : null}
-			</div>
-
-			{/* Hành động — desktop inline */}
-			<div className="hidden items-center justify-end gap-3 lg:flex">
+			<div className="hidden justify-end gap-3 lg:flex">
 				<button
 					type="button"
 					onClick={() => router.back()}
-					className="h-11 rounded-[10px] border border-border bg-card px-6 text-base font-semibold text-foreground hover:bg-[#f5f5f5]"
+					className="h-11 rounded-[10px] border border-border px-6 text-base font-semibold"
 				>
 					Hủy
 				</button>
 				<button
-					type="submit"
 					disabled={saving}
-					className="h-11 rounded-[10px] bg-primary px-8 text-base font-semibold text-white transition-colors duration-200 ease-out hover:bg-[#5cad45] active:bg-[#3f8530] disabled:opacity-60"
+					type="submit"
+					className="h-11 rounded-[10px] bg-primary px-8 text-base font-semibold text-white disabled:opacity-60"
 				>
-					{submitLabel}
+					{saving
+						? "Đang lưu..."
+						: mode === "create"
+							? "Thêm nhà cung cấp"
+							: "Lưu thay đổi"}
 				</button>
 			</div>
-
-			{/* Hành động — mobile dính đáy full-width */}
 			<div className="fixed inset-x-0 bottom-nav-safe z-20 border-t border-border bg-card p-3 lg:hidden">
 				<button
-					type="submit"
 					disabled={saving}
-					className="flex h-12 w-full items-center justify-center rounded-[10px] bg-primary text-base font-semibold text-white transition-colors duration-200 ease-out active:bg-[#3f8530] disabled:opacity-60"
+					type="submit"
+					className="flex h-12 w-full items-center justify-center rounded-[10px] bg-primary text-base font-semibold text-white disabled:opacity-60"
 				>
-					{submitLabel}
+					{saving
+						? "Đang lưu..."
+						: mode === "create"
+							? "Thêm nhà cung cấp"
+							: "Lưu thay đổi"}
 				</button>
 			</div>
 		</form>
 	);
 }
-
-const inputClass =
-	"h-12 w-full rounded-[10px] border border-border bg-white px-4 text-base text-foreground placeholder:text-[#9e9e9e] transition-colors duration-200 ease-out focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/25 md:h-11";
-
-const iconClass =
-	"pointer-events-none absolute left-3.5 top-1/2 size-4.5 -translate-y-1/2 text-[#9e9e9e]";
-
 function Field({
 	label,
 	required,
@@ -338,7 +233,7 @@ function Field({
 }) {
 	return (
 		<div className="flex flex-col gap-2">
-			<span className="text-sm font-medium text-foreground">
+			<span className="text-sm font-medium">
 				{label}
 				{required ? <span className="ml-0.5 text-destructive">*</span> : null}
 			</span>
@@ -346,33 +241,7 @@ function Field({
 		</div>
 	);
 }
-
-function Select({
-	value,
-	onChange,
-	options,
-}: {
-	value: string;
-	onChange: (v: string) => void;
-	options: { value: string; label: string }[];
-}) {
-	return (
-		<div className="relative">
-			<select
-				value={value}
-				onChange={(e) => onChange(e.target.value)}
-				className={`${inputClass} appearance-none pr-10 text-foreground`}
-			>
-				{options.map((o) => (
-					<option key={o.value} value={o.value}>
-						{o.label}
-					</option>
-				))}
-			</select>
-			<ChevronDown
-				className="pointer-events-none absolute right-3.5 top-1/2 size-4.5 -translate-y-1/2 text-[#9e9e9e]"
-				aria-hidden
-			/>
-		</div>
-	);
-}
+const inputClass =
+	"h-12 w-full rounded-[10px] border border-border bg-white px-4 text-base text-foreground placeholder:text-[#9e9e9e] focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/25 md:h-11";
+const iconClass =
+	"pointer-events-none absolute left-3.5 top-1/2 size-4.5 -translate-y-1/2 text-[#9e9e9e]";

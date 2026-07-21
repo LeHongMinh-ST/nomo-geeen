@@ -15,6 +15,7 @@ const base: Product = {
 	salePrice: 200,
 	priceTiers: [],
 	stock: 10,
+	lowStockThreshold: 0,
 };
 
 describe("filterSellableProducts", () => {

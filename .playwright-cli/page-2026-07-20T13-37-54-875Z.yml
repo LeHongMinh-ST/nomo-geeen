@@ -1,0 +1,45 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - complementary [ref=e3]:
+      - img "NomoGreen" [ref=e5]
+      - generic [ref=e6]:
+        - generic [ref=e7]:
+          - paragraph [ref=e8]: Phần mềm bán hàng
+          - heading "Bán vật tư nông nghiệp, gọn trong lòng bàn tay." [level=1] [ref=e9]
+          - paragraph [ref=e10]: Một chỗ cho bán hàng, kho và công nợ — to, rõ, dễ dùng trên điện thoại.
+        - list [ref=e11]:
+          - listitem [ref=e12]:
+            - generic [ref=e17]:
+              - paragraph [ref=e18]: Bán hàng nhanh
+              - paragraph [ref=e19]: Ghi đơn, thu tiền chỉ vài lần chạm ngay trên điện thoại.
+          - listitem [ref=e20]:
+            - generic [ref=e24]:
+              - paragraph [ref=e25]: Nắm rõ tồn kho
+              - paragraph [ref=e26]: Biết ngay hàng nào sắp hết để nhập thêm đúng lúc.
+          - listitem [ref=e27]:
+            - generic [ref=e34]:
+              - paragraph [ref=e35]: Theo dõi công nợ
+              - paragraph [ref=e36]: Ai còn nợ, nợ bao nhiêu, khi nào đến hạn đều rõ ràng.
+      - paragraph [ref=e37]: Dùng hằng ngày bởi cửa hàng và đại lý vật tư nông nghiệp.
+    - main [ref=e38]:
+      - generic [ref=e39]:
+        - generic [ref=e40]:
+          - heading "Đăng nhập" [level=2] [ref=e41]
+          - paragraph [ref=e42]: Nhập tên đăng nhập, email hoặc số điện thoại để tiếp tục bán hàng.
+        - generic [ref=e43]:
+          - generic [ref=e44]:
+            - generic [ref=e45]: Tên đăng nhập, email hoặc số điện thoại
+            - textbox "Tên đăng nhập, email hoặc số điện thoại" [ref=e47]:
+              - /placeholder: Bạn thường dùng thông tin nào?
+          - generic [ref=e48]:
+            - generic [ref=e49]: Mật khẩu
+            - generic [ref=e50]:
+              - textbox "Mật khẩu" [ref=e51]:
+                - /placeholder: Nhập mật khẩu của bạn
+              - button "Hiện mật khẩu" [ref=e52]
+          - button "Đăng nhập" [ref=e56]
+          - paragraph [ref=e60]:
+            - text: Chưa có tài khoản?
+            - link "Đăng ký miễn phí" [ref=e61] [cursor=pointer]:
+              - /url: /dang-ky
+  - button "Open Next.js Dev Tools" [ref=e67] [cursor=pointer]

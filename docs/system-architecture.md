@@ -33,6 +33,10 @@ flowchart LR
 - `POST /auth/change-password` verifies the current password, updates the hash and clears `mustChangePassword` in an audited transaction, then revokes other user refresh families without returning credential material.
 - The frontend user session is separate from admin state: `user-auth-store` keeps only the short-lived access token in memory, hydrates through the HttpOnly refresh cookie plus `/auth/me`, and `user-fetch` single-flights one refresh and retries a request at most once.
 - User auth routes are `/dang-nhap`, `/dang-ky`, and `/doi-mat-khau`; they use typed user API/store contracts and `UserAuthGuard`, with Vietnamese validation/status messages and no admin store dependency.
+- Tenant product routes are `/tenant/products` plus `/lookups` and `/:id` detail/update/delete. The controller composes `TenantAccessTokenGuard`, live `TenantPermissionGuard`, and `EntitlementsGuard`; `ProductsService` validates all related catalog IDs against the JWT tenant, reserves `maxProducts` only during create, and soft-deletes products without mutating stock.
+- Tenant supplier routes are `/tenant/suppliers` for tenant-scoped list/detail/create/update/soft-delete. Reads require `supplier:view`; writes require the matching supplier mutation permission plus the `inventory` entitlement. `SuppliersService` filters active records (`deletedAt IS NULL` and `status = ACTIVE`), derives read-only payable balance as a JSON number, and maps duplicate tenant codes to `409 DUPLICATE_SUPPLIER_CODE`.
+- The user app supplier routes (`/nha-cung-cap`, detail, create, edit) consume `frontend/lib/tenant-suppliers-api.ts` for list/search/pagination, detail, create/update, and soft-delete. Payable is displayed only from the server `balance`; purchase history, debt mutation, and cooperation-policy editing remain outside this slice.
+- The user app customer routes (`/khach-hang`, detail, create, edit) consume `frontend/lib/tenant-customers-api.ts` for tenant-scoped list/search/pagination, detail, create/update, and soft-delete. Customer balance is displayed only from the server; transaction history and debt mutation remain outside this slice.
 
 ## Admin request flow
 
@@ -65,6 +69,7 @@ The admin read boundary is `GET /admin/audit-logs` for bounded, stable newest-fi
 - No global audit interceptor was found; coverage is service-owned and therefore must be reviewed when new mutation modules are added.
 - The admin navigation contains the permission-gated `/admin/audit-log` route, and dashboard recent activity reads a bounded newest-audit query.
 - Tenant user registration/login UI remains governed by `specs/user-registration-authentication`; the backend session lifecycle is verified, while frontend auth state/screens and final integration acceptance remain pending.
+- Product conversions, price tiers, stock movements, purchasing, sales, and dashboard aggregation remain separate follow-up slices; the current product API exposes only core catalog fields and read-only stock quantity.
 
 ## Deployment evidence gap
 

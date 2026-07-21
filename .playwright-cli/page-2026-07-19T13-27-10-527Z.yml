@@ -1,0 +1,124 @@
+- generic [active] [ref=f1e1]:
+  - button "Open Next.js Dev Tools" [ref=f1e11] [cursor=pointer]
+  - alert [ref=f1e15]
+  - generic [ref=f1e16]:
+    - complementary [ref=f1e17]:
+      - img "NomoGreen" [ref=f1e19]
+      - navigation [ref=f1e20]:
+        - generic [ref=f1e21]:
+          - paragraph [ref=f1e22]: Tổng quan
+          - list [ref=f1e23]:
+            - listitem [ref=f1e24]:
+              - link [ref=f1e25] [cursor=pointer]:
+                - /url: /admin
+        - generic [ref=f1e32]:
+          - paragraph [ref=f1e33]: Quản lý
+          - list [ref=f1e34]:
+            - listitem [ref=f1e35]:
+              - link [ref=f1e36] [cursor=pointer]:
+                - /url: /admin/tenants
+            - listitem [ref=f1e43]:
+              - link [ref=f1e44] [cursor=pointer]:
+                - /url: /admin/plans
+        - generic [ref=f1e50]:
+          - paragraph [ref=f1e51]: Vận hành
+          - list [ref=f1e52]:
+            - listitem [ref=f1e53]:
+              - link [ref=f1e54] [cursor=pointer]:
+                - /url: /admin/transactions
+            - listitem [ref=f1e58]:
+              - link [ref=f1e59] [cursor=pointer]:
+                - /url: /admin/audit-log
+        - generic [ref=f1e64]:
+          - paragraph [ref=f1e65]: Hệ thống
+          - list [ref=f1e66]:
+            - listitem [ref=f1e67]:
+              - link [ref=f1e68] [cursor=pointer]:
+                - /url: /admin/admin-users
+            - listitem [ref=f1e75]:
+              - link [ref=f1e76] [cursor=pointer]:
+                - /url: /admin/status
+            - listitem [ref=f1e80]:
+              - link [ref=f1e81] [cursor=pointer]:
+                - /url: /admin/settings
+      - link "← Về khu cửa hàng" [ref=f1e87] [cursor=pointer]:
+        - /url: /dang-nhap
+    - generic [ref=f1e88]:
+      - banner [ref=f1e89]:
+        - searchbox "Tìm cửa hàng, người dùng, giao dịch..." [ref=f1e91]
+        - generic [ref=f1e92]:
+          - button "Thông báo" [ref=f1e93]
+          - button "PS Platform Super Admin SUPER_ADMIN" [ref=f1e99]:
+            - generic [ref=f1e100]: PS
+            - generic [ref=f1e101]:
+              - generic [ref=f1e102]: Platform Super Admin
+              - generic [ref=f1e103]: SUPER_ADMIN
+      - main [ref=f1e106]:
+        - generic [ref=f1e178]:
+          - generic [ref=f1e179]:
+            - generic [ref=f1e180]:
+              - link "Quay lại danh sách" [ref=f1e181] [cursor=pointer]:
+                - /url: /admin/tenants
+              - generic [ref=f1e184]:
+                - heading "Smoke Billing Shop" [level=1] [ref=f1e185]
+                - paragraph [ref=f1e186]: smoke-billing-20260719
+            - generic [ref=f1e187]: Hoạt động
+          - generic [ref=f1e188]:
+            - generic [ref=f1e189]:
+              - heading "Hồ sơ" [level=2] [ref=f1e190]
+              - generic [ref=f1e191]:
+                - generic [ref=f1e192]:
+                  - text: Tên
+                  - textbox "Tên" [ref=f1e193]: Smoke Billing Shop
+                - generic [ref=f1e194]:
+                  - generic [ref=f1e195]:
+                    - text: Loại
+                    - combobox "Loại" [ref=f1e196]:
+                      - option "Hộ gia đình"
+                      - option "Đại lý" [selected]
+                      - option "Hợp tác xã"
+                      - option "Nhà phân phối"
+                      - option "Trang trại"
+                  - generic [ref=f1e197]:
+                    - text: Chế độ
+                    - combobox "Chế độ" [ref=f1e198]:
+                      - option "Đơn giản" [selected]
+                      - option "Nâng cao"
+                - generic [ref=f1e199]:
+                  - text: Logo URL (HTTPS)
+                  - textbox "Logo URL (HTTPS)" [ref=f1e200]:
+                    - /placeholder: https://…
+                - button "Lưu thay đổi" [disabled] [ref=f1e201]
+            - generic [ref=f1e206]:
+              - generic [ref=f1e207]:
+                - heading "Thống kê" [level=2] [ref=f1e208]
+                - list [ref=f1e209]:
+                  - listitem [ref=f1e210]:
+                    - generic [ref=f1e211]: Người dùng
+                    - generic [ref=f1e212]: "0"
+                  - listitem [ref=f1e213]:
+                    - generic [ref=f1e214]: Gói đăng ký
+                    - generic [ref=f1e215]: "0"
+                  - listitem [ref=f1e216]:
+                    - generic [ref=f1e217]: Ticket mở
+                    - generic [ref=f1e218]: "0"
+                - paragraph [ref=f1e219]: "Cập nhật: 20:26:36 19/7/2026"
+              - generic [ref=f1e220]:
+                - heading "Vòng đời" [level=2] [ref=f1e221]
+                - paragraph [ref=f1e222]: Chỉ đổi metadata trạng thái — không thu hồi session.
+                - generic [ref=f1e223]:
+                  - text: Lý do (tuỳ chọn)
+                  - textbox "Lý do (tuỳ chọn)" [ref=f1e224]
+                - generic [ref=f1e225]:
+                  - button "Tạm ngưng" [ref=f1e226]
+                  - button "Khóa" [ref=f1e230]
+          - region [ref=f1e234]:
+            - generic [ref=f1e235]:
+              - generic [ref=f1e236]:
+                - heading "Gói đăng ký" [level=2] [ref=f1e237]
+                - paragraph [ref=f1e238]: Nguồn dữ liệu từ billing API, cập nhật sau mỗi thao tác.
+              - button "Làm mới gói đăng ký" [ref=f1e239]: Làm mới
+            - generic [ref=f1e245]: Tenant chưa có gói đăng ký hiệu lực.
+            - button "Gán gói" [ref=f1e247]
+            - group [ref=f1e250]:
+              - generic "Lịch sử gói (0)" [ref=f1e251] [cursor=pointer]

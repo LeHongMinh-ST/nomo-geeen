@@ -1,0 +1,105 @@
+- generic [ref=e1]:
+  - button "Open Next.js Dev Tools" [ref=e11] [cursor=pointer]
+  - alert [ref=e15]: NomoGreen
+  - generic [ref=e39]:
+    - complementary [ref=e40]:
+      - img "NomoGreen" [ref=e42]
+      - navigation [ref=e43]:
+        - generic [ref=e44]:
+          - paragraph [ref=e45]: Tổng quan
+          - list [ref=e46]:
+            - listitem [ref=e47]:
+              - link [ref=e48] [cursor=pointer]:
+                - /url: /admin
+        - generic [ref=e55]:
+          - paragraph [ref=e56]: Quản lý
+          - list [ref=e57]:
+            - listitem [ref=e58]:
+              - link [active] [ref=e59] [cursor=pointer]:
+                - /url: /admin/tenants
+            - listitem [ref=e65]:
+              - link [ref=e66] [cursor=pointer]:
+                - /url: /admin/plans
+        - generic [ref=e73]:
+          - paragraph [ref=e74]: Vận hành
+          - list [ref=e75]:
+            - listitem [ref=e76]:
+              - link [ref=e77] [cursor=pointer]:
+                - /url: /admin/transactions
+            - listitem [ref=e81]:
+              - link [ref=e82] [cursor=pointer]:
+                - /url: /admin/audit-log
+        - generic [ref=e87]:
+          - paragraph [ref=e88]: Hệ thống
+          - list [ref=e89]:
+            - listitem [ref=e90]:
+              - link [ref=e91] [cursor=pointer]:
+                - /url: /admin/admin-users
+            - listitem [ref=e98]:
+              - link [ref=e99] [cursor=pointer]:
+                - /url: /admin/status
+            - listitem [ref=e103]:
+              - link [ref=e104] [cursor=pointer]:
+                - /url: /admin/settings
+      - link "← Về khu cửa hàng" [ref=e110] [cursor=pointer]:
+        - /url: /dang-nhap
+    - generic [ref=e111]:
+      - banner [ref=e112]:
+        - searchbox "Tìm cửa hàng, người dùng, giao dịch..." [ref=e114]
+        - generic [ref=e115]:
+          - button "Thông báo" [ref=e116]
+          - button "PS Platform Super Admin SUPER_ADMIN" [ref=e445]:
+            - generic [ref=e123]: PS
+            - generic [ref=e124]:
+              - generic [ref=e125]: Platform Super Admin
+              - generic [ref=e126]: SUPER_ADMIN
+      - main [ref=e129]:
+        - generic [ref=e447]:
+          - generic [ref=e448]:
+            - generic [ref=e449]:
+              - generic [ref=e450]:
+                - heading "Cửa hàng" [level=1] [ref=e451]
+                - generic [ref=e452]: "0"
+              - paragraph [ref=e453]: Quản lý tenant / cửa hàng trên nền tảng
+            - generic [ref=e454]:
+              - button "Làm mới" [ref=e455]
+              - button "Xuất CSV" [ref=e461]
+          - generic [ref=e465]:
+            - generic [ref=e466]:
+              - paragraph [ref=e469]: Tổng cửa hàng
+              - paragraph [ref=e470]: "0"
+            - generic [ref=e471]:
+              - paragraph [ref=e474]: Hoạt động
+              - paragraph [ref=e475]: "0"
+            - generic [ref=e476]:
+              - paragraph [ref=e479]: Tạm ngưng
+              - paragraph [ref=e480]: "0"
+            - generic [ref=e481]:
+              - paragraph [ref=e484]: Khóa
+              - paragraph [ref=e485]: "0"
+          - generic [ref=e486]:
+            - generic [ref=e488]:
+              - text: Tìm kiếm
+              - searchbox "Tìm kiếm" [ref=e490]
+            - generic [ref=e491]:
+              - text: Trạng thái
+              - combobox "Lọc theo trạng thái" [ref=e492]:
+                - generic: Tất cả
+          - table [ref=e495]:
+            - rowgroup [ref=e496]:
+              - row [ref=e497]:
+                - columnheader "Cửa hàng" [ref=e498]
+                - columnheader "Loại" [ref=e499]
+                - columnheader "Chế độ" [ref=e500]
+                - columnheader "Trạng thái" [ref=e501]
+                - columnheader "Tạo lúc" [ref=e502]
+                - columnheader "Chi tiết" [ref=e503]
+            - rowgroup [ref=e504]:
+              - row [ref=e505]:
+                - cell [ref=e506]:
+                  - generic [ref=e507]:
+                    - generic [ref=e513]:
+                      - paragraph [ref=e514]: Chưa có cửa hàng nào
+                      - paragraph [ref=e515]: Thay đổi bộ lọc, hoặc thêm user quản trị cho một tenant để bắt đầu quản lý cửa hàng trên nền tảng.
+                    - link "Thêm cửa hàng" [ref=e516] [cursor=pointer]:
+                      - /url: /admin/admin-users

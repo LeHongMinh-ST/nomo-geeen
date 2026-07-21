@@ -1,0 +1,90 @@
+- generic [active] [ref=e1]:
+  - button "Open Next.js Dev Tools" [ref=e11] [cursor=pointer]
+  - alert [ref=e15]: NomoGreen
+  - generic [ref=e111]:
+    - banner [ref=e112]:
+      - button "Mở menu" [ref=e195]
+      - generic [ref=e197]:
+        - img "NomoGreen" [ref=e198]
+        - generic [ref=e199]: Quản trị
+      - generic [ref=e115]:
+        - button "Thông báo" [ref=e116]
+        - button "PS" [ref=e200]
+    - main [ref=e129]:
+      - generic [ref=e130]:
+        - generic [ref=e131]:
+          - generic [ref=e132]:
+            - generic [ref=e133]:
+              - heading "Gói dịch vụ" [level=1] [ref=e134]
+              - generic [ref=e135]: 3 đang bật
+            - paragraph [ref=e136]: Quản lý tính năng và hạn mức cho các cửa hàng
+          - generic [ref=e137]:
+            - button "Làm mới danh sách gói" [ref=e138]: Làm mới
+            - button "Thêm gói" [ref=e144]
+        - region "Danh sách gói dịch vụ" [ref=e146]:
+          - article [ref=e351]:
+            - generic [ref=e352]:
+              - generic [ref=e358]:
+                - generic [ref=e359]:
+                  - heading "Smoke Mobile" [level=2] [ref=e360]
+                  - generic [ref=e361]: Đang tắt
+                - paragraph [ref=e362]:
+                  - code [ref=e363]: smoke-20260719
+                  - text: · 1.000đ · Theo tháng
+              - button "Thu gọn Smoke Mobile" [expanded] [ref=e364]
+            - generic [ref=e367]:
+              - generic [ref=e368]:
+                - generic [ref=e369]:
+                  - paragraph [ref=e370]: Người dùng
+                  - paragraph [ref=e371]: "1"
+                - generic [ref=e372]:
+                  - paragraph [ref=e373]: Kho
+                  - paragraph [ref=e374]: "1"
+                - generic [ref=e375]:
+                  - paragraph [ref=e376]: Sản phẩm
+                  - paragraph [ref=e377]: Không giới hạn
+                - generic [ref=e378]:
+                  - paragraph [ref=e379]: Khách hàng
+                  - paragraph [ref=e380]: Không giới hạn
+                - generic [ref=e381]:
+                  - paragraph [ref=e382]: Đơn/tháng
+                  - paragraph [ref=e383]: Không giới hạn
+                - generic [ref=e384]:
+                  - paragraph [ref=e385]: Dung lượng
+                  - paragraph [ref=e386]: 0 bytes
+              - generic [ref=e387]:
+                - paragraph [ref=e388]: Tính năng
+                - generic [ref=e389]: inventory
+              - generic [ref=e391]:
+                - button "Chỉnh sửa" [ref=e392]
+                - button "Bật gói" [ref=e396]
+          - article [ref=e397]:
+            - generic [ref=e398]:
+              - generic [ref=e404]:
+                - generic [ref=e405]:
+                  - heading "Enterprise" [level=2] [ref=e406]
+                  - generic [ref=e407]: Đang bật
+                - paragraph [ref=e408]:
+                  - code [ref=e409]: enterprise
+                  - text: · 499.000đ · Theo tháng
+              - button "Mở rộng Enterprise" [ref=e410]
+          - article [ref=e413]:
+            - generic [ref=e414]:
+              - generic [ref=e420]:
+                - generic [ref=e421]:
+                  - heading "Professional" [level=2] [ref=e422]
+                  - generic [ref=e423]: Đang bật
+                - paragraph [ref=e424]:
+                  - code [ref=e425]: professional
+                  - text: · 199.000đ · Theo tháng
+              - button "Mở rộng Professional" [ref=e426]
+          - article [ref=e429]:
+            - generic [ref=e430]:
+              - generic [ref=e436]:
+                - generic [ref=e437]:
+                  - heading "Starter" [level=2] [ref=e438]
+                  - generic [ref=e439]: Đang bật
+                - paragraph [ref=e440]:
+                  - code [ref=e441]: starter
+                  - text: · 0đ · Theo tháng
+              - button "Mở rộng Starter" [ref=e442]

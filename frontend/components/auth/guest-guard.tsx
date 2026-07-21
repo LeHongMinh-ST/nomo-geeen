@@ -27,9 +27,12 @@ export function GuestGuard({ children }: { children: ReactNode }) {
 		}
 	}, [hydrated, loading, router, user]);
 
-	// Chua biet trang thai, hoac da dang nhap (dang chuyen huong) -> che man hinh
-	// de tranh nhay form dang nhap.
-	if (!hydrated || loading || user) {
+	// Chua biet trang thai (dang hydrate lan dau), hoac da dang nhap (dang chuyen
+	// huong) -> che man hinh de tranh nhay form dang nhap. KHONG gate theo
+	// `loading`: khi submit login that bai, `loading` toggle true->false se
+	// remount LoginForm va lam mat state loi (serverError). `!hydrated` da du
+	// cho lan hydrate dau; sau do form phai o nguyen de hien thi loi tu server.
+	if (!hydrated || user) {
 		return <BootScreen />;
 	}
 	return <>{children}</>;

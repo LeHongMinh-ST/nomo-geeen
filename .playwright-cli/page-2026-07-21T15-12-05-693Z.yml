@@ -1,0 +1,49 @@
+- generic [active] [ref=f1e1]:
+  - button "Open Next.js Dev Tools" [ref=f1e7] [cursor=pointer]
+  - alert [ref=f1e11]
+  - generic [ref=f1e12]:
+    - complementary [ref=f1e13]:
+      - img "NomoGreen" [ref=f1e15]
+      - generic [ref=f1e16]:
+        - generic [ref=f1e17]:
+          - paragraph [ref=f1e18]: Phần mềm bán hàng
+          - heading "Bán vật tư nông nghiệp, gọn trong lòng bàn tay." [level=1] [ref=f1e19]
+          - paragraph [ref=f1e20]: Một chỗ cho bán hàng, kho và công nợ — to, rõ, dễ dùng trên điện thoại.
+        - list [ref=f1e21]:
+          - listitem [ref=f1e22]:
+            - generic [ref=f1e27]:
+              - paragraph [ref=f1e28]: Bán hàng nhanh
+              - paragraph [ref=f1e29]: Ghi đơn, thu tiền chỉ vài lần chạm ngay trên điện thoại.
+          - listitem [ref=f1e30]:
+            - generic [ref=f1e34]:
+              - paragraph [ref=f1e35]: Nắm rõ tồn kho
+              - paragraph [ref=f1e36]: Biết ngay hàng nào sắp hết để nhập thêm đúng lúc.
+          - listitem [ref=f1e37]:
+            - generic [ref=f1e44]:
+              - paragraph [ref=f1e45]: Theo dõi công nợ
+              - paragraph [ref=f1e46]: Ai còn nợ, nợ bao nhiêu, khi nào đến hạn đều rõ ràng.
+      - paragraph [ref=f1e47]: Dùng hằng ngày bởi cửa hàng và đại lý vật tư nông nghiệp.
+    - main [ref=f1e48]:
+      - generic [ref=f1e49]:
+        - generic [ref=f1e50]:
+          - heading "Đăng nhập" [level=2] [ref=f1e51]
+          - paragraph [ref=f1e52]: Nhập tên đăng nhập, email hoặc số điện thoại để tiếp tục bán hàng.
+        - generic [ref=f1e53]:
+          - generic [ref=f1e54]:
+            - generic [ref=f1e55]: Tên đăng nhập, email hoặc số điện thoại
+            - textbox "Tên đăng nhập, email hoặc số điện thoại" [ref=f1e57]:
+              - /placeholder: Bạn thường dùng thông tin nào?
+              - text: chutam
+          - generic [ref=f1e58]:
+            - generic [ref=f1e59]: Mật khẩu
+            - generic [ref=f1e60]:
+              - textbox "Mật khẩu" [ref=f1e61]:
+                - /placeholder: Nhập mật khẩu của bạn
+                - text: NongXanh@2026
+              - button "Hiện mật khẩu" [ref=f1e62]
+          - alert [ref=f1e72]: Failed to fetch
+          - button "Đăng nhập" [ref=f1e66]
+          - paragraph [ref=f1e70]:
+            - text: Chưa có tài khoản?
+            - link "Đăng ký miễn phí" [ref=f1e71] [cursor=pointer]:
+              - /url: /dang-ky

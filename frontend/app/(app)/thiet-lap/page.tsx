@@ -16,7 +16,9 @@ import {
 	UserRound,
 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useUserAuth } from "@/stores/user-auth-store";
 
 /**
  * Trang Thiết lập — mobile-first (DESIGN.md §8, §22).
@@ -131,8 +133,16 @@ const settingGroups: {
 ];
 
 export default function ThietLapPage() {
+	const router = useRouter();
+	const logout = useUserAuth((state) => state.logout);
+	const loading = useUserAuth((state) => state.loading);
 	const [fields, setFields] = useState(initialFields);
 	const [saved, setSaved] = useState(false);
+
+	async function handleLogout() {
+		await logout();
+		router.replace("/dang-nhap");
+	}
 
 	function updateField(key: string, value: string) {
 		setFields((current) =>
@@ -270,10 +280,12 @@ export default function ThietLapPage() {
 			{/* Đăng xuất */}
 			<button
 				type="button"
-				className="flex h-12 w-full items-center justify-center gap-2 rounded-[10px] border border-border bg-card text-base font-semibold text-destructive shadow-card transition-colors duration-200 ease-out hover:bg-[#fdecea]"
+				onClick={handleLogout}
+				disabled={loading}
+				className="flex h-12 w-full items-center justify-center gap-2 rounded-[10px] border border-border bg-card text-base font-semibold text-destructive shadow-card transition-colors duration-200 ease-out hover:bg-[#fdecea] disabled:cursor-not-allowed disabled:opacity-60"
 			>
 				<LogOut className="size-5" aria-hidden />
-				Đăng xuất
+				{loading ? "Đang đăng xuất..." : "Đăng xuất"}
 			</button>
 		</div>
 	);

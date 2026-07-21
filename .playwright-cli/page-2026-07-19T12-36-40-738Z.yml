@@ -1,0 +1,71 @@
+- generic [ref=e1]:
+  - button "Open Next.js Dev Tools" [ref=e30] [cursor=pointer]
+  - alert [ref=e34]: NomoGreen
+  - generic [ref=e58]:
+    - complementary [ref=e59]:
+      - img "NomoGreen" [ref=e61]
+      - navigation [ref=e62]:
+        - generic [ref=e63]:
+          - paragraph [ref=e64]: Tổng quan
+          - list [ref=e65]:
+            - listitem [ref=e66]:
+              - link [ref=e67] [cursor=pointer]:
+                - /url: /admin
+        - generic [ref=e75]:
+          - paragraph [ref=e76]: Quản lý
+          - list [ref=e77]:
+            - listitem [ref=e78]:
+              - link [ref=e79] [cursor=pointer]:
+                - /url: /admin/tenants
+            - listitem [ref=e85]:
+              - link [active] [ref=e86] [cursor=pointer]:
+                - /url: /admin/plans
+        - generic [ref=e92]:
+          - paragraph [ref=e93]: Vận hành
+          - list [ref=e94]:
+            - listitem [ref=e95]:
+              - link [ref=e96] [cursor=pointer]:
+                - /url: /admin/transactions
+            - listitem [ref=e100]:
+              - link [ref=e101] [cursor=pointer]:
+                - /url: /admin/audit-log
+        - generic [ref=e106]:
+          - paragraph [ref=e107]: Hệ thống
+          - list [ref=e108]:
+            - listitem [ref=e109]:
+              - link [ref=e110] [cursor=pointer]:
+                - /url: /admin/admin-users
+            - listitem [ref=e117]:
+              - link [ref=e118] [cursor=pointer]:
+                - /url: /admin/status
+            - listitem [ref=e122]:
+              - link [ref=e123] [cursor=pointer]:
+                - /url: /admin/settings
+      - link "← Về khu cửa hàng" [ref=e129] [cursor=pointer]:
+        - /url: /dang-nhap
+    - generic [ref=e130]:
+      - banner [ref=e131]:
+        - searchbox "Tìm cửa hàng, người dùng, giao dịch..." [ref=e133]
+        - generic [ref=e134]:
+          - button "Thông báo" [ref=e135]
+          - button "PS Platform Super Admin SUPER_ADMIN" [ref=e141]:
+            - generic [ref=e142]: PS
+            - generic [ref=e143]:
+              - generic [ref=e144]: Platform Super Admin
+              - generic [ref=e145]: SUPER_ADMIN
+      - main [ref=e148]:
+        - generic [ref=e397]:
+          - generic [ref=e398]:
+            - generic [ref=e399]:
+              - generic [ref=e400]:
+                - heading "Gói dịch vụ" [level=1] [ref=e401]
+                - generic [ref=e402]: 0 đang bật
+              - paragraph [ref=e403]: Quản lý tính năng và hạn mức cho các cửa hàng
+            - generic [ref=e404]:
+              - button "Làm mới danh sách gói" [ref=e405]: Làm mới
+              - button "Thêm gói" [ref=e411]
+          - alert [ref=e413]: Cannot GET /admin/plans?page=1&pageSize=100
+          - region "Danh sách gói dịch vụ" [ref=e414]:
+            - generic [ref=e415]:
+              - paragraph [ref=e420]: Chưa có gói dịch vụ
+              - paragraph [ref=e421]: Tạo gói đầu tiên để bắt đầu cấu hình tính năng.

@@ -1,0 +1,84 @@
+- generic [ref=e1]:
+  - button "Open Next.js Dev Tools" [ref=e11] [cursor=pointer]
+  - alert [ref=e15]: Nhà cung cấp · NomoGreen
+  - generic [ref=e76]:
+    - complementary [ref=e77]:
+      - generic [ref=e78]:
+        - img "NomoGreen" [ref=e79]
+        - generic [ref=e80]:
+          - generic [ref=e81]: Vật tư Minh Tâm
+          - generic [ref=e82]: Vật tư nông nghiệp
+      - navigation [ref=e83]:
+        - link [ref=e84] [cursor=pointer]:
+          - /url: /
+        - generic [ref=e90]:
+          - paragraph [ref=e91]: Bán hàng
+          - list [ref=e92]:
+            - listitem [ref=e93]:
+              - link [ref=e94] [cursor=pointer]:
+                - /url: /ban-nhanh
+            - listitem [ref=e100]:
+              - link [ref=e101] [cursor=pointer]:
+                - /url: /don-ban-hang
+            - listitem [ref=e107]:
+              - link [ref=e108] [cursor=pointer]:
+                - /url: /so-tay
+        - generic [ref=e112]:
+          - paragraph [ref=e113]: Kho & Hàng hóa
+          - list [ref=e114]:
+            - listitem [ref=e115]:
+              - link [ref=e116] [cursor=pointer]:
+                - /url: /san-pham
+            - listitem [ref=e122]:
+              - link [ref=e123] [cursor=pointer]:
+                - /url: /nhap-hang
+            - listitem [ref=e129]:
+              - link [ref=e130] [cursor=pointer]:
+                - /url: /ton-kho
+        - generic [ref=e135]:
+          - paragraph [ref=e136]: Đối tác
+          - list [ref=e137]:
+            - listitem [ref=e138]:
+              - link [ref=e139] [cursor=pointer]:
+                - /url: /khach-hang
+            - listitem [ref=e146]:
+              - link [active] [ref=e147] [cursor=pointer]:
+                - /url: /nha-cung-cap
+            - listitem [ref=e154]:
+              - link [ref=e155] [cursor=pointer]:
+                - /url: /cong-no
+        - generic [ref=e163]:
+          - paragraph [ref=e164]: Khác
+          - list [ref=e165]:
+            - listitem [ref=e166]:
+              - link [ref=e167] [cursor=pointer]:
+                - /url: /bao-cao
+            - listitem [ref=e171]:
+              - link [ref=e172] [cursor=pointer]:
+                - /url: /thiet-lap
+    - generic [ref=e177]:
+      - banner [ref=e178]:
+        - searchbox "Tìm sản phẩm, khách hàng..." [ref=e180]
+        - generic [ref=e181]:
+          - button "Thông báo" [ref=e182]
+          - link "MT Minh Tâm Chủ cửa hàng" [ref=e187] [cursor=pointer]:
+            - /url: /thiet-lap
+            - generic [ref=e188]: MT
+            - generic [ref=e189]:
+              - generic [ref=e190]: Minh Tâm
+              - generic [ref=e191]: Chủ cửa hàng
+      - main [ref=e192]:
+        - generic [ref=e367]:
+          - generic [ref=e368]:
+            - generic [ref=e369]:
+              - generic [ref=e370]:
+                - heading "Nhà cung cấp" [level=1] [ref=e371]
+                - generic [ref=e372]: "0"
+              - paragraph [ref=e373]: Đối tác nhập hàng — theo dõi liên hệ và công nợ phải trả.
+            - link "Thêm nhà cung cấp" [ref=e374] [cursor=pointer]:
+              - /url: /nha-cung-cap/them
+          - searchbox "Tìm tên NCC, mã, số điện thoại..." [ref=e377]
+          - generic [ref=e378]:
+            - heading "Chưa có nhà cung cấp nào" [level=2] [ref=e385]
+            - link "Thêm nhà cung cấp" [ref=e386] [cursor=pointer]:
+              - /url: /nha-cung-cap/them

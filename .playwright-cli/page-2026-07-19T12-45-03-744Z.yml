@@ -1,0 +1,109 @@
+- generic [ref=e1]:
+  - button "Open Next.js Dev Tools" [ref=e11] [cursor=pointer]
+  - alert [ref=e15]: NomoGreen
+  - generic [ref=e111]:
+    - banner [ref=e112]:
+      - button "Mở menu" [ref=e195]
+      - generic [ref=e197]:
+        - img "NomoGreen" [ref=e198]
+        - generic [ref=e199]: Quản trị
+      - generic [ref=e115]:
+        - button "Thông báo" [ref=e116]
+        - button "PS" [ref=e200]
+    - main [ref=e129]:
+      - generic [ref=e130]:
+        - generic [ref=e131]:
+          - generic [ref=e132]:
+            - generic [ref=e133]:
+              - heading "Gói dịch vụ" [level=1] [ref=e134]
+              - generic [ref=e135]: 3 đang bật
+            - paragraph [ref=e136]: Quản lý tính năng và hạn mức cho các cửa hàng
+          - generic [ref=e137]:
+            - button "Làm mới danh sách gói" [ref=e138]: Làm mới
+            - button "Thêm gói" [active] [ref=e144]
+        - generic [ref=e201]:
+          - generic [ref=e203]:
+            - paragraph [ref=e204]: Tạo mới
+            - heading "Thêm gói dịch vụ" [level=2] [ref=e205]
+          - generic [ref=e206]:
+            - generic [ref=e207]:
+              - generic [ref=e208]: Mã gói
+              - textbox "Mã gói" [ref=e209]:
+                - /placeholder: starter
+              - generic [ref=e210]: "Ví dụ: starter"
+            - generic [ref=e211]:
+              - generic [ref=e212]: Tên gói
+              - textbox "Tên gói" [ref=e213]:
+                - /placeholder: Gói khởi đầu
+            - generic [ref=e214]:
+              - generic [ref=e215]: Giá (VND)
+              - spinbutton "Giá (VND)" [ref=e216]: "0"
+            - generic [ref=e217]:
+              - generic [ref=e218]: Chu kỳ
+              - combobox "Chu kỳ" [ref=e219]:
+                - option "Theo tháng" [selected]
+                - option "Theo quý"
+                - option "Theo năm"
+            - generic [ref=e220]:
+              - generic [ref=e221]: Số người dùng
+              - spinbutton "Số người dùng" [ref=e222]: "1"
+            - generic [ref=e223]:
+              - generic [ref=e224]: Số kho
+              - spinbutton "Số kho" [ref=e225]: "1"
+            - generic [ref=e226]:
+              - generic [ref=e227]: Số sản phẩm
+              - spinbutton "Số sản phẩm" [ref=e228]
+              - generic [ref=e229]: Để trống = không giới hạn
+            - generic [ref=e230]:
+              - generic [ref=e231]: Số khách hàng
+              - spinbutton "Số khách hàng" [ref=e232]
+              - generic [ref=e233]: Để trống = không giới hạn
+            - generic [ref=e234]:
+              - generic [ref=e235]: Số đơn mỗi tháng
+              - spinbutton "Số đơn mỗi tháng" [ref=e236]
+              - generic [ref=e237]: Để trống = không giới hạn
+            - generic [ref=e238]:
+              - generic [ref=e239]: Dung lượng (bytes)
+              - spinbutton "Dung lượng (bytes)" [ref=e240]: "0"
+            - generic [ref=e241]:
+              - generic [ref=e242]: Mã tính năng
+              - textbox "Mã tính năng" [ref=e243]:
+                - /placeholder: inventory, debt
+              - generic [ref=e244]: "Gợi ý: inventory, debt, handbook"
+            - generic [ref=e245]:
+              - generic [ref=e246]: Mô tả
+              - textbox "Mô tả" [ref=e247]
+            - generic [ref=e248]:
+              - button "Hủy" [ref=e249]
+              - button "Tạo gói" [ref=e250]
+        - region "Danh sách gói dịch vụ" [ref=e146]:
+          - article [ref=e147]:
+            - generic [ref=e148]:
+              - generic [ref=e154]:
+                - generic [ref=e155]:
+                  - heading "Enterprise" [level=2] [ref=e156]
+                  - generic [ref=e157]: Đang bật
+                - paragraph [ref=e158]:
+                  - code [ref=e159]: enterprise
+                  - text: · 499.000đ · Theo tháng
+              - button "Mở rộng Enterprise" [ref=e160]
+          - article [ref=e163]:
+            - generic [ref=e164]:
+              - generic [ref=e170]:
+                - generic [ref=e171]:
+                  - heading "Professional" [level=2] [ref=e172]
+                  - generic [ref=e173]: Đang bật
+                - paragraph [ref=e174]:
+                  - code [ref=e175]: professional
+                  - text: · 199.000đ · Theo tháng
+              - button "Mở rộng Professional" [ref=e176]
+          - article [ref=e179]:
+            - generic [ref=e180]:
+              - generic [ref=e186]:
+                - generic [ref=e187]:
+                  - heading "Starter" [level=2] [ref=e188]
+                  - generic [ref=e189]: Đang bật
+                - paragraph [ref=e190]:
+                  - code [ref=e191]: starter
+                  - text: · 0đ · Theo tháng
+              - button "Mở rộng Starter" [ref=e192]

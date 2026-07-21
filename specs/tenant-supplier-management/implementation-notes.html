@@ -1,0 +1,11 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>tenant-supplier-management implementation notes</title>
+<style>body{font:14px system-ui,sans-serif;max-width:900px;margin:32px auto;padding:0 20px;color:#172033;background:#f5f7fb}main{background:white;border:1px solid #dbe2ef;border-radius:14px;padding:24px}h1{margin-top:0}.note{border-left:4px solid #2563eb;background:#f8fafc;padding:12px 16px;margin:14px 0;border-radius:6px}.tag{font:11px monospace;color:#1d4ed8;text-transform:uppercase}</style></head>
+<body><main><h1>tenant-supplier-management</h1><p>Spec: <code>specs/tenant-supplier-management/spec.json</code> · Mode: standard · Tasks: R1-01 → R3-01</p>
+<div class="note"><div class="tag">codebase-reality</div><p>The supplier API already exists and is registered. R1-01 is contract hardening plus proof coverage; no schema migration is in scope.</p></div>
+<div class="note"><div class="tag">decision</div><p>Use the existing tenant auth, permission, and inventory entitlement guards. Keep payable balance read-only and map Prisma BigInt to a JSON number.</p></div>
+<div class="note"><div class="tag">verification</div><p>PASS: unit suite (8 tests), supplier E2E (1 test), and backend build. Existing local migrations were applied before E2E. Status: done.</p></div>
+<div class="note"><div class="tag">verification</div><p>R2-01 PASS: Vitest client tests (2 tests), Biome lint, and Next webpack build (42 routes). Supplier surface has no seed/debt imports; payable remains server-derived and read-only.</p></div>
+<div class="note"><div class="tag">verification</div><p>R3-01 PASS: authenticated browser reached `/nha-cung-cap` and `/nha-cung-cap/them`; consolidated receipt: <code>reports/supplier-reachability-receipt.txt</code>. Full feature status: done.</p></div>
+<div class="note"><div class="tag">verification</div><p>Review follow-up PASS: backend unit 9 tests, backend supplier E2E 1 test, frontend 17 tests, lint, backend build, and frontend webpack build. Mobile pagination, debounced search race protection, and status/deletedAt invariant are covered.</p></div>
+</main></body></html>

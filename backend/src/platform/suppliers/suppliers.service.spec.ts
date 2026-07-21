@@ -55,8 +55,93 @@ describe('SuppliersService', () => {
 				}),
 				take: 20,
 				skip: 20,
+				orderBy: [{ name: 'asc' }, { id: 'asc' }],
 			}),
 		);
+	});
+	it.each([[{ code: '   ', name: 'Valid' }], [{ code: 'Valid', name: '   ' }]])(
+		'rejects empty required fields on create',
+		async (dto) => {
+			const { service, prisma } = makeService();
+			await expect(service.create('tenant-1', dto)).rejects.toMatchObject({
+				response: { reason: 'VALIDATION_ERROR' },
+			});
+			expect(prisma.supplier.create).not.toHaveBeenCalled();
+		},
+	);
+	it('rejects empty required fields on update and does not write balance', async () => {
+		const { service, prisma } = makeService();
+		prisma.supplier.findFirst.mockResolvedValue({ id: 's1' });
+		await expect(
+			service.update('tenant-1', 's1', { name: '  ' } as never),
+		).rejects.toMatchObject({ response: { reason: 'VALIDATION_ERROR' } });
+		expect(prisma.supplier.update).not.toHaveBeenCalled();
+	});
+	it('keeps inactive status updates aligned with soft-delete retention', async () => {
+		const { service, prisma } = makeService();
+		prisma.supplier.findFirst.mockResolvedValue({ id: 's1' });
+		prisma.supplier.update.mockResolvedValue({
+			id: 's1',
+			code: 'SUP-1',
+			name: 'Supplier',
+			supplierType: null,
+			contactName: null,
+			phone: null,
+			email: null,
+			address: null,
+			taxCode: null,
+			balance: 0n,
+			status: 'INACTIVE',
+			createdAt: new Date(),
+			updatedAt: new Date(),
+		});
+		await service.update('tenant-1', 's1', { status: 'INACTIVE' } as never);
+		expect(prisma.supplier.update).toHaveBeenCalledWith(
+			expect.objectContaining({
+				data: expect.objectContaining({
+					status: 'INACTIVE',
+					deletedAt: expect.any(Date),
+				}),
+			}),
+		);
+	});
+	it('serializes bigint balance as a JSON number', async () => {
+		const { service, prisma } = makeService();
+		prisma.supplier.findFirst.mockResolvedValue({
+			id: 's1',
+			code: 'SUP-1',
+			name: 'Supplier',
+			supplierType: null,
+			contactName: null,
+			phone: null,
+			email: null,
+			address: null,
+			taxCode: null,
+			balance: 123456n,
+			status: 'ACTIVE',
+			createdAt: new Date(),
+			updatedAt: new Date(),
+		});
+		await expect(service.findById('tenant-1', 's1')).resolves.toEqual(
+			expect.objectContaining({ balance: 123456 }),
+		);
+		expect(prisma.supplier.findFirst).toHaveBeenCalledWith({
+			where: {
+				id: 's1',
+				tenantId: 'tenant-1',
+				deletedAt: null,
+				status: 'ACTIVE',
+			},
+		});
+	});
+	it('does not return inactive suppliers from detail reads', async () => {
+		const { service, prisma } = makeService();
+		prisma.supplier.findFirst.mockResolvedValue(null);
+		await expect(
+			service.findById('tenant-1', 'inactive'),
+		).rejects.toMatchObject({
+			status: 404,
+		});
 	});
 	it('normalizes create input and maps duplicate code to conflict', async () => {
 		const { service, prisma } = makeService();

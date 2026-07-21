@@ -1,0 +1,147 @@
+[     291ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:3000/_next/static/chunks/166g_next_dist_0yxsnqj._.js:2477
+[     395ms] [LOG] [HMR] connected @ http://localhost:3000/_next/static/chunks/166g_next_dist_0yxsnqj._.js:2477
+[     443ms] [WARNING] Image with src "/images/logo.png" has either width or height modified, but not the other. If you use CSS to change the size of your image, also include the styles 'width: "auto"' or 'height: "auto"' to maintain the aspect ratio. @ http://localhost:3000/_next/static/chunks/166g_next_dist_0yxsnqj._.js:2477
+[     461ms] [ERROR] Failed to load resource: the server responded with a status of 401 (Unauthorized) @ http://localhost:3001/auth/refresh:0
+[   31504ms] [WARNING] The resource http://localhost:3000/_next/image?url=%2Fimages%2Flogo.png&w=128&q=75 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally. @ http://localhost:3000/admin/plans:0
+[  170528ms] [LOG] [HMR] connected @ http://localhost:3000/_next/static/chunks/166g_next_dist_0yxsnqj._.js:2477
+[  206448ms] [WARNING] The resource http://localhost:3000/_next/image?url=%2Fimages%2Flogo.png&w=128&q=75 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally. @ http://localhost:3000/admin/plans:0
+[  228012ms] [WARNING] The resource http://localhost:3000/_next/image?url=%2Fimages%2Flogo.png&w=128&q=75 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally. @ http://localhost:3000/admin/plans:0
+[  352842ms] [LOG] [HMR] connected @ http://localhost:3000/_next/static/chunks/166g_next_dist_0yxsnqj._.js:2477
+[ 1655126ms] [LOG] [HMR] connected @ http://localhost:3000/_next/static/chunks/166g_next_dist_0yxsnqj._.js:2477
+[ 2559721ms] [ERROR] Failed to load resource: the server responded with a status of 401 (Unauthorized) @ http://localhost:3001/admin/plans/73d629b6-6006-4501-9292-017ca0197d7b/activation:0
+[ 2559820ms] [ERROR] Failed to load resource: the server responded with a status of 401 (Unauthorized) @ http://localhost:3001/admin/plans?page=1&pageSize=100:0
+[ 2562880ms] [WARNING] The resource http://localhost:3000/_next/image?url=%2Fimages%2Flogo.png&w=128&q=75 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally. @ http://localhost:3000/admin/plans:0
+[ 2585582ms] [WARNING] The resource http://localhost:3000/_next/image?url=%2Fimages%2Flogo.png&w=128&q=75 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally. @ http://localhost:3000/admin/tenants:0
+[ 2718341ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:3000/_next/static/chunks/166g_next_dist_0yxsnqj._.js:2477
+[ 2718368ms] [LOG] [HMR] connected @ http://localhost:3000/_next/static/chunks/166g_next_dist_0yxsnqj._.js:2477
+[ 2718412ms] [WARNING] Image with src "/images/logo.png" has either width or height modified, but not the other. If you use CSS to change the size of your image, also include the styles 'width: "auto"' or 'height: "auto"' to maintain the aspect ratio. @ http://localhost:3000/_next/static/chunks/166g_next_dist_0yxsnqj._.js:2477
+[ 2721599ms] [WARNING] The resource http://localhost:3000/_next/image?url=%2Fimages%2Flogo.png&w=128&q=75 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally. @ http://localhost:3000/admin/tenants:0
+[ 2730691ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/166g_next_dist_0yxsnqj._.js:2477
+[ 2731543ms] [LOG] [Fast Refresh] done in 953ms @ http://localhost:3000/_next/static/chunks/166g_next_dist_0yxsnqj._.js:2477
+[ 2735120ms] [WARNING] The resource http://localhost:3000/_next/image?url=%2Fimages%2Flogo.png&w=128&q=75 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally. @ http://localhost:3000/admin/tenants/11111111-1111-4111-8111-111111111111:0
+[ 2846226ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/166g_next_dist_0yxsnqj._.js:2477
+[ 2846263ms] [LOG] [Fast Refresh] done in 124ms @ http://localhost:3000/_next/static/chunks/166g_next_dist_0yxsnqj._.js:2477
+[ 2849342ms] [WARNING] The resource http://localhost:3000/_next/image?url=%2Fimages%2Flogo.png&w=128&q=75 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally. @ http://localhost:3000/admin/tenants/11111111-1111-4111-8111-111111111111:0
+[ 2874093ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:3000/_next/static/chunks/166g_next_dist_0yxsnqj._.js:2477
+[ 2874118ms] [LOG] [HMR] connected @ http://localhost:3000/_next/static/chunks/166g_next_dist_0yxsnqj._.js:2477
+[ 2874142ms] [WARNING] Image with src "/images/logo.png" has either width or height modified, but not the other. If you use CSS to change the size of your image, also include the styles 'width: "auto"' or 'height: "auto"' to maintain the aspect ratio. @ http://localhost:3000/_next/static/chunks/166g_next_dist_0yxsnqj._.js:2477
+[ 2877290ms] [WARNING] The resource http://localhost:3000/_next/image?url=%2Fimages%2Flogo.png&w=128&q=75 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally. @ http://localhost:3000/admin/tenants/11111111-1111-4111-8111-111111111111:0
+[ 3005122ms] [LOG] [HMR] connected @ http://localhost:3000/_next/static/chunks/166g_next_dist_0yxsnqj._.js:2477
+[ 3201106ms] [LOG] [HMR] connected @ http://localhost:3000/_next/static/chunks/166g_next_dist_0yxsnqj._.js:2477
+[ 3924221ms] [ERROR] Failed to load resource: the server responded with a status of 401 (Unauthorized) @ http://localhost:3001/admin/tenants/11111111-1111-4111-8111-111111111111/subscription:0
+[ 3924377ms] [ERROR] Failed to load resource: the server responded with a status of 401 (Unauthorized) @ http://localhost:3001/admin/tenants/11111111-1111-4111-8111-111111111111/subscription?page=1&pageSize=20:0
+[ 3924377ms] [ERROR] Failed to load resource: the server responded with a status of 401 (Unauthorized) @ http://localhost:3001/admin/plans?page=1&pageSize=100:0
+[ 3927433ms] [WARNING] The resource http://localhost:3000/_next/image?url=%2Fimages%2Flogo.png&w=128&q=75 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally. @ http://localhost:3000/admin/tenants/11111111-1111-4111-8111-111111111111:0
+[ 4103874ms] [WARNING] The resource http://localhost:3000/_next/image?url=%2Fimages%2Flogo.png&w=128&q=75 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally. @ http://localhost:3000/admin/tenants/11111111-1111-4111-8111-111111111111:0
+[ 4152164ms] [WARNING] The resource http://localhost:3000/_next/image?url=%2Fimages%2Flogo.png&w=128&q=75 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally. @ http://localhost:3000/admin/tenants/11111111-1111-4111-8111-111111111111:0
+[ 4418839ms] [LOG] [HMR] connected @ http://localhost:3000/_next/static/chunks/166g_next_dist_0yxsnqj._.js:2477
+[ 5535249ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/166g_next_dist_0yxsnqj._.js:2477
+[ 5535318ms] [LOG] [Fast Refresh] done in 107ms @ http://localhost:3000/_next/static/chunks/166g_next_dist_0yxsnqj._.js:2477
+[ 5535381ms] [ERROR] Failed to load resource: the server responded with a status of 401 (Unauthorized) @ http://localhost:3001/admin/tenants/11111111-1111-4111-8111-111111111111/subscription?page=1&pageSize=20:0
+[ 5535384ms] [ERROR] Failed to load resource: the server responded with a status of 401 (Unauthorized) @ http://localhost:3001/admin/plans?page=1&pageSize=100:0
+[ 5535444ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3001/admin/tenants/11111111-1111-4111-8111-111111111111/subscription?page=1&pageSize=20:0
+[ 5535459ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3001/admin/tenants/11111111-1111-4111-8111-111111111111:0
+[ 5535459ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3001/admin/tenants/11111111-1111-4111-8111-111111111111/subscription?page=1&pageSize=20:0
+[ 5538468ms] [WARNING] The resource http://localhost:3000/_next/image?url=%2Fimages%2Flogo.png&w=128&q=75 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally. @ http://localhost:3000/admin/tenants/11111111-1111-4111-8111-111111111111:0
+[ 6148839ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/166g_next_dist_0yxsnqj._.js:2477
+[ 6148854ms] [LOG] [Fast Refresh] done in 74ms @ http://localhost:3000/_next/static/chunks/166g_next_dist_0yxsnqj._.js:2477
+[ 6148891ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3001/admin/tenants/11111111-1111-4111-8111-111111111111/subscription?page=1&pageSize=20:0
+[ 6151898ms] [WARNING] The resource http://localhost:3000/_next/image?url=%2Fimages%2Flogo.png&w=128&q=75 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally. @ http://localhost:3000/admin/tenants/11111111-1111-4111-8111-111111111111:0
+[ 6166743ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/166g_next_dist_0yxsnqj._.js:2477
+[ 6166766ms] [LOG] [Fast Refresh] done in 42ms @ http://localhost:3000/_next/static/chunks/166g_next_dist_0yxsnqj._.js:2477
+[ 6166772ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3001/admin/tenants/11111111-1111-4111-8111-111111111111/subscription?page=1&pageSize=20:0
+[ 6169778ms] [WARNING] The resource http://localhost:3000/_next/image?url=%2Fimages%2Flogo.png&w=128&q=75 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally. @ http://localhost:3000/admin/tenants/11111111-1111-4111-8111-111111111111:0
+[ 6177053ms] [LOG] [HMR] connected @ http://localhost:3000/_next/static/chunks/166g_next_dist_0yxsnqj._.js:2477
+[ 6325466ms] [LOG] [HMR] connected @ http://localhost:3000/_next/static/chunks/166g_next_dist_0yxsnqj._.js:2477
+[ 7131906ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/166g_next_dist_0yxsnqj._.js:2477
+[ 7132240ms] [LOG] [Fast Refresh] done in 367ms @ http://localhost:3000/_next/static/chunks/166g_next_dist_0yxsnqj._.js:2477
+[ 7135381ms] [WARNING] The resource http://localhost:3000/_next/image?url=%2Fimages%2Flogo.png&w=128&q=75 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally. @ http://localhost:3000/admin/tenants/11111111-1111-4111-8111-111111111111:0
+[ 7149015ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/166g_next_dist_0yxsnqj._.js:2477
+[ 7149554ms] [LOG] [Fast Refresh] done in 244ms @ http://localhost:3000/_next/static/chunks/166g_next_dist_0yxsnqj._.js:2477
+[ 7149590ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/166g_next_dist_0yxsnqj._.js:2477
+[ 7149650ms] [LOG] [Fast Refresh] done in 36ms @ http://localhost:3000/_next/static/chunks/166g_next_dist_0yxsnqj._.js:2477
+[ 7149813ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/166g_next_dist_0yxsnqj._.js:2477
+[ 7149998ms] [LOG] [Fast Refresh] done in 44ms @ http://localhost:3000/_next/static/chunks/166g_next_dist_0yxsnqj._.js:2477
+[ 7150236ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/166g_next_dist_0yxsnqj._.js:2477
+[ 7150271ms] [LOG] [Fast Refresh] done in 136ms @ http://localhost:3000/_next/static/chunks/166g_next_dist_0yxsnqj._.js:2477
+[ 7150376ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/166g_next_dist_0yxsnqj._.js:2477
+[ 7150382ms] [LOG] [Fast Refresh] done in 107ms @ http://localhost:3000/_next/static/chunks/166g_next_dist_0yxsnqj._.js:2477
+[ 7150485ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/166g_next_dist_0yxsnqj._.js:2477
+[ 7150654ms] [LOG] [Fast Refresh] done in 270ms @ http://localhost:3000/_next/static/chunks/166g_next_dist_0yxsnqj._.js:2477
+[ 7150866ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/166g_next_dist_0yxsnqj._.js:2477
+[ 7150928ms] [LOG] [Fast Refresh] done in 163ms @ http://localhost:3000/_next/static/chunks/166g_next_dist_0yxsnqj._.js:2477
+[ 7151420ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/166g_next_dist_0yxsnqj._.js:2477
+[ 7151618ms] [LOG] [Fast Refresh] done in 299ms @ http://localhost:3000/_next/static/chunks/166g_next_dist_0yxsnqj._.js:2477
+[ 7151825ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/166g_next_dist_0yxsnqj._.js:2477
+[ 7151825ms] [LOG] [Fast Refresh] done in 101ms @ http://localhost:3000/_next/static/chunks/166g_next_dist_0yxsnqj._.js:2477
+[ 7152127ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/166g_next_dist_0yxsnqj._.js:2477
+[ 7152230ms] [LOG] [Fast Refresh] done in 203ms @ http://localhost:3000/_next/static/chunks/166g_next_dist_0yxsnqj._.js:2477
+[ 7152338ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/166g_next_dist_0yxsnqj._.js:2477
+[ 7152376ms] [LOG] [Fast Refresh] done in 138ms @ http://localhost:3000/_next/static/chunks/166g_next_dist_0yxsnqj._.js:2477
+[ 7152596ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/166g_next_dist_0yxsnqj._.js:2477
+[ 7152649ms] [LOG] [Fast Refresh] done in 155ms @ http://localhost:3000/_next/static/chunks/166g_next_dist_0yxsnqj._.js:2477
+[ 7152752ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/166g_next_dist_0yxsnqj._.js:2477
+[ 7152791ms] [LOG] [Fast Refresh] done in 142ms @ http://localhost:3000/_next/static/chunks/166g_next_dist_0yxsnqj._.js:2477
+[ 7153068ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/166g_next_dist_0yxsnqj._.js:2477
+[ 7153189ms] [LOG] [Fast Refresh] done in 222ms @ http://localhost:3000/_next/static/chunks/166g_next_dist_0yxsnqj._.js:2477
+[ 7153313ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/166g_next_dist_0yxsnqj._.js:2477
+[ 7153313ms] [LOG] [Fast Refresh] done in 100ms @ http://localhost:3000/_next/static/chunks/166g_next_dist_0yxsnqj._.js:2477
+[ 7153416ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/166g_next_dist_0yxsnqj._.js:2477
+[ 7153902ms] [LOG] [Fast Refresh] done in 586ms @ http://localhost:3000/_next/static/chunks/166g_next_dist_0yxsnqj._.js:2477
+[ 7154003ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/166g_next_dist_0yxsnqj._.js:2477
+[ 7154042ms] [LOG] [Fast Refresh] done in 140ms @ http://localhost:3000/_next/static/chunks/166g_next_dist_0yxsnqj._.js:2477
+[ 7154243ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/166g_next_dist_0yxsnqj._.js:2477
+[ 7154330ms] [LOG] [Fast Refresh] done in 187ms @ http://localhost:3000/_next/static/chunks/166g_next_dist_0yxsnqj._.js:2477
+[ 7154431ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/166g_next_dist_0yxsnqj._.js:2477
+[ 7154887ms] [LOG] [Fast Refresh] done in 556ms @ http://localhost:3000/_next/static/chunks/166g_next_dist_0yxsnqj._.js:2477
+[ 7155044ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/166g_next_dist_0yxsnqj._.js:2477
+[ 7155055ms] [LOG] [Fast Refresh] done in 113ms @ http://localhost:3000/_next/static/chunks/166g_next_dist_0yxsnqj._.js:2477
+[ 7155358ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/166g_next_dist_0yxsnqj._.js:2477
+[ 7155686ms] [LOG] [Fast Refresh] done in 429ms @ http://localhost:3000/_next/static/chunks/166g_next_dist_0yxsnqj._.js:2477
+[ 7156181ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/166g_next_dist_0yxsnqj._.js:2477
+[ 7156200ms] [LOG] [Fast Refresh] done in 120ms @ http://localhost:3000/_next/static/chunks/166g_next_dist_0yxsnqj._.js:2477
+[ 7156300ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/166g_next_dist_0yxsnqj._.js:2477
+[ 7156489ms] [LOG] [Fast Refresh] done in 288ms @ http://localhost:3000/_next/static/chunks/166g_next_dist_0yxsnqj._.js:2477
+[ 7157417ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/166g_next_dist_0yxsnqj._.js:2477
+[ 7157502ms] [LOG] [Fast Refresh] done in 186ms @ http://localhost:3000/_next/static/chunks/166g_next_dist_0yxsnqj._.js:2477
+[ 7157641ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/166g_next_dist_0yxsnqj._.js:2477
+[ 7158587ms] [LOG] [Fast Refresh] done in 1046ms @ http://localhost:3000/_next/static/chunks/166g_next_dist_0yxsnqj._.js:2477
+[ 7161660ms] [WARNING] The resource http://localhost:3000/_next/image?url=%2Fimages%2Flogo.png&w=128&q=75 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally. @ http://localhost:3000/admin/tenants/11111111-1111-4111-8111-111111111111:0
+[ 7176080ms] [LOG] [HMR] connected @ http://localhost:3000/_next/static/chunks/166g_next_dist_0yxsnqj._.js:2477
+[ 8265206ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/166g_next_dist_0yxsnqj._.js:2477
+[ 8265331ms] [LOG] [Fast Refresh] done in 225ms @ http://localhost:3000/_next/static/chunks/166g_next_dist_0yxsnqj._.js:2477
+[ 8265444ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/166g_next_dist_0yxsnqj._.js:2477
+[ 8367602ms] [LOG] [Fast Refresh] done in 102261ms @ http://localhost:3000/_next/static/chunks/166g_next_dist_0yxsnqj._.js:2477
+[ 8368967ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/166g_next_dist_0yxsnqj._.js:2477
+[ 8368987ms] [LOG] [Fast Refresh] done in 120ms @ http://localhost:3000/_next/static/chunks/166g_next_dist_0yxsnqj._.js:2477
+[ 8372109ms] [WARNING] The resource http://localhost:3000/_next/image?url=%2Fimages%2Flogo.png&w=128&q=75 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally. @ http://localhost:3000/admin/tenants/11111111-1111-4111-8111-111111111111:0
+[ 8492888ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/166g_next_dist_0yxsnqj._.js:2477
+[ 8492995ms] [LOG] [Fast Refresh] done in 210ms @ http://localhost:3000/_next/static/chunks/166g_next_dist_0yxsnqj._.js:2477
+[ 8500423ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/166g_next_dist_0yxsnqj._.js:2477
+[ 8500445ms] [LOG] [Fast Refresh] done in 124ms @ http://localhost:3000/_next/static/chunks/166g_next_dist_0yxsnqj._.js:2477
+[ 8740659ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/166g_next_dist_0yxsnqj._.js:2477
+[ 8741345ms] [LOG] [Fast Refresh] done in 443ms @ http://localhost:3000/_next/static/chunks/166g_next_dist_0yxsnqj._.js:2477
+[ 8741453ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:3000/admin/tenants/11111111-1111-4111-8111-111111111111?_rsc=C1qcVdtIidsAaVGJ:0
+[ 8741630ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/166g_next_dist_0yxsnqj._.js:2477
+[ 8741865ms] [LOG] [Fast Refresh] done in 337ms @ http://localhost:3000/_next/static/chunks/166g_next_dist_0yxsnqj._.js:2477
+[ 8742269ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:3000/_next/static/chunks/166g_next_dist_0yxsnqj._.js:2477
+[ 8742307ms] [LOG] [HMR] connected @ http://localhost:3000/_next/static/chunks/166g_next_dist_0yxsnqj._.js:2477
+[ 8742344ms] [WARNING] Image with src "/images/logo.png" has either width or height modified, but not the other. If you use CSS to change the size of your image, also include the styles 'width: "auto"' or 'height: "auto"' to maintain the aspect ratio. @ http://localhost:3000/_next/static/chunks/166g_next_dist_0yxsnqj._.js:2477
+[ 8742497ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3001/admin/tenants/11111111-1111-4111-8111-111111111111:0
+[ 8742502ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3001/admin/tenants/11111111-1111-4111-8111-111111111111:0
+[ 8745503ms] [WARNING] The resource http://localhost:3000/_next/image?url=%2Fimages%2Flogo.png&w=128&q=75 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally. @ http://localhost:3000/admin/tenants/11111111-1111-4111-8111-111111111111:0
+[ 8747796ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/166g_next_dist_0yxsnqj._.js:2477
+[ 8747827ms] [LOG] [Fast Refresh] done in 129ms @ http://localhost:3000/_next/static/chunks/166g_next_dist_0yxsnqj._.js:2477
+[ 8847220ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/166g_next_dist_0yxsnqj._.js:2477
+[ 8848192ms] [LOG] [Fast Refresh] done in 1074ms @ http://localhost:3000/_next/static/chunks/166g_next_dist_0yxsnqj._.js:2477
+[ 8850522ms] [WARNING] The resource http://localhost:3000/_next/image?url=%2Fimages%2Flogo.png&w=128&q=75 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally. @ http://localhost:3000/admin/tenants/11111111-1111-4111-8111-111111111111:0
+[ 8855789ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/166g_next_dist_0yxsnqj._.js:2477
+[ 8856171ms] [LOG] [Fast Refresh] done in 484ms @ http://localhost:3000/_next/static/chunks/166g_next_dist_0yxsnqj._.js:2477
+[ 8859093ms] [WARNING] The resource http://localhost:3000/_next/image?url=%2Fimages%2Flogo.png&w=128&q=75 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally. @ http://localhost:3000/admin/tenants/11111111-1111-4111-8111-111111111111:0
+[ 9082177ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/166g_next_dist_0yxsnqj._.js:2477
+[ 9082271ms] [LOG] [Fast Refresh] done in 184ms @ http://localhost:3000/_next/static/chunks/166g_next_dist_0yxsnqj._.js:2477
+[ 9085324ms] [WARNING] The resource http://localhost:3000/_next/image?url=%2Fimages%2Flogo.png&w=128&q=75 was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally. @ http://localhost:3000/admin/tenants/11111111-1111-4111-8111-111111111111:0
+[ 9086716ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/166g_next_dist_0yxsnqj._.js:2477
+[ 9086718ms] [LOG] [Fast Refresh] done in 73ms @ http://localhost:3000/_next/static/chunks/166g_next_dist_0yxsnqj._.js:2477
+[ 9109273ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/166g_next_dist_0yxsnqj._.js:2477
+[ 9109294ms] [LOG] [Fast Refresh] done in 70ms @ http://localhost:3000/_next/static/chunks/166g_next_dist_0yxsnqj._.js:2477

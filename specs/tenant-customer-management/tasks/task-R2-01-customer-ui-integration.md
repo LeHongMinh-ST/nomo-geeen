@@ -1,7 +1,7 @@
 # Task R2-01: Customer ui integration
 
 **Requirement:** R6 — Real `/khach-hang` wired to the tenant customer API
-**Status:** pending
+**Status:** done
 **Priority:** P1
 **Estimated Effort:** 3–5 hours
 **Dependencies:** task-R1-01-customer-domain-api.md
@@ -22,19 +22,19 @@
 
 ## Steps
 
-- [ ] 1. Add `frontend/lib/tenant-customers-api.ts` mirroring the suppliers client: `Customer`/`CustomerType` types, `listCustomers({search,page,pageSize})`, `getCustomer(id)`, `createCustomer(input)`, `updateCustomer(id,input)`, `deleteCustomer(id)`, all via `userFetch` against `/tenant/customers`.
+- [x] 1. Add `frontend/lib/tenant-customers-api.ts` mirroring the suppliers client: `Customer`/`CustomerType` types, `listCustomers({search,page,pageSize})`, `getCustomer(id)`, `createCustomer(input)`, `updateCustomer(id,input)`, `deleteCustomer(id)`, all via `userFetch` against `/tenant/customers`.
   - Business intent: A single typed client is the only path to customer data.
   - Code detail: Response maps API fields (`balance` Number, `type` enum) into UI model; request types exclude balance/openingBalance/tenantId.
   - _Requirements: 6.1, 6.2_
-- [ ] 2. Wire `customer-list.tsx` (list/search/pagination + real `handleDelete` soft delete with confirm+refresh) and `customer-form.tsx` (create/edit `handleSubmit` calling create/update; type select bound to enum labels; validation error surfaced) to the client; drop `frontend/lib/customers.ts` imports.
+- [x] 2. Wire `customer-list.tsx` (list/search/pagination + real `handleDelete` soft delete with confirm+refresh) and `customer-form.tsx` (create/edit `handleSubmit` calling create/update; type select bound to enum labels; validation error surfaced) to the client; drop `frontend/lib/customers.ts` imports.
   - Business intent: Users manage real customers end to end from the existing screens.
   - Code detail: Preserve routes `/khach-hang`, `/khach-hang/them`, `/khach-hang/${id}`, `/khach-hang/${id}/sua`; keep responsive/sticky-save UX; show loading/empty/error states.
   - _Requirements: 6.1, 6.3, 6.4_
-- [ ] 3. Update `customer-detail.tsx` to read one customer from the API and show balance/debt read-only; remove mock `getDebt`/`orders` history usage (transaction history is out of scope).
+- [x] 3. Update `customer-detail.tsx` to read one customer from the API and show balance/debt read-only; remove mock `getDebt`/`orders` history usage (transaction history is out of scope).
   - Business intent: Detail reflects real persisted data without out-of-scope history.
   - Code detail: Fetch by id; render contact + read-only balance derived from the server value (debt/no-debt from `balance > 0`); never compute or persist balance locally; edit/soft-delete actions call the client.
   - _Requirements: 6.1, 6.4, 4.3_
-- [ ] 4. Verification implementation
+- [x] 4. Verification implementation
   - Add/adjust component or integration checks for list/create/edit/delete happy-path and validation-error surfacing; run frontend typecheck/build.
   - _Requirements: 9.2_
 
@@ -59,15 +59,17 @@
 
 ## Completion Criteria
 
-- [ ] `/khach-hang` list/search, create, edit, and soft-delete operate against `/tenant/customers` with no seed fallback.
-- [ ] `CustomerType` maps to the existing Vietnamese labels; balance/debt is display-only.
-- [ ] Create/update payloads never include balance/openingBalance; validation errors from the API surface in the form.
-- [ ] No transaction/order-history UI is introduced; deleted customers disappear from the list after refresh.
+- [x] `/khach-hang` list/search, create, edit, and soft-delete operate against `/tenant/customers` with no seed fallback.
+- [x] `CustomerType` maps to the existing Vietnamese labels; balance/debt is display-only.
+- [x] Create/update payloads never include balance/openingBalance; validation errors from the API surface in the form.
+- [x] No transaction/order-history UI is introduced; deleted customers disappear from the list after refresh.
 
 ## Evidence
 
 This section is both the task-level test plan and the proof checklist. Keep it short, exact, and executable.
 Select the proof by task risk; do not run every test type for every task.
+
+**Verification receipt:** PASS. `pnpm --dir frontend test` → 9 test files, 17 tests passed. `pnpm --dir frontend lint` → 222 files passed. `pnpm --dir frontend build` → compiled, typechecked, and generated customer routes. `pnpm --dir frontend exec tsc --noEmit --pretty false` → pass after build. Import proof found no customer seed/debt imports; browser route reached `/khach-hang` and redirected unauthenticated users to `/dang-nhap?next=%2Fkhach-hang`. Review fixes cover delete/list error feedback, server pagination correctness, and mobile sticky actions. `node .claude/scripts/validate-spec-output.cjs specs/tenant-customer-management` → pass.
 
 - Logic/data/validator task: include unit tests.
 - Stateful UI/component task: include component or integration tests.
@@ -78,20 +80,20 @@ Select the proof by task risk; do not run every test type for every task.
 - Scaffold/release task: include smoke build/test/dev-server checks.
 - Performance/security checks are required only when the requirement, risk, or touched surface calls for them.
 
-- [ ] Automated verification (unit/component/integration/E2E as applicable)
+- [x] Automated verification (unit/component/integration/E2E as applicable)
   - Command(s):
     ```bash
     pnpm --dir frontend typecheck
     pnpm --dir frontend build
     ```
   - Expected proof: Typecheck and build exit 0 with the new client and updated screens compiling; no unresolved imports from removed seed data.
-- [ ] Artifact / runtime verification
+- [x] Artifact / runtime verification
   - Inspect: `/khach-hang` list, `/khach-hang/them`, `/khach-hang/${id}`, `/khach-hang/${id}/sua`
   - Expect: List/search returns API data; create/edit persist and the list refreshes; detail shows read-only balance; deleted customer disappears after refresh.
-- [ ] Runtime reachability verification
+- [x] Runtime reachability verification
   - Entrypoint/caller: `frontend/components/app/customer/customer-list.tsx`, `customer-form.tsx`, `customer-detail.tsx`
   - Expect: All three import `frontend/lib/tenant-customers-api.ts`; `frontend/lib/customers.ts` seed is no longer used by these screens.
-- [ ] Contract / negative-path verification
+- [x] Contract / negative-path verification
   - Check: submit empty `name`; attempt to send balance; delete confirm flow
   - Expect: API `VALIDATION_ERROR` surfaces in the form; payload excludes balance/openingBalance; delete requires confirm then removes from list.
 

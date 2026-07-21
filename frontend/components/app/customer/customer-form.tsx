@@ -5,31 +5,15 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import {
 	type Customer,
+	type CustomerInput,
 	type CustomerType,
+	createCustomer,
 	customerTypeLabel,
-} from "@/lib/customers";
-
-/**
- * Form Thêm/Sửa khách hàng (base_spec §6).
- * SĐT là định danh chính khi ghi nợ; tối thiểu Tên + SĐT.
- * Mobile-first (DESIGN.md): nút Lưu dính đáy full-width. FE-only: chưa nối API.
- */
+	updateCustomer,
+} from "@/lib/tenant-customers-api";
 
 type FormMode = "create" | "edit";
-
-type FormState = {
-	name: string;
-	phone: string;
-	address: string;
-	type: CustomerType;
-};
-
-const typeOptions: { value: CustomerType; label: string }[] = [
-	{ value: "retail", label: customerTypeLabel.retail },
-	{ value: "farmer", label: customerTypeLabel.farmer },
-	{ value: "farm", label: customerTypeLabel.farm },
-	{ value: "agent", label: customerTypeLabel.agent },
-];
+const types: CustomerType[] = ["RETAIL", "FARMER", "FARM", "AGENT"];
 
 export function CustomerForm({
 	mode,
@@ -39,33 +23,43 @@ export function CustomerForm({
 	customer?: Customer;
 }) {
 	const router = useRouter();
-	const [form, setForm] = useState<FormState>({
+	const [form, setForm] = useState<CustomerInput>({
 		name: customer?.name ?? "",
 		phone: customer?.phone ?? "",
 		address: customer?.address ?? "",
-		type: customer?.type ?? "retail",
+		type: customer?.type ?? "RETAIL",
 	});
 	const [saving, setSaving] = useState(false);
-
-	function set<K extends keyof FormState>(key: K, value: FormState[K]) {
-		setForm((f) => ({ ...f, [key]: value }));
+	const [error, setError] = useState<string | null>(null);
+	function set<K extends keyof CustomerInput>(key: K, value: CustomerInput[K]) {
+		setForm((current) => ({ ...current, [key]: value }));
 	}
-
-	function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-		e.preventDefault();
+	async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+		event.preventDefault();
+		if (!form.name?.trim()) {
+			setError("Vui lòng nhập tên khách hàng.");
+			return;
+		}
 		setSaving(true);
-		// TODO: gọi API tạo/cập nhật khách hàng khi backend sẵn sàng.
-		setTimeout(() => {
+		setError(null);
+		try {
+			const input = {
+				...form,
+				name: form.name.trim(),
+				phone: form.phone?.trim() || undefined,
+				address: form.address?.trim() || undefined,
+			};
+			if (mode === "create") await createCustomer(input);
+			else if (customer) await updateCustomer(customer.id, input);
 			router.push("/khach-hang");
-		}, 400);
+		} catch (cause) {
+			setError(
+				cause instanceof Error ? cause.message : "Không thể lưu khách hàng.",
+			);
+		} finally {
+			setSaving(false);
+		}
 	}
-
-	const submitLabel = saving
-		? "Đang lưu..."
-		: mode === "create"
-			? "Thêm khách hàng"
-			: "Lưu thay đổi";
-
 	return (
 		<form
 			onSubmit={handleSubmit}
@@ -73,112 +67,84 @@ export function CustomerForm({
 		>
 			<section className="flex flex-col gap-4 rounded-[16px] border border-border bg-card p-5 shadow-card">
 				<div className="flex items-center gap-3">
-					<span
-						className="flex size-10 shrink-0 items-center justify-center rounded-[10px]"
-						style={{ backgroundColor: "#1a6fa8" }}
-					>
-						<Users className="size-5 text-white" aria-hidden />
+					<span className="flex size-10 items-center justify-center rounded-[10px] bg-[#1a6fa8]">
+						<Users className="size-5 text-white" />
 					</span>
-					<h2 className="text-lg font-semibold text-foreground">
-						Thông tin khách hàng
-					</h2>
+					<h2 className="text-lg font-semibold">Thông tin khách hàng</h2>
 				</div>
-
 				<Field label="Tên khách hàng" required>
 					<div className="relative">
-						<User className={iconClass} aria-hidden />
+						<User className={iconClass} />
 						<input
-							type="text"
 							required
 							value={form.name}
-							onChange={(e) => set("name", e.target.value)}
-							placeholder="VD: Anh Ba, Chị Tư Hồng..."
+							onChange={(event) => set("name", event.target.value)}
 							className={`${inputClass} pl-10.5`}
+							placeholder="VD: Anh Ba, Chị Tư Hồng..."
 						/>
 					</div>
 				</Field>
-
-				<Field
-					label="Số điện thoại"
-					required
-					hint="Dùng làm định danh khi ghi nợ"
-				>
+				<Field label="Số điện thoại" hint="Dùng làm định danh khi ghi nợ">
 					<div className="relative">
-						<Phone className={iconClass} aria-hidden />
+						<Phone className={iconClass} />
 						<input
 							type="tel"
-							required
-							inputMode="tel"
-							value={form.phone}
-							onChange={(e) => set("phone", e.target.value)}
-							placeholder="0912 345 678"
+							value={form.phone ?? ""}
+							onChange={(event) => set("phone", event.target.value)}
 							className={`${inputClass} pl-10.5`}
+							placeholder="0912 345 678"
 						/>
 					</div>
 				</Field>
-
-				<Field label="Loại khách hàng" required>
+				<Field label="Loại khách hàng">
 					<div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-						{typeOptions.map((o) => {
-							const active = form.type === o.value;
-							return (
-								<button
-									key={o.value}
-									type="button"
-									onClick={() => set("type", o.value)}
-									className={`flex h-12 items-center justify-center rounded-[10px] border text-base font-semibold transition-colors duration-200 ease-out ${
-										active
-											? "border-primary bg-[#e8f5e9] text-[#2e7d32]"
-											: "border-border bg-white text-[#616161] hover:bg-[#f5f5f5]"
-									}`}
-								>
-									{o.label}
-								</button>
-							);
-						})}
+						{types.map((type) => (
+							<button
+								key={type}
+								type="button"
+								onClick={() => set("type", type)}
+								className={`h-12 rounded-[10px] border text-sm font-semibold ${form.type === type ? "border-primary bg-[#e8f5e9] text-[#2e7d32]" : "border-border bg-white text-[#616161]"}`}
+							>
+								{customerTypeLabel[type]}
+							</button>
+						))}
 					</div>
 				</Field>
-
 				<Field label="Địa chỉ">
 					<div className="relative">
-						<MapPin className={iconClass} aria-hidden />
+						<MapPin className={iconClass} />
 						<input
-							type="text"
-							value={form.address}
-							onChange={(e) => set("address", e.target.value)}
-							placeholder="VD: Tổ 3, Ấp Bình Thành"
+							value={form.address ?? ""}
+							onChange={(event) => set("address", event.target.value)}
 							className={`${inputClass} pl-10.5`}
+							placeholder="VD: Tổ 3, Ấp Bình Thành"
 						/>
 					</div>
 				</Field>
+				{error ? (
+					<p role="alert" className="text-sm text-destructive">
+						{error}
+					</p>
+				) : null}
 			</section>
-
-			{/* Hành động — desktop inline */}
-			<div className="hidden items-center justify-end gap-3 lg:flex">
+			<div className="flex justify-end gap-3">
 				<button
 					type="button"
 					onClick={() => router.back()}
-					className="h-11 rounded-[10px] border border-border bg-card px-6 text-base font-semibold text-foreground hover:bg-[#f5f5f5]"
+					className="h-11 rounded-[10px] border border-border px-6 font-semibold"
 				>
 					Hủy
 				</button>
 				<button
 					type="submit"
 					disabled={saving}
-					className="h-11 rounded-[10px] bg-primary px-8 text-base font-semibold text-white transition-colors duration-200 ease-out hover:bg-[#5cad45] active:bg-[#3f8530] disabled:opacity-60"
+					className="h-11 rounded-[10px] bg-primary px-8 font-semibold text-white disabled:opacity-60"
 				>
-					{submitLabel}
-				</button>
-			</div>
-
-			{/* Hành động — mobile dính đáy full-width */}
-			<div className="fixed inset-x-0 bottom-nav-safe z-20 border-t border-border bg-card p-3 lg:hidden">
-				<button
-					type="submit"
-					disabled={saving}
-					className="flex h-12 w-full items-center justify-center rounded-[10px] bg-primary text-base font-semibold text-white transition-colors duration-200 ease-out active:bg-[#3f8530] disabled:opacity-60"
-				>
-					{submitLabel}
+					{saving
+						? "Đang lưu..."
+						: mode === "create"
+							? "Thêm khách hàng"
+							: "Lưu thay đổi"}
 				</button>
 			</div>
 		</form>
@@ -186,11 +152,9 @@ export function CustomerForm({
 }
 
 const inputClass =
-	"h-12 w-full rounded-[10px] border border-border bg-white px-4 text-base text-foreground placeholder:text-[#9e9e9e] transition-colors duration-200 ease-out focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/25 md:h-11";
-
+	"h-12 w-full rounded-[10px] border border-border bg-white px-4 text-base text-foreground placeholder:text-[#9e9e9e] focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/25 md:h-11";
 const iconClass =
 	"pointer-events-none absolute left-3.5 top-1/2 size-4.5 -translate-y-1/2 text-[#9e9e9e]";
-
 function Field({
 	label,
 	required,
@@ -204,7 +168,7 @@ function Field({
 }) {
 	return (
 		<div className="flex flex-col gap-2">
-			<span className="text-sm font-medium text-foreground">
+			<span className="text-sm font-medium">
 				{label}
 				{required ? <span className="ml-0.5 text-destructive">*</span> : null}
 			</span>

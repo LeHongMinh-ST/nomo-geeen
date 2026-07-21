@@ -1,7 +1,7 @@
 # Task R2-01: Supplier UI integration
 
 **Requirement:** R7 — Frontend `/nha-cung-cap` wired to the tenant supplier API
-**Status:** pending
+**Status:** done
 **Priority:** P1
 **Estimated Effort:** M
 **Dependencies:** R1-01
@@ -22,17 +22,17 @@
 
 ## Steps
 
-- [ ] 1. Wire the supplier list to the API
+- [x] 1. Wire the supplier list to the API
   - Business intent: store users see real tenant suppliers with search and pagination.
   - Code detail: `frontend/components/app/supplier/supplier-list.tsx` — replace seed with `listTenantSuppliers` (search/page/pageSize), add loading/empty/error states, real soft-delete via `deleteTenantSupplier` with confirm + list refresh; `supplier-card.tsx` consumes the API `TenantSupplier` type and maps the type label.
   - _Requirements: 7.1, 7.2_
 
-- [ ] 2. Wire supplier detail, create, and update
+- [x] 2. Wire supplier detail, create, and update
   - Business intent: users view a supplier and create/edit it against the API.
   - Code detail: `supplier-detail.tsx` fetches by id (add `getTenantSupplier` if missing), shows read-only payable from numeric `balance`, edit/soft-delete actions; `supplier-form.tsx` submits `createTenantSupplier`/`updateTenantSupplier`, disables duplicate submit, preserves input and surfaces 422/409 inline; update `nha-cung-cap/[id]/page.tsx` and `[id]/sua/page.tsx` off the seed.
   - _Requirements: 7.3, 4.3_
 
-- [ ] 3. Remove seed/mock imports and add client tests
+- [x] 3. Remove seed/mock imports and add client tests
   - Business intent: guarantee no mock data path survives and the client contract is covered.
   - Code detail: delete `@/lib/suppliers` and `@/lib/debts` imports from the supplier surface; add `frontend/lib/tenant-suppliers-api.test.ts` asserting request URL/method/body, list mapping, and error propagation.
   - _Requirements: 7.4, 8.2_
@@ -60,10 +60,10 @@
 
 ## Completion Criteria
 
-- [ ] `/nha-cung-cap` list/detail/form/delete run fully on the tenant API with loading/empty/error/pagination states.
-- [ ] Create/update preserve input and surface 409/422 inline; payable is read-only from the API number.
-- [ ] No `@/lib/suppliers` or `@/lib/debts` import remains in the supplier surface (diff-verified).
-- [ ] `purchase/supplier-picker.tsx` still works and the frontend builds/lints clean.
+- [x] `/nha-cung-cap` list/detail/form/delete run fully on the tenant API with loading/empty/error/pagination states.
+- [x] Create/update preserve input and surface 409/422 inline; payable is read-only from the API number.
+- [x] No `@/lib/suppliers` or `@/lib/debts` import remains in the supplier surface (diff-verified).
+- [x] `purchase/supplier-picker.tsx` still works and the frontend builds/lints clean.
 
 ## Evidence
 
@@ -79,16 +79,16 @@ Select the proof by task risk; do not run every test type for every task.
 - Scaffold/release task: include smoke build/test/dev-server checks.
 - Performance/security checks are required only when the requirement, risk, or touched surface calls for them.
 
-- [ ] Automated verification (client + build)
-  - Command(s): `cd frontend && npx jest tenant-suppliers-api` and `cd frontend && npm run lint && npm run build`
-  - Expected proof: client tests PASS; lint and build succeed with no type errors.
-- [ ] Artifact / runtime verification
+- [x] Automated verification (client + build)
+  - Command(s): `cd frontend && pnpm exec vitest run lib/tenant-suppliers-api.test.ts`; `cd frontend && pnpm lint`; `cd frontend && pnpm exec next build --webpack`
+  - Receipt: client PASS — 1 file, 2 tests; lint PASS; webpack build PASS with TypeScript and 42 routes. Turbopack default build hit an environment process-bind panic; webpack fallback passed.
+- [x] Artifact / runtime verification
   - Inspect: `frontend/app/(app)/nha-cung-cap/page.tsx` and child components rendered in the running app
   - Expect: list/detail/form show API data with loading/empty/error/pagination and read-only payable.
-- [ ] Runtime reachability verification
+- [x] Runtime reachability verification
   - Entrypoint/caller: `frontend/app/(app)/nha-cung-cap/*` route files import the migrated components
   - Expect: components call `tenant-suppliers-api` functions; `supplier-picker.tsx` still imports the client unchanged.
-- [ ] Contract / negative-path verification
+- [x] Contract / negative-path verification
   - Check: `grep -R "@/lib/suppliers\|@/lib/debts" frontend/app/(app)/nha-cung-cap frontend/components` supplier surface; duplicate code and empty code/name submit.
   - Expect: no seed/mock import remains; 409/422 shown inline with input preserved.
 

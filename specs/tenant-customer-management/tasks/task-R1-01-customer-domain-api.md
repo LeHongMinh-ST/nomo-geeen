@@ -1,7 +1,7 @@
 # Task R1-01: Customer domain api
 
 **Requirement:** R1 — Tenant customer records, lookup, CRUD, soft delete, and read-only balance
-**Status:** blocked
+**Status:** done
 **Priority:** P1
 **Estimated Effort:** 4–6 hours
 **Dependencies:** none
@@ -22,15 +22,15 @@
 
 ## Steps
 
-- [ ] 1. Create `CustomersModule`, `CustomersController` (`@Controller('tenant/customers')` with `TenantAccessTokenGuard` + `TenantPermissionGuard`), `CustomersService`, and `dto/customer.dto.ts`; register the module in `backend/src/app.module.ts`.
+- [x] 1. Create `CustomersModule`, `CustomersController` (`@Controller('tenant/customers')` with `TenantAccessTokenGuard` + `TenantPermissionGuard`), `CustomersService`, and `dto/customer.dto.ts`; register the module in `backend/src/app.module.ts`.
   - Business intent: A store user reaches a real customer API instead of seed data.
   - Code detail: GET `/` `customer:view` (list+search+pagination), GET `/:id` `customer:view` (detail), POST `/` `customer:create`, PATCH `/:id` `customer:edit`, DELETE `/:id` `customer:delete`. No `@RequireFeature`. Service `list` where `{tenantId, deletedAt:null}`, `OR` on name/phone/code `contains` insensitive, `orderBy [{name:'asc'},{id:'asc'}]`, `page=max(1,page)`, `pageSize=min(20,max(1,pageSize))`. `findById`/`update`/`remove` use `findFirst({where:{id,tenantId,deletedAt:null}})` or `NotFoundException`. `remove` sets `deletedAt:new Date()`. `toResponse` maps id/code/name/phone/address/type/`balance:Number`/`openingBalance:Number`/createdAt/updatedAt.
   - _Requirements: 1.1, 1.2, 1.3, 1.4, 3.1, 3.2, 3.3, 5.1, 5.2, 5.3, 5.4, 7.1, 7.2, 8.1, 8.3_
-- [ ] 2. Implement create/update validation and DTOs: `CustomerQueryDto` (search?, page, pageSize), `CreateCustomerDto` (`name` required non-empty; `phone?`/`code?`/`address?`/`note?`; `type?` `@IsEnum`), `UpdateCustomerDto` (all optional, `name` non-empty when present), `CustomerTypeInput` enum = RETAIL/FARMER/FARM/AGENT. Reject empty name with `UnprocessableEntityException` `VALIDATION_ERROR`; ignore client-supplied balance/openingBalance/tenantId/deletedAt; default balance to schema 0 on create.
+- [x] 2. Implement create/update validation and DTOs: `CustomerQueryDto` (search?, page, pageSize), `CreateCustomerDto` (`name` required non-empty; `phone?`/`code?`/`address?`/`note?`; `type?` `@IsEnum`), `UpdateCustomerDto` (all optional, `name` non-empty when present), `CustomerTypeInput` enum = RETAIL/FARMER/FARM/AGENT. Reject empty name with `UnprocessableEntityException` `VALIDATION_ERROR`; ignore client-supplied balance/openingBalance/tenantId/deletedAt; default balance to schema 0 on create.
   - Business intent: The directory stays clean (name required, phone as identifier) and finance data cannot be spoofed.
   - Code detail: Persist only submitted contact fields on update; never write balance/openingBalance/status. Optionally populate `nameSearch` on write for accent-insensitive search (additive, non-contract).
   - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5, 4.1, 4.2, 8.2_
-- [ ] 3. Verification implementation
+- [x] 3. Verification implementation
   - Add `customers.service.spec.ts` / `customers.controller.spec.ts` (validation, enum rejection, pagination bounds/order, balance serialization, soft delete) and `backend/test/tenant-customers.e2e-spec.ts` (create→list/search→detail→update→soft delete; cross-tenant 404; permission denial; deleted excluded; client balance ignored).
   - _Requirements: 9.1_
 
@@ -60,17 +60,17 @@
 
 ## Completion Criteria
 
-- [ ] List/search returns active (`deletedAt: null`) tenant customers with bounded pagination and stable order.
-- [ ] Create/update requires non-empty name, accepts only valid `CustomerType`, keeps `code` optional, and never writes balance.
-- [ ] Delete is soft; deleted customers are excluded from reads; historical sales/debt references remain intact.
-- [ ] Reads require `customer:view`; writes require the matching `customer:*` permission; no `@RequireFeature`; cross-tenant requests return the not-found contract without leaking existence.
+- [x] List/search returns active (`deletedAt: null`) tenant customers with bounded pagination and stable order.
+- [x] Create/update requires non-empty name, accepts only valid `CustomerType`, keeps `code` optional, and never writes balance.
+- [x] Delete is soft; deleted customers are excluded from reads; historical sales/debt references remain intact.
+- [x] Reads require `customer:view`; writes require the matching `customer:*` permission; no `@RequireFeature`; cross-tenant requests return the not-found contract without leaking existence.
 
 ## Evidence
 
 This section is both the task-level test plan and the proof checklist. Keep it short, exact, and executable.
 Select the proof by task risk; do not run every test type for every task.
 
-**Verification receipt:** Backend build and unit/controller tests passed (2 suites, 4 tests). The required E2E command is blocked by the local database migration state: Prisma reports P3009 because migration 20260719000400_tenant_quota_counter previously failed; the current database also lacks feature.group. No task completion claim is made until the test database is repaired and the E2E lifecycle/isolation/permission proof passes.
+**Verification receipt:** PASS. `pnpm --dir backend test -- --runInBand customers` → 2 suites, 4 tests passed. `pnpm --dir backend test:e2e -- --runInBand tenant-customers.e2e-spec.ts` → 1 suite, 1 test passed outside sandbox; runtime CRUD, search, update, soft delete, tenant isolation, permission denial, and balance protection were exercised. `prisma migrate status` showed no failed migration. Runtime reachability confirmed through `backend/src/app.module.ts`.
 
 - Logic/data/validator task: include unit tests.
 - Stateful UI/component task: include component or integration tests.
@@ -81,20 +81,20 @@ Select the proof by task risk; do not run every test type for every task.
 - Scaffold/release task: include smoke build/test/dev-server checks.
 - Performance/security checks are required only when the requirement, risk, or touched surface calls for them.
 
-- [ ] Automated verification (unit/component/integration/E2E as applicable)
+- [x] Automated verification (unit/component/integration/E2E as applicable)
   - Command(s):
     ```bash
     pnpm --dir backend test -- --runInBand customers
     pnpm --dir backend test:e2e -- --runInBand tenant-customers.e2e-spec.ts
     ```
   - Expected proof: Both suites exit 0 with >0 passing tests covering validation, enum rejection, pagination bounds/order, balance serialization, and soft delete.
-- [ ] Artifact / runtime verification
+- [x] Artifact / runtime verification
   - Inspect: `GET /tenant/customers` and `GET /tenant/customers/:id` responses (via E2E)
   - Expect: Payload includes `id, code, name, phone, address, type, balance, openingBalance` with `balance` as Number; deleted records absent from list.
-- [ ] Runtime reachability verification
+- [x] Runtime reachability verification
   - Entrypoint/caller: `backend/src/app.module.ts`
   - Expect: `CustomersModule` is imported and registered so `/tenant/customers` routes are mounted by the Nest bootstrap.
-- [ ] Contract / negative-path verification
+- [x] Contract / negative-path verification
   - Check: cross-tenant `GET/PATCH/DELETE :id`, missing `customer:*` permission, empty `name`, client-supplied `balance`
   - Expect: cross-tenant → not-found contract (no existence leak); missing permission → 403; empty name → `UnprocessableEntityException` `VALIDATION_ERROR`; client balance ignored (persisted balance unchanged).
 
