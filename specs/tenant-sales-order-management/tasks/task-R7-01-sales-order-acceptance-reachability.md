@@ -1,7 +1,7 @@
 # Task R7-01: Sales order acceptance and reachability
 
 **Requirement:** R8 - Performance, security, reliability, and accessibility
-**Status:** pending
+**Status:** in_progress
 **Priority:** P1
 **Estimated Effort:** 5 hours
 **Dependencies:** tasks/task-R0-01-sales-order-contract-schema-foundation.md, tasks/task-R1-01-order-query-api.md, tasks/task-R2-01-order-create-complete-api.md, tasks/task-R3-01-order-cancellation-compensation.md, tasks/task-R4-01-tenant-sales-client-customer-picker.md, tasks/task-R5-01-order-list-detail-integration.md, tasks/task-R6-01-order-create-lifecycle-integration.md
@@ -22,7 +22,7 @@
 
 ## Steps
 
-- [ ] 1. Extend backend/test/tenant-sales.e2e-spec.ts with list/detail/create/complete/cancel, tenant A/B, permissions/features, replay/conflict, stock/debt/movement/ledger, rollback, and race.
+- [/] 1. Extend backend/test/tenant-sales.e2e-spec.ts with list/detail/create/complete/cancel, tenant A/B, permissions/features, replay/conflict, stock/debt/movement/ledger, rollback, and race.
   - _Requirements: 1.1, 1.2, 1.4, 2.2, 2.5, 3.2, 3.3, 3.4, 3.5, 4.2, 4.3, 4.5, 5.1, 5.2, 5.3, 5.4, 8.3_
 - [ ] 2. Add route/accessibility checks at 390px, 768px, and 1280px; verify DataPagination, LoadMoreSentinel, labels/focus/Escape/keyboard, all API states, no seeded imports/cache.
   - _Requirements: 6.1, 6.2, 6.3, 6.4, 7.1, 7.2, 7.3, 7.4, 7.5, 8.2, 8.4_
@@ -56,6 +56,7 @@
 ## Evidence
 
 - Automated proof: backend tenant-sales E2E, frontend acceptance test, backend/frontend builds.
+  - Current blocker: `pnpm --dir backend test:e2e -- tenant-sales.e2e-spec.ts --runInBand` cannot bootstrap because `JWT_ACCESS_SECRET` is unset in the test environment; no E2E acceptance claim is made.
 - Artifact/runtime proof: inspect HTTP responses, Sale/StockMovement/Customer/DebtLedger rows, viewport artifacts, benchmark/query-plan output.
 - Reachability proof: start at SalesModule/SalesController and the three Next routes; every task output is invoked.
 - Contract/negative proof: tenant B, missing permission/feature, wrong channel, replay, insufficient stock/debt, return, race, sentinel repeat, keyboard/focus.

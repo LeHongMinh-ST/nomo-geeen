@@ -1,0 +1,10 @@
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
+import { OrderForm } from "../order-form";
+import { createOrder } from "@/lib/tenant-sales-api";
+vi.mock("@/lib/tenant-sales-api", () => ({ createOrder: vi.fn() }));
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }) }));
+vi.mock("../customer-picker", () => ({ CustomerPicker: () => <button type="button">Khách lẻ</button> }));
+vi.mock("../product-picker", () => ({ ProductPicker: ({ onSelect }: any) => <button type="button" onClick={() => onSelect({ id: "p1", name: "Phân bón", baseUnit: "bao", baseUnitId: "u1", salePrice: 100, priceTiers: [], conversions: [], stock: 10, lowStockThreshold: 1 })}>Thêm sản phẩm</button> }));
+vi.mock("../payment-sheet", () => ({ PaymentSheet: ({ open, onConfirm }: any) => open ? <button type="button" onClick={() => onConfirm("cash", 100)}>Xác nhận thanh toán</button> : null }));
+describe("OrderForm", () => { it("creates draft with stable idempotency key and API unit id", async () => { vi.mocked(createOrder).mockResolvedValue({} as any); render(<OrderForm />); fireEvent.click(screen.getByRole("button", { name: "Thêm sản phẩm" })); fireEvent.click(screen.getByRole("button", { name: "Lưu nháp" })); await waitFor(() => expect(createOrder).toHaveBeenCalled()); const first = vi.mocked(createOrder).mock.calls[0][0]; expect(first.status).toBe("DRAFT"); expect(first.lines[0].unitId).toBe("u1"); expect(first.idempotencyKey).toBeTruthy(); }); it("opens payment sheet for direct completion", async () => { vi.mocked(createOrder).mockResolvedValue({} as any); render(<OrderForm />); fireEvent.click(screen.getByRole("button", { name: "Thêm sản phẩm" })); fireEvent.click(screen.getByRole("button", { name: "Hoàn thành" })); fireEvent.click(screen.getByRole("button", { name: "Xác nhận thanh toán" })); await waitFor(() => expect(createOrder).toHaveBeenCalledWith(expect.objectContaining({ status: "COMPLETED", settlement: { paymentMethod: "CASH", amountPaid: 100 } }))); }); });

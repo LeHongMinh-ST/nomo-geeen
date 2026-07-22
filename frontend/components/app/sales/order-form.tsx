@@ -10,10 +10,12 @@ import {
 	Trash2,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { CustomerPicker } from "@/components/app/sales/customer-picker";
 import { ProductPicker } from "@/components/app/sales/product-picker";
+import { PaymentSheet } from "@/components/app/sales/payment-sheet";
 import { formatVND } from "@/lib/format";
+import { createOrder, type SalesOrderStatus } from "@/lib/tenant-sales-api";
 import {
 	lineTotal,
 	type OrderLine,
@@ -34,6 +36,10 @@ export function OrderForm() {
 	const [lines, setLines] = useState<OrderLine[]>([]);
 	const [discount, setDiscount] = useState("");
 	const [note, setNote] = useState("");
+	const [submitting, setSubmitting] = useState(false);
+	const [paymentOpen, setPaymentOpen] = useState(false);
+	const [error, setError] = useState<string | null>(null);
+	const idempotencyKeyRef = useRef<string | null>(null);
 
 	const subtotal = lines.reduce((sum, l) => sum + lineTotal(l), 0);
 	const discountNum = Number(discount.replace(/\D/g, "")) || 0;
@@ -60,6 +66,7 @@ export function OrderForm() {
 					productId: product.id,
 					name: product.name,
 					unit: product.baseUnit,
+					unitId: product.baseUnitId ?? product.baseUnit,
 					qty: 1,
 					price: resolveTierPrice(product, 1),
 				},
@@ -88,13 +95,25 @@ export function OrderForm() {
 		setLines((current) => current.filter((l) => l.productId !== productId));
 	}
 
-	function save(_status: OrderStatus) {
-		// TODO: gọi API tạo đơn (Draft lưu nháp / Completed cộng doanh thu + trừ tồn).
-		router.push("/don-ban-hang");
+	async function submitCompleted(method: "cash" | "transfer" | "qr", amountPaid: number) {
+		if (submitting) return; setSubmitting(true); setError(null);
+		try { const key = idempotencyKeyRef.current ?? (globalThis.crypto?.randomUUID?.() ?? String(Date.now())); idempotencyKeyRef.current = key; await createOrder({ idempotencyKey: key, status: "COMPLETED", customerId, discountAmount: discountNum, note: note || undefined, settlement: { paymentMethod: method === "transfer" ? "BANK_TRANSFER" : method.toUpperCase() as "CASH" | "QR", amountPaid }, lines: lines.map((line) => ({ productId: line.productId, unitId: line.unitId ?? line.unit, qty: String(line.qty), unitPrice: line.price })) }); idempotencyKeyRef.current = null; router.push("/don-ban-hang"); } catch (cause) { setError(cause instanceof Error ? cause.message : "Không thể tạo đơn"); } finally { setSubmitting(false); }
+	}
+
+	async function save(nextStatus: OrderStatus) {
+		if (nextStatus === "completed") { setPaymentOpen(true); return; }
+		if (empty || submitting) return;
+		setSubmitting(true); setError(null);
+		try {
+			const key = idempotencyKeyRef.current ?? (globalThis.crypto?.randomUUID?.() ?? String(Date.now())); idempotencyKeyRef.current = key;
+			await createOrder({ idempotencyKey: key, status: nextStatus.toUpperCase() as Extract<SalesOrderStatus, "DRAFT" | "COMPLETED">, customerId, discountAmount: discountNum, note: note || undefined, lines: lines.map((line) => ({ productId: line.productId, unitId: line.unitId ?? line.unit, qty: String(line.qty), unitPrice: line.price })) });
+			idempotencyKeyRef.current = null; router.push("/don-ban-hang");
+		} catch (cause) { setError(cause instanceof Error ? cause.message : "Không thể tạo đơn"); } finally { setSubmitting(false); }
 	}
 
 	return (
 		<div className="mx-auto flex w-full max-w-2xl flex-col gap-5 pb-[calc(168px+env(safe-area-inset-bottom,0px))] lg:mx-0 lg:pb-0">
+		<PaymentSheet open={paymentOpen} total={total} onClose={() => setPaymentOpen(false)} onConfirm={(method, amountPaid) => { setPaymentOpen(false); void submitCompleted(method, amountPaid); }} submitting={submitting} />
 			{/* Header */}
 			<div className="flex items-start gap-3">
 				<button
@@ -275,12 +294,13 @@ export function OrderForm() {
 				</section>
 			) : null}
 
+			{error ? <div role="alert" className="rounded border border-destructive p-3 text-base text-destructive">{error}</div> : null}
 			{/* Nút lưu — dính đáy trên mobile, inline trên desktop */}
 			<div className="fixed inset-x-0 bottom-nav-safe z-30 flex items-center gap-3 border-t border-border bg-card px-4 py-3 lg:static lg:justify-end lg:border-0 lg:bg-transparent lg:px-0 lg:py-0">
 				<button
 					type="button"
-					disabled={empty}
-					onClick={() => save("draft")}
+					disabled={empty || submitting}
+					onClick={() => void save("draft")}
 					className="flex h-14 flex-1 items-center justify-center gap-2 rounded-[10px] border border-border bg-white text-base font-semibold text-foreground transition-colors duration-200 ease-out hover:bg-[#f5f5f5] disabled:cursor-not-allowed disabled:opacity-50 lg:h-12 lg:flex-none lg:px-6"
 				>
 					<SaveAll className="size-5" aria-hidden />
@@ -288,8 +308,8 @@ export function OrderForm() {
 				</button>
 				<button
 					type="button"
-					disabled={empty}
-					onClick={() => save("completed")}
+					disabled={empty || submitting}
+					onClick={() => void save("completed")}
 					className="flex h-14 flex-1 items-center justify-center gap-2 rounded-[10px] bg-primary text-lg font-bold text-white transition-colors duration-200 ease-out hover:bg-[#5cad45] active:bg-[#3f8530] disabled:cursor-not-allowed disabled:bg-[#a5d6a7] lg:h-12 lg:flex-none lg:px-8"
 				>
 					<CheckCircle2 className="size-6" aria-hidden />

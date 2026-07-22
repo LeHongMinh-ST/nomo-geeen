@@ -8,6 +8,10 @@ Format theo [Keep a Changelog](https://keepachangelog.com/), tuân thủ [Semant
 ## [Unreleased]
 
 ### Added
+- **Frontend tenant sales client and customer picker** — added typed tenant-scoped order list/detail/create/complete/cancel calls and a tenant-backed customer picker with debounced search, loading/error/retry states, and an explicit walk-in option. Order-list/detail seed migration remains staged for R5/R6; no new seed fallback was added.
+- **Tenant sales order lifecycle and cancellation** — added canonical tenant-scoped `/tenant/sales/orders` list/detail/create/complete/cancel APIs with DRAFT-only status cancellation, Serializable retry and idempotent order creation/replay, plus atomic completed-order stock restoration and conditional original-debt compensation. Original sale history remains append-only; returned sales and unsafe/cross-tenant transitions are rejected. The existing `/tenant/sales/quick` shortcut remains separate.
+- **Tenant debt management** — added tenant-scoped debt list/detail APIs and real `/cong-no` UI data flows, plus idempotent customer receipt vouchers with conditional balance decrement and atomic debt-ledger recording. Supplier receipt creation remains unsupported.
+- **Admin permission settings** — added the read-only `/admin/settings/permissions` catalog, gated by `admin.permission:view` and limited to role-assigned `admin.*` permissions.
 - **Tenant profile settings API** — added authenticated `GET/PATCH /auth/profile`, atomically updating the tenant user's full name/contact fields and `TenantSettings.address` with tenant audit logging; Settings and app-shell desktop/mobile identity now read and persist the current auth profile.
 - **Tenant supplier management** — added tenant-scoped supplier CRUD/search/soft-delete hardening plus authenticated `/nha-cung-cap` list, detail, create, edit, delete, pagination, validation-error, and read-only payable UI flows. Supplier purchase history, debt vouchers, and cooperation-policy editing remain out of scope.
 - **Tenant customer management** — wired authenticated `/khach-hang` list, search, detail, create, edit, and soft-delete screens to tenant customer APIs with read-only server balance; transaction history and debt mutation remain out of scope.
@@ -92,3 +96,16 @@ Format theo [Keep a Changelog](https://keepachangelog.com/), tuân thủ [Semant
 - Backend: NestJS 11 + Prisma 7 foundation
 - Database: PostgreSQL schema (`platform_admin`, `audit_log`, tenant, subscription, invoice, payment, handbook, sales, inventory, product, debt, customer, supplier)
 - Phases đã ship trước admin-auth: dashboard, product, sales (POS), inventory (nhập hàng/tồn kho), handbook
+## 2026-07-22
+
+### Tenant sales order management — R5
+
+- Migrated `/don-ban-hang` list and `/don-ban-hang/:id` detail surfaces from seeded records to the tenant sales-order API.
+- Added server-backed search/status filters, stale-request protection, desktop replacement pagination, mobile deduplicated append with no-progress terminal guard, inline retry, canonical detail/cancel rendering, and 409 conflict refetch.
+- Added focused responsive UI tests covering 403/404, loading/empty, debounce/race, paging, duplicate cancellation, canonical response, and stale cancellation recovery. Frontend test/build verification passed.
+
+### Tenant sales order management — R6
+
+- Wired OrderForm draft/direct-complete flows to the canonical API with stable retry idempotency, real base-unit IDs, PaymentSheet settlement mapping, and recoverable errors.
+- Wired draft detail completion with duplicate-submit protection and canonical server response replacement.
+- Added form and lifecycle component coverage; frontend build and focused tests pass.

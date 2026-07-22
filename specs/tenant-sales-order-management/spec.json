@@ -1,7 +1,7 @@
 {
   "feature_name": "tenant-sales-order-management",
   "created_at": "2026-07-22T10:30:53+07:00",
-  "updated_at": "2026-07-22T06:07:20.937Z",
+  "updated_at": "2026-07-22T17:26:00+07:00",
   "language": "en",
   "status": "in_progress",
   "phase": "develop",
@@ -72,66 +72,66 @@
     "tasks/task-R0-01-sales-order-contract-schema-foundation.md": {
       "id": "R0-01",
       "title": "Sales order contract schema foundation",
-      "status": "pending",
+      "status": "done",
       "dependencies": [],
-      "blocker": null,
-      "started_at": null,
-      "completed_at": null,
-      "last_updated_at": null
+      "blocker": "R7 E2E bootstrap requires JWT_ACCESS_SECRET; environment secret is unset.",
+      "started_at": "2026-07-22T06:11:47.945Z",
+      "completed_at": "2026-07-22T06:15:00.438Z",
+      "last_updated_at": "2026-07-22T06:15:00.438Z"
     },
     "tasks/task-R1-01-order-query-api.md": {
       "id": "R1-01",
       "title": "Order query api",
-      "status": "pending",
+      "status": "done",
       "dependencies": [
         "tasks/task-R0-01-sales-order-contract-schema-foundation.md"
       ],
       "blocker": null,
       "started_at": null,
-      "completed_at": null,
-      "last_updated_at": null
+      "completed_at": "2026-07-22T06:28:20.958Z",
+      "last_updated_at": "2026-07-22T06:28:20.958Z"
     },
     "tasks/task-R2-01-order-create-complete-api.md": {
       "id": "R2-01",
       "title": "Order create complete api",
-      "status": "pending",
+      "status": "done",
       "dependencies": [
         "tasks/task-R0-01-sales-order-contract-schema-foundation.md",
         "tasks/task-R1-01-order-query-api.md"
       ],
       "blocker": null,
-      "started_at": null,
-      "completed_at": null,
-      "last_updated_at": null
+      "started_at": "2026-07-22T06:52:29.623Z",
+      "completed_at": "2026-07-22T07:30:00.000Z",
+      "last_updated_at": "2026-07-22T07:30:00.000Z"
     },
     "tasks/task-R3-01-order-cancellation-compensation.md": {
       "id": "R3-01",
       "title": "Order cancellation compensation",
-      "status": "pending",
+      "status": "done",
       "dependencies": [
         "tasks/task-R2-01-order-create-complete-api.md"
       ],
       "blocker": null,
-      "started_at": null,
-      "completed_at": null,
-      "last_updated_at": null
+      "started_at": "2026-07-22T14:36:23+07:00",
+      "completed_at": "2026-07-22T15:38:30+07:00",
+      "last_updated_at": "2026-07-22T15:38:30+07:00"
     },
     "tasks/task-R4-01-tenant-sales-client-customer-picker.md": {
       "id": "R4-01",
       "title": "Tenant sales client customer picker",
-      "status": "pending",
+      "status": "done",
       "dependencies": [
         "tasks/task-R0-01-sales-order-contract-schema-foundation.md"
       ],
       "blocker": null,
-      "started_at": null,
-      "completed_at": null,
-      "last_updated_at": null
+      "started_at": "2026-07-22T15:55:34+07:00",
+      "completed_at": "2026-07-22T16:21:12+07:00",
+      "last_updated_at": "2026-07-22T16:21:12+07:00"
     },
     "tasks/task-R5-01-order-list-detail-integration.md": {
       "id": "R5-01",
       "title": "Order list detail integration",
-      "status": "pending",
+      "status": "done",
       "dependencies": [
         "tasks/task-R1-01-order-query-api.md",
         "tasks/task-R2-01-order-create-complete-api.md",
@@ -139,14 +139,14 @@
         "tasks/task-R4-01-tenant-sales-client-customer-picker.md"
       ],
       "blocker": null,
-      "started_at": null,
-      "completed_at": null,
-      "last_updated_at": null
+      "started_at": "2026-07-22T15:55:34+07:00",
+      "completed_at": "2026-07-22T17:10:18+07:00",
+      "last_updated_at": "2026-07-22T17:10:18+07:00"
     },
     "tasks/task-R6-01-order-create-lifecycle-integration.md": {
       "id": "R6-01",
       "title": "Order create lifecycle integration",
-      "status": "pending",
+      "status": "done",
       "dependencies": [
         "tasks/task-R2-01-order-create-complete-api.md",
         "tasks/task-R3-01-order-cancellation-compensation.md",
@@ -154,14 +154,14 @@
         "tasks/task-R5-01-order-list-detail-integration.md"
       ],
       "blocker": null,
-      "started_at": null,
-      "completed_at": null,
-      "last_updated_at": null
+      "started_at": "2026-07-22T17:12:00+07:00",
+      "completed_at": "2026-07-22T17:26:00+07:00",
+      "last_updated_at": "2026-07-22T17:26:00+07:00"
     },
     "tasks/task-R7-01-sales-order-acceptance-reachability.md": {
       "id": "R7-01",
       "title": "Sales order acceptance reachability",
-      "status": "pending",
+      "status": "in_progress",
       "dependencies": [
         "tasks/task-R0-01-sales-order-contract-schema-foundation.md",
         "tasks/task-R1-01-order-query-api.md",
@@ -172,7 +172,7 @@
         "tasks/task-R6-01-order-create-lifecycle-integration.md"
       ],
       "blocker": null,
-      "started_at": null,
+      "started_at": "2026-07-22T17:30:00+07:00",
       "completed_at": null,
       "last_updated_at": null
     }

@@ -6,6 +6,7 @@ import {
 	IsInt,
 	IsOptional,
 	IsUUID,
+	Max,
 	Min,
 	ValidateNested,
 } from 'class-validator';
@@ -27,11 +28,13 @@ export class CreateQuickSaleLineDto {
 	@Type(() => Number)
 	@IsInt()
 	@Min(1)
+	@Max(Number.MAX_SAFE_INTEGER)
 	qty!: number;
 
 	@Type(() => Number)
 	@IsInt()
 	@Min(0)
+	@Max(Number.MAX_SAFE_INTEGER)
 	unitPrice!: number;
 }
 
@@ -49,11 +52,13 @@ export class CreateQuickSaleDto {
 	@Type(() => Number)
 	@IsInt()
 	@Min(0)
+	@Max(Number.MAX_SAFE_INTEGER)
 	amountPaid!: number;
 
 	@Type(() => Number)
 	@IsInt()
 	@Min(0)
+	@Max(Number.MAX_SAFE_INTEGER)
 	discountAmount = 0;
 
 	@IsArray()

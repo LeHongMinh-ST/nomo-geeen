@@ -718,6 +718,7 @@ enum StockReason {
   ADJUSTMENT
   TRANSFER_IN
   TRANSFER_OUT
+  SALE_CANCEL
 }
 
 enum DebtPartyType {
@@ -1198,6 +1199,7 @@ model Sale {
   diseaseNameSnapshot   String?
   consultContext        Json?
   suggestedQtyMeta      Json?
+  note                  String?
   idempotencyKey        String?
   createdBy             String?
   completedAt           DateTime?
@@ -1216,6 +1218,7 @@ model Sale {
   @@unique([tenantId, docNo])
   @@unique([tenantId, idempotencyKey])
   @@index([tenantId, soldAt])
+  @@index([tenantId, channel, status, soldAt])
   @@index([tenantId, customerId])
   @@map("sale")
 }

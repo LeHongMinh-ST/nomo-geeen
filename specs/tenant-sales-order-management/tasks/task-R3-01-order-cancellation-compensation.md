@@ -1,7 +1,7 @@
 # Task R3-01: Order cancellation compensation
 
 **Requirement:** R3 — Atomic draft and completed cancellation
-**Status:** pending
+**Status:** done
 **Priority:** P1
 **Estimated Effort:** 5-6 hours
 **Dependencies:** tasks/task-R2-01-order-create-complete-api.md
@@ -37,22 +37,22 @@ Serialization: money is integer VND JSON number within Number.MAX_SAFE_INTEGER; 
 
 ## Steps
 
-- [ ] 1. Add guarded cancellation route and lifecycle transaction.
+- [x] 1. Add guarded cancellation route and lifecycle transaction.
   - Replace local-only UI cancellation with one server-authoritative operation.
   - Add `POST /tenant/sales/orders/:id/cancel` using token IDs, `sales:edit`, and `advanced_mode`; implement tenant/channel/deleted/state lookup, Serializable retry, and state-idempotent response.
   - _Requirements: 4.1, 4.4, 4.5, 5.1, 5.2, 5.3, 5.4_
 
-- [ ] 2. Implement completed stock compensation.
+- [x] 2. Implement completed stock compensation.
   - Restore sellable quantity without erasing the original transaction history.
   - Reject any completed `SalesReturn`; assert inventory; increment each stock row by persisted `qtyBase`; append exactly one `IN/SALE_CANCEL` movement with sale and line references; preserve `avgCost`.
   - _Requirements: 4.2, 4.3, 4.5, 5.2, 8.3_
 
-- [ ] 3. Implement conditional debt compensation and terminal update.
+- [x] 3. Implement conditional debt compensation and terminal update.
   - Reverse only the debt originally introduced by the sale and avoid creating unmodeled customer credit.
   - For non-zero debt assert `debt`, conditionally decrement the same tenant customer where `balance >= debtAmount`, append one `ADJUST/DECREASE` ledger with `refType=SALE_CANCEL` and committed balance; any failure aborts stock and status; then set `CANCELLED`.
   - _Requirements: 4.2, 4.3, 4.4, 4.5, 5.2, 5.3, 8.3_
 
-- [ ] 4. Add unit tests for compensation, replay, rollback, and race contracts.
+- [x] 4. Add unit tests for compensation, replay, rollback, and race contracts.
   - Prove draft zero effects, paid/debt completed compensation, unsafe reversal rejection, returned-sale rejection, forced write rollback, and complete-versus-cancel single winner.
   - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.5, 5.1, 5.2, 5.3, 5.4, 8.2, 8.3_
 
@@ -83,24 +83,34 @@ Serialization: money is integer VND JSON number within Number.MAX_SAFE_INTEGER; 
 
 ## Completion Criteria
 
-- [ ] Draft cancel changes only the order status and repeated cancel creates no new effect.
-- [ ] Eligible completed cancel restores every line and original debt exactly once using compensating records.
-- [ ] Returned sale, insufficient debt balance, missing feature, cross-tenant ID, or forced write failure leaves status/stock/debt unchanged.
-- [ ] Concurrent complete/cancel ends in exactly one terminal state with effect counts consistent with that winner.
-- [ ] Endpoint is reachable from existing `SalesModule` and returns canonical detail.
+- [x] Draft cancel changes only the order status and repeated cancel creates no new effect.
+- [x] Eligible completed cancel restores every line and original debt exactly once using compensating records.
+- [x] Returned sale, insufficient debt balance, missing feature, cross-tenant ID, or forced write failure leaves status/stock/debt unchanged.
+- [x] Concurrent complete/cancel ends in exactly one terminal state with effect counts consistent with that winner.
+- [x] Endpoint is reachable from existing `SalesModule` and returns canonical detail.
 
 ## Evidence
 
-- [ ] Automated verification
+Verification receipt (2026-07-22T15:38:30+07:00):
+
+- Focused tests: pnpm --dir backend test -- --runInBand sales.service.spec.ts sales.controller.spec.ts — PASS, 2 suites / 70 tests.
+- Backend build: pnpm --dir backend build — PASS.
+- Diff integrity: git diff --check — PASS.
+- Spec review: SPEC_PASS, Critical=0.
+- Code quality: 10.0/10, Critical=0.
+- Reachability: POST /tenant/sales/orders/:id/cancel through SalesController → SalesModule → AppModule — PASS.
+- Deferred evidence: database rollback and persisted concurrency E2E remain assigned to R7 by design; not a blocker for R3.
+
+- [x] Automated verification
   - Command(s): `pnpm --dir backend test -- --runInBand sales.service.spec.ts sales.controller.spec.ts` and `pnpm --dir backend build`
   - Expected proof: Focused suites/build exit 0 with compensation and race cases passing.
-- [ ] Artifact / runtime verification
+- [x] Artifact / runtime verification
   - Inspect: cancelled `Sale`, original/compensating `StockMovement`, `Stock`, `Customer.balance`, and `DebtLedger` rows.
   - Expect: Original history remains; compensation counts/amounts equal persisted sale lines/debt.
-- [ ] Runtime reachability verification
+- [x] Runtime reachability verification
   - Entrypoint/caller: `POST /tenant/sales/orders/:id/cancel` through `SalesController`
   - Expect: Request invokes `SalesService.cancelOrder` and returns `SalesOrderDetail`.
-- [ ] Contract / negative-path verification
+- [x] Contract / negative-path verification
   - Check: Tenant B ID, returned sale, debt balance below original debt, missing inventory/debt feature, repeat, and concurrent completion.
   - Expect: 403/404/409 as specified and no partial compensation.
 

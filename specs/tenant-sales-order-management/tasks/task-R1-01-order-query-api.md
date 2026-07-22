@@ -1,7 +1,7 @@
 # Task R1-01: Order query API
 
 **Requirement:** R1 — Tenant-scoped order query API
-**Status:** pending
+**Status:** done
 **Priority:** P1
 **Estimated Effort:** 4 hours
 **Dependencies:** tasks/task-R0-01-sales-order-contract-schema-foundation.md
@@ -37,17 +37,17 @@ Serialization: money is integer VND JSON number within Number.MAX_SAFE_INTEGER; 
 
 ## Steps
 
-- [ ] 1. Add validated order query DTO and guarded controller routes.
+- [x] 1. Add validated order query DTO and guarded controller routes.
   - Enable authorized users to list and open real orders without weakening tenant boundaries.
   - Create `sales-order-query.dto.ts`; add GET collection/item methods with token-derived IDs, `sales:view`, and `advanced_mode` metadata.
   - _Requirements: 1.1, 1.2, 1.4, 5.1, 5.2, 5.3, 5.4_
 
-- [ ] 2. Implement list/detail queries and explicit response mapping.
+- [x] 2. Implement list/detail queries and explicit response mapping.
   - Give list/card/detail UI stable snapshots without N+1 customer/product lookups or unsafe serialization.
   - Query tenant/order/non-deleted predicates, deterministic order, case-insensitive doc/customer snapshot search, count plus items, and decimal/money serialization per contract.
   - _Requirements: 1.1, 1.2, 1.3, 1.4, 8.1, 8.2_
 
-- [ ] 3. Add controller/service unit coverage.
+- [x] 3. Add controller/service unit coverage.
   - Prove metadata, filters, page cap, snapshot mapping, wrong-channel exclusion, and non-enumerating tenant miss.
   - _Requirements: 1.1, 1.2, 1.3, 1.4, 5.1, 5.2, 5.3, 5.4, 8.2_
 
@@ -77,25 +77,35 @@ Serialization: money is integer VND JSON number within Number.MAX_SAFE_INTEGER; 
 
 ## Completion Criteria
 
-- [ ] GET collection returns only tenant `ORDER` rows with correct pagination and total.
-- [ ] GET detail returns explicit snapshots/lines; cross-tenant or quick-sale IDs return the same 404 shape.
-- [ ] Invalid query values are bounded or rejected; page size never exceeds 20.
-- [ ] Routes are reachable through existing `SalesModule`, with permission/feature metadata proved by tests.
+- [x] GET collection returns only tenant `ORDER` rows with correct pagination and total.
+- [x] GET detail returns explicit snapshots/lines; cross-tenant or quick-sale IDs return the same 404 shape.
+- [x] Invalid query values are bounded or rejected; page size never exceeds 20.
+- [x] Routes are reachable through existing `SalesModule`, with permission/feature metadata proved by tests.
 
 ## Evidence
 
-- [ ] Automated verification
+- [x] Automated verification
   - Command(s): `pnpm --dir backend test -- --runInBand sales.service.spec.ts sales.controller.spec.ts` and `pnpm --dir backend build`
   - Expected proof: Focused suites and build exit 0.
-- [ ] Artifact / runtime verification
+- [x] Artifact / runtime verification
   - Inspect: `GET /tenant/sales/orders` and `GET /tenant/sales/orders/:id`
   - Expect: Responses match `SALES_ORDER_API_V1` and exclude unrestricted Prisma fields.
-- [ ] Runtime reachability verification
+- [x] Runtime reachability verification
   - Entrypoint/caller: `backend/src/app.module.ts` -> `SalesModule` -> `SalesController`
   - Expect: Authenticated GET requests invoke `SalesService.listOrders/findOrder`.
-- [ ] Contract / negative-path verification
+- [x] Contract / negative-path verification
   - Check: Missing token/permission/advanced mode, Tenant B ID, quick-sale ID, invalid status, and pageSize above 20.
   - Expect: 401/403/404/validation response as applicable; no cross-tenant or wrong-channel data leaks.
+
+### Verification receipt - 2026-07-22
+
+- Mode: full-spec.
+- Commands: pnpm --dir backend test -- --runInBand sales.service.spec.ts sales.controller.spec.ts; pnpm --dir backend build; git diff --check.
+- Result: PASS; 7 focused tests passed, Nest build passed, and diff check clean.
+- Artifact proof: SalesOrderQueryDto validates page/pageSize/status/search; SalesController exposes guarded GET orders routes; SalesService filters tenant/channel/deleted rows, orders deterministically, and maps explicit summary/detail DTOs.
+- Negative-path proof: tests cover tenant predicate, ORDER channel predicate, search/paging, foreign/quick-sale 404, and sales:view/advanced_mode metadata.
+- Reachability proof: AppModule registers SalesModule, which registers SalesController and SalesService.
+- Docs impact: none; API implementation is covered by the active spec.
 
 ## Risk Assessment
 

@@ -38,6 +38,11 @@ flowchart LR
 - Tenant supplier routes are `/tenant/suppliers` for tenant-scoped list/detail/create/update/soft-delete. Reads require `supplier:view`; writes require the matching supplier mutation permission plus the `inventory` entitlement. `SuppliersService` filters active records (`deletedAt IS NULL` and `status = ACTIVE`), derives read-only payable balance as a JSON number, and maps duplicate tenant codes to `409 DUPLICATE_SUPPLIER_CODE`.
 - The user app supplier routes (`/nha-cung-cap`, detail, create, edit) consume `frontend/lib/tenant-suppliers-api.ts` for list/search/pagination, detail, create/update, and soft-delete. Payable is displayed only from the server `balance`; purchase history, debt mutation, and cooperation-policy editing remain outside this slice.
 - The user app customer routes (`/khach-hang`, detail, create, edit) consume `frontend/lib/tenant-customers-api.ts` for tenant-scoped list/search/pagination, detail, create/update, and soft-delete. Customer balance is displayed only from the server; transaction history and debt mutation remain outside this slice.
+- Tenant debt routes are `GET /tenant/debts`, `GET /tenant/debts/:partyType/:partyId`, and `POST /tenant/debts/vouchers`. Reads require `debt:view`; voucher creation requires `debt:collect`. Customer receipts use a caller-supplied idempotency key, conditionally decrement the current balance, and create the voucher plus debt-ledger entry atomically.
+- The user app `/cong-no` routes consume `frontend/lib/tenant-debts-api.ts` for real debt list/detail data. Customer receipt creation refreshes the affected debt detail; supplier receipt creation is currently rejected as unsupported.
+- Tenant sales order routes are canonical under `/tenant/sales/orders`: `GET /` supports tenant-scoped search/status pagination, `GET /:id` returns order detail, `POST /` creates a `DRAFT` or directly `COMPLETED` order, `POST /:id/complete` completes a draft with settlement, and `POST /:id/cancel` returns the order in `CANCELLED` state. All routes require tenant access/permission guards and the `advanced_mode` entitlement. Order creation uses a tenant-scoped idempotency key with Serializable retry; completion and cancellation also retry Serializable conflicts and re-read terminal state for safe replay. Draft cancellation changes only status. Eligible completed cancellation preserves the original sale and appends `IN/SALE_CANCEL` stock movements plus conditional `ADJUST/DECREASE` debt compensation in the same transaction; returned sales, unsafe debt balances, cross-tenant IDs, and unsupported states are rejected without a committed partial effect.
+
+- The frontend sales boundary in `frontend/lib/tenant-sales-api.ts` consumes canonical tenant order list/detail/create/complete/cancel operations and keeps `/tenant/sales/quick` separate. `CustomerPicker` (`frontend/components/app/sales/customer-picker.tsx`) resolves tenant customers through `tenant-customers-api`, with debounced search, loading/error/retry states, and an explicit walk-in option. R5/R6 now wire list/detail/cancel and create/direct-complete flows; OrderForm keeps a stable idempotency key across retries, maps real base-unit IDs, and uses PaymentSheet settlement mapping. No new seed fallback is introduced.
 
 ## Admin request flow
 
@@ -64,14 +69,18 @@ sequenceDiagram
 
 The admin read boundary is `GET /admin/audit-logs` for bounded, stable newest-first lists and `GET /admin/audit-logs/:id` for one event. Both routes require `AccessTokenGuard`, `PermissionGuard`, and `admin.audit:view`. Detail responses sanitize `before` and `after` recursively: sensitive key names (password, token, secret, hash, cookie, authorization, credential, API/private key, and related variants) become `[REDACTED]`, including values nested in arrays and objects. Missing records return not found; database failures are converted to generic server errors.
 
+The admin permission catalog is exposed at `/admin/settings/permissions` and gated by `admin.permission:view`. It is read-only and presents only `admin.*` permissions; permission assignment remains role-based.
+
 ## Known current-state limitations
 
 - Audit query and detail boundaries are available; there is no audit retention policy or audit export endpoint.
 - No global audit interceptor was found; coverage is service-owned and therefore must be reviewed when new mutation modules are added.
 - The admin navigation contains the permission-gated `/admin/audit-log` route, and dashboard recent activity reads a bounded newest-audit query.
 - Tenant user auth (`specs/user-registration-authentication`) is implementation-complete including idle-logout and login throttle; formal status is `ready_for_review` pending optional re-run of e2e with full JWT env.
-- Product conversions, price tiers, full sales order list/detail, debt voucher API/UI (in progress under `tenant-debt-management`), and dashboard aggregation remain separate follow-up slices; the current product API exposes core catalog fields and read-only stock quantity; sales currently exposes completed `POST /tenant/sales/quick` only.
+- Product conversions, price tiers, and dashboard aggregation remain separate follow-up slices; the product API exposes core catalog fields and read-only stock quantity. The advanced sales-order lifecycle is now available under `/tenant/sales/orders`; `POST /tenant/sales/quick` remains the separate inventory-only quick-sale shortcut and does not provide order list/detail or cancellation semantics.
 - Inventory reads are available; stock writes currently flow through purchase complete / quick sale, not a dedicated adjust API.
+
+- The frontend tenant sales client and customer picker are available. R5 migrates `/don-ban-hang` and `/don-ban-hang/:id` to canonical list/detail/cancel operations with debounced server queries, desktop replacement paging, mobile deduplicated incremental loading, conflict refetch, inline retry, and responsive loading/error states. Order creation/complete orchestration remains R6; no new seed fallback is part of this slice.
 
 ## Deployment evidence gap
 

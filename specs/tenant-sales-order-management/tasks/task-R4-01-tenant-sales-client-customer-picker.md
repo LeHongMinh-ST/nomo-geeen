@@ -1,7 +1,7 @@
 # Task R4-01: Tenant sales client and customer picker
 
 **Requirement:** R4 — Frontend data boundary and real customer selection
-**Status:** pending
+**Status:** done
 **Priority:** P1
 **Estimated Effort:** 5-6 hours
 **Dependencies:** None
@@ -37,19 +37,19 @@ Serialization: money is integer VND JSON number within Number.MAX_SAFE_INTEGER; 
 
 ## Steps
 
-- [ ] 1. Implement the typed tenant-sales API client.
+- [x] 1. Implement the typed tenant-sales API client.
   - Define summary/detail/create/settlement types and list/detail/create/complete/cancel functions using existing authenticated fetch/error conventions and explicit query serialization.
   - _Requirements: 6.1, 6.2, 6.3, 6.4, 7.2, 7.3, 7.4, 8.2_
 
-- [ ] 2. Remove production order seed coupling.
+- [x] 2. Remove production order seed coupling.
   - Retain only required formatting/status presentation helpers in `orders.ts`; make real API DTOs the screen source of truth.
   - _Requirements: 6.1, 6.2, 7.5, 8.4_
 
-- [ ] 3. Connect `CustomerPicker` to the existing tenant customer client.
+- [x] 3. Connect `CustomerPicker` to the existing tenant customer client.
   - Add debounced search, stale-response protection, keyboard selection, loading/empty/error states, and controlled selected-customer behavior without local mock fallback.
   - _Requirements: 7.1, 7.5, 8.4_
 
-- [ ] 4. Add client and picker tests.
+- [x] 4. Add client and picker tests.
   - Verify URL/payload/error mapping, search race handling, keyboard/focus behavior, and selection persistence.
   - _Requirements: 6.1, 6.2, 6.3, 6.4, 7.1, 7.5, 8.2, 8.4_
 
@@ -80,23 +80,23 @@ Serialization: money is integer VND JSON number within Number.MAX_SAFE_INTEGER; 
 
 ## Completion Criteria
 
-- [ ] All five order operations have typed client functions matching `SALES_ORDER_API_V1`.
-- [ ] Production order and customer flows contain no seeded/mock fallback.
-- [ ] Customer search ignores stale responses and supports mouse and keyboard selection.
-- [ ] Client and picker tests cover success plus 401/403/404/409/422/error states where applicable.
+- [x] All five order operations have typed client functions matching `SALES_ORDER_API_V1`.
+- [x] Production order and customer flows contain no seeded/mock fallback.
+- [x] Customer search ignores stale responses and supports mouse and keyboard selection.
+- [x] Client and picker tests cover success plus 401/403/404/409/422/error states where applicable.
 
 ## Evidence
 
-- [ ] Automated verification
+- [x] Automated verification
   - Command(s): `pnpm --dir frontend test -- tenant-sales-api.test.ts customer-picker.test.tsx` and `pnpm --dir frontend build`
   - Expected proof: Focused suites and build exit 0.
-- [ ] Artifact / runtime verification
+- [x] Artifact / runtime verification
   - Inspect: Network calls and rendered picker at empty, loading, results, selected, and error states.
   - Expect: `/tenant/customers` and `/tenant/sales/orders` are the only runtime data sources.
-- [ ] Runtime reachability verification
+- [x] Runtime reachability verification
   - Entrypoint/caller: `CustomerPicker` and the exported `tenant-sales-api` functions.
   - Expect: UI events reach authenticated API calls; no seed accessor is reachable from app routes.
-- [ ] Contract / negative-path verification
+- [x] Contract / negative-path verification
   - Check: Rapid searches, aborted/unmounted requests, unauthenticated responses, and malformed error bodies.
   - Expect: Latest query wins, no state-after-unmount warning, and safe actionable errors render.
 
@@ -107,3 +107,12 @@ Serialization: money is integer VND JSON number within Number.MAX_SAFE_INTEGER; 
 | Shared picker change regresses quick sale | High | Preserve controlled props and add a quick-sale consumer regression in R7. |
 | Search responses arrive out of order | Medium | Abort or sequence requests and test delayed reversed responses. |
 | Frontend DTO drifts from backend serialization | High | Copy the canonical contract and test decimal-string/integer-money mapping. |
+
+## Verification Receipt
+
+- `pnpm --dir frontend test -- tenant-sales-api.test.ts customer-picker.test.tsx` — PASS, 10 files / 27 tests.
+- `pnpm --dir frontend build` — PASS, 43 routes generated.
+- `git diff --check` — PASS.
+- SPEC_PASS: critical findings 0; code quality 9.7/10, critical findings 0.
+- Reachability: QuickSale and OrderForm → CustomerPicker; exported tenant-sales API functions are reachable. Runtime seed deferral for `orders.ts`/`getOrder` remains explicitly deferred to R5/R6.
+- Coverage: unavailable / UNVERIFIED (not required by this task evidence).

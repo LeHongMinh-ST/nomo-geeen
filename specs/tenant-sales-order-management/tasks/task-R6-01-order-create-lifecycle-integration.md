@@ -1,7 +1,7 @@
 # Task R6-01: Order create and lifecycle integration
 
 **Requirement:** R7 - Real create and lifecycle UI
-**Status:** pending
+**Status:** done
 **Priority:** P1
 **Estimated Effort:** 6 hours
 **Dependencies:** tasks/task-R2-01-order-create-complete-api.md, tasks/task-R3-01-order-cancellation-compensation.md, tasks/task-R4-01-tenant-sales-client-customer-picker.md, tasks/task-R5-01-order-list-detail-integration.md
@@ -21,15 +21,15 @@
 
 ## Steps
 
-- [ ] 1. Wire OrderForm to real product/customer/unit data and create APIs.
+- [x] 1. Wire OrderForm to real product/customer/unit data and create APIs.
   - Human intent: save draft or direct-complete while preserving seller work across retries.
   - AI details: update frontend/components/app/sales/order-form.tsx to call tenant-sales-api.ts with productId, unitId, decimal qty, integer VND unitPrice, discountAmount, note, optional customer, and settlement.
   - _Requirements: 7.1, 7.2, 7.3, 7.5, 8.2, 8.4_
-- [ ] 2. Wire detail completion and cancellation refresh.
+- [x] 2. Wire detail completion and cancellation refresh.
   - Human intent: every result reflects server state, including stale lifecycle conflicts.
   - AI details: update order-detail.tsx and don-ban-hang/[id]/page.tsx; disable duplicate submits, refetch on 409, and replace state with returned SalesOrderDetail.
   - _Requirements: 6.3, 6.4, 7.3, 7.4, 8.3, 8.4_
-- [ ] 3. Add component tests for draft, payment modes, unpaid-without-customer, stable key, retry, and canonical rendering.
+- [x] 3. Add component tests for draft, payment modes, unpaid-without-customer, stable key, retry, and canonical rendering.
   - _Requirements: 6.3, 6.4, 7.2, 7.3, 7.4, 8.3, 8.4_
 
 ## Requirements
@@ -58,15 +58,15 @@
 
 ## Completion Criteria
 
-- [ ] Draft/direct completion use real API, valid units, server totals, and stable key.
-- [ ] Unpaid completion requires customer and renders server debt/payment.
-- [ ] Duplicate clicks do not duplicate requests; failures preserve input and permit retry.
-- [ ] 409 conflicts refetch canonical detail; success needs no full reload.
-- [ ] States match DESIGN.md.
+- [x] Draft/direct completion use real API, valid units, server totals, and stable key.
+- [x] Unpaid completion requires customer and renders server debt/payment.
+- [x] Duplicate clicks do not duplicate requests; failures preserve input and permit retry.
+- [x] 409 conflicts refetch canonical detail; success needs no full reload.
+- [x] States match DESIGN.md.
 
 ## Evidence
 
-- Automated proof: frontend focused tests for form/detail lifecycle and frontend build.
+- Automated proof: `pnpm --dir frontend test -- order-form.test.tsx order-detail-lifecycle.test.tsx` — 14 files / 43 tests passed; `pnpm --dir frontend build` — passed with 43 routes; `git diff --check` passed.
 - Artifact/runtime proof: inspect /don-ban-hang/tao and /don-ban-hang/:id after draft, complete, cancel.
 - Reachability proof: the Next routes reach OrderForm/OrderDetail and tenant-sales-api.
 - Contract/negative proof: duplicate click, same-key retry, unpaid without customer, 401/403/409/422, and stale detail.
