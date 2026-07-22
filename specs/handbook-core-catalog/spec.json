@@ -1,0 +1,69 @@
+{
+  "feature_name": "handbook-core-catalog",
+  "created_at": "2026-07-22T21:38:10+07:00",
+  "updated_at": "2026-07-22T22:15:00+07:00",
+  "language": "en",
+  "status": "in_progress",
+  "phase": "tasks",
+  "current_phase": "tasks",
+  "priority": "P1",
+  "effort": "10-15 implementation days",
+  "tags": ["core-domain", "product", "inventory", "purchase", "sales", "handbook", "tenant-profile"],
+  "approvals": {
+    "requirements": {"generated": true, "approved": true},
+    "design": {"generated": true, "approved": true},
+    "tasks": {"generated": true, "approved": true}
+  },
+  "scope_lock": {
+    "source": "Expand the Handbook category spec into the five core business categories that drive Product, Inventory, Purchase, Sales, and domain-specific Handbook behavior. Each store may sell multiple categories or operate as a specialist store; the system must preserve category-specific attributes and workflows.",
+    "in_scope": [
+      "Five stable business groups: Thuốc bảo vệ thực vật + Phân bón, Cây giống, Thức ăn chăn nuôi, Thuốc thú y, Con giống",
+      "Separate technical product kinds and validation inside each group, including PESTICIDE versus FERTILIZER and SEED versus SEEDLING where needed",
+      "Common product contract plus category-specific attrs, units, prices, stock, lot/expiry/recall, and lifecycle rules",
+      "Category-specific purchase, sale, return, adjustment, shrinkage, quarantine, and stock reporting behavior",
+      "Handbook taxonomy and consultation context for crop, livestock, veterinary, feed, seedling, and livestock-seed use cases",
+      "Tenant store configuration that enables one or more groups and supports specialist or mixed stores without deleting historical data",
+      "Schema/API/UI/test design and implementation-ready task breakdown; no implementation code in this spec run"
+    ],
+    "out_of_scope": [
+      "AI diagnosis, image recognition, external agronomic/legal registry integrations",
+      "Native mobile application, offline-first inventory writes, multi-warehouse transfers",
+      "Full veterinary medical record, animal production ERP, breeding/genetics management, or farm management",
+      "Automatic regulatory compliance certification; fields are operational aids, not legal advice",
+      "Marketplace, inter-store Handbook sharing, and advanced fallback recommendation engine"
+    ],
+    "expansion_policy": "requires-user-approval"
+  },
+  "dependencies": {"blockedBy": [], "blocks": []},
+  "task_files": [
+    "tasks/task-R0-01-handbook-category-contract.md",
+    "tasks/task-R0-02-shared-stock-lifecycle.md",
+    "tasks/task-R1-01-backend-handbook-category.md",
+    "tasks/task-R1-02-frontend-handbook-category-ui.md",
+    "tasks/task-R1-03-animal-feed-domain.md",
+    "tasks/task-R1-04-veterinary-domain.md",
+    "tasks/task-R1-05-livestock-domain.md",
+    "tasks/task-R2-01-handbook-by-domain.md",
+    "tasks/task-R2-01-handbook-reachability-and-regression.md",
+    "tasks/task-R3-01-multi-category-store-integration.md"
+  ],
+  "task_registry": {
+    "tasks/task-R0-01-handbook-category-contract.md": {"id":"R0-01","title":"Canonical five-group domain contract","status":"pending","dependencies":[],"blocker":null,"started_at":null,"completed_at":null,"last_updated_at":null},
+    "tasks/task-R0-02-shared-stock-lifecycle.md": {"id":"R0-02","title":"Shared stock and document lifecycle","status":"pending","dependencies":["tasks/task-R0-01-handbook-category-contract.md"],"blocker":null,"started_at":null,"completed_at":null,"last_updated_at":null},
+    "tasks/task-R1-01-backend-handbook-category.md": {"id":"R1-01","title":"Crop inputs domain","status":"pending","dependencies":["tasks/task-R0-01-handbook-category-contract.md","tasks/task-R0-02-shared-stock-lifecycle.md"],"blocker":null,"started_at":null,"completed_at":null,"last_updated_at":null},
+    "tasks/task-R1-02-frontend-handbook-category-ui.md": {"id":"R1-02","title":"Crop seedlings domain","status":"pending","dependencies":["tasks/task-R0-01-handbook-category-contract.md","tasks/task-R0-02-shared-stock-lifecycle.md"],"blocker":null,"started_at":null,"completed_at":null,"last_updated_at":null},
+    "tasks/task-R1-03-animal-feed-domain.md": {"id":"R1-03","title":"Animal feed domain","status":"pending","dependencies":["tasks/task-R0-01-handbook-category-contract.md","tasks/task-R0-02-shared-stock-lifecycle.md"],"blocker":null,"started_at":null,"completed_at":null,"last_updated_at":null},
+    "tasks/task-R1-04-veterinary-domain.md": {"id":"R1-04","title":"Veterinary drug domain","status":"pending","dependencies":["tasks/task-R0-01-handbook-category-contract.md","tasks/task-R0-02-shared-stock-lifecycle.md"],"blocker":null,"started_at":null,"completed_at":null,"last_updated_at":null},
+    "tasks/task-R1-05-livestock-domain.md": {"id":"R1-05","title":"Livestock seed domain","status":"pending","dependencies":["tasks/task-R0-01-handbook-category-contract.md","tasks/task-R0-02-shared-stock-lifecycle.md"],"blocker":null,"started_at":null,"completed_at":null,"last_updated_at":null},
+    "tasks/task-R2-01-handbook-by-domain.md": {"id":"R2-01","title":"Domain-specific Handbook and consultation","status":"pending","dependencies":["tasks/task-R1-01-backend-handbook-category.md","tasks/task-R1-02-frontend-handbook-category-ui.md","tasks/task-R1-03-animal-feed-domain.md","tasks/task-R1-04-veterinary-domain.md","tasks/task-R1-05-livestock-domain.md"],"blocker":null,"started_at":null,"completed_at":null,"last_updated_at":null},
+    "tasks/task-R2-01-handbook-reachability-and-regression.md": {"id":"R2-02","title":"Runtime reachability and regression","status":"pending","dependencies":["tasks/task-R2-01-handbook-by-domain.md"],"blocker":null,"started_at":null,"completed_at":null,"last_updated_at":null},
+    "tasks/task-R3-01-multi-category-store-integration.md": {"id":"R3-01","title":"Mixed and specialist store integration","status":"pending","dependencies":["tasks/task-R1-01-backend-handbook-category.md","tasks/task-R1-02-frontend-handbook-category-ui.md","tasks/task-R1-03-animal-feed-domain.md","tasks/task-R1-04-veterinary-domain.md","tasks/task-R1-05-livestock-domain.md","tasks/task-R2-01-handbook-by-domain.md","tasks/task-R2-01-handbook-reachability-and-regression.md"],"blocker":null,"started_at":null,"completed_at":null,"last_updated_at":null}
+  },
+  "blocker": "Expanded scope requires red-team and final validation before implementation handoff.",
+  "progress": {"init":"done","requirements":"done","research":"done","design":"done","tasks":"done","code":"pending","test":"pending","review":"pending"},
+  "timestamps": {"init":"2026-07-22T21:38:10+07:00","requirements_done":"2026-07-22T22:10:00+07:00","research_done":"2026-07-22T22:10:00+07:00","design_done":"2026-07-22T22:12:00+07:00","tasks_done":"2026-07-22T22:15:00+07:00","code_done":null,"test_done":null,"review_done":null,"validation_done":null},
+  "design_context": {"discovery_mode":"full","discovery_reason":"Critical domain foundation spanning schema, product-kind validation, stock/purchase/sales lifecycle, Handbook, and tenant store configuration.","execution_tier":"deep","validation_recommended":true},
+  "validation": {"status":"not-run","session_count":0,"questions_asked":0,"last_validated_at":null},
+  "translation": {"enabled":false,"language":null,"language_code":null,"dir":null,"sync":"always","last_synced_at":null},
+  "ready_for_implementation":false
+}

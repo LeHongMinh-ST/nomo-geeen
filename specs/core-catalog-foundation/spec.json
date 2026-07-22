@@ -1,0 +1,53 @@
+{
+  "feature_name": "core-catalog-foundation",
+  "created_at": "2026-07-22T22:30:00+07:00",
+  "updated_at": "2026-07-22T22:30:00+07:00",
+  "language": "en",
+  "status": "completed",
+  "phase": "tasks",
+  "current_phase": "tasks",
+  "priority": "P1",
+  "effort": "3-5 implementation days",
+  "tags": ["core-domain", "product", "tenant", "taxonomy"],
+  "approvals": {
+    "requirements": {"generated": true, "approved": true},
+    "design": {"generated": true, "approved": true},
+    "tasks": {"generated": true, "approved": true}
+  },
+  "scope_lock": {
+    "source": "First implementation tranche from the Core Business Catalog audit: establish the five stable business groups and expose product kind and validated attributes through the existing product flow.",
+    "in_scope": [
+      "BusinessGroup enum and five Phase 1 groups",
+      "ProductKind additions for SEED and SEEDLING while preserving legacy CROP_SEED",
+      "Tenant-enabled business groups with mixed and specialist store profiles",
+      "Product create/update/list/detail DTO, validation, persistence, and response fields",
+      "Product attribute validation for the first five groups",
+      "Focused unit and integration tests"
+    ],
+    "out_of_scope": [
+      "Aquaculture implementation",
+      "Batch FEFO allocation and purchase receiving",
+      "Sales, returns, stock adjustments, and Handbook runtime",
+      "Regulatory registry integrations and AI diagnosis"
+    ],
+    "expansion_policy": "requires-user-approval"
+  },
+  "dependencies": {"blockedBy": [], "blocks": ["specs/handbook-core-catalog/"]},
+  "task_files": [
+    "tasks/task-R0-01-business-taxonomy.md",
+    "tasks/task-R0-02-product-contract.md",
+    "tasks/task-R1-01-product-api-tests.md"
+  ],
+  "task_registry": {
+    "tasks/task-R0-01-business-taxonomy.md": {"id":"R0-01","title":"Persist the five business groups and tenant profile","status":"done","dependencies":[],"blocker":null,"started_at":"2026-07-22T22:35:00+07:00","completed_at":"2026-07-22T22:45:00+07:00","last_updated_at":"2026-07-22T22:45:00+07:00"},
+    "tasks/task-R0-02-product-contract.md": {"id":"R0-02","title":"Validate and expose category-specific product contracts","status":"done","dependencies":["tasks/task-R0-01-business-taxonomy.md"],"blocker":null,"started_at":"2026-07-22T22:40:00+07:00","completed_at":"2026-07-22T22:50:00+07:00","last_updated_at":"2026-07-22T22:50:00+07:00"},
+    "tasks/task-R1-01-product-api-tests.md": {"id":"R1-01","title":"Prove product taxonomy API behavior and tenant isolation","status":"done","dependencies":["tasks/task-R0-01-business-taxonomy.md","tasks/task-R0-02-product-contract.md"],"blocker":null,"started_at":"2026-07-22T22:48:00+07:00","completed_at":"2026-07-22T22:52:00+07:00","last_updated_at":"2026-07-22T22:52:00+07:00"}
+  },
+  "blocker": null,
+  "progress": {"init":"done","requirements":"done","research":"done","design":"done","tasks":"done","code":"done","test":"done","review":"done"},
+  "timestamps": {"init":"2026-07-22T22:30:00+07:00","requirements_done":"2026-07-22T22:31:00+07:00","design_done":"2026-07-22T22:32:00+07:00","tasks_done":"2026-07-22T22:33:00+07:00","code_done":"2026-07-22T22:52:00+07:00","test_done":"2026-07-22T22:52:00+07:00","review_done":"2026-07-22T22:53:00+07:00","validation_done":null},
+  "design_context": {"discovery_mode":"targeted","discovery_reason":"The audit identified a concrete missing taxonomy and product contract in existing Prisma/Nest product code.","execution_tier":"standard","validation_recommended":false},
+  "validation": {"status":"not-run","session_count":0,"questions_asked":0,"last_validated_at":null},
+  "translation": {"enabled":false,"language":null,"language_code":null,"dir":null,"sync":"always","last_synced_at":null},
+  "ready_for_implementation": true
+}

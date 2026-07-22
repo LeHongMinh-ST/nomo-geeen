@@ -24,6 +24,11 @@ describe('SalesService', () => {
 				findUnique: jest.fn(),
 				updateMany: jest.fn(),
 			},
+			productBatch: {
+				findMany: jest.fn().mockResolvedValue([]),
+				updateMany: jest.fn(),
+			},
+			saleLineBatch: { createMany: jest.fn() },
 			stockMovement: { create: jest.fn() },
 			debtLedger: { create: jest.fn() },
 			salesReturn: { findFirst: jest.fn() },
@@ -285,10 +290,9 @@ describe('SalesService', () => {
 			service.createQuickSale('tenant-1', 'user-1', dto()),
 		).resolves.toMatchObject({ id: 'sale-1' });
 		expect(prisma.$transaction).toHaveBeenCalledTimes(2);
-		expect(prisma.$transaction).toHaveBeenLastCalledWith(
-			expect.any(Function),
-			{ isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
-		);
+		expect(prisma.$transaction).toHaveBeenLastCalledWith(expect.any(Function), {
+			isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+		});
 	});
 
 	it('retries a scoped quick-sale idempotency P2002 and replays equivalent state', async () => {
@@ -361,11 +365,14 @@ describe('SalesService', () => {
 
 	it('does not retry unrelated quick-sale P2002 errors', async () => {
 		const { service, prisma } = makeService();
-		const error = new Prisma.PrismaClientKnownRequestError('doc number collision', {
-			code: 'P2002',
-			clientVersion: 'test',
-			meta: { target: ['tenantId', 'docNo'] },
-		});
+		const error = new Prisma.PrismaClientKnownRequestError(
+			'doc number collision',
+			{
+				code: 'P2002',
+				clientVersion: 'test',
+				meta: { target: ['tenantId', 'docNo'] },
+			},
+		);
 		prisma.$transaction.mockRejectedValue(error);
 
 		await expect(
@@ -739,24 +746,27 @@ describe('SalesService', () => {
 	it.each([
 		['paid debt', { paymentMethod: 'DEBT', amountPaid: 1 }],
 		['non-cash overpayment', { paymentMethod: 'QR', amountPaid: 1001 }],
-	])('rejects invalid completion settlement: %s', async (_label, settlement) => {
-		const { service, tx, entitlements } = makeService();
-		tx.sale.findFirst.mockResolvedValue(draftOrder());
+	])(
+		'rejects invalid completion settlement: %s',
+		async (_label, settlement) => {
+			const { service, tx, entitlements } = makeService();
+			tx.sale.findFirst.mockResolvedValue(draftOrder());
 
-		await expect(
-			service.completeOrder(
-				'tenant-1',
-				'user-1',
-				'order-1',
-				settlement as never,
-			),
-		).rejects.toMatchObject({
-			status: 422,
-			response: { reason: 'INVALID_PAYMENT' },
-		});
-		expect(entitlements.assertFeature).not.toHaveBeenCalled();
-		expect(tx.stock.updateMany).not.toHaveBeenCalled();
-	});
+			await expect(
+				service.completeOrder(
+					'tenant-1',
+					'user-1',
+					'order-1',
+					settlement as never,
+				),
+			).rejects.toMatchObject({
+				status: 422,
+				response: { reason: 'INVALID_PAYMENT' },
+			});
+			expect(entitlements.assertFeature).not.toHaveBeenCalled();
+			expect(tx.stock.updateMany).not.toHaveBeenCalled();
+		},
+	);
 
 	it('rejects an idempotency key reused with a different order payload', async () => {
 		const { service, tx } = makeService();
@@ -950,24 +960,23 @@ describe('SalesService', () => {
 	it.each([
 		['payment method', { paymentMethod: 'CASH' }],
 		['amount field', { amountPaid: 0 }],
-	])('rejects DRAFT replay with forbidden %s before replay effects', async (_label, fields) => {
-		const { service, tx } = makeService();
-		tx.sale.findFirst.mockResolvedValue(replayOrder());
+	])(
+		'rejects DRAFT replay with forbidden %s before replay effects',
+		async (_label, fields) => {
+			const { service, tx } = makeService();
+			tx.sale.findFirst.mockResolvedValue(replayOrder());
 
-		await expect(
-			service.createOrder(
-				'tenant-1',
-				'user-1',
-				orderDto(fields),
-			),
-		).rejects.toMatchObject({
-			status: 422,
-			response: { reason: 'DRAFT_SETTLEMENT_FORBIDDEN' },
-		});
-		expect(tx.sale.create).not.toHaveBeenCalled();
-		expect(tx.stock.updateMany).not.toHaveBeenCalled();
-		expect(tx.stockMovement.create).not.toHaveBeenCalled();
-	});
+			await expect(
+				service.createOrder('tenant-1', 'user-1', orderDto(fields)),
+			).rejects.toMatchObject({
+				status: 422,
+				response: { reason: 'DRAFT_SETTLEMENT_FORBIDDEN' },
+			});
+			expect(tx.sale.create).not.toHaveBeenCalled();
+			expect(tx.stock.updateMany).not.toHaveBeenCalled();
+			expect(tx.stockMovement.create).not.toHaveBeenCalled();
+		},
+	);
 
 	it.each([
 		['missing method', { amountPaid: 0 }],
@@ -977,30 +986,33 @@ describe('SalesService', () => {
 			'bank transfer overpay',
 			{ paymentMethod: 'BANK_TRANSFER', amountPaid: 1001 },
 		],
-	])('rejects invalid completed replay settlement: %s', async (_label, fields) => {
-		const { service, tx } = makeService();
-		tx.sale.findFirst.mockResolvedValue(
-			replayOrder({
-				status: 'COMPLETED',
-				paymentMethod: 'CASH',
-				amountPaid: 1000n,
-			}),
-		);
+	])(
+		'rejects invalid completed replay settlement: %s',
+		async (_label, fields) => {
+			const { service, tx } = makeService();
+			tx.sale.findFirst.mockResolvedValue(
+				replayOrder({
+					status: 'COMPLETED',
+					paymentMethod: 'CASH',
+					amountPaid: 1000n,
+				}),
+			);
 
-		await expect(
-			service.createOrder(
-				'tenant-1',
-				'user-1',
-				orderDto({ status: 'COMPLETED', ...fields }),
-			),
-		).rejects.toMatchObject({
-			status: 422,
-			response: { reason: 'INVALID_PAYMENT' },
-		});
-		expect(tx.sale.create).not.toHaveBeenCalled();
-		expect(tx.stock.updateMany).not.toHaveBeenCalled();
-		expect(tx.stockMovement.create).not.toHaveBeenCalled();
-	});
+			await expect(
+				service.createOrder(
+					'tenant-1',
+					'user-1',
+					orderDto({ status: 'COMPLETED', ...fields }),
+				),
+			).rejects.toMatchObject({
+				status: 422,
+				response: { reason: 'INVALID_PAYMENT' },
+			});
+			expect(tx.sale.create).not.toHaveBeenCalled();
+			expect(tx.stock.updateMany).not.toHaveBeenCalled();
+			expect(tx.stockMovement.create).not.toHaveBeenCalled();
+		},
+	);
 
 	it('retries order creation P2034 twice and succeeds on the third attempt', async () => {
 		const { service, tx, prisma } = makeService();
@@ -1100,11 +1112,14 @@ describe('SalesService', () => {
 		});
 		expect(first.prisma.$transaction).toHaveBeenCalledTimes(3);
 
-		const unrelated = new Prisma.PrismaClientKnownRequestError('doc collision', {
-			code: 'P2002',
-			clientVersion: 'test',
-			meta: { target: ['tenantId', 'docNo'] },
-		});
+		const unrelated = new Prisma.PrismaClientKnownRequestError(
+			'doc collision',
+			{
+				code: 'P2002',
+				clientVersion: 'test',
+				meta: { target: ['tenantId', 'docNo'] },
+			},
+		);
 		const second = makeService();
 		second.prisma.$transaction.mockRejectedValue(unrelated);
 		await expect(
@@ -1118,8 +1133,17 @@ describe('SalesService', () => {
 		tx.sale.findFirst.mockResolvedValue(
 			replayOrder({
 				lines: [
-					{ ...draftOrder().lines[0], qty: new Prisma.Decimal('1.00'), unitPrice: 400n },
-					{ ...draftOrder().lines[0], id: 'line-2', qty: new Prisma.Decimal('2.0'), unitPrice: 300n },
+					{
+						...draftOrder().lines[0],
+						qty: new Prisma.Decimal('1.00'),
+						unitPrice: 400n,
+					},
+					{
+						...draftOrder().lines[0],
+						id: 'line-2',
+						qty: new Prisma.Decimal('2.0'),
+						unitPrice: 300n,
+					},
 				],
 			}),
 		);
@@ -1134,8 +1158,17 @@ describe('SalesService', () => {
 		tx.sale.findFirst.mockResolvedValue(
 			replayOrder({
 				lines: [
-					{ ...draftOrder().lines[0], qty: new Prisma.Decimal(1), unitPrice: 400n },
-					{ ...draftOrder().lines[0], id: 'line-2', qty: new Prisma.Decimal(2), unitPrice: 300n },
+					{
+						...draftOrder().lines[0],
+						qty: new Prisma.Decimal(1),
+						unitPrice: 400n,
+					},
+					{
+						...draftOrder().lines[0],
+						id: 'line-2',
+						qty: new Prisma.Decimal(2),
+						unitPrice: 300n,
+					},
 				],
 			}),
 		);
@@ -1153,8 +1186,16 @@ describe('SalesService', () => {
 		tx.sale.findFirst.mockResolvedValue(
 			quickSaleRecord({
 				lines: [
-					{ ...quickSaleRecord().lines[0], qty: new Prisma.Decimal(1), unitPrice: 400n },
-					{ ...quickSaleRecord().lines[0], qty: new Prisma.Decimal(2), unitPrice: 300n },
+					{
+						...quickSaleRecord().lines[0],
+						qty: new Prisma.Decimal(1),
+						unitPrice: 400n,
+					},
+					{
+						...quickSaleRecord().lines[0],
+						qty: new Prisma.Decimal(2),
+						unitPrice: 300n,
+					},
 				],
 			}),
 		);
@@ -1620,7 +1661,9 @@ describe('SalesService', () => {
 			paymentMethod: 'CASH',
 		});
 
-		await expect(service.findOrder('tenant-1', 'order-1')).resolves.toMatchObject({
+		await expect(
+			service.findOrder('tenant-1', 'order-1'),
+		).resolves.toMatchObject({
 			paymentMethod: 'CASH',
 			amountPaid: 400,
 			debtAmount: 600,
@@ -1643,7 +1686,9 @@ describe('SalesService', () => {
 			})),
 		});
 
-		await expect(service.findOrder('tenant-1', 'order-1')).resolves.toMatchObject({
+		await expect(
+			service.findOrder('tenant-1', 'order-1'),
+		).resolves.toMatchObject({
 			total: Number.MAX_SAFE_INTEGER,
 			amountPaid: Number.MAX_SAFE_INTEGER,
 			lines: [
@@ -1662,7 +1707,9 @@ describe('SalesService', () => {
 			...orderWithStatus('COMPLETED'),
 			total: unsafe,
 		});
-		await expect(service.findOrder('tenant-1', 'order-1')).rejects.toMatchObject({
+		await expect(
+			service.findOrder('tenant-1', 'order-1'),
+		).rejects.toMatchObject({
 			status: 500,
 			response: { reason: 'UNSAFE_PERSISTED_MONEY', field: 'total' },
 		});
@@ -1681,7 +1728,9 @@ describe('SalesService', () => {
 			},
 		]);
 		prisma.sale.count.mockResolvedValue(1);
-		await expect(service.listOrders('tenant-1', {} as never)).rejects.toMatchObject({
+		await expect(
+			service.listOrders('tenant-1', {} as never),
+		).rejects.toMatchObject({
 			status: 500,
 			response: { reason: 'UNSAFE_PERSISTED_MONEY', field: 'total' },
 		});
@@ -1732,19 +1781,22 @@ describe('SalesService', () => {
 			{ count: 0 },
 			'STOCK_COMPENSATION_CONFLICT',
 		],
-	])('rejects %s before movement creation', async (_label, stock, updated, reason) => {
-		const { service, tx } = makeService();
-		tx.sale.findFirst.mockResolvedValue(orderWithStatus('COMPLETED'));
-		tx.salesReturn.findFirst.mockResolvedValue(null);
-		tx.stock.findFirst.mockResolvedValue(stock);
-		tx.stock.updateMany.mockResolvedValue(updated);
+	])(
+		'rejects %s before movement creation',
+		async (_label, stock, updated, reason) => {
+			const { service, tx } = makeService();
+			tx.sale.findFirst.mockResolvedValue(orderWithStatus('COMPLETED'));
+			tx.salesReturn.findFirst.mockResolvedValue(null);
+			tx.stock.findFirst.mockResolvedValue(stock);
+			tx.stock.updateMany.mockResolvedValue(updated);
 
-		await expect(
-			service.cancelOrder('tenant-1', 'user-1', 'order-1'),
-		).rejects.toMatchObject({ status: 409, response: { reason } });
-		expect(tx.stockMovement.create).not.toHaveBeenCalled();
-		expect(tx.sale.updateMany).not.toHaveBeenCalled();
-	});
+			await expect(
+				service.cancelOrder('tenant-1', 'user-1', 'order-1'),
+			).rejects.toMatchObject({ status: 409, response: { reason } });
+			expect(tx.stockMovement.create).not.toHaveBeenCalled();
+			expect(tx.sale.updateMany).not.toHaveBeenCalled();
+		},
+	);
 
 	it('rejects when the compensated customer cannot be reread', async () => {
 		const { service, tx } = makeService();

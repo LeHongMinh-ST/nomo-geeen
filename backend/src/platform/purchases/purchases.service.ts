@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import {
 	Prisma,
+	ProductKind,
 	PurchaseStatus,
 	StockDirection,
 	StockReason,
@@ -67,6 +68,7 @@ type PreparedLine = {
 	lineTotal: bigint;
 	batchCode?: string;
 	expiresAt?: Date;
+	productKind?: ProductKind;
 };
 
 @Injectable()
@@ -298,7 +300,9 @@ export class PurchasesService {
 	) {
 		const purchase = await tx.purchase.findFirst({
 			where: { id, tenantId, deletedAt: null },
-			include: { lines: true },
+			include: {
+				lines: { include: { product: { select: { productKind: true } } } },
+			},
 		});
 		if (!purchase) throw new NotFoundException('Purchase not found');
 		if (purchase.idempotencyKey !== idempotencyKey)
@@ -336,6 +340,39 @@ export class PurchasesService {
 			const effectiveLineCost =
 				BigInt(line.lineTotal) - discountShare + shippingShare;
 			const unitCost = this.toUnitCost(effectiveLineCost, line.qtyBase);
+			let batchId: string | undefined;
+			if (this.isBatchControlled(line.product.productKind)) {
+				if (!line.batchCode)
+					throw new UnprocessableEntityException({
+						reason: 'BATCH_REQUIRED',
+						message: 'Batch code is required for this product',
+					});
+				const batch = await tx.productBatch.upsert({
+					where: {
+						tenantId_productId_warehouseId_batchCode: {
+							tenantId,
+							productId: line.productId,
+							warehouseId: purchase.warehouseId,
+							batchCode: line.batchCode,
+						},
+					},
+					create: {
+						tenantId,
+						productId: line.productId,
+						warehouseId: purchase.warehouseId,
+						batchCode: line.batchCode,
+						expiresAt: line.expiresAt ?? null,
+						qtyOnHand: line.qtyBase,
+					},
+					update: { qtyOnHand: { increment: line.qtyBase } },
+					select: { id: true },
+				});
+				batchId = batch.id;
+				await tx.purchaseLine.update({
+					where: { id: line.id },
+					data: { batchId },
+				});
+			}
 			const stock = await tx.stock.findUnique({
 				where: {
 					warehouseId_productId: {
@@ -374,6 +411,7 @@ export class PurchasesService {
 					tenantId,
 					warehouseId: purchase.warehouseId,
 					productId: line.productId,
+					batchId,
 					direction: StockDirection.IN,
 					qty: line.qtyBase,
 					unitCost,
@@ -463,6 +501,7 @@ export class PurchasesService {
 				lineTotal,
 				batchCode: line.batchCode,
 				expiresAt: line.expiresAt ? new Date(line.expiresAt) : undefined,
+				productKind: product.productKind,
 			};
 		});
 	}
@@ -498,6 +537,9 @@ export class PurchasesService {
 				message: 'Exactly one default warehouse is required',
 			});
 		return rows[0].id;
+	}
+	private isBatchControlled(productKind?: ProductKind) {
+		return productKind !== undefined && productKind !== ProductKind.OTHER;
 	}
 	private async requireSupplier(tx: Tx, tenantId: string, id: string) {
 		const supplier = await tx.supplier.findFirst({

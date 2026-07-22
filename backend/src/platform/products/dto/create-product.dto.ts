@@ -1,7 +1,10 @@
+import { BusinessGroup, ProductKind } from '@prisma/client';
 import { Type } from 'class-transformer';
 import {
+	IsEnum,
 	IsInt,
 	IsNotEmpty,
+	IsObject,
 	IsOptional,
 	IsString,
 	IsUUID,
@@ -55,4 +58,16 @@ export class CreateProductDto {
 	@Min(0)
 	@Max(Number.MAX_SAFE_INTEGER)
 	wholesalePrice?: number;
+
+	@IsOptional()
+	@IsEnum(BusinessGroup)
+	businessGroup?: BusinessGroup;
+
+	@IsOptional()
+	@IsEnum(ProductKind)
+	productKind?: ProductKind;
+
+	@IsOptional()
+	@IsObject()
+	attrs?: Record<string, unknown>;
 }

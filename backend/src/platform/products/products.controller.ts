@@ -20,6 +20,7 @@ import {
 } from '../entitlements/entitlement.constants';
 import { EntitlementsGuard } from '../entitlements/entitlements.guard';
 import { CreateProductDto } from './dto/create-product.dto';
+import { UpdateBusinessGroupsDto } from './dto/update-business-groups.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { ProductsService } from './products.service';
 
@@ -42,6 +43,24 @@ export class ProductsController {
 	@RequireTenantPermission('product:view')
 	lookups(@Req() request: TenantRequest) {
 		return this.products.lookups(request.user.tenantId);
+	}
+
+	@Get('business-groups')
+	@RequireTenantPermission('product:view')
+	businessGroups(@Req() request: TenantRequest) {
+		return this.products.businessGroups(request.user.tenantId);
+	}
+
+	@Patch('business-groups')
+	@RequireTenantPermission('product:edit')
+	updateBusinessGroups(
+		@Req() request: TenantRequest,
+		@Body() dto: UpdateBusinessGroupsDto,
+	) {
+		return this.products.updateBusinessGroups(
+			request.user.tenantId,
+			dto.enabledGroups,
+		);
 	}
 
 	@Get(':id')

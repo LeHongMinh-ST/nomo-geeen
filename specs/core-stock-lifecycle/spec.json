@@ -1,0 +1,28 @@
+{
+  "feature_name":"core-stock-lifecycle",
+  "created_at":"2026-07-23T00:30:00+07:00",
+  "updated_at":"2026-07-23T01:05:00+07:00",
+  "language":"en",
+  "status":"approved",
+  "phase":"tasks",
+  "current_phase":"tasks",
+  "priority":"P1",
+  "effort":"3-5 implementation days",
+  "tags":["inventory","batch","fefo","purchase","sales"],
+  "approvals":{"requirements":{"generated":true,"approved":true},"design":{"generated":true,"approved":true},"tasks":{"generated":true,"approved":true}},
+  "scope_lock":{"source":"Implement the next approved tranche after taxonomy: real batch receipt on purchase completion and FEFO allocation on sale completion.","in_scope":["ProductBatch creation/update from completed purchases","Per-kind batch policy for Phase 1 products","FEFO allocation excluding recalled and expired batches","SaleLineBatch persistence and batch-aware stock movements","Focused purchase/sales/inventory tests"],"out_of_scope":["Returns and stock adjustments","Aquaculture-specific rules","Handbook runtime","Multi-warehouse transfers","Frontend screens"],"expansion_policy":"requires-user-approval"},
+  "dependencies":{"blockedBy":[],"blocks":[]},
+  "task_files":["tasks/task-R0-01-batch-receiving.md","tasks/task-R1-01-fefo-sale-allocation.md","tasks/task-R1-02-lifecycle-verification.md"],
+  "task_registry":{
+    "tasks/task-R0-01-batch-receiving.md":{"id":"R0-01","title":"Receive and maintain product batches","status":"in_progress","dependencies":[],"blocker":null,"started_at":"2026-07-23T00:40:00+07:00","completed_at":null,"last_updated_at":"2026-07-23T00:40:00+07:00"},
+    "tasks/task-R1-01-fefo-sale-allocation.md":{"id":"R1-01","title":"Allocate sale quantities by FEFO","status":"pending","dependencies":["tasks/task-R0-01-batch-receiving.md"],"blocker":null,"started_at":null,"completed_at":null,"last_updated_at":null},
+    "tasks/task-R1-02-lifecycle-verification.md":{"id":"R1-02","title":"Verify batch lifecycle and tenant isolation","status":"pending","dependencies":["tasks/task-R0-01-batch-receiving.md","tasks/task-R1-01-fefo-sale-allocation.md"],"blocker":null,"started_at":null,"completed_at":null,"last_updated_at":null}
+  },
+  "blocker":"Paused checkpoint: purchase batch wiring is implemented; focused batch-receiving tests, inbound expiry validation, and final receipt remain for the next session.",
+  "progress":{"init":"done","requirements":"done","research":"done","design":"done","tasks":"done","code":"in_progress","test":"pending","review":"pending"},
+  "timestamps":{"init":"2026-07-23T00:30:00+07:00","requirements_done":"2026-07-23T00:31:00+07:00","design_done":"2026-07-23T00:32:00+07:00","tasks_done":"2026-07-23T00:33:00+07:00","code_done":null,"test_done":null,"review_done":null,"validation_done":null},
+  "design_context":{"discovery_mode":"targeted","discovery_reason":"Existing Prisma models already contain ProductBatch and SaleLineBatch, but purchase and sales services do not wire them into runtime stock changes.","execution_tier":"standard","validation_recommended":false},
+  "validation":{"status":"not-run","session_count":0,"questions_asked":0,"last_validated_at":null},
+  "translation":{"enabled":false,"language":null,"language_code":null,"dir":null,"sync":"always","last_synced_at":null},
+  "ready_for_implementation":true
+}

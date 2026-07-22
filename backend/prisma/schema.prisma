@@ -230,6 +230,7 @@ model Tenant {
   diseases           Disease[]
   tenantSettings     TenantSettings?
   quotaCounters      TenantQuotaCounter[]
+  businessGroups     TenantBusinessGroup[]
 
   @@index([status])
   @@index([deletedAt])
@@ -646,11 +647,21 @@ enum AgriDomain {
   GENERAL
 }
 
+enum BusinessGroup {
+  CROP_INPUTS
+  CROP_SEEDLINGS
+  ANIMAL_FEED
+  VETERINARY_DRUGS
+  LIVESTOCK
+}
+
 enum ProductKind {
   PESTICIDE
   FERTILIZER
   AGRI_MATERIAL
   CROP_SEED
+  SEED
+  SEEDLING
   VET_DRUG
   ANIMAL_FEED
   LIVESTOCK_SEED
@@ -895,6 +906,7 @@ model Product {
   baseUnitId       String
   domain           AgriDomain?
   productKind      ProductKind   @default(OTHER)
+  businessGroup    BusinessGroup?
   packSize         String?
   netContent       Decimal?      @db.Decimal(18, 6)
   netContentUnit   String?
@@ -939,8 +951,24 @@ model Product {
   @@index([tenantId, barcode])
   @@index([tenantId, activeIngredient])
   @@index([tenantId, productKind])
+  @@index([tenantId, businessGroup])
   @@index([tenantId, isPinned])
   @@map("product")
+}
+
+model TenantBusinessGroup {
+  id            String        @id @default(uuid())
+  tenantId      String
+  businessGroup BusinessGroup
+  enabled       Boolean       @default(true)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, businessGroup])
+  @@index([tenantId, enabled])
+  @@map("tenant_business_group")
 }
 
 // Atomic tenant-scoped quota reservations. `periodKey = lifetime` is used for

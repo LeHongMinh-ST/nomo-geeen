@@ -3,13 +3,23 @@ import {
 	Injectable,
 	NotFoundException,
 } from '@nestjs/common';
-import { ConversionKind, Prisma } from '@prisma/client';
+import {
+	BusinessGroup,
+	ConversionKind,
+	Prisma,
+	ProductKind,
+} from '@prisma/client';
 import { EntitlementService } from '../entitlements/entitlement.service';
 import { TenantQuotaCounterService } from '../entitlements/tenant-quota-counter.service';
 import { PrismaService } from '../prisma/prisma.service';
 import type { CreateProductDto } from './dto/create-product.dto';
 import type { ProductLookupResponse } from './dto/product-lookup.dto';
 import type { UpdateProductDto } from './dto/update-product.dto';
+import {
+	assertSelectableBusinessGroup,
+	resolveBusinessGroup,
+	validateProductContract,
+} from './product-contract';
 
 type ProductRow = {
 	id: string;
@@ -20,6 +30,10 @@ type ProductRow = {
 	categoryId: string | null;
 	brandId: string | null;
 	manufacturerId: string | null;
+	domain: string | null;
+	productKind: ProductKind;
+	businessGroup: BusinessGroup | null;
+	attrs: Prisma.JsonValue | null;
 	costPrice: bigint;
 	salePrice: bigint;
 	wholesalePrice: bigint | null;
@@ -58,6 +72,10 @@ export class ProductsService {
 				categoryId: true,
 				brandId: true,
 				manufacturerId: true,
+				domain: true,
+				productKind: true,
+				businessGroup: true,
+				attrs: true,
 				costPrice: true,
 				salePrice: true,
 				wholesalePrice: true,
@@ -97,6 +115,10 @@ export class ProductsService {
 				categoryId: true,
 				brandId: true,
 				manufacturerId: true,
+				domain: true,
+				productKind: true,
+				businessGroup: true,
+				attrs: true,
 				costPrice: true,
 				salePrice: true,
 				wholesalePrice: true,
@@ -152,11 +174,44 @@ export class ProductsService {
 		return { categories, brands, manufacturers, units };
 	}
 
+	async businessGroups(tenantId: string) {
+		const configured = await this.prisma.tenantBusinessGroup.findMany({
+			where: { tenantId },
+			select: { businessGroup: true, enabled: true },
+			orderBy: { businessGroup: 'asc' },
+		});
+		return { configured: configured.length > 0, groups: configured };
+	}
+
+	async updateBusinessGroups(tenantId: string, enabledGroups: BusinessGroup[]) {
+		const enabled = new Set(enabledGroups);
+		return this.prisma.$transaction(async (tx) => {
+			for (const businessGroup of Object.values(BusinessGroup)) {
+				await tx.tenantBusinessGroup.upsert({
+					where: { tenantId_businessGroup: { tenantId, businessGroup } },
+					create: {
+						tenantId,
+						businessGroup,
+						enabled: enabled.has(businessGroup),
+					},
+					update: { enabled: enabled.has(businessGroup) },
+				});
+			}
+			const groups = await tx.tenantBusinessGroup.findMany({
+				where: { tenantId },
+				select: { businessGroup: true, enabled: true },
+				orderBy: { businessGroup: 'asc' },
+			});
+			return { configured: groups.length > 0, groups };
+		});
+	}
+
 	async create(tenantId: string, dto: CreateProductDto) {
 		const sku = dto.sku.trim();
 		const name = dto.name.trim();
 		if (!sku || !name)
 			throw new BadRequestException('sku and name are required');
+		validateProductContract(dto.productKind, dto.businessGroup, dto.attrs);
 
 		return this.prisma.$transaction(async (tx) => {
 			await this.entitlements.assertFeature(tenantId, 'inventory', tx);
@@ -172,6 +227,13 @@ export class ProductsService {
 					select: { id: true },
 				});
 				if (!category) throw new NotFoundException('Category not found');
+			}
+			if (dto.businessGroup) {
+				const configuredGroups = await tx.tenantBusinessGroup.findMany({
+					where: { tenantId },
+					select: { businessGroup: true, enabled: true },
+				});
+				assertSelectableBusinessGroup(dto.businessGroup, configuredGroups);
 			}
 
 			try {
@@ -195,6 +257,9 @@ export class ProductsService {
 							tenantId,
 							dto.manufacturerId,
 						),
+						productKind: dto.productKind,
+						businessGroup: dto.businessGroup,
+						attrs: dto.attrs as Prisma.InputJsonValue | undefined,
 						costPrice: BigInt(dto.costPrice),
 						salePrice: BigInt(dto.salePrice),
 						wholesalePrice:
@@ -219,9 +284,29 @@ export class ProductsService {
 		return this.prisma.$transaction(async (tx) => {
 			const current = await tx.product.findFirst({
 				where: { id, tenantId, deletedAt: null },
-				select: { id: true },
+				select: {
+					id: true,
+					productKind: true,
+					businessGroup: true,
+					attrs: true,
+				},
 			});
 			if (!current) throw new NotFoundException('Product not found');
+			const nextKind = dto.productKind ?? current.productKind;
+			const nextGroup = dto.businessGroup ?? current.businessGroup;
+			const nextAttrs = dto.attrs ?? current.attrs;
+			validateProductContract(
+				nextKind === ProductKind.OTHER ? null : nextKind,
+				nextGroup,
+				nextAttrs,
+			);
+			if (nextGroup) {
+				const configuredGroups = await tx.tenantBusinessGroup.findMany({
+					where: { tenantId },
+					select: { businessGroup: true, enabled: true },
+				});
+				assertSelectableBusinessGroup(nextGroup, configuredGroups);
+			}
 			if (dto.baseUnitId)
 				await this.requireReference(
 					tx,
@@ -279,6 +364,9 @@ export class ProductsService {
 									? null
 									: BigInt(dto.wholesalePrice),
 						isLocked: dto.isLocked,
+						productKind: dto.productKind,
+						businessGroup: dto.businessGroup,
+						attrs: dto.attrs as Prisma.InputJsonValue | undefined,
 					},
 					select: this.productSelect(),
 				});
@@ -314,6 +402,10 @@ export class ProductsService {
 			categoryId: true,
 			brandId: true,
 			manufacturerId: true,
+			domain: true,
+			productKind: true,
+			businessGroup: true,
+			attrs: true,
 			costPrice: true,
 			salePrice: true,
 			wholesalePrice: true,
@@ -337,6 +429,9 @@ export class ProductsService {
 	private toPublicProduct(product: ProductRow, stockQty?: unknown) {
 		return {
 			...product,
+			businessGroup:
+				product.businessGroup ??
+				resolveBusinessGroup(product.productKind, product.domain),
 			costPrice: product.costPrice.toString(),
 			salePrice: product.salePrice.toString(),
 			wholesalePrice: product.wholesalePrice?.toString() ?? null,

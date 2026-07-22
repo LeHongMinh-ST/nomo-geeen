@@ -1,8 +1,11 @@
+import { BusinessGroup, ProductKind } from '@prisma/client';
 import { Type } from 'class-transformer';
 import {
 	IsBoolean,
+	IsEnum,
 	IsInt,
 	IsNotEmpty,
+	IsObject,
 	IsOptional,
 	IsString,
 	IsUUID,
@@ -65,4 +68,16 @@ export class UpdateProductDto {
 	@IsOptional()
 	@IsBoolean()
 	isLocked?: boolean;
+
+	@IsOptional()
+	@IsEnum(BusinessGroup)
+	businessGroup?: BusinessGroup;
+
+	@IsOptional()
+	@IsEnum(ProductKind)
+	productKind?: ProductKind;
+
+	@IsOptional()
+	@IsObject()
+	attrs?: Record<string, unknown>;
 }
