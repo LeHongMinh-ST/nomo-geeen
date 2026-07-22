@@ -1,9 +1,9 @@
 # Task R3-01: User session lifecycle
 
 **Requirement:** R3 — User session lifecycle
-**Status:** BLOCKED (review 2026-07-21 — finding H1)
+**Status:** done
 
-> **BLOCKER H1:** `tenant-auth.service.ts:304` — `logoutUser()` gọi `verifyTenantAccess()` (verify strict) trên access token đã được controller `decodeExpiredAccess`. Khi access token idle-hết-hạn, verify ném 401 → `blacklistUserAccess` + `revokeUserFamily` + `clearCookie(nomo_user_rt)` KHÔNG chạy → phiên "sống lại" qua `/auth/refresh` dù người dùng đã bấm Đăng xuất. Vi phạm R3.3. Fix: truyền claims đã decode (hoặc dùng `decodeExpiredAccess`) vào `logoutUser` thay vì verify strict lại.
+> **H1 resolved (2026-07-22, commit `688d5ff`):** `logoutUser(rawAccessToken, claims)` nhận claims đã decode từ controller (`verifyAccess` → fallback `decodeExpiredAccess`). Không còn `verifyTenantAccess` strict trong service → logout idle-hết-hạn vẫn blacklist + revoke family. Regression e2e: `revokes the session on logout even when the access token has expired`.
 
 **Priority:** P0
 **Estimated Effort:** L
@@ -98,6 +98,7 @@ Contracts: TenantMeResponse
 - 2026-07-20: `biome check` PASS for changed R3 files.
 - 2026-07-20: tenant guard unit PASS — 1 suite, 3 tests.
 - 2026-07-20: tenant lifecycle E2E PASS — 1 suite, 1 test on Postgres/Redis.
+- 2026-07-22: H1 code fix in `688d5ff` — static review of `logoutUser` + controller logout path; e2e case `revokes the session on logout even when the access token has expired` present in `backend/test/tenant-auth.e2e-spec.ts`. Fresh local e2e re-run blocked by incomplete `.env` (missing `JWT_ACCESS_SECRET`); not a code regression signal.
 - 2026-07-20: admin auth-flow + AppModule regression PASS — 2 suites, 3 tests.
 - 2026-07-20: Review: no critical findings; Jest reported an existing open-handle warning after E2E completion.
 

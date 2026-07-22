@@ -1,9 +1,9 @@
 # Task R5-01: User auth state and API client (P)
 
 **Requirement:** R5 — Frontend session state
-**Status:** BLOCKED (review 2026-07-21 — finding H2)
+**Status:** done
 
-> **BLOCKER H2:** Redis login-throttle helpers (`recordUserLoginFailure`, `clearUserLoginFailures`, `userLoginAttemptKey`, `LOGIN_ATTEMPT_LUA`) tồn tại nhưng KHÔNG có caller nào trong mã production (chỉ xuất hiện ở `refresh-token.store.spec.ts`); không có `ThrottlerGuard`. Login/register không bao giờ phát 429 → vi phạm contract R5.1/R5.4 và Security Assessment (bounded Redis throttle). Fix: wire enforcement vào `tenant-auth.service.login/register` rồi ném 429 khi vượt ngưỡng.
+> **H2 resolved (2026-07-22, commit `688d5ff`):** production wire trong `TenantAuthService` — `assertLoginNotThrottled` / `clearLoginThrottle` gọi `recordUserLoginFailure` / `clearUserLoginFailures` từ `login` + `register`; vượt `USER_LOGIN_MAX_ATTEMPTS` (default 10) → HTTP 429; Redis lỗi fail-open (R5.4). Regression e2e: `throttles repeated failed logins with 429`. (Finding H2 gán nhầm task FE R5-01; root cause là BE throttle — đã fix tại service.)
 
 **Priority:** P0
 **Estimated Effort:** M
@@ -116,6 +116,7 @@ Contracts: TenantAuthResponse
 - 2026-07-20: `pnpm --dir frontend build` PASS — Next compiled, TypeScript passed, 39 routes generated.
 - 2026-07-20: `pnpm --dir frontend lint` PASS — 203 files.
 - 2026-07-20: Review: user state is memory-only and independent from admin state; no critical findings.
+- 2026-07-22: H2 production throttle wired in `688d5ff` (`assertLoginNotThrottled` on login/register). Static callers confirmed; e2e case `throttles repeated failed logins with 429` present. Fresh local e2e re-run blocked by incomplete `.env` (missing JWT secrets).
 
 ## Risk Assessment
 

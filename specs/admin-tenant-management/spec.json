@@ -1,11 +1,11 @@
 {
   "feature_name": "admin-tenant-management",
   "created_at": "2026-07-18T03:49:41Z",
-  "updated_at": "2026-07-18T19:45:00+07:00",
+  "updated_at": "2026-07-22T10:20:31+07:00",
   "language": "en",
-  "status": "ready_for_review",
+  "status": "done",
   "phase": "review",
-  "current_phase": "review",
+  "current_phase": "done",
   "priority": "P1",
   "effort": "L",
   "tags": [
@@ -204,7 +204,7 @@
     "tasks_done": "2026-07-18T10:55:21+07:00",
     "code_done": "2026-07-18T10:16:00Z",
     "test_done": "2026-07-18T10:16:00Z",
-    "review_done": "2026-07-18T13:15:00+07:00",
+    "review_done": "2026-07-22T10:20:31+07:00",
     "validation_done": "2026-07-18T13:15:00+07:00"
   },
   "design_context": {

@@ -1,11 +1,11 @@
 {
   "feature_name": "user-registration-authentication",
   "created_at": "2026-07-19T23:20:00+07:00",
-  "updated_at": "2026-07-21T23:00:00+07:00",
+  "updated_at": "2026-07-22T10:20:31+07:00",
   "language": "en",
-  "status": "blocked",
+  "status": "done",
   "phase": "tasks",
-  "current_phase": "review",
+  "current_phase": "done",
   "priority": "P0",
   "effort": "L",
   "tags": [
@@ -97,7 +97,9 @@
       "id": "R1-01",
       "title": "Public registration backend",
       "status": "done",
-      "dependencies": ["tasks/task-R0-01-session-contract-foundation.md"],
+      "dependencies": [
+        "tasks/task-R0-01-session-contract-foundation.md"
+      ],
       "blocker": null,
       "started_at": "2026-07-20T13:40:00+07:00",
       "completed_at": "2026-07-20T14:00:00+07:00",
@@ -107,7 +109,9 @@
       "id": "R2-01",
       "title": "Tenant login identity",
       "status": "done",
-      "dependencies": ["tasks/task-R0-01-session-contract-foundation.md"],
+      "dependencies": [
+        "tasks/task-R0-01-session-contract-foundation.md"
+      ],
       "blocker": null,
       "started_at": "2026-07-20T14:10:00+07:00",
       "completed_at": "2026-07-20T14:30:00+07:00",
@@ -116,18 +120,24 @@
     "tasks/task-R3-01-user-session-lifecycle.md": {
       "id": "R3-01",
       "title": "User session lifecycle",
-      "status": "blocked",
-      "dependencies": ["tasks/task-R0-01-session-contract-foundation.md", "tasks/task-R2-01-tenant-login-identity.md"],
-      "blocker": "H1 (review 2026-07-21): logoutUser() verify strict lai access token da decode-expired (tenant-auth.service.ts:304 verifyTenantAccess) -> khi access token idle-het-han, blacklistUserAccess/revokeUserFamily/clearCookie khong chay -> phien song lai qua /auth/refresh du da bam Dang xuat. Vi pham R3.3.",
+      "status": "done",
+      "dependencies": [
+        "tasks/task-R0-01-session-contract-foundation.md",
+        "tasks/task-R2-01-tenant-login-identity.md"
+      ],
+      "blocker": null,
       "started_at": "2026-07-20T14:40:00+07:00",
       "completed_at": "2026-07-20T20:03:46+07:00",
-      "last_updated_at": "2026-07-21T23:00:00+07:00"
+      "last_updated_at": "2026-07-22T10:07:50+07:00"
     },
     "tasks/task-R4-01-authorization-password-change.md": {
       "id": "R4-01",
       "title": "Authorization password change",
       "status": "done",
-      "dependencies": ["tasks/task-R2-01-tenant-login-identity.md", "tasks/task-R3-01-user-session-lifecycle.md"],
+      "dependencies": [
+        "tasks/task-R2-01-tenant-login-identity.md",
+        "tasks/task-R3-01-user-session-lifecycle.md"
+      ],
       "blocker": null,
       "started_at": "2026-07-20T20:10:00+07:00",
       "completed_at": "2026-07-20T20:28:00+07:00",
@@ -136,18 +146,24 @@
     "tasks/task-R5-01-user-auth-state.md": {
       "id": "R5-01",
       "title": "User auth state",
-      "status": "blocked",
-      "dependencies": ["tasks/task-R3-01-user-session-lifecycle.md", "tasks/task-R4-01-authorization-password-change.md"],
-      "blocker": "H2 (review 2026-07-21): Redis login throttle helpers (recordUserLoginFailure/clearUserLoginFailures/userLoginAttemptKey/LOGIN_ATTEMPT_LUA) khong co caller nao trong ma production; khong co ThrottlerGuard. Login/register khong bao gio phat 429 -> vi pham contract R5.1/R5.4 va Security Assessment (bounded Redis throttle).",
+      "status": "done",
+      "dependencies": [
+        "tasks/task-R3-01-user-session-lifecycle.md",
+        "tasks/task-R4-01-authorization-password-change.md"
+      ],
+      "blocker": null,
       "started_at": "2026-07-20T20:35:00+07:00",
       "completed_at": "2026-07-20T20:50:00+07:00",
-      "last_updated_at": "2026-07-21T23:00:00+07:00"
+      "last_updated_at": "2026-07-22T10:07:50+07:00"
     },
     "tasks/task-R5-02-user-auth-screens.md": {
       "id": "R5-02",
       "title": "User auth screens",
       "status": "done",
-      "dependencies": ["tasks/task-R1-01-public-registration-backend.md", "tasks/task-R5-01-user-auth-state.md"],
+      "dependencies": [
+        "tasks/task-R1-01-public-registration-backend.md",
+        "tasks/task-R5-01-user-auth-state.md"
+      ],
       "blocker": null,
       "started_at": "2026-07-20T21:00:00+07:00",
       "completed_at": "2026-07-20T21:15:00+07:00",
@@ -157,7 +173,12 @@
       "id": "R6-01",
       "title": "Tenant auth acceptance tests",
       "status": "done",
-      "dependencies": ["tasks/task-R1-01-public-registration-backend.md", "tasks/task-R2-01-tenant-login-identity.md", "tasks/task-R3-01-user-session-lifecycle.md", "tasks/task-R4-01-authorization-password-change.md"],
+      "dependencies": [
+        "tasks/task-R1-01-public-registration-backend.md",
+        "tasks/task-R2-01-tenant-login-identity.md",
+        "tasks/task-R3-01-user-session-lifecycle.md",
+        "tasks/task-R4-01-authorization-password-change.md"
+      ],
       "blocker": null,
       "started_at": "2026-07-20T21:20:00+07:00",
       "completed_at": "2026-07-20T21:35:00+07:00",
@@ -167,14 +188,18 @@
       "id": "R7-01",
       "title": "Integration reachability",
       "status": "done",
-      "dependencies": ["tasks/task-R5-01-user-auth-state.md", "tasks/task-R5-02-user-auth-screens.md", "tasks/task-R6-01-tenant-auth-acceptance-tests.md"],
+      "dependencies": [
+        "tasks/task-R5-01-user-auth-state.md",
+        "tasks/task-R5-02-user-auth-screens.md",
+        "tasks/task-R6-01-tenant-auth-acceptance-tests.md"
+      ],
       "blocker": null,
       "started_at": "2026-07-20T21:40:00+07:00",
       "completed_at": "2026-07-20T21:50:00+07:00",
       "last_updated_at": "2026-07-20T21:50:00+07:00"
     }
   },
-  "blocker": "Review 2026-07-21 (code-auditor): 2 finding HIGH chan dong spec. H1 - logout khong thu hoi phien khi access token idle-het-han (R3-01). H2 - rate-limit login/register chua wire vao production du task R5 bao done (R5-01). Xem blocker chi tiet trong task_registry. M1/M2/L1-L4 la finding phu, khong chan.",
+  "blocker": null,
   "progress": {
     "init": "done",
     "requirements": "done",
@@ -183,7 +208,7 @@
     "tasks": "done",
     "code": "done",
     "test": "done",
-    "review": "blocked"
+    "review": "done"
   },
   "timestamps": {
     "init": "2026-07-19T23:20:00+07:00",
@@ -193,7 +218,7 @@
     "tasks_done": "2026-07-19T23:34:00+07:00",
     "code_done": "2026-07-20T21:50:00+07:00",
     "test_done": "2026-07-20T22:00:00+07:00",
-    "review_done": "2026-07-19T23:40:00+07:00",
+    "review_done": "2026-07-22T10:20:31+07:00",
     "validation_done": "2026-07-19T23:42:00+07:00"
   },
   "design_context": {
