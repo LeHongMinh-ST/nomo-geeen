@@ -135,7 +135,8 @@ Danh mục **capability** bật/tắt (không nhét số hạn vào đây). Code
 Nhóm gợi ý seed:
 
 - **Core:** `sales_quick`, `product_basic`, `inventory_single`, `purchase_simple`, `customer_basic`, `supplier_basic`, `report_basic`, `unit_conversion`
-- **Add-on:** `debt`, `batch_expiry`, `recall`, `barcode`, `handbook`, `handbook_consult`, `handbook_fallback`, `pricing_tier`, `pricing_customer`, `tax`, `print_receipt`, `import_export`, `multi_user`, `roles_manager`, `sales_return`, `report_profit`, `report_debt`
+- **Dealer pilot core:** `debt`, `batch_expiry`, `recall`, `handbook`, `handbook_consult`, `report_debt`
+- **Add-on:** `barcode`, `handbook_fallback`, `pricing_tier`, `pricing_customer`, `tax`, `print_receipt`, `import_export`, `multi_user`, `roles_manager`, `sales_return`, `report_profit`
 - **Advanced:** `advanced_mode`, `multi_warehouse`, `warehouse_transfer`, `purchase_workflow`, `rbac_full`, `sales_order_draft`, `costing_batch_fifo`
 
 | Cột | Kiểu | Ghi chú |
@@ -171,7 +172,9 @@ Trial được mô hình hóa bằng `status = TRIALING` + `trial_ends_at` (khô
 | billing_cycle | enum `BillingCycle` | |
 | start_date | datetime | |
 | end_date | datetime? | mốc hết hạn chu kỳ hiện tại |
-| trial_ends_at | datetime? | 7/15/30 ngày (3.5) |
+| trial_ends_at | datetime? | `sales_demo` 7 ngày / `self_serve` 15–30 ngày / `dealer_pilot` 90 ngày |
+| trial_profile | string? | preset trial + pilot cohort, audit được |
+| created_by | FK? | Platform Admin/Saler tạo subscription |
 | cancelled_at | datetime? | |
 | manual_reference | string? | tham chiếu giao dịch offline, tối đa 200 ký tự |
 | manual_reason | string? | lý do vận hành, tối đa 500 ký tự |
@@ -433,7 +436,7 @@ Script `backend/prisma/seed.ts` khởi tạo:
 - **Feature catalog** theo `base_spec` §3.4 (core / addon / advanced) — gồm `multi_user`, `roles_manager`.
 - **3 plan** + mapping feature + `max_users`:
   - Starter: max_users=1 (chỉ Owner), core quầy; không `multi_user` / `roles_manager`.
-  - Professional: max_users=5, + debt/batch/handbook/barcode, `multi_user` + `roles_manager`.
+  - Professional: max_users=5, + debt/batch/handbook, `multi_user` + `roles_manager`.
   - Enterprise: max_users cao, full + advanced_mode.
 - **Permission** `resource:action` (gồm `users:manage`, `report:profit`, …).
 - **3 system role**:

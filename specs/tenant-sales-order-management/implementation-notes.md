@@ -15,3 +15,13 @@
 ## Deferred
 
 - Order route/list/detail/form orchestration remains scoped to R5/R6.
+
+## R7-01 verification checkpoint
+
+- Loaded `backend/.env` and applied pending local migrations `20260722102000_debt_idempotency` and `20260722104500_sales_order_lifecycle`.
+- `pnpm test:e2e -- tenant-sales.e2e-spec.ts --runInBand` — pass (1 suite, 4 tests).
+- Backend sales unit suites — pass (2 suites, 70 tests); backend build — pass.
+- Frontend sales/API suites — pass (14 files, 43 tests); frontend build — pass.
+- Fixed an unstable debounce test wait and added explicit `type="button"` to sales detail actions; targeted lint passes.
+- R7 final acceptance passed: backend tenant-sales E2E 11/11, frontend acceptance/sales suites 15 files / 51 tests, benchmark p95 14.10ms for 30 warm requests over 1,000 orders, same-tenant wrong-channel 404, insufficient-stock order rollback, list/create/detail route reachability, desktop pagination, mobile sentinel, and 390/768/1280 viewport checks; backend/frontend builds, targeted lint, and diff check passed.
+- Query-plan receipt: read-only `EXPLAIN (FORMAT JSON)` for the tenant/channel/order-by list shape returned a bounded `Limit` plan; PostgreSQL chose `Seq Scan` only because the local fixture is tiny.

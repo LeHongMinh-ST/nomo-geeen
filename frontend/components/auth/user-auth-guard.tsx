@@ -27,12 +27,7 @@ export function UserAuthGuard({ children }: { children: ReactNode }) {
 		}
 	}, [hydrated, loading, passwordRoute, pathname, router, user]);
 
-	if (
-		!hydrated ||
-		loading ||
-		!user ||
-		(user.mustChangePassword && !passwordRoute)
-	) {
+	if (!hydrated || loading || !user || (user.mustChangePassword && !passwordRoute)) {
 		return <BootScreen />;
 	}
 	return <>{children}</>;
@@ -52,6 +47,7 @@ function BootScreen() {
 					height={54}
 					priority
 					className="h-12 w-auto animate-pulse"
+					style={{ width: "auto", height: "auto" }}
 				/>
 				<span className="text-sm">Đang tải phiên làm việc...</span>
 			</div>

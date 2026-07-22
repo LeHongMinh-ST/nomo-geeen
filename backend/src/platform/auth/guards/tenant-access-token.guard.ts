@@ -48,7 +48,7 @@ export class TenantAccessTokenGuard extends AuthGuard('tenant-jwt') {
 				deletedAt: null,
 				tenant: { status: 'ACTIVE', deletedAt: null },
 			},
-			select: { mustChangePassword: true },
+			select: { id: true, mustChangePassword: true },
 		});
 		if (!current) throw new UnauthorizedException('User not found');
 		if (current.mustChangePassword) {

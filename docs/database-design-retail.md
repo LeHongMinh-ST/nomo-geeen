@@ -29,20 +29,20 @@ Mọi bảng retail: **`tenant_id` bắt buộc**, cascade theo tenant, soft del
 | `product_basic` | product, category, brand, unit, manufacturer | Core |
 | `unit_conversion` | product_unit_conversion | Core |
 | `inventory_single` | warehouse (1), stock, stock_movement, stock_adjustment | Core |
-| `batch_expiry` | product_batch (+ cột HSD trên movement) | Add-on / Starter+ |
-| `recall` | product_batch.is_recalled / product.is_recalled | Add-on |
+| `batch_expiry` | product_batch (+ cột HSD trên movement) | Dealer pilot core |
+| `recall` | product_batch.is_recalled / product.is_recalled | Dealer pilot core |
 | `purchase_simple` | purchase, purchase_line | Core |
 | `sales_quick` | sale, sale_line | Core |
 | `sales_return` | sales_return, sales_return_line | Add-on |
 | `sales_order_draft` | (cùng sale + status DRAFT) | Advanced |
 | `customer_basic` | customer | Core |
 | `supplier_basic` | supplier | Core |
-| `debt` | customer_debt_ledger, supplier_debt_ledger, payment_voucher | Add-on |
+| `debt` | customer_debt_ledger, supplier_debt_ledger, payment_voucher | Dealer pilot core |
 | `pricing_tier` | product_price_tier | Add-on |
 | `pricing_customer` | customer_product_price | Add-on |
 | `tax` | cột tax trên chứng từ | Add-on (default OFF) |
 | `barcode` | product.barcode + search | Add-on |
-| `handbook` | disease, disease_product_pin, disease_ingredient, sale.disease_* | Add-on (luồng B) |
+| `handbook` | disease, disease_product_pin, disease_ingredient, sale.disease_* | Dealer pilot core |
 | `handbook_consult` | disease_consult_field, disease.formula_expr, sale.consult_context | **Phase 1** (optional per field; Owner tắt = 0 câu) |
 | `handbook_fallback` | disease_product_fallback | Phase 1.1 |
 | `print_receipt` | (không bảng riêng — template settings) | Add-on |
@@ -590,7 +590,8 @@ COMPLETED: stock OUT FIFO batch (nếu ON), debt AR, audit. **Không sửa conte
 | type | enum? | RETAIL / FARMER / FARM / AGENT |
 | /** Hồ sơ SX — optional Json */ | | |
 | production_profile | Json? | cây/diện tích, đàn, ao… |
-| debt_limit | BigInt? | sau |
+| debt_limit | BigInt? | hạn mức công nợ tùy chọn |
+| payment_due_date | date? | hạn thu mặc định của hộ dân; dùng tạo lịch nhắc |
 | opening_balance | BigInt | default 0 — khi bật debt |
 | balance | BigInt | **cache dư nợ hiện tại** — cập nhật trong cùng TX với debt_ledger |
 | name_search | string? | bỏ dấu |
@@ -855,10 +856,11 @@ Khi Saler tạo tenant:
 | Module DB | Starter | Pro | Ent |
 |---|---|---|---|
 | product + unit + conversion + stock + purchase + sale quick + customer + supplier | ✓ | ✓ | ✓ |
-| batch_expiry + debt | ✓ khuyến nghị | ✓ | ✓ |
-| handbook pins | trial/add-on | ✓ | ✓ |
+| batch_expiry + debt | ✓ | ✓ | ✓ |
+| handbook pins | ✓ trong dealer pilot | ✓ | ✓ |
 | pricing_tier, report_profit | — | ✓ | ✓ |
-| handbook_consult / fallback | — | add-on | ✓ |
+| handbook_consult | ✓ trong dealer pilot | ✓ | ✓ |
+| handbook_fallback | — | add-on | ✓ |
 | multi_warehouse, transfer, PO workflow | — | — | ✓ |
 
 ---

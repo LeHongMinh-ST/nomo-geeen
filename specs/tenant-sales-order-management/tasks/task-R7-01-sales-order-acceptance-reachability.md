@@ -1,7 +1,7 @@
 # Task R7-01: Sales order acceptance and reachability
 
 **Requirement:** R8 - Performance, security, reliability, and accessibility
-**Status:** in_progress
+**Status:** done
 **Priority:** P1
 **Estimated Effort:** 5 hours
 **Dependencies:** tasks/task-R0-01-sales-order-contract-schema-foundation.md, tasks/task-R1-01-order-query-api.md, tasks/task-R2-01-order-create-complete-api.md, tasks/task-R3-01-order-cancellation-compensation.md, tasks/task-R4-01-tenant-sales-client-customer-picker.md, tasks/task-R5-01-order-list-detail-integration.md, tasks/task-R6-01-order-create-lifecycle-integration.md
@@ -22,11 +22,11 @@
 
 ## Steps
 
-- [/] 1. Extend backend/test/tenant-sales.e2e-spec.ts with list/detail/create/complete/cancel, tenant A/B, permissions/features, replay/conflict, stock/debt/movement/ledger, rollback, and race.
+- [x] 1. Extend backend/test/tenant-sales.e2e-spec.ts with list/detail/create/complete/cancel, tenant A/B, permissions/features, replay/conflict, stock/debt/movement/ledger, rollback, and race.
   - _Requirements: 1.1, 1.2, 1.4, 2.2, 2.5, 3.2, 3.3, 3.4, 3.5, 4.2, 4.3, 4.5, 5.1, 5.2, 5.3, 5.4, 8.3_
-- [ ] 2. Add route/accessibility checks at 390px, 768px, and 1280px; verify DataPagination, LoadMoreSentinel, labels/focus/Escape/keyboard, all API states, no seeded imports/cache.
+- [x] 2. Add route/accessibility checks at 390px, 768px, and 1280px; verify DataPagination, LoadMoreSentinel, labels/focus/Escape/keyboard, all API states, no seeded imports/cache.
   - _Requirements: 6.1, 6.2, 6.3, 6.4, 7.1, 7.2, 7.3, 7.4, 7.5, 8.2, 8.4_
-- [ ] 3. Run benchmark, query-plan inspection, focused suites/builds, and final reconciliation.
+- [x] 3. Run benchmark, query-plan inspection, focused suites/builds, and final reconciliation.
   - _Requirements: 8.1, 8.3, 8.4_
 
 ## Requirements
@@ -47,17 +47,18 @@
 
 ## Completion Criteria
 
-- [ ] All canonical API/UI entrypoints are exercised from real callers.
-- [ ] Isolation, authorization, idempotency, exact-once effects, rollback, compensation, and race pass.
-- [ ] 30 warm requests against 1,000 orders report p95 below 500 ms or a concrete blocker.
-- [ ] Three viewport checks prove responsive accessibility and no runtime mock/cache path.
-- [ ] Reconciliation has exact commands/artifacts.
+- [x] All canonical API/UI entrypoints are exercised from real callers.
+- [x] Isolation, authorization, idempotency, exact-once effects, rollback, compensation, and race pass.
+- [x] 30 warm requests against 1,000 orders report p95 below 500 ms or a concrete blocker.
+- [x] Three viewport checks prove responsive accessibility and no runtime mock/cache path.
+- [x] Reconciliation has exact commands/artifacts.
 
 ## Evidence
 
 - Automated proof: backend tenant-sales E2E, frontend acceptance test, backend/frontend builds.
-  - Current blocker: `pnpm --dir backend test:e2e -- tenant-sales.e2e-spec.ts --runInBand` cannot bootstrap because `JWT_ACCESS_SECRET` is unset in the test environment; no E2E acceptance claim is made.
-- Artifact/runtime proof: inspect HTTP responses, Sale/StockMovement/Customer/DebtLedger rows, viewport artifacts, benchmark/query-plan output.
+  - Previous JWT bootstrap blocker resolved by loading `backend/.env`; local PostgreSQL was then brought to the current schema by applying the two pending migrations.
+  - Final receipt (2026-07-22): backend tenant-sales E2E `11/11` passed, including tenant/channel isolation, same-tenant wrong-channel 404, idempotency conflict, draft zero-effects, insufficient-stock order rollback, exact stock/debt compensation, permission/feature denial, concurrent completion and 1,000-order benchmark p95 `14.10ms`; frontend acceptance and sales suites `15 files / 51 tests` passed, including list/create/detail route reachability, desktop pagination, mobile sentinel, and 390/768/1280 viewport checks; backend/frontend builds passed; targeted sales lint passed; `git diff --check` passed.
+  - Artifact/runtime proof: inspect HTTP responses, Sale/StockMovement/Customer/DebtLedger rows, viewport artifacts, benchmark/query-plan output. Read-only `EXPLAIN (FORMAT JSON)` on the tenant/channel/soldAt list shape returned a bounded `Limit` plan; the local tiny fixture selected `Seq Scan` by cost, while the composite tenant/channel/status/soldAt index remains available for larger cardinalities.
 - Reachability proof: start at SalesModule/SalesController and the three Next routes; every task output is invoked.
 - Contract/negative proof: tenant B, missing permission/feature, wrong channel, replay, insufficient stock/debt, return, race, sentinel repeat, keyboard/focus.
 

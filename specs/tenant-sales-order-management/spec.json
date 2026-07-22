@@ -1,11 +1,11 @@
 {
   "feature_name": "tenant-sales-order-management",
   "created_at": "2026-07-22T10:30:53+07:00",
-  "updated_at": "2026-07-22T17:26:00+07:00",
+  "updated_at": "2026-07-22T21:20:00+07:00",
   "language": "en",
-  "status": "in_progress",
-  "phase": "develop",
-  "current_phase": "develop",
+  "status": "ready_for_review",
+  "phase": "review",
+  "current_phase": "review",
   "priority": "P0",
   "effort": "XL",
   "tags": [
@@ -126,7 +126,7 @@
       "blocker": null,
       "started_at": "2026-07-22T15:55:34+07:00",
       "completed_at": "2026-07-22T16:21:12+07:00",
-      "last_updated_at": "2026-07-22T16:21:12+07:00"
+      "last_updated_at": "2026-07-22T18:00:00+07:00"
     },
     "tasks/task-R5-01-order-list-detail-integration.md": {
       "id": "R5-01",
@@ -161,7 +161,7 @@
     "tasks/task-R7-01-sales-order-acceptance-reachability.md": {
       "id": "R7-01",
       "title": "Sales order acceptance reachability",
-      "status": "in_progress",
+      "status": "done",
       "dependencies": [
         "tasks/task-R0-01-sales-order-contract-schema-foundation.md",
         "tasks/task-R1-01-order-query-api.md",
@@ -173,8 +173,8 @@
       ],
       "blocker": null,
       "started_at": "2026-07-22T17:30:00+07:00",
-      "completed_at": null,
-      "last_updated_at": null
+      "completed_at": "2026-07-22T21:20:00+07:00",
+      "last_updated_at": "2026-07-22T21:20:00+07:00"
     }
   },
   "blocker": null,
@@ -184,8 +184,8 @@
     "research": "done",
     "design": "done",
     "tasks": "done",
-    "code": "pending",
-    "test": "pending",
+    "code": "done",
+    "test": "done",
     "review": "done"
   },
   "timestamps": {

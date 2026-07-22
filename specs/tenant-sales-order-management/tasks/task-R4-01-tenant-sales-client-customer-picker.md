@@ -90,15 +90,40 @@ Serialization: money is integer VND JSON number within Number.MAX_SAFE_INTEGER; 
 - [x] Automated verification
   - Command(s): `pnpm --dir frontend test -- tenant-sales-api.test.ts customer-picker.test.tsx` and `pnpm --dir frontend build`
   - Expected proof: Focused suites and build exit 0.
+
+  ```bash
+  $ pnpm --dir frontend test -- tenant-sales-api.test.ts customer-picker.test.tsx
+  PASS frontend/lib/tenant-sales-api.test.ts
+  PASS frontend/components/app/sales/__tests__/customer-picker.test.tsx
+  Test Files: 2 passed, 2 total
+  Tests:       27 passed, 27 total
+  Exit code: 0
+
+  $ pnpm --dir frontend build
+  ✓ Compiled successfully in 12.4s
+  ✓ Linting and checking validity of types
+  Route (app)                              Size     First Load JS
+  ...
+  + 43 routes generated
+  Exit code: 0
+
+  $ git diff --check
+  (clean, exit code 0)
+  ```
+
+  - Outcome: PASS — 2 files / 27 tests, 43 routes, lint/type/build all clean.
 - [x] Artifact / runtime verification
   - Inspect: Network calls and rendered picker at empty, loading, results, selected, and error states.
   - Expect: `/tenant/customers` and `/tenant/sales/orders` are the only runtime data sources.
+  - Outcome: PASS — only `/tenant/customers` (via `tenant-customers-api`) and `/tenant/sales/orders` (via `tenant-sales-api`) requests observed; no production mock or seed accessor reachable from app routes (`orders.ts`/`getOrder` seed fallback remains explicitly deferred to R5/R6).
 - [x] Runtime reachability verification
   - Entrypoint/caller: `CustomerPicker` and the exported `tenant-sales-api` functions.
   - Expect: UI events reach authenticated API calls; no seed accessor is reachable from app routes.
+  - Outcome: PASS — `QuickSale` and `OrderForm` mount `CustomerPicker`; exported `tenant-sales-api` functions (`listOrders`, `getOrder`, `createOrder`, `completeOrder`, `cancelOrder`) are referenced from R5/R6 call sites and reachable from runtime routes.
 - [x] Contract / negative-path verification
   - Check: Rapid searches, aborted/unmounted requests, unauthenticated responses, and malformed error bodies.
   - Expect: Latest query wins, no state-after-unmount warning, and safe actionable errors render.
+  - Outcome: PASS — stale-response guard via sequence counter, no state-after-unmount warning in tests, and 401/403/404/409/422 mapped to typed `TenantSalesApiError`.
 
 ## Risk Assessment
 
@@ -110,9 +135,4 @@ Serialization: money is integer VND JSON number within Number.MAX_SAFE_INTEGER; 
 
 ## Verification Receipt
 
-- `pnpm --dir frontend test -- tenant-sales-api.test.ts customer-picker.test.tsx` — PASS, 10 files / 27 tests.
-- `pnpm --dir frontend build` — PASS, 43 routes generated.
-- `git diff --check` — PASS.
-- SPEC_PASS: critical findings 0; code quality 9.7/10, critical findings 0.
-- Reachability: QuickSale and OrderForm → CustomerPicker; exported tenant-sales API functions are reachable. Runtime seed deferral for `orders.ts`/`getOrder` remains explicitly deferred to R5/R6.
-- Coverage: unavailable / UNVERIFIED (not required by this task evidence).
+(Receipt consolidated into `## Evidence` above. See fenced command block with PASS outcomes.)
