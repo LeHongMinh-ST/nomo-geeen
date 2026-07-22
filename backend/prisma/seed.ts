@@ -166,6 +166,13 @@ async function main() {
 		}
 	}
 
+	const debtCollect = await prisma.permission.upsert({
+		where: { code: 'debt:collect' },
+		update: {},
+		create: { code: 'debt:collect', resource: 'debt', action: 'collect' },
+	});
+	permissionIds.push(debtCollect.id);
+
 	// System roles (tenantId = null). Phase 1: OWNER, MANAGER, STAFF.
 	// Luu y: NULL khong dedupe trong unique constraint Postgres => dung findFirst + create,
 	// khong upsert tren compound unique [tenantId, code].

@@ -1,0 +1,175 @@
+{
+  "feature_name": "tenant-debt-management",
+  "created_at": "2026-07-22T00:00:00+07:00",
+  "updated_at": "2026-07-22T12:30:00+07:00",
+  "language": "vi",
+  "status": "done",
+  "phase": "tasks",
+  "current_phase": "tasks",
+  "priority": "P0",
+  "effort": "XL",
+  "tags": [
+    "tenant",
+    "debt",
+    "debt-ledger",
+    "payment-voucher",
+    "cash"
+  ],
+  "approvals": {
+    "requirements": {
+      "generated": true,
+      "approved": true
+    },
+    "design": {
+      "generated": true,
+      "approved": true
+    },
+    "tasks": {
+      "generated": true,
+      "approved": true
+    }
+  },
+  "scope_lock": {
+    "source": "Hoàn thiện quản lý công nợ phải thu/phải trả và nghiệp vụ phiếu thu/chi tiền trên dữ liệu tenant thật.",
+    "in_scope": [
+      "Xem danh sách và sổ chi tiết công nợ hai chiều",
+      "Ghi phiếu thu khách hàng và phiếu chi nhà cung cấp",
+      "Thanh toán một phần/toàn bộ, ghi DebtLedger DECREASE và cập nhật balance trong transaction",
+      "Lịch sử DebtLedger và chứng từ liên quan",
+      "Nối /cong-no với API thật, giữ UI mobile-first theo DESIGN.md",
+      "Tenant isolation, permission, validation, idempotency và rollback tests"
+    ],
+    "out_of_scope": [
+      "Báo cáo Excel/in sổ",
+      "Hạch toán kế toán tổng hợp và tồn quỹ cuối kỳ",
+      "Xóa/sửa phiếu đã hoàn tất",
+      "Đổi mô hình DebtLedger/PaymentVoucher hiện hữu nếu không cần để đáp ứng contract"
+    ],
+    "expansion_policy": "requires-user-approval"
+  },
+  "dependencies": {
+    "blockedBy": [
+      {
+        "feature": "tenant-sales-management",
+        "relationship": "consumes SALE debt ledger entries"
+      },
+      {
+        "feature": "tenant-purchase-management",
+        "relationship": "consumes PURCHASE debt ledger entries"
+      }
+    ],
+    "blocks": []
+  },
+  "task_files": [
+    "tasks/task-R0-01-debt-contract-foundation.md",
+    "tasks/task-R1-01-debt-domain-api.md",
+    "tasks/task-R1-02-debt-transaction-acceptance-tests.md",
+    "tasks/task-R2-01-debt-ui-api-integration.md",
+    "tasks/task-R3-01-debt-reachability-closeout.md"
+  ],
+  "task_registry": {
+    "tasks/task-R0-01-debt-contract-foundation.md": {
+      "id": "R0-01",
+      "title": "Debt contract foundation",
+      "status": "done",
+      "dependencies": [],
+      "blocker": null,
+      "started_at": "2026-07-22T10:45:00+07:00",
+      "completed_at": "2026-07-22T11:05:00+07:00",
+      "last_updated_at": "2026-07-22T11:05:00+07:00"
+    },
+    "tasks/task-R1-01-debt-domain-api.md": {
+      "id": "R1-01",
+      "title": "Debt domain API and voucher transaction",
+      "status": "done",
+      "dependencies": [
+        "tasks/task-R0-01-debt-contract-foundation.md"
+      ],
+      "blocker": null,
+      "started_at": "2026-07-22T11:35:00+07:00",
+      "completed_at": "2026-07-22T11:35:00+07:00",
+      "last_updated_at": "2026-07-22T11:35:00+07:00"
+    },
+    "tasks/task-R1-02-debt-transaction-acceptance-tests.md": {
+      "id": "R1-02",
+      "title": "Debt transaction and acceptance tests",
+      "status": "done",
+      "dependencies": [
+        "tasks/task-R1-01-debt-domain-api.md"
+      ],
+      "blocker": null,
+      "started_at": "2026-07-22T12:10:00+07:00",
+      "completed_at": "2026-07-22T12:05:00+07:00",
+      "last_updated_at": "2026-07-22T12:05:00+07:00"
+    },
+    "tasks/task-R2-01-debt-ui-api-integration.md": {
+      "id": "R2-01",
+      "title": "Debt UI and API integration",
+      "status": "done",
+      "dependencies": [
+        "tasks/task-R1-01-debt-domain-api.md"
+      ],
+      "blocker": null,
+      "started_at": "2026-07-22T12:10:00+07:00",
+      "completed_at": "2026-07-22T12:10:00+07:00",
+      "last_updated_at": "2026-07-22T12:05:00+07:00"
+    },
+    "tasks/task-R3-01-debt-reachability-closeout.md": {
+      "id": "R3-01",
+      "title": "Debt reachability and closeout",
+      "status": "done",
+      "dependencies": [
+        "tasks/task-R1-02-debt-transaction-acceptance-tests.md",
+        "tasks/task-R2-01-debt-ui-api-integration.md"
+      ],
+      "blocker": null,
+      "started_at": "2026-07-22T12:05:00+07:00",
+      "completed_at": "2026-07-22T12:30:00+07:00",
+      "last_updated_at": "2026-07-22T12:30:00+07:00"
+    }
+  },
+  "blocker": null,
+  "progress": {
+    "init": "done",
+    "requirements": "done",
+    "research": "done",
+    "design": "done",
+    "tasks": "done",
+    "code": "done",
+    "test": "done",
+    "review": "done"
+  },
+  "timestamps": {
+    "init": "2026-07-22T00:00:00+07:00",
+    "requirements_done": "2026-07-22T10:10:00+07:00",
+    "research_done": "2026-07-22T10:11:00+07:00",
+    "design_done": "2026-07-22T10:12:00+07:00",
+    "tasks_done": "2026-07-22T10:15:46+07:00",
+    "validation_done": "2026-07-22T10:35:58+07:00",
+    "review_done": "2026-07-22T12:30:00+07:00",
+    "implementation_done": "2026-07-22T12:20:00+07:00",
+    "test_done": "2026-07-22T12:30:00+07:00",
+    "code_done": "2026-07-22T12:30:00+07:00"
+  },
+  "design_context": {
+    "discovery_mode": "full",
+    "discovery_reason": "Schema-sensitive transactional debt and two user-facing debt directions.",
+    "execution_tier": "deep",
+    "validation_recommended": true,
+    "validation_recommended_reason": "Transaction, tenant isolation, authorization, and money mutation."
+  },
+  "validation": {
+    "status": "completed",
+    "session_count": 1,
+    "last_validated_at": "2026-07-22T10:35:58+07:00"
+  },
+  "translation": {
+    "enabled": false,
+    "language": null,
+    "language_code": null,
+    "dir": null,
+    "sync": "always",
+    "last_synced_at": null
+  },
+  "ready_for_implementation": true
+}

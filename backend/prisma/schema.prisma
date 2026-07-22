@@ -1390,6 +1390,7 @@ model PaymentVoucher {
   id             String        @id @default(uuid())
   tenantId       String
   docNo          String
+  idempotencyKey String?
   voucherType    VoucherType
   partyType      DebtPartyType
   partyId        String
@@ -1413,6 +1414,7 @@ model PaymentVoucher {
   lines    PaymentVoucherLine[]
 
   @@unique([tenantId, docNo])
+  @@unique([tenantId, idempotencyKey])
   @@index([tenantId, occurredAt])
   @@map("payment_voucher")
 }

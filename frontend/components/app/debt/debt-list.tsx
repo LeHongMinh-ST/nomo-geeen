@@ -25,12 +25,10 @@ import {
 	debtStatus,
 	debtStatusBadgeClass,
 	debtStatusLabel,
-	payables,
-	receivables,
 	sumOutstanding,
-	withPayment,
 } from "@/lib/debts";
 import { formatVND } from "@/lib/format";
+import { createDebtVoucher, listDebts } from "@/lib/tenant-debts-api";
 import { CollectPaymentSheet } from "./collect-payment-sheet";
 import { DebtCard } from "./debt-card";
 
@@ -55,10 +53,7 @@ const MOBILE_BATCH = 8;
 export function DebtList() {
 	const [direction, setDirection] = useState<DebtDirection>("receivable");
 	// Giữ cả hai chiều trong state để cập nhật khi thu/trả tiền.
-	const [accounts, setAccounts] = useState<DebtAccount[]>([
-		...receivables,
-		...payables,
-	]);
+	const [accounts, setAccounts] = useState<DebtAccount[]>([]);
 	const [query, setQuery] = useState("");
 	const [status, setStatus] = useState<StatusFilter>("all");
 	const [page, setPage] = useState(1);
@@ -66,11 +61,48 @@ export function DebtList() {
 	const [collecting, setCollecting] = useState<DebtAccount | null>(null);
 	const [toast, setToast] = useState<string | null>(null);
 	const [loading, setLoading] = useState(true);
+	const [reload, setReload] = useState(0);
 
 	useEffect(() => {
-		const timer = setTimeout(() => setLoading(false), 450);
-		return () => clearTimeout(timer);
-	}, []);
+		let active = true;
+		void reload;
+		setLoading(true);
+		void listDebts({
+			partyType: direction === "receivable" ? "CUSTOMER" : "SUPPLIER",
+			status: "ALL",
+		})
+			.then((response) => {
+				if (!active) return;
+				setAccounts(
+					response.items.map((item) => ({
+						id: item.id,
+						direction: item.partyType === "CUSTOMER" ? "receivable" : "payable",
+						name: item.name,
+						phone: item.phone ?? "",
+						address: item.address ?? undefined,
+						partyLabel:
+							item.partyType === "CUSTOMER" ? "Khách hàng" : "Nhà cung cấp",
+						entries: [
+							{
+								id: `${item.id}-balance`,
+								date: new Date().toISOString().slice(0, 10),
+								kind: "opening",
+								amount: item.balance,
+							},
+						],
+					})),
+				);
+			})
+			.catch(() => {
+				if (active) setToast("Không thể tải sổ công nợ");
+			})
+			.finally(() => {
+				if (active) setLoading(false);
+			});
+		return () => {
+			active = false;
+		};
+	}, [direction, reload]);
 
 	const isReceivable = direction === "receivable";
 
@@ -120,15 +152,29 @@ export function DebtList() {
 	const mobileRows = filtered.slice(0, mobileCount);
 	const mobileHasMore = mobileCount < filtered.length;
 
-	function handleConfirm(amount: number, method: DebtPaymentMethod) {
+	async function handleConfirm(amount: number, method: DebtPaymentMethod) {
 		if (!collecting) return;
 		const verb = collecting.direction === "receivable" ? "Đã thu" : "Đã trả";
-		// TODO: gọi API ghi nhận thu/trả công nợ khi backend sẵn sàng.
-		setAccounts((current) =>
-			current.map((a) =>
-				a.id === collecting.id ? withPayment(a, amount, method) : a,
-			),
-		);
+		try {
+			await createDebtVoucher({
+				voucherType:
+					collecting.direction === "receivable" ? "RECEIPT" : "PAYMENT",
+				partyType:
+					collecting.direction === "receivable" ? "CUSTOMER" : "SUPPLIER",
+				partyId: collecting.id,
+				amount,
+				method:
+					method === "cash"
+						? "CASH"
+						: method === "transfer"
+							? "BANK_TRANSFER"
+							: "QR",
+			});
+		} catch {
+			setToast("Không thể ghi nhận phiếu thu/chi");
+			return;
+		}
+		setReload((value) => value + 1);
 		setToast(`${verb} ${formatVND(amount)}₫ · ${collecting.name}`);
 		setCollecting(null);
 	}
@@ -360,7 +406,7 @@ function DebtRow({
 		<tr className="border-t border-border transition-colors hover:bg-accent">
 			<td className="px-4 py-3">
 				<Link
-					href={`/cong-no/${account.id}`}
+					href={`/cong-no/${account.id}?partyType=${account.direction === "receivable" ? "CUSTOMER" : "SUPPLIER"}`}
 					className="flex items-center gap-3"
 				>
 					<span

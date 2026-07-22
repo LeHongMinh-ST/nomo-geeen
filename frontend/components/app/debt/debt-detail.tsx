@@ -26,7 +26,6 @@ import {
 	debtStatusBadgeClass,
 	debtStatusLabel,
 	paymentMethodLabel,
-	withPayment,
 } from "@/lib/debts";
 import { formatDate, formatVND } from "@/lib/format";
 import { CollectPaymentSheet } from "./collect-payment-sheet";
@@ -35,12 +34,21 @@ import { CollectPaymentSheet } from "./collect-payment-sheet";
  * Chi tiết công nợ (DESIGN.md §16, §24 — trang riêng, không modal).
  * Card số dư: Đầu kỳ + Phát sinh − Đã thu/trả = Còn lại (số lớn màu cảnh báo).
  * Timeline lịch sử thu tiền. Nút Thu/Trả dính đáy trên mobile → mở sheet.
- * FE-only: cập nhật cục bộ, chưa nối API.
  */
-export function DebtDetail({ account: initial }: { account: DebtAccount }) {
+export function DebtDetail({
+	account: initial,
+	onPayment,
+}: {
+	account: DebtAccount;
+	onPayment: (
+		amount: number,
+		method: DebtPaymentMethod,
+	) => Promise<DebtAccount>;
+}) {
 	const router = useRouter();
 	const [account, setAccount] = useState<DebtAccount>(initial);
 	const [collecting, setCollecting] = useState(false);
+	const [paymentError, setPaymentError] = useState<string | null>(null);
 
 	const isReceivable = account.direction === "receivable";
 	const status = debtStatus(account);
@@ -62,10 +70,15 @@ export function DebtDetail({ account: initial }: { account: DebtAccount }) {
 	// Lịch sử: mới nhất lên đầu.
 	const history = [...account.entries].reverse();
 
-	function handleConfirm(amount: number, method: DebtPaymentMethod) {
-		// TODO: gọi API ghi nhận thu/trả công nợ khi backend sẵn sàng.
-		setAccount((a) => withPayment(a, amount, method));
-		setCollecting(false);
+	async function handleConfirm(amount: number, method: DebtPaymentMethod) {
+		try {
+			const refreshed = await onPayment(amount, method);
+			setAccount(refreshed);
+			setPaymentError(null);
+			setCollecting(false);
+		} catch {
+			setPaymentError("Không thể ghi nhận phiếu thu/chi");
+		}
 	}
 
 	return (
@@ -187,6 +200,10 @@ export function DebtDetail({ account: initial }: { account: DebtAccount }) {
 					</button>
 				</div>
 			)}
+
+			{paymentError ? (
+				<p className="text-sm font-medium text-[#c62828]">{paymentError}</p>
+			) : null}
 
 			<CollectPaymentSheet
 				account={collecting ? account : null}

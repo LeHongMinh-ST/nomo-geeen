@@ -7,6 +7,7 @@ import { AuditModule } from './platform/audit/audit.module';
 import { AuthModule } from './platform/auth/auth.module';
 import { BillingModule } from './platform/billing/billing.module';
 import { CustomersModule } from './platform/customers/customers.module';
+import { DebtsModule } from './platform/debts/debts.module';
 import { EntitlementsModule } from './platform/entitlements/entitlements.module';
 import { InventoryModule } from './platform/inventory/inventory.module';
 import { PrismaModule } from './platform/prisma/prisma.module';
@@ -34,6 +35,7 @@ import { TenantsModule } from './platform/tenants/tenants.module';
 		EntitlementsModule,
 		ProductsModule,
 		CustomersModule,
+		DebtsModule,
 		PurchasesModule,
 		SuppliersModule,
 		InventoryModule,

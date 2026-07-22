@@ -39,7 +39,10 @@ export function DebtCard({
 
 	return (
 		<div className="flex flex-col gap-3 rounded-[16px] border border-border bg-card p-4 shadow-card">
-			<Link href={`/cong-no/${account.id}`} className="flex items-start gap-3">
+			<Link
+				href={`/cong-no/${account.id}?partyType=${isReceivable ? "CUSTOMER" : "SUPPLIER"}`}
+				className="flex items-start gap-3"
+			>
 				<span
 					className="flex size-12 shrink-0 items-center justify-center rounded-[12px] text-base font-bold text-white"
 					style={{ backgroundColor: tile }}
