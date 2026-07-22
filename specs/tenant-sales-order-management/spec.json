@@ -1,0 +1,224 @@
+{
+  "feature_name": "tenant-sales-order-management",
+  "created_at": "2026-07-22T10:30:53+07:00",
+  "updated_at": "2026-07-22T06:07:20.937Z",
+  "language": "en",
+  "status": "in_progress",
+  "phase": "develop",
+  "current_phase": "develop",
+  "priority": "P0",
+  "effort": "XL",
+  "tags": [
+    "tenant-sales",
+    "sales-orders",
+    "inventory",
+    "debt",
+    "frontend",
+    "transactional-api"
+  ],
+  "approvals": {
+    "requirements": {
+      "generated": true,
+      "approved": true
+    },
+    "design": {
+      "generated": true,
+      "approved": true
+    },
+    "tasks": {
+      "generated": true,
+      "approved": true
+    }
+  },
+  "scope_lock": {
+    "source": "Complete the existing tenant sales-order UI with real list, detail, create-draft, complete, and cancel APIs while synchronizing inventory and customer debt.",
+    "in_scope": [
+      "Tenant-scoped sales-order list and detail APIs wired to the existing /don-ban-hang screens",
+      "Create sales orders as DRAFT or COMPLETED from the existing /don-ban-hang/tao form",
+      "Complete a DRAFT order exactly once with atomic stock decrement, stock movement creation, and optional customer debt creation",
+      "Cancel DRAFT and COMPLETED orders with lifecycle validation, atomic stock and debt compensation where applicable, and retry safety",
+      "Search, status filtering, desktop pagination, and mobile incremental loading backed by the real API",
+      "Tenant permissions, sales entitlement, idempotency or concurrency protection, negative-path coverage, and runtime reachability",
+      "Responsive, accessible loading, empty, error, confirmation, and success states matching DESIGN.md"
+    ],
+    "out_of_scope": [
+      "Sales returns",
+      "Receipt printing or Zalo sharing",
+      "Tax calculation",
+      "Multi-warehouse selection or batch allocation",
+      "Offline sales-order persistence or background synchronization",
+      "Disease-consultation context and handbook integration",
+      "Customer, product, or debt-management CRUD beyond consuming existing contracts",
+      "Editing an existing draft after creation",
+      "Reopening cancelled or completed orders"
+    ],
+    "expansion_policy": "requires-user-approval"
+  },
+  "dependencies": {
+    "blockedBy": [],
+    "blocks": []
+  },
+  "task_files": [
+    "tasks/task-R0-01-sales-order-contract-schema-foundation.md",
+    "tasks/task-R1-01-order-query-api.md",
+    "tasks/task-R2-01-order-create-complete-api.md",
+    "tasks/task-R3-01-order-cancellation-compensation.md",
+    "tasks/task-R4-01-tenant-sales-client-customer-picker.md",
+    "tasks/task-R5-01-order-list-detail-integration.md",
+    "tasks/task-R6-01-order-create-lifecycle-integration.md",
+    "tasks/task-R7-01-sales-order-acceptance-reachability.md"
+  ],
+  "task_registry": {
+    "tasks/task-R0-01-sales-order-contract-schema-foundation.md": {
+      "id": "R0-01",
+      "title": "Sales order contract schema foundation",
+      "status": "pending",
+      "dependencies": [],
+      "blocker": null,
+      "started_at": null,
+      "completed_at": null,
+      "last_updated_at": null
+    },
+    "tasks/task-R1-01-order-query-api.md": {
+      "id": "R1-01",
+      "title": "Order query api",
+      "status": "pending",
+      "dependencies": [
+        "tasks/task-R0-01-sales-order-contract-schema-foundation.md"
+      ],
+      "blocker": null,
+      "started_at": null,
+      "completed_at": null,
+      "last_updated_at": null
+    },
+    "tasks/task-R2-01-order-create-complete-api.md": {
+      "id": "R2-01",
+      "title": "Order create complete api",
+      "status": "pending",
+      "dependencies": [
+        "tasks/task-R0-01-sales-order-contract-schema-foundation.md",
+        "tasks/task-R1-01-order-query-api.md"
+      ],
+      "blocker": null,
+      "started_at": null,
+      "completed_at": null,
+      "last_updated_at": null
+    },
+    "tasks/task-R3-01-order-cancellation-compensation.md": {
+      "id": "R3-01",
+      "title": "Order cancellation compensation",
+      "status": "pending",
+      "dependencies": [
+        "tasks/task-R2-01-order-create-complete-api.md"
+      ],
+      "blocker": null,
+      "started_at": null,
+      "completed_at": null,
+      "last_updated_at": null
+    },
+    "tasks/task-R4-01-tenant-sales-client-customer-picker.md": {
+      "id": "R4-01",
+      "title": "Tenant sales client customer picker",
+      "status": "pending",
+      "dependencies": [
+        "tasks/task-R0-01-sales-order-contract-schema-foundation.md"
+      ],
+      "blocker": null,
+      "started_at": null,
+      "completed_at": null,
+      "last_updated_at": null
+    },
+    "tasks/task-R5-01-order-list-detail-integration.md": {
+      "id": "R5-01",
+      "title": "Order list detail integration",
+      "status": "pending",
+      "dependencies": [
+        "tasks/task-R1-01-order-query-api.md",
+        "tasks/task-R2-01-order-create-complete-api.md",
+        "tasks/task-R3-01-order-cancellation-compensation.md",
+        "tasks/task-R4-01-tenant-sales-client-customer-picker.md"
+      ],
+      "blocker": null,
+      "started_at": null,
+      "completed_at": null,
+      "last_updated_at": null
+    },
+    "tasks/task-R6-01-order-create-lifecycle-integration.md": {
+      "id": "R6-01",
+      "title": "Order create lifecycle integration",
+      "status": "pending",
+      "dependencies": [
+        "tasks/task-R2-01-order-create-complete-api.md",
+        "tasks/task-R3-01-order-cancellation-compensation.md",
+        "tasks/task-R4-01-tenant-sales-client-customer-picker.md",
+        "tasks/task-R5-01-order-list-detail-integration.md"
+      ],
+      "blocker": null,
+      "started_at": null,
+      "completed_at": null,
+      "last_updated_at": null
+    },
+    "tasks/task-R7-01-sales-order-acceptance-reachability.md": {
+      "id": "R7-01",
+      "title": "Sales order acceptance reachability",
+      "status": "pending",
+      "dependencies": [
+        "tasks/task-R0-01-sales-order-contract-schema-foundation.md",
+        "tasks/task-R1-01-order-query-api.md",
+        "tasks/task-R2-01-order-create-complete-api.md",
+        "tasks/task-R3-01-order-cancellation-compensation.md",
+        "tasks/task-R4-01-tenant-sales-client-customer-picker.md",
+        "tasks/task-R5-01-order-list-detail-integration.md",
+        "tasks/task-R6-01-order-create-lifecycle-integration.md"
+      ],
+      "blocker": null,
+      "started_at": null,
+      "completed_at": null,
+      "last_updated_at": null
+    }
+  },
+  "blocker": null,
+  "progress": {
+    "init": "done",
+    "requirements": "done",
+    "research": "done",
+    "design": "done",
+    "tasks": "done",
+    "code": "pending",
+    "test": "pending",
+    "review": "done"
+  },
+  "timestamps": {
+    "init": "2026-07-22T10:30:53+07:00",
+    "requirements_done": "2026-07-22T05:06:40.079Z",
+    "research_done": "2026-07-22T05:06:40.079Z",
+    "design_done": "2026-07-22T05:06:40.079Z",
+    "tasks_done": "2026-07-22T05:06:40.079Z",
+    "code_done": null,
+    "test_done": null,
+    "review_done": "2026-07-22T05:06:40.079Z",
+    "validation_done": "2026-07-22T05:06:40.079Z"
+  },
+  "design_context": {
+    "discovery_mode": "full",
+    "discovery_reason": "The feature spans an existing mock frontend, tenant API contracts, lifecycle transitions, and critical transactional inventory and debt compensation paths.",
+    "execution_tier": "deep",
+    "validation_recommended": true,
+    "validation_recommended_reason": "The scope changes transactional sales, inventory, and debt behavior across more than five implementation tasks."
+  },
+  "validation": {
+    "status": "completed",
+    "session_count": 1,
+    "questions_asked": 0,
+    "last_validated_at": "2026-07-22T05:06:40.079Z"
+  },
+  "translation": {
+    "enabled": false,
+    "language": null,
+    "language_code": null,
+    "dir": null,
+    "sync": "always",
+    "last_synced_at": null
+  },
+  "ready_for_implementation": true
+}
