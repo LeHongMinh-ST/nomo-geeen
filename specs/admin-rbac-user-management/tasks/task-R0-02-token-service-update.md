@@ -1,7 +1,7 @@
 # Task R0-02: Token service update
 
 **Requirement:** R5.1, R5.2 — Login/refresh compute permissions
-**Status:** in_progress
+**Status:** done
 **Priority:** P0
 **Estimated Effort:** M (1 day)
 **Dependencies:** tasks/task-R0-01-claim-migration.md

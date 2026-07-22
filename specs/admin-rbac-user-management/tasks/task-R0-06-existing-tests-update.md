@@ -1,7 +1,7 @@
 # Task R0-06: Existing tests update
 
 **Requirement:** NFR-4 — admin-authentication tests pass unchanged
-**Status:** in_progress
+**Status:** done
 **Priority:** P1
 **Estimated Effort:** S (½ day)
 **Dependencies:** tasks/task-R0-01-claim-migration.md, tasks/task-R0-02-token-service-update.md

@@ -1,6 +1,5 @@
 import { Exclude, Expose, Type } from 'class-transformer';
 import {
-	ArrayMinSize,
 	ArrayUnique,
 	IsArray,
 	IsEmail,
@@ -24,10 +23,13 @@ export class CreateAdminDto {
 	@Expose()
 	@IsString()
 	@Length(12, 128)
-	@Matches(/^(?=.*[A-Za-z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]).{12,}$/, {
-		message:
-			'password must be ≥12 chars and include letter, digit, and special character',
-	})
+	@Matches(
+		/^(?=.*[A-Za-z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]).{12,}$/,
+		{
+			message:
+				'password must be ≥12 chars and include letter, digit, and special character',
+		},
+	)
 	password!: string;
 
 	@Expose()
@@ -40,6 +42,6 @@ export class CreateAdminDto {
 	@ArrayUnique()
 	@IsUUID('4', { each: true })
 	@Type(() => String)
-	@ArrayMinSize(1)
+	/** Q2: 0 roles allowed — empty permissions until SUPER_ADMIN assigns. */
 	roleIds!: string[];
 }

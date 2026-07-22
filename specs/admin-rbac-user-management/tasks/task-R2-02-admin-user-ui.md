@@ -1,7 +1,7 @@
 # Task R2-02: Admin user ui
 
 **Requirement:** R7.1, R7.2, R7.3, R7.4 — Admin user management UI
-**Status:** pending
+**Status:** done
 **Priority:** P1
 **Estimated Effort:** M (1 day)
 **Dependencies:** tasks/task-R2-01-admin-user-api.md, tasks/task-R1-02-role-ui.md

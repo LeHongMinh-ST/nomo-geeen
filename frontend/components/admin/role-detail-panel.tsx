@@ -17,13 +17,9 @@ import type {
 } from "@/lib/admin-api/roles";
 import { cn } from "@/lib/utils";
 import { Can } from "./can-permission";
-import {
-	RoleEditorForm,
-	type UpdateSubmit,
-} from "./role-editor-form";
+import { RoleEditorForm, type UpdateSubmit } from "./role-editor-form";
 
-const SYSTEM_BADGE =
-	"bg-slate-100 text-slate-700 ring-1 ring-slate-200/80";
+const SYSTEM_BADGE = "bg-slate-100 text-slate-700 ring-1 ring-slate-200/80";
 const ADMIN_BADGE = "bg-blue-50 text-blue-700 ring-1 ring-blue-200/80";
 const TENANT_BADGE = "bg-muted text-muted-foreground ring-1 ring-border";
 
@@ -154,7 +150,7 @@ export function RoleDetailPanel({
 						<HeroStat
 							label="Loại"
 							value={role.isSystem ? "Hệ thống" : "Tuỳ chỉnh"}
-							hint={role.isSystem ? "Khoá mã" : "Có thể sửa/xoá"}
+							hint={role.isSystem ? "Khoá mã/tên/quyền" : "Có thể sửa/xoá"}
 						/>
 					</dl>
 				</div>

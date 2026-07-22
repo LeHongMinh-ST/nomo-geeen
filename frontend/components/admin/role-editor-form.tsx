@@ -81,6 +81,7 @@ export function RoleEditorForm(props: Props) {
 	}, [role, currentIds]);
 
 	const codeDisabled = isEdit && Boolean(role?.isSystem);
+	const systemLocked = isEdit && Boolean(role?.isSystem);
 
 	const grouped = useMemo(
 		() =>
@@ -94,6 +95,7 @@ export function RoleEditorForm(props: Props) {
 	const selectedCount = selectedIds.size;
 
 	function toggle(id: string) {
+		if (systemLocked) return;
 		setSelectedIds((cur) => {
 			const next = new Set(cur);
 			if (next.has(id)) next.delete(id);
@@ -103,6 +105,7 @@ export function RoleEditorForm(props: Props) {
 	}
 
 	function toggleAll(ids: string[], next: boolean) {
+		if (systemLocked) return;
 		setSelectedIds((cur) => {
 			const out = new Set(cur);
 			for (const id of ids) {
@@ -115,6 +118,10 @@ export function RoleEditorForm(props: Props) {
 
 	async function handleSubmit(e: React.FormEvent) {
 		e.preventDefault();
+		if (systemLocked) {
+			setError("Vai trò hệ thống không thể đổi tên hoặc quyền.");
+			return;
+		}
 		setSubmitting(true);
 		setError(null);
 		try {
@@ -159,10 +166,16 @@ export function RoleEditorForm(props: Props) {
 			</Link>
 			<button
 				type="submit"
-				disabled={submitting || !code || !name}
+				disabled={submitting || systemLocked || !code || !name}
 				className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-[10px] bg-primary px-4 text-sm font-semibold text-white shadow-[0_2px_8px_rgba(92,173,69,0.25)] transition-all duration-200 ease-out hover:bg-primary-hover hover:shadow-[0_4px_14px_rgba(92,173,69,0.32)] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 disabled:shadow-none sm:flex-none"
 			>
-				{submitting ? "Đang lưu..." : isEdit ? "Lưu thay đổi" : "Tạo vai trò"}
+				{submitting
+					? "Đang lưu..."
+					: systemLocked
+						? "Chỉ xem"
+						: isEdit
+							? "Lưu thay đổi"
+							: "Tạo vai trò"}
 			</button>
 		</div>
 	);
@@ -180,7 +193,7 @@ export function RoleEditorForm(props: Props) {
 							<div>
 								<p className="font-semibold">Vai trò hệ thống</p>
 								<p className="mt-0.5 text-amber-700/90">
-									Mã vai trò bị khoá. Có thể đổi tên hiển thị và tập quyền.
+									Mã, tên và tập quyền bị khoá. Chỉ xem (SYSTEM_ROLE_PROTECTED).
 								</p>
 							</div>
 						</div>
@@ -213,10 +226,15 @@ export function RoleEditorForm(props: Props) {
 						<input
 							type="text"
 							value={name}
+							disabled={systemLocked}
 							onChange={(e) => setName(e.target.value)}
 							required
 							maxLength={120}
-							className="h-11 w-full rounded-[10px] border border-border bg-background px-3 text-sm text-foreground outline-none transition-colors duration-150 placeholder:text-muted-foreground/60 focus:border-primary focus:ring-2 focus:ring-primary/20"
+							className={cn(
+								"h-11 w-full rounded-[10px] border border-border bg-background px-3 text-sm text-foreground outline-none transition-colors duration-150 placeholder:text-muted-foreground/60 focus:border-primary focus:ring-2 focus:ring-primary/20",
+								systemLocked &&
+									"cursor-not-allowed bg-muted text-muted-foreground",
+							)}
 							placeholder="VD: Vận hành billing"
 						/>
 					</Field>
@@ -276,6 +294,7 @@ export function RoleEditorForm(props: Props) {
 								permissions={perms}
 								selectedIds={selectedIds}
 								filter={permissionFilter}
+								readOnly={systemLocked}
 								onToggle={toggle}
 								onToggleAll={toggleAll}
 							/>

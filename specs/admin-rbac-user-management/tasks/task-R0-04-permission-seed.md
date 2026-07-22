@@ -1,7 +1,7 @@
 # Task R0-04: Permission seed
 
 **Requirement:** R1.1, R1.4 — permission catalog seed (idempotent)
-**Status:** in_progress
+**Status:** done
 **Priority:** P0
 **Estimated Effort:** S (½ day)
 **Dependencies:** tasks/task-R0-01-claim-migration.md

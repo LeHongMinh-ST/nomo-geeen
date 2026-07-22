@@ -1,7 +1,7 @@
 # Task R3-01: Fe admin pages
 
 **Requirement:** R7 — Frontend admin pages (final integration task)
-**Status:** pending
+**Status:** done
 **Priority:** P1
 **Estimated Effort:** M (1 day)
 **Dependencies:** tasks/task-R1-02-role-ui.md, tasks/task-R2-02-admin-user-ui.md, tasks/task-R0-03-permission-guard.md

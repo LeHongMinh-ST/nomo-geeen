@@ -5,9 +5,9 @@ import {
 	NotFoundException,
 } from '@nestjs/common';
 import { AuditAction, AuditActorType, Prisma } from '@prisma/client';
+import { ADMIN_PERMISSION_PREFIX } from '../admin-users/admin.constants';
 import { AuditLogger } from '../audit/audit-logger.service';
 import { PrismaService } from '../prisma/prisma.service';
-import { ADMIN_PERMISSION_PREFIX } from '../admin-users/admin.constants';
 import { CreateRoleDto } from './dto/create-role.dto';
 import { UpdateRoleDto } from './dto/update-role.dto';
 
@@ -67,9 +67,10 @@ export class RolesService {
 	}
 
 	async listPermissions(): Promise<PermissionPublicShape[]> {
+		// R1.2: sort resource ASC, action ASC (group is secondary for UI labels).
 		return this.prisma.permission.findMany({
 			where: { code: { startsWith: ADMIN_PERMISSION_PREFIX } },
-			orderBy: [{ group: 'asc' }, { action: 'asc' }],
+			orderBy: [{ resource: 'asc' }, { action: 'asc' }],
 			select: {
 				id: true,
 				code: true,
@@ -115,7 +116,8 @@ export class RolesService {
 		if (found !== ids.length) {
 			throw new BadRequestException({
 				reason: 'INVALID_PERMISSION_ID',
-				message: 'One or more permissionIds do not exist or are not admin permissions',
+				message:
+					'One or more permissionIds do not exist or are not admin permissions',
 			});
 		}
 	}
@@ -129,7 +131,11 @@ export class RolesService {
 				actorRoleCode: ctx.actorRoleCode,
 				action: AuditAction.ROLE_CREATE,
 				resource: 'role',
-				after: { code: dto.code, name: dto.name, permissionIds: dto.permissionIds ?? [] },
+				after: {
+					code: dto.code,
+					name: dto.name,
+					permissionIds: dto.permissionIds ?? [],
+				},
 				ipAddress: ctx.ipAddress,
 				userAgent: ctx.userAgent,
 			},
@@ -139,14 +145,26 @@ export class RolesService {
 					select: { id: true },
 				});
 				if (existing) {
-					throw new ConflictException({ reason: 'ROLE_CODE_DUPLICATE', message: `Role code already exists: ${dto.code}` });
+					throw new ConflictException({
+						reason: 'ROLE_CODE_DUPLICATE',
+						message: `Role code already exists: ${dto.code}`,
+					});
 				}
 				const role = await tx.role.create({
-					data: { code: dto.code, name: dto.name, tenantId: null, isAdmin: true, isSystem: false },
+					data: {
+						code: dto.code,
+						name: dto.name,
+						tenantId: null,
+						isAdmin: true,
+						isSystem: false,
+					},
 				});
 				if (dto.permissionIds?.length) {
 					await tx.rolePermission.createMany({
-						data: dto.permissionIds.map((permissionId) => ({ roleId: role.id, permissionId })),
+						data: dto.permissionIds.map((permissionId) => ({
+							roleId: role.id,
+							permissionId,
+						})),
 					});
 				}
 				const full = await tx.role.findUniqueOrThrow({
@@ -159,7 +177,11 @@ export class RolesService {
 		);
 	}
 
-	async update(id: string, dto: UpdateRoleDto, ctx: AuditCtx): Promise<RolePublicShape> {
+	async update(
+		id: string,
+		dto: UpdateRoleDto,
+		ctx: AuditCtx,
+	): Promise<RolePublicShape> {
 		const existing = await this.prisma.role.findUnique({
 			where: { id },
 			include: { permissions: { include: { permission: true } } },
@@ -168,11 +190,30 @@ export class RolesService {
 		if (!existing || !existing.isAdmin || existing.tenantId !== null) {
 			throw new NotFoundException('Role not found');
 		}
-		const beforePermissionIds = existing.permissions.map((rp) => rp.permission.id);
+		// System roles (SUPER_ADMIN / SUPPORT / BILLING): freeze name + grants.
+		// Delete already blocked via SYSTEM_ROLE_PROTECTED; patch must match.
+		const wantsNameChange =
+			dto.name !== undefined && dto.name !== existing.name;
+		const wantsGrantChange =
+			(dto.addPermissionIds?.length ?? 0) > 0 ||
+			(dto.removePermissionIds?.length ?? 0) > 0;
+		if (existing.isSystem && (wantsNameChange || wantsGrantChange)) {
+			throw new BadRequestException({
+				reason: 'SYSTEM_ROLE_PROTECTED',
+				message: 'System roles cannot be renamed or have permissions changed',
+			});
+		}
+		const beforePermissionIds = existing.permissions.map(
+			(rp) => rp.permission.id,
+		);
 		const current = new Set(beforePermissionIds);
-		const addIds = (dto.addPermissionIds ?? []).filter((id) => !current.has(id));
+		const addIds = (dto.addPermissionIds ?? []).filter(
+			(id) => !current.has(id),
+		);
 		// removeIds already filtered to current role membership — no re-validate.
-		const removeIds = (dto.removePermissionIds ?? []).filter((id) => current.has(id));
+		const removeIds = (dto.removePermissionIds ?? []).filter((id) =>
+			current.has(id),
+		);
 		await this.validateAdminPermissionIds(addIds);
 
 		return this.audit.run(
@@ -251,15 +292,44 @@ export class RolesService {
 	async remove(id: string, ctx: AuditCtx): Promise<void> {
 		const existing = await this.prisma.role.findUnique({
 			where: { id },
-			select: { id: true, isSystem: true, isAdmin: true, tenantId: true, code: true },
+			select: {
+				id: true,
+				isSystem: true,
+				isAdmin: true,
+				tenantId: true,
+				code: true,
+			},
 		});
-		if (!existing || !existing.isAdmin || existing.tenantId !== null) throw new NotFoundException('Role not found');
-		if (existing.isSystem) throw new BadRequestException({ reason: 'SYSTEM_ROLE_PROTECTED', message: 'System roles cannot be deleted' });
-		const assignments = await this.prisma.adminRoleAssignment.count({ where: { roleId: id } });
-		if (assignments > 0) throw new ConflictException({ reason: 'ROLE_IN_USE', message: `Role assigned to ${assignments} admin(s); detach before deletion` });
+		if (!existing || !existing.isAdmin || existing.tenantId !== null)
+			throw new NotFoundException('Role not found');
+		if (existing.isSystem)
+			throw new BadRequestException({
+				reason: 'SYSTEM_ROLE_PROTECTED',
+				message: 'System roles cannot be deleted',
+			});
+		const assignments = await this.prisma.adminRoleAssignment.count({
+			where: { roleId: id },
+		});
+		if (assignments > 0)
+			throw new ConflictException({
+				reason: 'ROLE_IN_USE',
+				message: `Role assigned to ${assignments} admin(s); detach before deletion`,
+			});
 		await this.audit.run(
-			{ actorId: ctx.actorId, actorType: AuditActorType.PLATFORM_ADMIN, actorRoleCode: ctx.actorRoleCode, action: AuditAction.ROLE_DELETE, resource: 'role', resourceId: id, before: { code: existing.code }, ipAddress: ctx.ipAddress, userAgent: ctx.userAgent },
-			async (tx) => { await tx.role.delete({ where: { id } }); },
+			{
+				actorId: ctx.actorId,
+				actorType: AuditActorType.PLATFORM_ADMIN,
+				actorRoleCode: ctx.actorRoleCode,
+				action: AuditAction.ROLE_DELETE,
+				resource: 'role',
+				resourceId: id,
+				before: { code: existing.code },
+				ipAddress: ctx.ipAddress,
+				userAgent: ctx.userAgent,
+			},
+			async (tx) => {
+				await tx.role.delete({ where: { id } });
+			},
 		);
 	}
 }

@@ -1,7 +1,7 @@
 # Task R1-02: Role ui
 
 **Requirement:** R7.5, R7.6, R7.8 — Role management UI
-**Status:** pending
+**Status:** done
 **Priority:** P1
 **Estimated Effort:** M (1 day)
 **Dependencies:** tasks/task-R1-01-role-api.md

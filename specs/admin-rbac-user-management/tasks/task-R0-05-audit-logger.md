@@ -1,7 +1,7 @@
 # Task R0-05: Audit logger
 
 **Requirement:** R6.1, R6.3, R6.4, R6.5 — audit log on state changes
-**Status:** in_progress
+**Status:** done
 **Priority:** P0
 **Estimated Effort:** S (½ day)
 **Dependencies:** tasks/task-R0-01-claim-migration.md

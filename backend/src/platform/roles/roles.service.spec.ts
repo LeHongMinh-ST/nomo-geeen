@@ -85,7 +85,10 @@ describe('RolesService', () => {
 		it('returns platform roles with sorted permission codes', async () => {
 			prisma.role.findMany.mockResolvedValue([
 				roleRow({
-					permissions: [permRow('p2', 'admin.role:view'), permRow('p1', 'admin.role:edit')],
+					permissions: [
+						permRow('p2', 'admin.role:view'),
+						permRow('p1', 'admin.role:edit'),
+					],
 				}),
 			]);
 
@@ -152,7 +155,10 @@ describe('RolesService', () => {
 			prisma.role.findUniqueOrThrow.mockResolvedValue(
 				roleRow({
 					id: 'role-2',
-					permissions: [permRow('p1', 'admin.role:view'), permRow('p2', 'admin.role:edit')],
+					permissions: [
+						permRow('p1', 'admin.role:view'),
+						permRow('p2', 'admin.role:edit'),
+					],
 				}),
 			);
 
@@ -212,7 +218,10 @@ describe('RolesService', () => {
 			prisma.rolePermission.createMany.mockResolvedValue({ count: 1 });
 			prisma.rolePermission.deleteMany.mockResolvedValue({ count: 1 });
 			prisma.role.findUniqueOrThrow.mockResolvedValue(
-				roleRow({ name: 'Renamed', permissions: [permRow('p-new', 'admin.role:edit')] }),
+				roleRow({
+					name: 'Renamed',
+					permissions: [permRow('p-new', 'admin.role:edit')],
+				}),
 			);
 
 			await service.update(
@@ -265,6 +274,24 @@ describe('RolesService', () => {
 			expect(prisma.rolePermission.deleteMany).not.toHaveBeenCalled();
 			expect(prisma.auditLogCreate).not.toHaveBeenCalled();
 		});
+
+		it('400 SYSTEM_ROLE_PROTECTED when renaming or changing grants on isSystem role', async () => {
+			prisma.role.findUnique.mockResolvedValue(
+				roleRow({
+					isSystem: true,
+					code: 'SUPER_ADMIN',
+					permissions: [permRow('p-old', 'admin.role:view')],
+				}),
+			);
+			await expect(
+				service.update(
+					'role-1',
+					{ name: 'Hacked', addPermissionIds: ['p-new'] },
+					ctx,
+				),
+			).rejects.toBeInstanceOf(BadRequestException);
+			expect(audit.run).not.toHaveBeenCalled();
+		});
 	});
 
 	describe('remove', () => {
@@ -299,18 +326,21 @@ describe('RolesService', () => {
 
 			await service.remove('role-1', ctx);
 
-			expect(prisma.role.delete).toHaveBeenCalledWith({ where: { id: 'role-1' } });
+			expect(prisma.role.delete).toHaveBeenCalledWith({
+				where: { id: 'role-1' },
+			});
 			expect(audit.run.mock.calls[0][0].action).toBe(AuditAction.ROLE_DELETE);
 		});
 	});
 
 	describe('listPermissions', () => {
-		it('queries only admin-prefixed permission codes', async () => {
+		it('queries only admin-prefixed permission codes ordered by resource, action', async () => {
 			prisma.permission.findMany.mockResolvedValue([]);
 			await service.listPermissions();
 			expect(prisma.permission.findMany).toHaveBeenCalledWith(
 				expect.objectContaining({
 					where: { code: { startsWith: 'admin.' } },
+					orderBy: [{ resource: 'asc' }, { action: 'asc' }],
 				}),
 			);
 		});

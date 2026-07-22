@@ -102,6 +102,7 @@ interface Props {
 	permissions: PermissionPublicShape[];
 	selectedIds: Set<string>;
 	filter: string;
+	readOnly?: boolean;
 	onToggle: (id: string) => void;
 	onToggleAll: (ids: string[], next: boolean) => void;
 }
@@ -111,6 +112,7 @@ export function PermissionGroupCard({
 	permissions,
 	selectedIds,
 	filter,
+	readOnly = false,
 	onToggle,
 	onToggleAll,
 }: Props) {
@@ -160,8 +162,13 @@ export function PermissionGroupCard({
 				</div>
 				<button
 					type="button"
-					onClick={() => onToggleAll(allIds, !allChecked)}
-					className="inline-flex h-7 items-center gap-1 rounded-[6px] px-2 text-xs font-semibold text-muted-foreground transition-colors duration-150 hover:bg-soft hover:text-foreground"
+					onClick={() => {
+						if (!readOnly) onToggleAll(allIds, !allChecked);
+					}}
+					className={cn(
+						"inline-flex h-7 items-center gap-1 rounded-[6px] px-2 text-xs font-semibold text-muted-foreground transition-colors duration-150 hover:bg-soft hover:text-foreground",
+						readOnly && "hidden",
+					)}
 				>
 					{allChecked ? "Bỏ chọn tất cả" : "Chọn tất cả"}
 				</button>
@@ -196,11 +203,13 @@ export function PermissionGroupCard({
 function PermissionRow({
 	permission,
 	checked,
+	readOnly,
 	onToggle,
 }: {
 	permission: PermissionPublicShape;
 	checked: boolean;
 	someChecked: boolean;
+	readOnly?: boolean;
 	onToggle: () => void;
 }) {
 	const actionTone =

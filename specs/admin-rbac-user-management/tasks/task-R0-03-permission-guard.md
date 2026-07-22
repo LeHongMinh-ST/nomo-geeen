@@ -1,7 +1,7 @@
 # Task R0-03: Permission guard
 
 **Requirement:** R4.1, R4.2, R4.3, R4.4 — Permission enforcement
-**Status:** in_progress
+**Status:** done
 **Priority:** P0
 **Estimated Effort:** S (½ day)
 **Dependencies:** tasks/task-R0-01-claim-migration.md

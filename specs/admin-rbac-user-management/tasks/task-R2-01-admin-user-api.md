@@ -1,7 +1,7 @@
 # Task R2-01: Admin user api
 
 **Requirement:** R3 — Admin user CRUD API
-**Status:** in_progress
+**Status:** done
 **Priority:** P1
 **Estimated Effort:** M (1 day)
 **Dependencies:** tasks/task-R0-03-permission-guard.md, tasks/task-R0-05-audit-logger.md, tasks/task-R1-01-role-api.md

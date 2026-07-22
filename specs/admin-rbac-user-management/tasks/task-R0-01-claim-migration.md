@@ -1,7 +1,7 @@
 # Task R0-01: Claim migration
 
 **Requirement:** R5, R8 — JWT claim + additive migration
-**Status:** in_progress
+**Status:** done
 **Priority:** P0
 **Estimated Effort:** M (1 day)
 **Dependencies:** none (foundation)
