@@ -1,0 +1,157 @@
+{
+  "feature_name": "sale-checkout-fe-gates",
+  "created_at": "2026-07-23T16:11:30+07:00",
+  "updated_at": "2026-07-23T16:22:00+07:00",
+  "language": "en",
+  "status": "in_progress",
+  "phase": "tasks",
+  "current_phase": "tasks",
+  "priority": "P1",
+  "effort": "1-2 implementation days",
+  "tags": [
+    "sales",
+    "frontend",
+    "checkout",
+    "compliance",
+    "phi"
+  ],
+  "approvals": {
+    "requirements": {
+      "generated": true,
+      "approved": true
+    },
+    "design": {
+      "generated": true,
+      "approved": true
+    },
+    "tasks": {
+      "generated": true,
+      "approved": true
+    }
+  },
+  "scope_lock": {
+    "source": "Follow-up after sale-checkout-kind-gates: FE map structured 422 eligibility reasons + optional PHI/REI/withdrawal advisory display at POS (catalog §11.3 display-only). No harvest-date hard block.",
+    "in_scope": [
+      "Shared FE map for PRODUCT_UNSELLABLE / PRODUCT_LOCKED / PRODUCT_RECALLED / PRODUCT_INACTIVE (and existing stock/customer reasons)",
+      "Use map on quick-sale, order-form create, order-detail complete error paths",
+      "Optional advisory strip when product attrs expose phiDays/reiDays/withdrawal* (display only)",
+      "Unit tests for reason map + component tests for mapped toast/alert copy",
+      "Type alignment with backend QuickSaleApiErrorReason / Unprocessable body shape"
+    ],
+    "out_of_scope": [
+      "PHI/REI hard block by harvest/event date",
+      "Livestock individual state machine gates",
+      "7 kind-specific hard branches beyond flags",
+      "Backend policy changes",
+      "Tenant audit SALE_DENY events",
+      "SalesReturn / handbook snapshot",
+      "New Prisma columns"
+    ],
+    "expansion_policy": "requires-user-approval"
+  },
+  "dependencies": {
+    "blockedBy": [
+      "specs/sale-checkout-kind-gates/"
+    ],
+    "blocks": []
+  },
+  "task_files": [
+    "tasks/task-R0-01-sale-error-reason-map.md",
+    "tasks/task-R1-01-quick-sale-order-reason-ui.md",
+    "tasks/task-R1-02-phi-rei-advisory-display.md",
+    "tasks/task-R1-03-fe-gates-verification.md"
+  ],
+  "task_registry": {
+    "tasks/task-R0-01-sale-error-reason-map.md": {
+      "id": "R0-01",
+      "title": "Sale error reason map",
+      "status": "pending",
+      "dependencies": [],
+      "blocker": null,
+      "started_at": null,
+      "completed_at": null,
+      "last_updated_at": null
+    },
+    "tasks/task-R1-01-quick-sale-order-reason-ui.md": {
+      "id": "R1-01",
+      "title": "Quick sale order reason ui",
+      "status": "pending",
+      "dependencies": [
+        "tasks/task-R0-01-sale-error-reason-map.md"
+      ],
+      "blocker": null,
+      "started_at": null,
+      "completed_at": null,
+      "last_updated_at": null
+    },
+    "tasks/task-R1-02-phi-rei-advisory-display.md": {
+      "id": "R1-02",
+      "title": "Phi rei advisory display",
+      "status": "pending",
+      "dependencies": [],
+      "blocker": null,
+      "started_at": null,
+      "completed_at": null,
+      "last_updated_at": null
+    },
+    "tasks/task-R1-03-fe-gates-verification.md": {
+      "id": "R1-03",
+      "title": "Fe gates verification",
+      "status": "pending",
+      "dependencies": [
+        "tasks/task-R0-01-sale-error-reason-map.md",
+        "tasks/task-R1-01-quick-sale-order-reason-ui.md",
+        "tasks/task-R1-02-phi-rei-advisory-display.md"
+      ],
+      "blocker": null,
+      "started_at": null,
+      "completed_at": null,
+      "last_updated_at": null
+    }
+  },
+  "blocker": null,
+  "progress": {
+    "init": "done",
+    "requirements": "done",
+    "research": "done",
+    "design": "done",
+    "tasks": "done",
+    "code": "pending",
+    "test": "pending",
+    "review": "pending"
+  },
+  "timestamps": {
+    "init": "2026-07-23T16:11:30+07:00",
+    "requirements_done": "2026-07-23T16:15:00+07:00",
+    "research_done": "2026-07-23T16:15:00+07:00",
+    "design_done": "2026-07-23T16:18:00+07:00",
+    "tasks_done": "2026-07-23T16:20:00+07:00",
+    "code_done": null,
+    "test_done": null,
+    "review_done": null,
+    "validation_done": null
+  },
+  "design_context": {
+    "discovery_mode": "light",
+    "discovery_reason": "FE map + advisory display over existing sales UI; backend eligibility already shipped.",
+    "execution_tier": "standard",
+    "validation_recommended": false
+  },
+  "validation": {
+    "status": "pending",
+    "session_count": 0,
+    "questions_asked": 0,
+    "last_validated_at": null,
+    "mode": null,
+    "validator_exit": null
+  },
+  "translation": {
+    "enabled": false,
+    "language": null,
+    "language_code": null,
+    "dir": null,
+    "sync": "always",
+    "last_synced_at": null
+  },
+  "ready_for_implementation": true
+}
