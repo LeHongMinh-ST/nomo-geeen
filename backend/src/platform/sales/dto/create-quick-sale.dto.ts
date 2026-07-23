@@ -71,6 +71,9 @@ export class CreateQuickSaleDto {
 export type QuickSaleApiErrorReason =
 	| 'INSUFFICIENT_STOCK'
 	| 'PRODUCT_UNSELLABLE'
+	| 'PRODUCT_LOCKED'
+	| 'PRODUCT_RECALLED'
+	| 'PRODUCT_INACTIVE'
 	| 'INVALID_CUSTOMER'
 	| 'IDEMPOTENCY_CONFLICT'
 	| 'VALIDATION_ERROR';
