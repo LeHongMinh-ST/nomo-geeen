@@ -8,6 +8,8 @@ Format theo [Keep a Changelog](https://keepachangelog.com/), tuân thủ [Semant
 ## [Unreleased]
 
 ### Added
+- **Crop-input ProductKind catalog (BA)** — added `BIOLOGICAL_PRODUCT`, `GROWTH_REGULATOR`, `SOIL_AMENDMENT` to `ProductKind` + migration; mapped to `CROP_INPUTS` in product contract with required `composition` attrs; documented six types in `docs/core-business-catalog.md` §4.0.
+
 - **Tenant stock adjustments (core reasons)** — added `reasonCode` on adjustment lines, closed ProductKind reason policy, Serializable complete dual-write for Stock/ProductBatch/StockMovement `ADJUSTMENT`, and tenant API `GET/POST /tenant/stock-adjustments` + `POST :id/complete` (`inventory:view` / `inventory:edit`). Returns, transfers, FE cycle-count, and aquaculture reason packs remain out of scope.
 
 - **Sale checkout FE gates** — shared `mapSalesApiError` for PRODUCT_LOCKED/RECALLED/INACTIVE/UNSELLABLE (+ stock/customer copy locked); wired quick-sale / order-form / order-detail action errors; optional PHI/REI/withdrawal advisory strip (display-only, hide if meta missing). Spec `specs/sale-checkout-fe-gates/`. No harvest hard-block.

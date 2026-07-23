@@ -85,3 +85,15 @@ The admin permission catalog is exposed at `/admin/settings/permissions` and gat
 ## Deployment evidence gap
 
 The repository contains local runtime/package configuration and migrations, but no verified production CI/deployment manifest was found during baseline initialization.
+
+## Stock adjustments (tenant)
+
+- Module: `backend/src/platform/stock-adjustments/`
+- Routes: `/tenant/stock-adjustments` (list/detail/create/complete)
+- Complete: Serializable dual-write Stock + optional ProductBatch + StockMovement reason `ADJUSTMENT`
+- Reason codes: closed map by `ProductKind` (`adjustment-reason-policy.ts`)
+
+## Product contract (crop-input kinds)
+
+- Six BA crop-input types map to `CROP_INPUTS`: `PESTICIDE`, `FERTILIZER`, `BIOLOGICAL_PRODUCT`, `GROWTH_REGULATOR`, `SOIL_AMENDMENT`, `AGRI_MATERIAL`.
+- `category` is store-only label; specialized fields live in `attrs` / product contract validation.

@@ -358,3 +358,32 @@ Phase 1 triển khai 5 nhóm cốt lõi. Thủy sản là thiết kế tương l
 hiện tại. Trước khi xây nghiệp vụ hàng sống cần chốt: Con giống theo lô hay cá thể; Cây giống
 bao gồm hạt, cây con hay cả hai; và Thủy sản có cần quản lý theo sinh khối ngay ở phase mở rộng
 đầu tiên hay không.
+
+
+## 4.0 Giá trị lõi theo BA (2026-07-23)
+
+Trong cửa hàng vật tư cây trồng, `productKind` là **Loại sản phẩm** kỹ thuật; không dùng `category` hoặc “Nhóm sản phẩm” để thay thế. Sáu giá trị chuẩn:
+
+| Mã | Nhãn hiển thị | Nhóm nghiệp vụ |
+|---|---|---|
+| `PESTICIDE` | Thuốc bảo vệ thực vật | `CROP_INPUTS` |
+| `FERTILIZER` | Phân bón | `CROP_INPUTS` |
+| `BIOLOGICAL_PRODUCT` | Chế phẩm sinh học | `CROP_INPUTS` |
+| `GROWTH_REGULATOR` | Chất điều hòa sinh trưởng | `CROP_INPUTS` |
+| `SOIL_AMENDMENT` | Chất cải tạo đất | `CROP_INPUTS` |
+| `AGRI_MATERIAL` | Vật tư nông nghiệp | `CROP_INPUTS` |
+
+`category` chỉ là nhãn sắp xếp riêng của cửa hàng. Backend kiểm tra `productKind` và `attrs`; frontend hiển thị form tương ứng. Các ProductKind chăn nuôi, cây giống và thủy sản là phạm vi mở rộng, không đưa vào lựa chọn mặc định của cửa hàng crop-inputs.
+
+Thuộc tính chuyên ngành: thuốc BVTV gồm hoạt chất, hàm lượng, dạng thuốc, đối tượng phòng trừ, cây trồng, nhóm độc, PHI và số đăng ký; phân bón gồm loại, thành phần dinh dưỡng, N-P-K, hữu cơ, cây trồng và giai đoạn.
+
+## 14.1 Các trường vận hành đã chốt theo BA
+
+- **Nhà cung cấp:** mã, tên, loại (thuốc BVTV, phân bón hoặc cả hai), người liên hệ, điện thoại, email, địa chỉ, tỉnh/thành phố, công nợ hiện tại, trạng thái.
+- **Nhập hàng:** mã phiếu, ngày nhập, nhà cung cấp, số mặt hàng, tổng giá trị, thanh toán, công nợ, trạng thái; từng dòng lưu sản phẩm, lô, ngày sản xuất, hạn dùng, số lượng, giá nhập và thành tiền.
+- **Tồn kho:** mã/tên thương mại, loại sản phẩm, nhà sản xuất, kho, tồn, đơn vị, giá vốn, giá bán, lô, hạn gần nhất, trạng thái; cảnh báo sắp hết, sắp hết hạn, hết hạn, thu hồi và ngừng lưu hành.
+- **Bán hàng tư vấn:** dùng `crop` (cây trồng) và `symptom` (triệu chứng), sau đó gợi ý thuốc BVTV/phân bón, liều lượng, thời điểm phun và thời gian cách ly. Không dùng nhãn “Đối tượng” cho cây trồng.
+- **Khách hàng:** `productionProfile` gồm cây trồng, giống, diện tích, địa phương, mùa vụ; lịch sử tư vấn lưu ngày, cây, triệu chứng, thuốc và phân bón đã bán.
+- **Dashboard:** top sâu bệnh được tư vấn, cây trồng được tư vấn, thuốc BVTV bán chạy, phân bón bán chạy, hoạt chất bán nhiều và thương hiệu bán chạy.
+
+Các trường trên là hợp đồng nghiệp vụ cần được triển khai theo spec từng bounded context; không suy diễn thành một JSON tự do duy nhất khi xây UI/API.

@@ -9,9 +9,22 @@ export const BUSINESS_GROUP_CATALOG = [
 	{ id: BusinessGroup.LIVESTOCK, label: 'Con giống' },
 ] as const;
 
+/** Canonical crop-input types from the BA brief. Category remains a store label. */
+export const CROP_INPUT_PRODUCT_TYPE_CATALOG = [
+	{ id: ProductKind.PESTICIDE, label: 'Thuốc bảo vệ thực vật' },
+	{ id: ProductKind.FERTILIZER, label: 'Phân bón' },
+	{ id: ProductKind.BIOLOGICAL_PRODUCT, label: 'Chế phẩm sinh học' },
+	{ id: ProductKind.GROWTH_REGULATOR, label: 'Chất điều hòa sinh trưởng' },
+	{ id: ProductKind.SOIL_AMENDMENT, label: 'Chất cải tạo đất' },
+	{ id: ProductKind.AGRI_MATERIAL, label: 'Vật tư nông nghiệp' },
+] as const;
+
 const KIND_GROUP: Partial<Record<ProductKind, BusinessGroup>> = {
 	[ProductKind.PESTICIDE]: BusinessGroup.CROP_INPUTS,
 	[ProductKind.FERTILIZER]: BusinessGroup.CROP_INPUTS,
+	[ProductKind.BIOLOGICAL_PRODUCT]: BusinessGroup.CROP_INPUTS,
+	[ProductKind.GROWTH_REGULATOR]: BusinessGroup.CROP_INPUTS,
+	[ProductKind.SOIL_AMENDMENT]: BusinessGroup.CROP_INPUTS,
 	[ProductKind.AGRI_MATERIAL]: BusinessGroup.CROP_INPUTS,
 	[ProductKind.CROP_SEED]: BusinessGroup.CROP_SEEDLINGS,
 	[ProductKind.SEED]: BusinessGroup.CROP_SEEDLINGS,
@@ -24,6 +37,9 @@ const KIND_GROUP: Partial<Record<ProductKind, BusinessGroup>> = {
 const REQUIRED_ATTRS: Partial<Record<ProductKind, string[]>> = {
 	[ProductKind.PESTICIDE]: ['activeIngredient', 'concentration'],
 	[ProductKind.FERTILIZER]: ['composition'],
+	[ProductKind.BIOLOGICAL_PRODUCT]: ['composition'],
+	[ProductKind.GROWTH_REGULATOR]: ['composition'],
+	[ProductKind.SOIL_AMENDMENT]: ['composition'],
 	[ProductKind.SEED]: ['species', 'variety'],
 	[ProductKind.SEEDLING]: ['species', 'variety'],
 	[ProductKind.ANIMAL_FEED]: ['animalSpecies', 'feedForm'],

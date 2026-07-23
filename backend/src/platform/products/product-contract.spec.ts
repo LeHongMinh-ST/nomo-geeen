@@ -3,6 +3,7 @@ import { BusinessGroup, ProductKind } from '@prisma/client';
 import {
 	assertSelectableBusinessGroup,
 	BUSINESS_GROUP_CATALOG,
+	CROP_INPUT_PRODUCT_TYPE_CATALOG,
 	resolveBusinessGroup,
 	validateProductContract,
 } from './product-contract';
@@ -39,6 +40,20 @@ describe('product contract', () => {
 				{},
 			),
 		).toThrow(BadRequestException);
+	});
+
+	it('exposes the six BA crop-input product types', () => {
+		expect(CROP_INPUT_PRODUCT_TYPE_CATALOG.map((item) => item.label)).toEqual([
+			'Thuốc bảo vệ thực vật',
+			'Phân bón',
+			'Chế phẩm sinh học',
+			'Chất điều hòa sinh trưởng',
+			'Chất cải tạo đất',
+			'Vật tư nông nghiệp',
+		]);
+		expect(resolveBusinessGroup(ProductKind.SOIL_AMENDMENT)).toBe(
+			BusinessGroup.CROP_INPUTS,
+		);
 	});
 
 	it('requires group-specific attrs', () => {
