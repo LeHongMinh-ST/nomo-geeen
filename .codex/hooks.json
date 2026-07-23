@@ -6,11 +6,11 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node '/Users/minhlh.st/code/nomo-green/.codex/hooks/privacy-block.cjs'"
+            "command": "node '.codex/hooks/privacy-block.cjs'"
           },
           {
             "type": "command",
-            "command": "node '/Users/minhlh.st/code/nomo-green/.codex/hooks/inspect-block.cjs'"
+            "command": "node '.codex/hooks/inspect-block.cjs'"
           }
         ]
       },
@@ -19,7 +19,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node '/Users/minhlh.st/code/nomo-green/.codex/hooks/task-scaffold-guard.cjs'"
+            "command": "node '.codex/hooks/task-scaffold-guard.cjs'"
           }
         ]
       }
@@ -30,7 +30,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node '/Users/minhlh.st/code/nomo-green/.codex/hooks/state.cjs'"
+            "command": "node '.codex/hooks/state.cjs'"
           }
         ]
       },
@@ -39,7 +39,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node '/Users/minhlh.st/code/nomo-green/.codex/hooks/usage.cjs'",
+            "command": "node '.codex/hooks/usage.cjs'",
             "timeout": 30
           }
         ]
@@ -51,15 +51,15 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node '/Users/minhlh.st/code/nomo-green/.codex/hooks/session.cjs'"
+            "command": "node '.codex/hooks/session.cjs'"
           },
           {
             "type": "command",
-            "command": "node '/Users/minhlh.st/code/nomo-green/.codex/hooks/docs-sync.cjs'"
+            "command": "node '.codex/hooks/docs-sync.cjs'"
           },
           {
             "type": "command",
-            "command": "node '/Users/minhlh.st/code/nomo-green/.codex/hooks/state.cjs'"
+            "command": "node '.codex/hooks/state.cjs'"
           }
         ]
       }
@@ -69,15 +69,15 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node '/Users/minhlh.st/code/nomo-green/.codex/hooks/rules.cjs'"
+            "command": "node '.codex/hooks/rules.cjs'"
           },
           {
             "type": "command",
-            "command": "node '/Users/minhlh.st/code/nomo-green/.codex/hooks/spec-state.cjs'"
+            "command": "node '.codex/hooks/spec-state.cjs'"
           },
           {
             "type": "command",
-            "command": "node '/Users/minhlh.st/code/nomo-green/.codex/hooks/usage.cjs'",
+            "command": "node '.codex/hooks/usage.cjs'",
             "timeout": 30
           }
         ]
@@ -89,7 +89,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node '/Users/minhlh.st/code/nomo-green/.codex/hooks/agent.cjs'"
+            "command": "node '.codex/hooks/agent.cjs'"
           }
         ]
       }
@@ -99,7 +99,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node '/Users/minhlh.st/code/nomo-green/.codex/hooks/state.cjs'"
+            "command": "node '.codex/hooks/state.cjs'"
           }
         ]
       }
@@ -109,7 +109,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node '/Users/minhlh.st/code/nomo-green/.codex/hooks/state.cjs'"
+            "command": "node '.codex/hooks/state.cjs'"
           }
         ]
       }
