@@ -12,6 +12,11 @@ import {
 	StockDirection,
 	StockReason,
 } from '@prisma/client';
+import {
+	assertBatchNotRecalled,
+	assertInboundBatch,
+	shouldUpsertInboundBatch,
+} from '../inventory/batch-policy';
 import { PrismaService } from '../prisma/prisma.service';
 import {
 	CreatePurchaseDto,
@@ -341,29 +346,41 @@ export class PurchasesService {
 				BigInt(line.lineTotal) - discountShare + shippingShare;
 			const unitCost = this.toUnitCost(effectiveLineCost, line.qtyBase);
 			let batchId: string | undefined;
-			if (this.isBatchControlled(line.product.productKind)) {
-				if (!line.batchCode)
-					throw new UnprocessableEntityException({
-						reason: 'BATCH_REQUIRED',
-						message: 'Batch code is required for this product',
-					});
+			assertInboundBatch(
+				line.product.productKind,
+				line.batchCode,
+				line.expiresAt,
+			);
+			if (shouldUpsertInboundBatch(line.product.productKind, line.batchCode)) {
+				const batchCode = line.batchCode!.trim();
+				const existingBatch = await tx.productBatch.findFirst({
+					where: {
+						tenantId,
+						productId: line.productId,
+						warehouseId: purchase.warehouseId,
+						batchCode,
+					},
+					select: { id: true, isRecalled: true },
+				});
+				assertBatchNotRecalled(existingBatch?.isRecalled);
 				const batch = await tx.productBatch.upsert({
 					where: {
 						tenantId_productId_warehouseId_batchCode: {
 							tenantId,
 							productId: line.productId,
 							warehouseId: purchase.warehouseId,
-							batchCode: line.batchCode,
+							batchCode,
 						},
 					},
 					create: {
 						tenantId,
 						productId: line.productId,
 						warehouseId: purchase.warehouseId,
-						batchCode: line.batchCode,
+						batchCode,
 						expiresAt: line.expiresAt ?? null,
 						qtyOnHand: line.qtyBase,
 					},
+					// Never silently extend expiry on reuse (audit risk).
 					update: { qtyOnHand: { increment: line.qtyBase } },
 					select: { id: true },
 				});
@@ -537,9 +554,6 @@ export class PurchasesService {
 				message: 'Exactly one default warehouse is required',
 			});
 		return rows[0].id;
-	}
-	private isBatchControlled(productKind?: ProductKind) {
-		return productKind !== undefined && productKind !== ProductKind.OTHER;
 	}
 	private async requireSupplier(tx: Tx, tenantId: string, id: string) {
 		const supplier = await tx.supplier.findFirst({

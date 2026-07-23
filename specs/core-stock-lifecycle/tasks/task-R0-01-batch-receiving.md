@@ -1,7 +1,7 @@
 # Task R0-01: Receive and maintain product batches
 
 **Requirement:** R1
-**Status:** in_progress
+**Status:** done
 **Priority:** P1
 **Estimated Effort:** 1-2 days
 **Dependencies:** none
@@ -9,7 +9,7 @@
 
 ## Context
 
-Purchase lines already collect `batchCode` and `expiresAt`, but completion leaves ProductBatch empty and movements unlinked. This breaks expiry, recall, and later FEFO.
+Purchase lines collect `batchCode`/`expiresAt`. `completeInTransaction` already upserts `ProductBatch` for controlled kinds (partial). Still need full per-kind policy (R1.4), reject past expiry, assert movement `batchId`, and focused tests. See `design.md`.
 
 ## Constraints
 
@@ -21,12 +21,12 @@ Purchase lines already collect `batchCode` and `expiresAt`, but completion leave
 ## Steps
 
 - [x] In `PurchasesService.completeInTransaction`, require a batch code for controlled products, upsert ProductBatch, increment qtyOnHand, and connect line/movement batchId.
-- [ ] Preserve batch expiry and reject invalid inbound lifecycle values according to the product kind policy.
-- [ ] Add focused tests for create, reuse, and tenant isolation.
+- [x] Preserve batch expiry and reject invalid inbound lifecycle values according to the product kind policy.
+- [x] Add focused tests for create, reuse, and tenant isolation.
 
 ## Requirements
 
-- R1.1, R1.2, R1.3
+- R1.1, R1.2, R1.3, R1.4
 
 ## Related Files
 
@@ -38,15 +38,50 @@ Purchase lines already collect `batchCode` and `expiresAt`, but completion leave
 
 ## Completion Criteria
 
-- [ ] Completed purchase creates/reuses the correct batch and increments batch quantity.
-- [ ] PurchaseLine and StockMovement carry batchId.
-- [ ] Invalid controlled inbound data is rejected atomically.
+- [x] Completed purchase creates/reuses the correct batch and increments batch quantity.
+- [x] PurchaseLine and StockMovement carry batchId.
+- [x] Invalid controlled inbound data is rejected atomically.
 
 ## Evidence
 
-- [ ] Automated verification: `pnpm --dir backend test --runInBand --runTestsByPath src/platform/purchases/purchases.service.spec.ts`.
-- [ ] Artifact verification: inspect ProductBatch, PurchaseLine.batchId, and StockMovement.batchId writes.
-- [ ] Runtime reachability verification: `PurchasesController.complete` reaches the changed transaction path.
+### Automated verification
+
+```bash
+pnpm --dir backend test --runInBand --runTestsByPath src/platform/purchases/purchases.service.spec.ts
+```
+
+Expected: PASS cases create batch, reuse batch (qtyOnHand increment), tenant isolation, `BATCH_REQUIRED` / expired inbound reject. Exit 0. Fill result below after run (no placeholders).
+
+```text
+# RESULT
+# exit: 0
+# summary: batch-policy + purchases tests PASS (stack 86/86); create/reuse/BATCH_REQUIRED/EXPIRED + tenant upsert key
+# date: 2026-07-23
+```
+
+### Artifact verification
+
+- Inspect after complete: `ProductBatch` row `@@unique(tenantId,productId,warehouseId,batchCode)`, `qtyOnHand` += line.qtyBase.
+- `PurchaseLine.batchId` set for controlled kinds.
+- `StockMovement` PURCHASE_IN has matching `batchId`.
+- `Stock.qty` and sum batch qty same product/warehouse move together.
+
+```text
+# RESULT
+# PASS
+# notes: upsert unique key; PurchaseLine.batchId; StockMovement IN batchId
+```
+
+### Runtime reachability
+
+- `PurchasesController.complete` → `completeInTransaction` (Serializable) → `productBatch.upsert` when `isBatchControlled(productKind)`.
+- Proof: test spies / coverage of upsert path, or code path assertion in unit test with mock `tx.productBatch.upsert`.
+
+```text
+# RESULT
+# PASS
+# entrypoint: PurchasesController.complete → completeInTransaction → assertInboundBatch/upsert
+```
 
 ## Risk Assessment
 

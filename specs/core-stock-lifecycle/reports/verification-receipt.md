@@ -1,24 +1,65 @@
-# Verification Receipt — Core Stock Lifecycle
+# Verification receipt — core-stock-lifecycle
 
-Checkpoint: 2026-07-23
+**Date:** 2026-07-23  
+**Spec:** `specs/core-stock-lifecycle/`  
+**Mode:** full develop (not flash)
 
-## Đã hoàn thành trong phiên
+## Commands
 
-- Spec `core-stock-lifecycle` đã được tạo, validate và grounding PASS.
-- `PurchasesService` đã bắt đầu ghi `ProductBatch`, tăng `qtyOnHand`, gắn `PurchaseLine.batchId` và `StockMovement.batchId` khi nhận hàng sản phẩm có kiểm soát batch.
-- Đã tạo allocator FEFO dùng chung và nối vào quick sale/order completion.
-- Backend build PASS.
-- Focused purchase/sales tests PASS: 2 suites, 69 tests.
+```bash
+pnpm --dir backend test --runInBand --runTestsByPath \
+  src/platform/inventory/batch-policy.spec.ts \
+  src/platform/inventory/fefo-allocator.spec.ts \
+  src/platform/purchases/purchases.service.spec.ts \
+  src/platform/sales/sales.service.spec.ts
+# → exit 0 | 4 suites | 86 passed
 
-## Tạm dừng tại đây
+pnpm --dir backend build
+# → exit 0 | nest build
 
-- Chưa hoàn tất focused tests riêng cho batch receiving và FEFO nhiều batch.
-- Chưa hoàn thiện kiểm tra inbound expiry/recall theo policy từng `ProductKind`.
-- Chưa chạy migration trên PostgreSQL thật vì database local chưa khả dụng.
-- Chưa đánh dấu task `R0-01` hoàn tất; trạng thái vẫn `in_progress`.
+pnpm --dir backend exec prisma validate
+# → exit 0 | schema valid
+```
 
-## Việc cần làm phiên sau
+## Implemented surface
 
-1. Bổ sung test tạo/reuse batch, batch bắt buộc và tenant isolation.
-2. Bổ sung test FEFO: hạn gần trước, loại batch hết hạn/thu hồi, thiếu tồn phải rollback.
-3. Chạy build/test/Prisma validate lại, sau đó mới sync `R0-01` và tiếp tục `R1-01`.
+| Area | Path | Behavior |
+|---|---|---|
+| Policy | `inventory/batch-policy.ts` | per-kind batchCode/expiresAt inbound |
+| FEFO | `inventory/fefo-allocator.ts` | FEFO + `INSUFFICIENT_ELIGIBLE_BATCH` |
+| Purchase | `purchases.service.ts` | assert + upsert batch, line/movement batchId |
+| Sale | `sales.service.ts` | FEFO when `isBatchCodeRequired` (quick + order) |
+
+## Reachability
+
+- `PurchasesController.complete` → batch receive
+- `SalesController.createQuickSale` / `completeOrder` → FEFO
+
+## Out of scope (not claimed)
+
+Returns, adjustments, aquaculture, handbook, multi-warehouse transfer, frontend, near-expiry notifications, livestock state machine, live Postgres concurrent R3.2 equality.
+
+## Residual risk
+
+- R3.2 under concurrent load not integration-tested (serializable + unit mocks).
+- Fertilizer without batchCode: aggregate stock only on sale (optional inbound).
+
+## Post code-review remediation (2026-07-23)
+
+Critical fixes applied:
+
+1. **Anti-drift optional kinds** — `resolveSaleAllocations`: required kinds always FEFO; optional (FERTILIZER/AGRI_MATERIAL) FEFO when any `qtyOnHand` on batches; OTHER aggregate only.
+2. **Recalled inbound** — `assertBatchNotRecalled` before upsert; reason `BATCH_RECALLED_INBOUND`.
+3. **No silent expiry extend** on batch reuse (update only qtyOnHand).
+4. **Quick sale** `stock.updateMany` includes `tenantId`.
+5. **P2034** clientVersion from Prisma runtime string.
+
+```bash
+pnpm --dir backend test --runInBand --runTestsByPath \
+  src/platform/inventory/batch-policy.spec.ts \
+  src/platform/inventory/fefo-allocator.spec.ts \
+  src/platform/purchases/purchases.service.spec.ts \
+  src/platform/sales/sales.service.spec.ts
+# → exit 0 | 4 suites | 92 passed
+```
+

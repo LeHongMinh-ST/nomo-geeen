@@ -8,7 +8,7 @@ import {
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { EntitlementService } from '../entitlements/entitlement.service';
-import { allocateFefo } from '../inventory/fefo-allocator';
+import { resolveSaleAllocations } from '../inventory/fefo-allocator';
 import { PrismaService } from '../prisma/prisma.service';
 import type { CompleteSalesOrderDto } from './dto/complete-sales-order.dto';
 import type { CreateQuickSaleDto } from './dto/create-quick-sale.dto';
@@ -567,11 +567,12 @@ export class SalesService {
 			await this.entitlements.assertFeature(tenantId, 'debt', tx);
 		for (const line of sale.lines) {
 			const qtyBase = this.positiveStorageQuantity(line.qtyBase, 'qtyBase');
-			const allocations = await allocateFefo(tx, {
+			const allocations = await resolveSaleAllocations(tx, {
 				tenantId,
 				warehouseId: sale.warehouseId,
 				productId: line.productId,
 				qtyBase,
+				productKind: line.product?.productKind,
 			});
 			if (allocations.length > 0) {
 				await tx.saleLineBatch.createMany({
@@ -582,12 +583,6 @@ export class SalesService {
 					})),
 				});
 			}
-			if (
-				line.product?.productKind !== 'OTHER' &&
-				line.product?.productKind &&
-				allocations.length === 0
-			)
-				throw this.insufficientStock();
 			const stock = await tx.stock.findFirst({
 				where: {
 					tenantId,
@@ -970,21 +965,16 @@ export class SalesService {
 
 				const allocationsByLine = new Map<
 					(typeof prepared)[number],
-					Awaited<ReturnType<typeof allocateFefo>>
+					Awaited<ReturnType<typeof resolveSaleAllocations>>
 				>();
 				for (const line of prepared) {
-					const allocations = await allocateFefo(tx, {
+					const allocations = await resolveSaleAllocations(tx, {
 						tenantId,
 						warehouseId: warehouse[0].id,
 						productId: line.productId,
 						qtyBase: line.qtyBase,
+						productKind: line.product.productKind,
 					});
-					if (
-						line.product.productKind &&
-						line.product.productKind !== 'OTHER' &&
-						allocations.length === 0
-					)
-						throw this.insufficientStock();
 					allocationsByLine.set(line, allocations);
 					const stock = await tx.stock.findFirst({
 						where: {
@@ -996,7 +986,11 @@ export class SalesService {
 					});
 					if (!stock) throw this.insufficientStock();
 					const updated = await tx.stock.updateMany({
-						where: { id: stock.id, qty: { gte: line.qtyBase } },
+						where: {
+							id: stock.id,
+							tenantId,
+							qty: { gte: line.qtyBase },
+						},
 						data: { qty: { decrement: line.qtyBase } },
 					});
 					if (updated.count !== 1) throw this.insufficientStock();
