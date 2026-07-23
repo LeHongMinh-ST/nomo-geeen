@@ -1142,6 +1142,8 @@ model StockAdjustmentLine {
   qtyBefore    Decimal @db.Decimal(18, 6)
   qtyAfter     Decimal @db.Decimal(18, 6)
   delta        Decimal @db.Decimal(18, 6)
+  /// Closed vocabulary per ProductKind (app policy validates)
+  reasonCode   String
 
   adjustment StockAdjustment @relation(fields: [adjustmentId], references: [id], onDelete: Cascade)
 

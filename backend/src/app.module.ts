@@ -17,6 +17,7 @@ import { PurchasesModule } from './platform/purchases/purchases.module';
 import { RedisModule } from './platform/redis/redis.module';
 import { RolesModule } from './platform/roles/roles.module';
 import { SalesModule } from './platform/sales/sales.module';
+import { StockAdjustmentsModule } from './platform/stock-adjustments/stock-adjustments.module';
 import { SuppliersModule } from './platform/suppliers/suppliers.module';
 import { TenantUsersModule } from './platform/tenant-users/tenant-users.module';
 import { TenantsModule } from './platform/tenants/tenants.module';
@@ -41,6 +42,7 @@ import { TenantsModule } from './platform/tenants/tenants.module';
 		SuppliersModule,
 		InventoryModule,
 		SalesModule,
+		StockAdjustmentsModule,
 		HandbookModule,
 	],
 	controllers: [AppController],

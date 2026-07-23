@@ -1,0 +1,159 @@
+{
+  "feature_name": "stock-adjustment-core-reasons",
+  "created_at": "2026-07-23T12:00:31+07:00",
+  "updated_at": "2026-07-23T14:12:51+07:00",
+  "language": "en",
+  "status": "approved",
+  "phase": "code",
+  "current_phase": "code",
+  "priority": "P1",
+  "effort": "3-5 implementation days",
+  "tags": [
+    "inventory",
+    "stock-adjustment",
+    "product-kind",
+    "audit",
+    "batch"
+  ],
+  "approvals": {
+    "requirements": {
+      "generated": true,
+      "approved": true
+    },
+    "design": {
+      "generated": true,
+      "approved": true
+    },
+    "tasks": {
+      "generated": true,
+      "approved": true
+    }
+  },
+  "scope_lock": {
+    "source": "Stock adjustment documents with per-kind reason vocabulary, aligned with docs/core-business-catalog.md §5–9 reasons and §11 immutable completed docs; closes audit gap #6 after core-stock-lifecycle.",
+    "in_scope": [
+      "Tenant stock-adjustment create/list/detail/complete (or complete-only) API",
+      "Per-product-kind reason code vocabulary for Phase 1 kinds (catalog moisture/death/recall/etc.)",
+      "Serializable complete: update Stock.qty, ProductBatch.qtyOnHand when batch-scoped, append StockMovement ADJUSTMENT",
+      "Reject negative stock, invalid kind/reason pairs, missing batch when required by policy",
+      "Tenant isolation and focused unit tests",
+      "Minimal schema extension for line reasonCode if missing"
+    ],
+    "out_of_scope": [
+      "Sales returns and purchase returns",
+      "Multi-warehouse transfers",
+      "Full frontend screens (API-first; thin FE optional later)",
+      "Aquaculture-specific reason set as Phase 1 selector",
+      "Physical count / cycle-count wizard",
+      "Handbook, reports UI, PHI/REI sale gates"
+    ],
+    "expansion_policy": "requires-user-approval"
+  },
+  "dependencies": {
+    "blockedBy": [
+      "specs/core-stock-lifecycle/"
+    ],
+    "blocks": []
+  },
+  "task_files": [
+    "tasks/task-R0-01-reason-vocabulary-and-schema.md",
+    "tasks/task-R1-01-adjustment-complete-service.md",
+    "tasks/task-R1-02-tenant-adjustment-api.md",
+    "tasks/task-R1-03-adjustment-verification.md"
+  ],
+  "task_registry": {
+    "tasks/task-R0-01-reason-vocabulary-and-schema.md": {
+      "id": "R0-01",
+      "title": "Reason vocabulary and schema line reasonCode",
+      "status": "done",
+      "dependencies": [],
+      "blocker": null,
+      "started_at": "2026-07-23T13:29:11+07:00",
+      "completed_at": "2026-07-23T13:38:15+07:00",
+      "last_updated_at": "2026-07-23T13:38:15+07:00"
+    },
+    "tasks/task-R1-01-adjustment-complete-service.md": {
+      "id": "R1-01",
+      "title": "Complete adjustment with stock/batch dual write",
+      "status": "done",
+      "dependencies": [
+        "tasks/task-R0-01-reason-vocabulary-and-schema.md"
+      ],
+      "blocker": null,
+      "started_at": "2026-07-23T13:42:16+07:00",
+      "completed_at": "2026-07-23T13:56:53+07:00",
+      "last_updated_at": "2026-07-23T13:56:53+07:00"
+    },
+    "tasks/task-R1-02-tenant-adjustment-api.md": {
+      "id": "R1-02",
+      "title": "Tenant stock-adjustment HTTP API",
+      "status": "done",
+      "dependencies": [
+        "tasks/task-R1-01-adjustment-complete-service.md"
+      ],
+      "blocker": null,
+      "started_at": "2026-07-23T13:56:53+07:00",
+      "completed_at": "2026-07-23T14:12:42+07:00",
+      "last_updated_at": "2026-07-23T14:12:42+07:00"
+    },
+    "tasks/task-R1-03-adjustment-verification.md": {
+      "id": "R1-03",
+      "title": "Focused tests and verification receipt",
+      "status": "done",
+      "dependencies": [
+        "tasks/task-R0-01-reason-vocabulary-and-schema.md",
+        "tasks/task-R1-01-adjustment-complete-service.md",
+        "tasks/task-R1-02-tenant-adjustment-api.md"
+      ],
+      "blocker": null,
+      "started_at": "2026-07-23T14:12:42+07:00",
+      "completed_at": "2026-07-23T14:12:51+07:00",
+      "last_updated_at": "2026-07-23T14:12:51+07:00"
+    }
+  },
+  "blocker": null,
+  "progress": {
+    "init": "done",
+    "requirements": "done",
+    "research": "done",
+    "design": "done",
+    "tasks": "done",
+    "code": "done",
+    "test": "pending",
+    "review": "done"
+  },
+  "timestamps": {
+    "init": "2026-07-23T12:10:14+07:00",
+    "requirements_done": "2026-07-23T12:11:14+07:00",
+    "research_done": "2026-07-23T12:12:14+07:00",
+    "design_done": "2026-07-23T12:13:14+07:00",
+    "tasks_done": "2026-07-23T12:14:14+07:00",
+    "code_done": "2026-07-23T14:12:51+07:00",
+    "test_done": null,
+    "review_done": "2026-07-23T13:23:37+07:00",
+    "validation_done": "2026-07-23T13:23:37+07:00"
+  },
+  "design_context": {
+    "discovery_mode": "light",
+    "discovery_reason": "Extends existing Prisma StockAdjustment models and inventory dual-write patterns from core-stock-lifecycle; domain reasons from core-business-catalog.",
+    "execution_tier": "standard",
+    "validation_recommended": true
+  },
+  "validation": {
+    "status": "completed",
+    "session_count": 2,
+    "questions_asked": 0,
+    "last_validated_at": "2026-07-23T13:23:37+07:00",
+    "mode": "red-team-then-validate",
+    "validator_exit": 0
+  },
+  "translation": {
+    "enabled": false,
+    "language": null,
+    "language_code": null,
+    "dir": null,
+    "sync": "always",
+    "last_synced_at": null
+  },
+  "ready_for_implementation": true
+}

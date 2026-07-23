@@ -8,6 +8,8 @@ Format theo [Keep a Changelog](https://keepachangelog.com/), tuân thủ [Semant
 ## [Unreleased]
 
 ### Added
+- **Tenant stock adjustments (core reasons)** — added `reasonCode` on adjustment lines, closed ProductKind reason policy, Serializable complete dual-write for Stock/ProductBatch/StockMovement `ADJUSTMENT`, and tenant API `GET/POST /tenant/stock-adjustments` + `POST :id/complete` (`inventory:view` / `inventory:edit`). Returns, transfers, FE cycle-count, and aquaculture reason packs remain out of scope.
+
 - **Sale checkout FE gates** — shared `mapSalesApiError` for PRODUCT_LOCKED/RECALLED/INACTIVE/UNSELLABLE (+ stock/customer copy locked); wired quick-sale / order-form / order-detail action errors; optional PHI/REI/withdrawal advisory strip (display-only, hide if meta missing). Spec `specs/sale-checkout-fe-gates/`. No harvest hard-block.
 
 - **Sale checkout eligibility gates (gap #4 partial)** — pure `sale-eligibility-policy` + wire on `createOrder` / `completeOrder` / `createQuickSale` before stock; hard reject inactive/locked/recalled/missing with structured 422 reasons; complete re-loads product flags (not DRAFT-only). PHI/REI harvest hard-block, 7 kind-specific hard branches, livestock SM, FE PHI UI, and tenant audit deny remain open. Spec `specs/sale-checkout-kind-gates/`; re-audit §8.4 in `docs/audit-core-business-catalog-2026-07-22.md`.
