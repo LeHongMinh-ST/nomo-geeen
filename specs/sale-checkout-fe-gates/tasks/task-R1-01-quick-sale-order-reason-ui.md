@@ -1,7 +1,7 @@
 # Task R1-01: Quick sale order reason ui
 
 **Requirement:** R2
-**Status:** pending
+**Status:** done
 **Priority:** P1
 **Estimated Effort:** 0.5 day
 **Dependencies:** `tasks/task-R0-01-sale-error-reason-map.md`
@@ -16,18 +16,21 @@
 ## Constraints
 
 - **MUST**: Wire map on createQuickSale, createOrder, completeOrder failure UI.
+- **MUST**: Surfaces that show failure text use `mapSalesApiError(...)` result string (not only store raw Error).
+- **MUST NOT**: Prefer raw `Error.message` over map for createOrder/complete failure paths.
 - **MUST NOT**: Change payment/settlement logic; no PHI hard block.
 - **SCOPE**: three sales components + existing tests adjust if needed.
+- <!-- Updated: Validation Session 1 — order-detail complete banner; no Error.message preference -->
 
 ## Steps
 
-- [ ] 1. Import `mapSalesApiError` in `frontend/components/app/sales/quick-sale.tsx`; replace eligibility-unaware catch branch.
+- [x] 1. Import `mapSalesApiError` in `frontend/components/app/sales/quick-sale.tsx`; replace nested stock/customer/generic ternary with map (keep 401 handling if status-only outside map is cleaner).
   - _Requirements: 2.1_
-- [ ] 2. Wire `order-form.tsx` catch for createOrder.
+- [x] 2. Wire `order-form.tsx` catch for createOrder (and draft path if same) via `setError(mapSalesApiError(cause))`.
   - _Requirements: 2.2_
-- [ ] 3. Wire `order-detail.tsx` complete (and optionally cancel) error display via map when reason present.
+- [x] 3. Wire `order-detail.tsx` complete (and optionally cancel) so user-visible alert/banner shows `mapSalesApiError(e)` for 422 eligibility — do not leave complete failures looking like load 403/404 only.
   - _Requirements: 2.3_
-- [ ] 4. Adjust component tests if they assert old strings; add/assert PRODUCT_LOCKED path on quick-sale if harness exists.
+- [x] 4. Adjust component tests if they assert old strings; add/assert PRODUCT_LOCKED path on quick-sale if harness exists.
   - _Requirements: 4.2_
 
 ## Requirements
@@ -46,10 +49,10 @@
 
 ## Completion Criteria
 
-- [ ] PRODUCT_LOCKED (or similar) reject shows mapped VI on quick-sale.
-- [ ] order-form create failure shows mapped reason when provided.
-- [ ] order-detail complete failure shows mapped reason when provided.
-- [ ] Map imported (not orphan).
+- [x] PRODUCT_LOCKED (or similar) reject shows mapped VI on quick-sale.
+- [x] order-form create failure shows mapped reason when provided (not raw Nest message alone).
+- [x] order-detail complete failure shows mapped VI string in user-visible UI when reason provided.
+- [x] Map imported (not orphan).
 
 ## Evidence
 
@@ -78,3 +81,17 @@ pnpm --dir frontend test order-form
 |---|---|---|
 | order-detail error type not Error | Medium | Normalize via mapSalesApiError(unknown) |
 | Test flakiness | Low | Targeted asserts only |
+
+
+### Verification receipt — 2026-07-23T16:44:34+07:00
+
+```bash
+pnpm --dir frontend test order-form order-detail sales-api-error
+# Test Files  4 passed (4)
+# Tests  19 passed (19)
+# PASS
+```
+
+- Grep: mapSalesApiError in quick-sale, order-form, order-detail.
+- order-detail: actionError banner for complete/cancel mapped VI.
+- Mode: full-spec develop.

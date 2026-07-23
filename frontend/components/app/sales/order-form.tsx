@@ -12,10 +12,10 @@ import {
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 import { CustomerPicker } from "@/components/app/sales/customer-picker";
-import { ProductPicker } from "@/components/app/sales/product-picker";
 import { PaymentSheet } from "@/components/app/sales/payment-sheet";
+import { ProductPicker } from "@/components/app/sales/product-picker";
+import { SaleAdvisoriesStrip } from "@/components/app/sales/sale-advisories-strip";
 import { formatVND } from "@/lib/format";
-import { createOrder, type SalesOrderStatus } from "@/lib/tenant-sales-api";
 import {
 	lineTotal,
 	type OrderLine,
@@ -24,6 +24,8 @@ import {
 	resolveTierPrice,
 } from "@/lib/orders";
 import type { Product } from "@/lib/products";
+import { mapSalesApiError } from "@/lib/sales-api-error";
+import { createOrder, type SalesOrderStatus } from "@/lib/tenant-sales-api";
 
 /**
  * Form tạo đơn bán hàng (DESIGN.md §24 — trang riêng, không modal).
@@ -69,6 +71,8 @@ export function OrderForm() {
 					unitId: product.baseUnitId ?? product.baseUnit,
 					qty: 1,
 					price: resolveTierPrice(product, 1),
+					phiDays: product.agro?.phi,
+					reiHours: product.agro?.rei,
 				},
 			];
 		});
@@ -95,25 +99,99 @@ export function OrderForm() {
 		setLines((current) => current.filter((l) => l.productId !== productId));
 	}
 
-	async function submitCompleted(method: "cash" | "transfer" | "qr", amountPaid: number) {
-		if (submitting) return; setSubmitting(true); setError(null);
-		try { const key = idempotencyKeyRef.current ?? (globalThis.crypto?.randomUUID?.() ?? String(Date.now())); idempotencyKeyRef.current = key; await createOrder({ idempotencyKey: key, status: "COMPLETED", customerId, discountAmount: discountNum, note: note || undefined, settlement: { paymentMethod: method === "transfer" ? "BANK_TRANSFER" : method.toUpperCase() as "CASH" | "QR", amountPaid }, lines: lines.map((line) => ({ productId: line.productId, unitId: line.unitId ?? line.unit, qty: String(line.qty), unitPrice: line.price })) }); idempotencyKeyRef.current = null; router.push("/don-ban-hang"); } catch (cause) { setError(cause instanceof Error ? cause.message : "Không thể tạo đơn"); } finally { setSubmitting(false); }
+	async function submitCompleted(
+		method: "cash" | "transfer" | "qr",
+		amountPaid: number,
+	) {
+		if (submitting) return;
+		setSubmitting(true);
+		setError(null);
+		try {
+			const key =
+				idempotencyKeyRef.current ??
+				globalThis.crypto?.randomUUID?.() ??
+				String(Date.now());
+			idempotencyKeyRef.current = key;
+			await createOrder({
+				idempotencyKey: key,
+				status: "COMPLETED",
+				customerId,
+				discountAmount: discountNum,
+				note: note || undefined,
+				settlement: {
+					paymentMethod:
+						method === "transfer"
+							? "BANK_TRANSFER"
+							: (method.toUpperCase() as "CASH" | "QR"),
+					amountPaid,
+				},
+				lines: lines.map((line) => ({
+					productId: line.productId,
+					unitId: line.unitId ?? line.unit,
+					qty: String(line.qty),
+					unitPrice: line.price,
+				})),
+			});
+			idempotencyKeyRef.current = null;
+			router.push("/don-ban-hang");
+		} catch (cause) {
+			setError(mapSalesApiError(cause, "Không thể tạo đơn"));
+		} finally {
+			setSubmitting(false);
+		}
 	}
 
 	async function save(nextStatus: OrderStatus) {
-		if (nextStatus === "completed") { setPaymentOpen(true); return; }
+		if (nextStatus === "completed") {
+			setPaymentOpen(true);
+			return;
+		}
 		if (empty || submitting) return;
-		setSubmitting(true); setError(null);
+		setSubmitting(true);
+		setError(null);
 		try {
-			const key = idempotencyKeyRef.current ?? (globalThis.crypto?.randomUUID?.() ?? String(Date.now())); idempotencyKeyRef.current = key;
-			await createOrder({ idempotencyKey: key, status: nextStatus.toUpperCase() as Extract<SalesOrderStatus, "DRAFT" | "COMPLETED">, customerId, discountAmount: discountNum, note: note || undefined, lines: lines.map((line) => ({ productId: line.productId, unitId: line.unitId ?? line.unit, qty: String(line.qty), unitPrice: line.price })) });
-			idempotencyKeyRef.current = null; router.push("/don-ban-hang");
-		} catch (cause) { setError(cause instanceof Error ? cause.message : "Không thể tạo đơn"); } finally { setSubmitting(false); }
+			const key =
+				idempotencyKeyRef.current ??
+				globalThis.crypto?.randomUUID?.() ??
+				String(Date.now());
+			idempotencyKeyRef.current = key;
+			await createOrder({
+				idempotencyKey: key,
+				status: nextStatus.toUpperCase() as Extract<
+					SalesOrderStatus,
+					"DRAFT" | "COMPLETED"
+				>,
+				customerId,
+				discountAmount: discountNum,
+				note: note || undefined,
+				lines: lines.map((line) => ({
+					productId: line.productId,
+					unitId: line.unitId ?? line.unit,
+					qty: String(line.qty),
+					unitPrice: line.price,
+				})),
+			});
+			idempotencyKeyRef.current = null;
+			router.push("/don-ban-hang");
+		} catch (cause) {
+			setError(mapSalesApiError(cause, "Không thể tạo đơn"));
+		} finally {
+			setSubmitting(false);
+		}
 	}
 
 	return (
 		<div className="mx-auto flex w-full max-w-2xl flex-col gap-5 pb-[calc(168px+env(safe-area-inset-bottom,0px))] lg:mx-0 lg:pb-0">
-		<PaymentSheet open={paymentOpen} total={total} onClose={() => setPaymentOpen(false)} onConfirm={(method, amountPaid) => { setPaymentOpen(false); void submitCompleted(method, amountPaid); }} submitting={submitting} />
+			<PaymentSheet
+				open={paymentOpen}
+				total={total}
+				onClose={() => setPaymentOpen(false)}
+				onConfirm={(method, amountPaid) => {
+					setPaymentOpen(false);
+					void submitCompleted(method, amountPaid);
+				}}
+				submitting={submitting}
+			/>
 			{/* Header */}
 			<div className="flex items-start gap-3">
 				<button
@@ -173,6 +251,7 @@ export function OrderForm() {
 										<span className="text-sm text-[#9e9e9e]">
 											Đơn vị: {l.unit}
 										</span>
+										<SaleAdvisoriesStrip source={l} className="mt-1" />
 									</div>
 									<button
 										type="button"
@@ -294,7 +373,14 @@ export function OrderForm() {
 				</section>
 			) : null}
 
-			{error ? <div role="alert" className="rounded border border-destructive p-3 text-base text-destructive">{error}</div> : null}
+			{error ? (
+				<div
+					role="alert"
+					className="rounded border border-destructive p-3 text-base text-destructive"
+				>
+					{error}
+				</div>
+			) : null}
 			{/* Nút lưu — dính đáy trên mobile, inline trên desktop */}
 			<div className="fixed inset-x-0 bottom-nav-safe z-30 flex items-center gap-3 border-t border-border bg-card px-4 py-3 lg:static lg:justify-end lg:border-0 lg:bg-transparent lg:px-0 lg:py-0">
 				<button

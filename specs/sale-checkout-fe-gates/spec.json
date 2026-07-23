@@ -1,11 +1,11 @@
 {
   "feature_name": "sale-checkout-fe-gates",
   "created_at": "2026-07-23T16:11:30+07:00",
-  "updated_at": "2026-07-23T16:22:00+07:00",
+  "updated_at": "2026-07-23T16:50:07+07:00",
   "language": "en",
   "status": "in_progress",
-  "phase": "tasks",
-  "current_phase": "tasks",
+  "phase": "review",
+  "current_phase": "review",
   "priority": "P1",
   "effort": "1-2 implementation days",
   "tags": [
@@ -65,48 +65,48 @@
     "tasks/task-R0-01-sale-error-reason-map.md": {
       "id": "R0-01",
       "title": "Sale error reason map",
-      "status": "pending",
+      "status": "done",
       "dependencies": [],
       "blocker": null,
-      "started_at": null,
-      "completed_at": null,
-      "last_updated_at": null
+      "started_at": "2026-07-23T16:39:51+07:00",
+      "completed_at": "2026-07-23T16:40:58+07:00",
+      "last_updated_at": "2026-07-23T16:40:58+07:00"
     },
     "tasks/task-R1-01-quick-sale-order-reason-ui.md": {
       "id": "R1-01",
       "title": "Quick sale order reason ui",
-      "status": "pending",
+      "status": "done",
       "dependencies": [
         "tasks/task-R0-01-sale-error-reason-map.md"
       ],
       "blocker": null,
-      "started_at": null,
-      "completed_at": null,
-      "last_updated_at": null
+      "started_at": "2026-07-23T16:41:25+07:00",
+      "completed_at": "2026-07-23T16:44:34+07:00",
+      "last_updated_at": "2026-07-23T16:44:34+07:00"
     },
     "tasks/task-R1-02-phi-rei-advisory-display.md": {
       "id": "R1-02",
       "title": "Phi rei advisory display",
-      "status": "pending",
+      "status": "done",
       "dependencies": [],
       "blocker": null,
-      "started_at": null,
-      "completed_at": null,
-      "last_updated_at": null
+      "started_at": "2026-07-23T16:44:34+07:00",
+      "completed_at": "2026-07-23T16:46:33+07:00",
+      "last_updated_at": "2026-07-23T16:46:33+07:00"
     },
     "tasks/task-R1-03-fe-gates-verification.md": {
       "id": "R1-03",
       "title": "Fe gates verification",
-      "status": "pending",
+      "status": "done",
       "dependencies": [
         "tasks/task-R0-01-sale-error-reason-map.md",
         "tasks/task-R1-01-quick-sale-order-reason-ui.md",
         "tasks/task-R1-02-phi-rei-advisory-display.md"
       ],
       "blocker": null,
-      "started_at": null,
-      "completed_at": null,
-      "last_updated_at": null
+      "started_at": "2026-07-23T16:46:33+07:00",
+      "completed_at": "2026-07-23T16:50:07+07:00",
+      "last_updated_at": "2026-07-23T16:50:07+07:00"
     }
   },
   "blocker": null,
@@ -116,9 +116,9 @@
     "research": "done",
     "design": "done",
     "tasks": "done",
-    "code": "pending",
-    "test": "pending",
-    "review": "pending"
+    "code": "done",
+    "test": "done",
+    "review": "done"
   },
   "timestamps": {
     "init": "2026-07-23T16:11:30+07:00",
@@ -126,10 +126,10 @@
     "research_done": "2026-07-23T16:15:00+07:00",
     "design_done": "2026-07-23T16:18:00+07:00",
     "tasks_done": "2026-07-23T16:20:00+07:00",
-    "code_done": null,
-    "test_done": null,
-    "review_done": null,
-    "validation_done": null
+    "code_done": "2026-07-23T16:50:07+07:00",
+    "test_done": "2026-07-23T16:50:07+07:00",
+    "review_done": "2026-07-23T16:38:18+07:00",
+    "validation_done": "2026-07-23T16:38:18+07:00"
   },
   "design_context": {
     "discovery_mode": "light",
@@ -138,12 +138,12 @@
     "validation_recommended": false
   },
   "validation": {
-    "status": "pending",
-    "session_count": 0,
-    "questions_asked": 0,
-    "last_validated_at": null,
-    "mode": null,
-    "validator_exit": null
+    "status": "completed",
+    "session_count": 1,
+    "questions_asked": 3,
+    "last_validated_at": "2026-07-23T16:38:18+07:00",
+    "mode": "validate-only",
+    "validator_exit": 0
   },
   "translation": {
     "enabled": false,

@@ -1,7 +1,7 @@
 # Task R1-03: Fe gates verification
 
 **Requirement:** R4
-**Status:** pending
+**Status:** done
 **Priority:** P1
 **Estimated Effort:** 0.25 day
 **Dependencies:** `tasks/task-R0-01-sale-error-reason-map.md`, `tasks/task-R1-01-quick-sale-order-reason-ui.md`, `tasks/task-R1-02-phi-rei-advisory-display.md`
@@ -20,11 +20,11 @@
 
 ## Steps
 
-- [ ] 1. Run map + sales component tests + frontend build if cheap.
+- [x] 1. Run map + sales component tests + frontend build if cheap.
   - _Requirements: 4.1, 4.2, 4.3_
-- [ ] 2. Write `specs/sale-checkout-fe-gates/reports/verification-receipt.md`.
+- [x] 2. Write `specs/sale-checkout-fe-gates/reports/verification-receipt.md`.
   - _Requirements: 4.3_
-- [ ] 3. Confirm no unrelated tests deleted.
+- [x] 3. Confirm no unrelated tests deleted.
   - _Requirements: 4.2_
 
 ## Requirements
@@ -41,9 +41,9 @@
 
 ## Completion Criteria
 
-- [ ] Evidence commands exit 0 or blocker recorded.
-- [ ] Receipt lists commands and out_of_scope.
-- [ ] Reachability: POS components import mapSalesApiError.
+- [x] Evidence commands exit 0 or blocker recorded.
+- [x] Receipt lists commands and out_of_scope.
+- [x] Reachability: POS components import mapSalesApiError.
 
 ## Evidence
 
@@ -68,3 +68,19 @@ pnpm --dir frontend build
 | Risk | Severity | Mitigation |
 |---|---|---|
 | FE test command path differs | Medium | Adjust to package.json scripts in receipt |
+
+
+### Verification receipt — 2026-07-23T16:50:07+07:00
+
+```bash
+pnpm --dir frontend test sales-api-error
+# 10 passed PASS
+pnpm --dir frontend test order-form
+# PASS
+pnpm --dir frontend build
+# EXIT 0
+```
+
+- Receipt: specs/sale-checkout-fe-gates/reports/verification-receipt.md
+- Grep mapSalesApiError on three POS components: OK
+- Out_of_scope listed in receipt (no PHI hard / livestock)

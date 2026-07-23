@@ -21,6 +21,9 @@ export type OrderLine = {
 	qty: number;
 	/** Đơn giá đã áp (₫) — có thể sửa tay. */
 	price: number;
+	/** PHI/REI display-only (from product agro when known). */
+	phiDays?: number;
+	reiHours?: number;
 };
 
 export type Order = {

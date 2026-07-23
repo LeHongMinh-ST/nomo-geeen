@@ -70,11 +70,12 @@ type SalesApiErrorBody = {
 ### Invariants
 
 1. Map pure: input reason (+ optional fallback) → string; no I/O.
-2. Unknown reason → generic fallback (never blank).
+2. Unknown reason **or missing reason** → generic Vietnamese fallback (never blank). Do **not** prefer raw `Error.message` for POS sales errors (Validation Session 1).
 3. Advisory UI must not throw if fields missing.
 4. Do not invent hard-block on PHI/REI values alone.
-5. Prefer existing product fields on cart lines; do not block if attrs absent.
-6. userFetch must surface `reason` on thrown errors (verify; if only `message`, extend parse once).
+5. Prefer existing product fields on cart lines; hide advisory strip if attrs/agro absent (no picker enrich in this slice).
+6. Thrown sales errors from `userFetch` / `createUserApiError` expose **top-level** `reason` on the Error (`UserApiError.reason`). `mapSalesApiError` MUST read that top-level field (and accept plain `{ reason }` objects). Do not require nested `body.reason` parse for the map.
+7. INSUFFICIENT_STOCK / INVALID_CUSTOMER copy MUST stay byte-identical to current quick-sale strings (R1.2).
 
 ### Module layout
 
@@ -87,7 +88,7 @@ frontend/components/app/sales/order-form.tsx
 frontend/components/app/sales/order-detail.tsx
 ```
 
-## UX copy (suggested VI)
+## UX copy (VI — locked)
 
 | reason | Message |
 |---|---|
@@ -95,8 +96,10 @@ frontend/components/app/sales/order-detail.tsx
 | PRODUCT_RECALLED | Sản phẩm đã thu hồi, không thể bán. |
 | PRODUCT_INACTIVE | Sản phẩm ngừng kinh doanh, không thể bán. |
 | PRODUCT_UNSELLABLE | Sản phẩm không hợp lệ hoặc không bán được. |
-| INSUFFICIENT_STOCK | (keep existing) |
-| INVALID_CUSTOMER | (keep existing) |
+| INSUFFICIENT_STOCK | Một sản phẩm vừa hết tồn. Vui lòng kiểm tra lại giỏ hàng. |
+| INVALID_CUSTOMER | Khách hàng chưa có trong dữ liệu thật. Vui lòng chọn khách hợp lệ hoặc bán khách lẻ. |
+| (missing / unknown) | Không thể hoàn tất đơn. Giỏ hàng vẫn được giữ để thử lại. (or caller `fallback` arg) |
+| status 401 (optional caller) | Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại. — may stay outside map if status-only |
 
 ## Risk Assessment
 

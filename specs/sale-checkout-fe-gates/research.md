@@ -34,8 +34,14 @@ Skipped — internal FE/BE contract only; no third-party API.
 
 ### Remaining gaps
 
-- Whether product-picker cart lines already carry `attrs` / `productKind` / agro fields — implementer must scout picker types (task R1-02).
-- Order complete error path may need userFetch to surface `response.reason` — verify userFetch error shape.
+- Whether product-picker cart lines already carry `attrs` / `productKind` / agro fields — implementer must scout picker types (task R1-02); if absent, strip stays hidden (Validate Session 1 — no enrich).
+- ~~Order complete error path may need userFetch to surface `response.reason`~~ — **closed**: `createUserApiError` sets top-level `UserApiError.reason` (`frontend/lib/user-auth-api.ts`). Map reads that field.
+
+### Validation Session 1 (2026-07-23)
+
+- Exact stock/customer VI locked from quick-sale.
+- Missing reason → generic fallback only.
+- Advisory: client meta only.
 
 ### Downstream task/test implications
 

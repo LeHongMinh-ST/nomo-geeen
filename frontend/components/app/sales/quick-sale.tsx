@@ -13,6 +13,7 @@ import { useState } from "react";
 import { CustomerPicker } from "@/components/app/sales/customer-picker";
 import { PaymentSheet } from "@/components/app/sales/payment-sheet";
 import { ProductPicker } from "@/components/app/sales/product-picker";
+import { SaleAdvisoriesStrip } from "@/components/app/sales/sale-advisories-strip";
 import { formatVND } from "@/lib/format";
 import {
 	lineTotal,
@@ -23,6 +24,7 @@ import {
 	resolveTierPrice,
 } from "@/lib/orders";
 import type { Product } from "@/lib/products";
+import { mapSalesApiError } from "@/lib/sales-api-error";
 import { createQuickSale } from "@/lib/tenant-sales-api";
 
 /**
@@ -70,6 +72,8 @@ export function QuickSale() {
 					unit: product.baseUnit,
 					qty: 1,
 					price: resolveTierPrice(product, 1),
+					phiDays: product.agro?.phi,
+					reiHours: product.agro?.rei,
 				},
 			];
 		});
@@ -128,16 +132,15 @@ export function QuickSale() {
 			setRefreshKey((value) => value + 1);
 			window.setTimeout(() => setToast(null), 3200);
 		} catch (cause) {
-			const reason = cause as { reason?: string; status?: number };
-			setError(
-				reason.reason === "INSUFFICIENT_STOCK"
-					? "Một sản phẩm vừa hết tồn. Vui lòng kiểm tra lại giỏ hàng."
-					: reason.reason === "INVALID_CUSTOMER"
-						? "Khách hàng chưa có trong dữ liệu thật. Vui lòng chọn khách hợp lệ hoặc bán khách lẻ."
-						: reason.status === 401
-							? "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại."
-							: "Không thể hoàn tất đơn. Giỏ hàng vẫn được giữ để thử lại.",
-			);
+			const status =
+				typeof cause === "object" && cause !== null && "status" in cause
+					? (cause as { status?: number }).status
+					: undefined;
+			if (status === 401) {
+				setError("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.");
+			} else {
+				setError(mapSalesApiError(cause));
+			}
 		} finally {
 			setSubmitting(false);
 		}
@@ -157,7 +160,10 @@ export function QuickSale() {
 	return (
 		<div className="flex w-full flex-col gap-4">
 			{error ? (
-				<div className="rounded-[10px] bg-[#fff5f5] px-3 py-2 text-base text-destructive" role="alert">
+				<div
+					className="rounded-[10px] bg-[#fff5f5] px-3 py-2 text-base text-destructive"
+					role="alert"
+				>
 					{error}
 				</div>
 			) : null}
@@ -324,6 +330,7 @@ function CartLine({
 						{line.name}
 					</p>
 					<p className="text-sm text-[#9e9e9e]">Đơn vị: {line.unit}</p>
+					<SaleAdvisoriesStrip source={line} className="mt-1" />
 				</div>
 				<button
 					type="button"

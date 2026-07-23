@@ -1,7 +1,7 @@
 # Task R1-02: Phi rei advisory display
 
 **Requirement:** R3
-**Status:** pending
+**Status:** done
 **Priority:** P2
 **Estimated Effort:** 0.5 day
 **Dependencies:** none
@@ -22,11 +22,11 @@
 
 ## Steps
 
-- [ ] 1. Scout product-picker / cart line type for attrs or agro.phi/rei; document fields used.
+- [x] 1. Scout product-picker / cart line type for attrs or agro.phi/rei; document fields used.
   - _Requirements: 3.1, 5.2_
-- [ ] 2. Create `frontend/components/app/sales/sale-advisories-strip.tsx` rendering chips for present values only.
+- [x] 2. Create `frontend/components/app/sales/sale-advisories-strip.tsx` rendering chips for present values only.
   - _Requirements: 3.1, 3.3_
-- [ ] 3. Mount strip under cart lines on quick-sale (and order-form if same line model) without blocking submit.
+- [x] 3. Mount strip under cart lines on quick-sale (and order-form if same line model) without blocking submit.
   - _Requirements: 3.1, 3.2_
 
 ## Requirements
@@ -45,9 +45,9 @@
 
 ## Completion Criteria
 
-- [ ] Lines with phi/rei show non-blocking advisory UI.
-- [ ] Lines without meta show no strip / no error.
-- [ ] Checkout still succeeds with advisories present (no hard block).
+- [x] Lines with phi/rei show non-blocking advisory UI.
+- [x] Lines without meta show no strip / no error.
+- [x] Checkout still succeeds with advisories present (no hard block).
 
 ## Evidence
 
@@ -77,3 +77,18 @@ pnpm --dir frontend test sales
 |---|---|---|
 | Cart lines lack attrs | Medium | Hide strip; optional follow-up enrich picker |
 | Visual clutter | Low | Compact chips |
+
+
+### Verification receipt — 2026-07-23T16:46:33+07:00
+
+```bash
+pnpm --dir frontend test sales-api-error sale-advisories order-form order-detail
+# Test Files  5 passed (5)
+# Tests  23 passed (23)
+# PASS
+```
+
+- Created `sale-advisories-strip.tsx` + unit tests for collectSaleAdvisories.
+- OrderLine optional phiDays/reiHours; addProduct copies product.agro when present.
+- Mounted strip on quick-sale CartLine + order-form line; null when no meta.
+- Tenant API map still omits agro → strip hidden in live POS until BE attrs (R3.3 OK).
