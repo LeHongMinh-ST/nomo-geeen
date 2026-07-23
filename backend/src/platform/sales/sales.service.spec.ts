@@ -196,9 +196,35 @@ describe('SalesService', () => {
 		await expect(
 			service.createQuickSale('tenant-1', 'user-1', dto()),
 		).rejects.toMatchObject({
-			response: { reason: 'PRODUCT_UNSELLABLE' },
+			response: { reason: 'PRODUCT_LOCKED', field: 'productId' },
 		});
 		expect(tx.sale.create).not.toHaveBeenCalled();
+	});
+
+	it('rejects a recalled product on quick sale before stock write', async () => {
+		const { service, tx } = makeService();
+		seedTx(tx);
+		tx.product.findMany.mockResolvedValueOnce([
+			{
+				id: 'product-1',
+				name: 'Recalled',
+				baseUnitId: 'unit-1',
+				baseUnit: { id: 'unit-1' },
+				conversions: [],
+				isLocked: false,
+				isRecalled: true,
+				status: 'ACTIVE',
+				costPrice: 400n,
+			},
+		]);
+
+		await expect(
+			service.createQuickSale('tenant-1', 'user-1', dto()),
+		).rejects.toMatchObject({
+			response: { reason: 'PRODUCT_RECALLED', field: 'productId' },
+		});
+		expect(tx.sale.create).not.toHaveBeenCalled();
+		expect(tx.stock.updateMany).not.toHaveBeenCalled();
 	});
 
 	it('replays an equivalent quick sale without duplicate persistence', async () => {
@@ -418,6 +444,13 @@ describe('SalesService', () => {
 					qtyBase: new Prisma.Decimal(1),
 					unitPrice: 1000n,
 					lineTotal: 1000n,
+					product: {
+						status: 'ACTIVE',
+						isLocked: false,
+						isRecalled: false,
+						productKind: 'OTHER',
+						attrs: null,
+					},
 				},
 			],
 		};
@@ -680,6 +713,79 @@ describe('SalesService', () => {
 				}),
 			}),
 		);
+	});
+
+	it('rejects createOrder when product is locked before sale create', async () => {
+		const { service, tx } = makeService();
+		seedOrderCreation(tx);
+		tx.product.findMany.mockResolvedValue([
+			{
+				id: 'product-1',
+				name: 'Product',
+				baseUnitId: 'unit-1',
+				conversions: [],
+				isLocked: true,
+				isRecalled: false,
+				status: 'ACTIVE',
+				costPrice: 400n,
+			},
+		]);
+		await expect(
+			service.createOrder('tenant-1', 'user-1', orderDto()),
+		).rejects.toMatchObject({
+			response: { reason: 'PRODUCT_LOCKED', field: 'productId' },
+		});
+		expect(tx.sale.create).not.toHaveBeenCalled();
+	});
+
+	it('rejects createOrder when product is missing', async () => {
+		const { service, tx } = makeService();
+		seedOrderCreation(tx);
+		tx.product.findMany.mockResolvedValue([]);
+		await expect(
+			service.createOrder('tenant-1', 'user-1', orderDto()),
+		).rejects.toMatchObject({
+			response: { reason: 'PRODUCT_UNSELLABLE', field: 'productId' },
+		});
+		expect(tx.sale.create).not.toHaveBeenCalled();
+	});
+
+	it('rejects complete when product became recalled after DRAFT', async () => {
+		const { service, tx } = makeService();
+		const sale = draftOrder();
+		sale.lines[0].product = {
+			status: 'ACTIVE',
+			isLocked: false,
+			isRecalled: true,
+			productKind: 'OTHER',
+			attrs: null,
+		};
+		tx.sale.findFirst.mockResolvedValue(sale);
+		await expect(
+			service.completeOrder('tenant-1', 'user-1', 'order-1', {
+				paymentMethod: 'CASH',
+				amountPaid: 1000,
+			} as never),
+		).rejects.toMatchObject({
+			response: { reason: 'PRODUCT_RECALLED', field: 'productId' },
+		});
+		expect(tx.stockMovement.create).not.toHaveBeenCalled();
+	});
+
+	it('rejects complete when line product is missing', async () => {
+		const { service, tx } = makeService();
+		const sale = draftOrder();
+		sale.lines[0].product = null;
+		tx.sale.findFirst.mockResolvedValue(sale);
+		await expect(
+			service.completeOrder('tenant-1', 'user-1', 'order-1', {
+				paymentMethod: 'CASH',
+				amountPaid: 1000,
+			} as never),
+		).rejects.toMatchObject({
+			response: { reason: 'PRODUCT_UNSELLABLE', field: 'productId' },
+		});
+		expect(tx.stockMovement.create).not.toHaveBeenCalled();
 	});
 
 	it('rolls back logically before debt/status writes when stock is insufficient', async () => {

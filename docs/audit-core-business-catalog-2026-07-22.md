@@ -41,7 +41,7 @@
 | # | Item | Trạng thái | Bằng chứng |
 |---|---|---|---|
 | 1 | Customer picker + debt-requires-customer | ✅ | `customer-picker.tsx` + `sales.service.ts:392-462` |
-| 2 | Per-kind validation tại checkout (7 nhánh: PESTICIDE/FERTILIZER/SEED/SEEDLING/FEED/VET_DRUG/LIVESTOCK) | ❌ | Sale chỉ check `status/isLocked/isRecalled` chung; PHI/REI/withdrawal không gate |
+| 2 | Per-kind validation tại checkout (7 nhánh: PESTICIDE/FERTILIZER/SEED/SEEDLING/FEED/VET_DRUG/LIVESTOCK) | ❌ | Sale chỉ check `status/isLocked/isRecalled` chung; PHI/REI/withdrawal không gate. **→ Cập nhật 2026-07-23: xem §8.4 (⚠️ partial hard flags)** |
 | 3 | Multi-group order, mỗi dòng validate theo kind | ⚠️ | Multi-line OK; multi-kind validate đều generic |
 | 4 | Order Completed immutable | ⚠️ | Không có PUT/PATCH; thiếu test guard version; thiếu return route |
 | 5 | Handbook entry: `business_group` / `product_kind` / `câu hỏi` / `metadata match` / `quyền` / `pinnedProducts` UI | ❌ | Schema `Disease` thiếu các field; form FE (`disease-form.tsx`) cắt gọn |
@@ -68,7 +68,7 @@
 | **1** | **`BusinessGroup` enum + `enabled_business_groups` không tồn tại** — schema dùng `AgriDomain` (4 mã); `Tenant` không có field | Phase-1 blocker. Mọi menu/form/search/report theo nhóm chạy sai nhóm ngay từ đầu | Thêm enum `BusinessGroup`, cột `enabledBusinessGroups BusinessGroup[]` trên `Tenant` (hoặc `TenantSettings`), policy gate ở controller + FE menu |
 | **2** | **`ProductKind` enum sai hợp đồng + CRUD không nhận kind** — `CROP_SEED` thay cho `SEED/SEEDLING`, `ANIMAL_FEED` thay cho `FEED`; `CreateProductDto` không có `productKind`/`businessGroup`/`attrs` | Phase-1 blocker. Mọi rule/form/snapshot theo kind đều generic | Sửa enum (`SEED/SEEDLING/FEED` thay `CROP_SEED/ANIMAL_FEED`); thêm field vào DTO; migration rename nếu đã seed |
 | **3** | **`ProductBatch` không được tạo/cập nhật khi nhập + không có FEFO + không có sale-to-lot** | Phase-1 blocker. Traceability lô/HSD/truy xuất thuốc thú y = 0 | `purchase.complete` phải `tx.productBatch.upsert` + `qtyOnHand++`; sale phải FEFO-allocate batch + ghi `SaleLineBatch` |
-| **4** | **Per-kind validation tại checkout vắng mặt** — sale chỉ check `status/isLocked/isRecalled`; không có nhánh PESTICIDE/FERTILIZER/SEED/SEEDLING/FEED/VET_DRUG/LIVESTOCK | Giá trị cốt lõi bị phá. Đây là điểm khác biệt sản phẩm mà catalog §1 nhấn mạnh | Thêm helper `assertSaleLineEligible(product, batch?)`; gọi ở `createOrder/quickSale`; trả 422 với mã lỗi per kind |
+| **4** | **Per-kind validation tại checkout vắng mặt** — sale chỉ check `status/isLocked/isRecalled`; không có nhánh PESTICIDE/FERTILIZER/SEED/SEEDLING/FEED/VET_DRUG/LIVESTOCK | Giá trị cốt lõi bị phá. Đây là điểm khác biệt sản phẩm mà catalog §1 nhấn mạnh | Thêm helper `assertSaleLineEligible(product, batch?)`; gọi ở `createOrder/quickSale`; trả 422 với mã lỗi per kind. **→ 2026-07-23 §8.4: hard flags + 3 path + re-complete ⚠️ partial** |
 | **5** | **Per-group attributes chưa có field/validation** — PHI/REI, withdrawal_meat/milk/egg_days, NPK %, germination %, survival rate, livestock state machine | Sổ tay tư vấn sai liều/HSD; mất compliance | Thêm cột per kind (hoặc dùng `attrs JSON` + JSON Schema validate theo kind); thêm `LivestockBatch`/`LivestockIndividual` với state machine |
 | **6** | **`StockAdjustment` + reason taxonomy per nhóm chưa có** — model có, không có service; `StockReason` enum generic | Không điều chỉnh được kho sau Completed; mất compliance audit §13 | Tạo `stock-adjustment` controller + reason vocabulary per kind (ẩm/mốc/vón/chết/bệnh/cách ly/…) |
 | **7** | **Báo cáo §13 chưa tồn tại** — 0/8 endpoint, FE có link placeholder `/bao-cao` | Không vận hành được (HSD/công nợ/lãi); không đóng kỳ | Module `reports/` riêng; spec mới theo format EARS |
@@ -159,3 +159,81 @@
 - Catalog mô tả, ngoài scope Phase 1.
 - Schema: enum `AQUA_*` có nhưng là legacy, không theo cấu trúc `AQUA_DRUG/AQUA_FEED/AQUA_SEED`.
 - Đánh dấu: `out_of_scope` cho Phase 1.
+
+## 8. Re-audit sau khi chot BA — 2026-07-23
+
+> Phan nay cap nhat ket qua audit 2026-07-22 sau khi chot lai gia tri cot loi. Cac ket luan ben tren la baseline lich su; khong dung cac dong ❌ cu de danh gia code hien tai.
+
+### 8.1 Da cap nhat
+
+| Hang muc | Trang thai moi | Bang chung |
+|---|---|---|
+| BusinessGroup | ✅ | Schema va contract da co `CROP_INPUTS` cung cac nhom mo rong; 6 loai crop-input map ve `CROP_INPUTS`. |
+| 6 loai san pham crop-input theo BA | ✅ | `PESTICIDE`, `FERTILIZER`, `BIOLOGICAL_PRODUCT`, `GROWTH_REGULATOR`, `SOIL_AMENDMENT`, `AGRI_MATERIAL`. |
+| Product CRUD nhan kind/group/attrs | ✅ | DTO va `product-contract.ts` da validate kind/group va attr bat buoc theo kind. |
+| Migration catalog | ✅ | `backend/prisma/migrations/20260723150000_add_crop_input_product_kinds/migration.sql`. |
+| Supplier/purchase/stock/sales/customer/dashboard fields | ⚠️ | Da ghi vao `docs/core-business-catalog.md` lam contract nghiep vu; UI/API/report chi la pham vi spec tiep theo. |
+
+### 8.2 Con thieu, khong duoc danh dau da hoan tat
+
+- Chua co day du form UI dong theo `productKind` cho cac truong BVTV/phan bon.
+- Chua co report/dashboard aggregation theo top sau benh, cay trong, hoat chat, thuoc va phan bon.
+- Chua co day du lich su tu van AI trong sale/customer.
+- Cac gap kho, FEFO, audit nghiep vu va StockAdjustment van can danh gia theo code hien tai/spec rieng; khong xoa ket luan baseline neu chua co bang chung moi.
+- Checkout: **chua** 7 nhanh hard-rule rieng theo kind (PESTICIDE/FERTILIZER/SEED/…), **chua** PHI/REI/withdrawal hard theo harvest/event date, **chua** livestock state machine, **chua** FE hien PHI, **chua** audit log deny sale (xem §8.4).
+
+### 8.3 Verification (catalog foundation)
+
+- `pnpm --dir backend exec prisma validate`: PASS.
+- `pnpm --dir backend build`: PASS.
+- `pnpm --dir backend test -- --runInBand src/platform/products/product-contract.spec.ts`: PASS, 6/6.
+- `docs/.sync_hash` da chot: `a6bbd840956a8c2c759b8aef42fd8aa77afee799`.
+
+### 8.4 Re-audit checkout sale gates — 2026-07-23 (gap #4 / Phase C item 7)
+
+> Cap nhat sau spec `specs/sale-checkout-kind-gates/` (R0-01 + R1-01 + R1-02 done).
+> Baseline §2.3 #2 va Top10 #4 (❌ «chi check status/isLocked/isRecalled chung») la **lich su 2026-07-22**. Danh gia hien tai dung bang duoi, khong dung ❌ cu de claim «van 0 gate».
+
+#### Trang thai moi (doi chieu business catalog §4.1 lifecycle + §11.3 ban)
+
+| Hang muc (audit gap #4) | Trang thai | Bang chung |
+|---|---|---|
+| Pure sale eligibility policy (hard flags) | ✅ | `backend/src/platform/sales/sale-eligibility-policy.ts` — `assertProductSaleEligible`, reasons `PRODUCT_UNSELLABLE` / `PRODUCT_LOCKED` / `PRODUCT_RECALLED` / `PRODUCT_INACTIVE` |
+| Wire `createOrder` truoc persist line | ✅ | `sales.service.ts` goi policy trong product loop |
+| Wire `createQuickSale` truoc tru ton | ✅ | cung service, truoc stock mutation |
+| Re-check tren `complete` (khong tin DRAFT-only) | ✅ | `completeInTransaction` select `status/isLocked/isRecalled/productKind/attrs` + assert truoc FEFO/stock |
+| 422 structured (`reason` + `field` + optional `productKind`) | ✅ | `UnprocessableEntityException` body; unit + service deny tests |
+| Khong bypass FEFO / `resolveSaleAllocations` | ✅ | Order: eligibility → FEFO → stock (giu Phase B) |
+| Multi-line: moi dong assert | ✅ | map/for line |
+| Tenant-scoped product load | ✅ | `product.findMany({ where: { tenantId, … }})` |
+| PHI/REI/withdrawal **advisory extract** (attrs) | ⚠️ | `extractSaleAdvisories` + unit tests; **khong** bat buoc HTTP DTO / FE POS (dung non-goal slice) |
+| PHI/REI hard theo ngay thu hoach | ❌ | `out_of_scope` (can harvest/event date) — catalog display-first |
+| 7 nhanh hard-rule rieng theo ProductKind | ❌ | Design: hard = flags; kind khong invent hard reject them (livestock SM / kind-only rules deferred) |
+| Livestock: khong ban con benh/cach ly/loai | ❌ | State machine van gap Top10 #5 / § nhom 5 |
+| FE map full reason codes | ⚠️ | Runtime throw LOCKED/RECALLED/INACTIVE; `QuickSaleApiErrorReason` DTO van chu yeu legacy `PRODUCT_UNSELLABLE` |
+| Tenant audit log SALE_DENY / COMPLETE | ❌ | `out_of_scope` feature; Top10 #8 van mo |
+
+#### Tom tat business
+
+- **Da dong:** lo an toan **hard flags** tren 3 path ban (order create / complete / quick) — khong ban inactive/locked/recalled; complete re-load flags (risk mid-DRAFT recall).
+- **Chua dong (Phase C con lai):** 7 nhanh kind day du, PHI calendar hard, livestock SM, FE PHI UI, audit log deny, returns.
+
+#### Mapping baseline → hien tai
+
+| Baseline (2026-07-22) | Sau 2026-07-23 |
+|---|---|
+| §2.3 #2 Per-kind validation checkout ❌ | **⚠️ partial** — hard flags + 3 path + re-complete ✅; kind-branch + PHI hard ❌ |
+| Top10 #4 Per-kind validation checkout ❌ | **⚠️ partial** (cung pham vi) |
+| Phase C #7 «Per-kind validation o checkout» | **mot phan** — flags gate ship; kind/PHI deep van open |
+
+#### Verification (sale-checkout-kind-gates)
+
+```bash
+pnpm --dir backend test --runInBand --runTestsByPath src/platform/sales/sale-eligibility-policy.spec.ts
+pnpm --dir backend test --runInBand --runTestsByPath src/platform/sales/sales.service.spec.ts
+pnpm --dir backend build
+```
+
+- Policy: 12/12 PASS · Service: 71/71 PASS · build: exit 0.
+- Receipt: `specs/sale-checkout-kind-gates/reports/verification-receipt.md`.
+- Spec tasks R0-01 / R1-01 / R1-02: `done`.

@@ -19,6 +19,7 @@ import {
 	SalesOrderPaymentMethod,
 } from './dto/create-sales-order.dto';
 import type { SalesOrderQueryDto } from './dto/sales-order-query.dto';
+import { assertProductSaleEligible } from './sale-eligibility-policy';
 
 type QuickSaleResponse = {
 	id: string;
@@ -400,15 +401,7 @@ export class SalesService {
 					});
 				const lines = dto.lines.map((line) => {
 					const product = byId.get(line.productId);
-					if (
-						!product ||
-						product.status !== 'ACTIVE' ||
-						product.isLocked ||
-						product.isRecalled
-					)
-						throw new UnprocessableEntityException({
-							reason: 'PRODUCT_UNSELLABLE',
-						});
+					assertProductSaleEligible(product);
 					const factor =
 						line.unitId === product.baseUnitId
 							? new Prisma.Decimal(1)
@@ -542,7 +535,17 @@ export class SalesService {
 			where: { id, tenantId, channel: 'ORDER', deletedAt: null },
 			include: {
 				lines: {
-					include: { product: { select: { productKind: true } } },
+					include: {
+						product: {
+							select: {
+								status: true,
+								isLocked: true,
+								isRecalled: true,
+								productKind: true,
+								attrs: true,
+							},
+						},
+					},
 				},
 			},
 		});
@@ -565,6 +568,9 @@ export class SalesService {
 		await this.entitlements.assertFeature(tenantId, 'inventory', tx);
 		if (settlement.debtAmount > 0n)
 			await this.entitlements.assertFeature(tenantId, 'debt', tx);
+		for (const line of sale.lines) {
+			assertProductSaleEligible(line.product);
+		}
 		for (const line of sale.lines) {
 			const qtyBase = this.positiveStorageQuantity(line.qtyBase, 'qtyBase');
 			const allocations = await resolveSaleAllocations(tx, {
@@ -881,17 +887,7 @@ export class SalesService {
 
 				const prepared = normalized.map((line) => {
 					const product = productById.get(line.productId);
-					if (
-						!product ||
-						product.isLocked ||
-						product.isRecalled ||
-						product.status !== 'ACTIVE'
-					) {
-						throw new UnprocessableEntityException({
-							reason: 'PRODUCT_UNSELLABLE',
-							message: 'Product is missing, inactive, locked, or recalled',
-						});
-					}
+					assertProductSaleEligible(product);
 					const factor =
 						line.unitId === product.baseUnitId
 							? new Prisma.Decimal(1)

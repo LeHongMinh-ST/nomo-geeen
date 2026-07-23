@@ -8,6 +8,8 @@ Format theo [Keep a Changelog](https://keepachangelog.com/), tuân thủ [Semant
 ## [Unreleased]
 
 ### Added
+- **Sale checkout eligibility gates (gap #4 partial)** — pure `sale-eligibility-policy` + wire on `createOrder` / `completeOrder` / `createQuickSale` before stock; hard reject inactive/locked/recalled/missing with structured 422 reasons; complete re-loads product flags (not DRAFT-only). PHI/REI harvest hard-block, 7 kind-specific hard branches, livestock SM, FE PHI UI, and tenant audit deny remain open. Spec `specs/sale-checkout-kind-gates/`; re-audit §8.4 in `docs/audit-core-business-catalog-2026-07-22.md`.
+
 - **Frontend tenant sales client and customer picker** — added typed tenant-scoped order list/detail/create/complete/cancel calls and a tenant-backed customer picker with debounced search, loading/error/retry states, and an explicit walk-in option. Order-list/detail seed migration remains staged for R5/R6; no new seed fallback was added.
 - **Tenant sales order lifecycle and cancellation** — added canonical tenant-scoped `/tenant/sales/orders` list/detail/create/complete/cancel APIs with DRAFT-only status cancellation, Serializable retry and idempotent order creation/replay, plus atomic completed-order stock restoration and conditional original-debt compensation. Original sale history remains append-only; returned sales and unsafe/cross-tenant transitions are rejected. The existing `/tenant/sales/quick` shortcut remains separate.
 - **Tenant debt management** — added tenant-scoped debt list/detail APIs and real `/cong-no` UI data flows, plus idempotent customer receipt vouchers with conditional balance decrement and atomic debt-ledger recording. Supplier receipt creation remains unsupported.
