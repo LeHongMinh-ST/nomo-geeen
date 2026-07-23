@@ -67,6 +67,7 @@ export async function userFetch<T>(
 	if (!response.ok) {
 		const body = (await response.json().catch(() => null)) as {
 			reason?: string;
+		message?: string | string[];
 		} | null;
 		throw createUserApiError(
 			response.status,

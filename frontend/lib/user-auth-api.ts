@@ -22,7 +22,11 @@ export type TenantAuthResponse = {
 	user: TenantAuthUser;
 };
 
-export type UserApiError = Error & { status?: number; reason?: string };
+export type UserApiError = Error & {
+	status?: number;
+	reason?: string;
+	serverMessage?: string;
+};
 
 const API_BASE =
 	process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:3001";
@@ -41,11 +45,15 @@ function messageForStatus(status: number): string {
 
 export function createUserApiError(
 	status: number,
-	body?: { reason?: string },
+	body?: { reason?: string; message?: string | string[] },
 ): UserApiError {
+	const serverMessage = Array.isArray(body?.message)
+		? body.message.join("; ")
+		: body?.message;
 	return Object.assign(new Error(messageForStatus(status)), {
 		status,
 		reason: body?.reason,
+		serverMessage,
 	});
 }
 
@@ -74,6 +82,7 @@ async function requestJson<T>(
 	if (!response.ok) {
 		const body = (await response.json().catch(() => null)) as {
 			reason?: string;
+		message?: string | string[];
 		} | null;
 		throw createUserApiError(response.status, body ?? undefined);
 	}

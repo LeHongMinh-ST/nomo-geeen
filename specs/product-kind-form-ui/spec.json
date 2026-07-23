@@ -1,0 +1,56 @@
+{
+  "feature_name": "product-kind-form-ui",
+  "title": "Product form by ProductKind",
+  "status": "done",
+  "phase": "tasks",
+  "current_phase": "verification",
+  "created_at": "2026-07-23T23:55:00+07:00",
+  "updated_at": "2026-07-24T01:05:00+07:00",
+  "language": "en",
+  "ready_for_implementation": true,
+  "scope_lock": {
+    "source": "Complete the tenant product form against the existing ProductKind/BusinessGroup backend contract.",
+    "in_scope": [
+      "Load tenant-enabled business groups and expose supported ProductKind choices",
+      "Require ProductKind before showing kind-specific fields",
+      "Render and validate required attrs from the existing backend contract",
+      "Round-trip businessGroup, productKind, and attrs in create/edit product flows",
+      "Mobile-first Vietnamese form UX and focused frontend tests"
+    ],
+    "out_of_scope": [
+      "Backend schema, DTO, or product-contract changes",
+      "Inventory, purchase, sales, batch, handbook, or dashboard behavior",
+      "Catalog lookup CRUD",
+      "Product images, price tiers, and conversion persistence beyond current form scope"
+    ],
+    "expansion_policy": "requires-user-approval"
+  },
+  "task_files": [
+    "tasks/task-R0-01-product-kind-contract.md",
+    "tasks/task-R1-01-product-kind-form.md",
+    "tasks/task-R1-02-product-kind-submit-edit.md",
+    "tasks/task-R2-01-product-kind-verification.md"
+  ],
+  "task_registry": {
+    "tasks/task-R0-01-product-kind-contract.md": {"id":"R0-01","title":"Frontend ProductKind contract","status":"done","dependencies":[],"blocker":null,"started_at":"2026-07-24T00:10:00+07:00","completed_at":"2026-07-24T00:25:00+07:00","last_updated_at":"2026-07-24T00:25:00+07:00"},
+    "tasks/task-R1-01-product-kind-form.md": {"id":"R1-01","title":"Dynamic ProductKind form","status":"done","dependencies":["tasks/task-R0-01-product-kind-contract.md"],"blocker":null,"started_at":"2026-07-24T00:30:00+07:00","completed_at":"2026-07-24T00:42:00+07:00","last_updated_at":"2026-07-24T00:42:00+07:00"},
+    "tasks/task-R1-02-product-kind-submit-edit.md": {"id":"R1-02","title":"ProductKind payload and edit round-trip","status":"done","dependencies":["tasks/task-R0-01-product-kind-contract.md","tasks/task-R1-01-product-kind-form.md"],"blocker":null,"started_at":"2026-07-24T00:42:00+07:00","completed_at":"2026-07-24T00:45:00+07:00","last_updated_at":"2026-07-24T00:45:00+07:00"},
+    "tasks/task-R2-01-product-kind-verification.md": {"id":"R2-01","title":"Focused UI verification","status":"done","dependencies":["tasks/task-R1-02-product-kind-submit-edit.md"],"blocker":null,"started_at":"2026-07-24T00:45:00+07:00","completed_at":"2026-07-24T00:50:00+07:00","last_updated_at":"2026-07-24T00:50:00+07:00"}
+  },
+  "progress": {"init":"done","requirements":"done","research":"done","design":"done","tasks":"done","code":"done","test":"done","review":"done"},
+  "approvals": {"requirements":{"generated":true,"approved":true},"design":{"generated":true,"approved":true},"tasks":{"generated":true,"approved":true}},
+  "priority": "P0",
+  "effort": "M",
+  "tags": ["product","product-kind","business-group","frontend","forms"],
+  "dependencies": {"blockedBy":["core-catalog-foundation","tenant-product-management"],"blocks":[]},
+  "related_specs": [
+    {"feature":"core-catalog-foundation","relationship":"consumes canonical BusinessGroup/ProductKind and attrs contract"},
+    {"feature":"tenant-product-management","relationship":"extends existing tenant product API-backed form"},
+    {"feature":"core-stock-lifecycle","relationship":"does not change batch or inventory behavior"}
+  ],
+  "blocker": null,
+  "timestamps": {"init":"2026-07-23T23:55:00+07:00","requirements_done":"2026-07-23T23:56:00+07:00","research_done":"2026-07-23T23:57:00+07:00","design_done":"2026-07-23T23:58:00+07:00","tasks_done":"2026-07-23T23:59:00+07:00","code_done":"2026-07-24T01:05:00+07:00","test_done":"2026-07-24T01:05:00+07:00","review_done":"2026-07-24T01:05:00+07:00","validation_done":"2026-07-24T01:05:00+07:00"},
+  "design_context": {"discovery_mode":"light","discovery_reason":"Existing API contract and mounted ProductForm provide bounded FE integration points.","execution_tier":"standard","validation_recommended":true},
+  "translation": {"enabled":false,"language":null,"language_code":null,"dir":null,"sync":"always","last_synced_at":null},
+  "validation": {"status":"completed","session_count":1,"questions_asked":0,"last_validated_at":"2026-07-24T00:23:00+07:00"}
+}

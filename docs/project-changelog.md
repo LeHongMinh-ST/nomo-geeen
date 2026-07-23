@@ -8,6 +8,11 @@ Format theo [Keep a Changelog](https://keepachangelog.com/), tuân thủ [Semant
 ## [Unreleased]
 
 ### Added
+- **Frontend ProductKind contract** — added the ordered BusinessGroup/ProductKind catalog, required specialist-attribute metadata, tenant-enabled group lookup, and API/Product mapping for `businessGroup`, `productKind`, and `attrs`.
+- **Dynamic ProductKind product form** — ProductForm now loads tenant-enabled groups, filters compatible kinds, renders catalog-driven specialist fields, validates required attrs, confirms destructive kind changes, normalizes create/update payloads, hydrates edit state, and preserves the mobile sticky save action. Spec `specs/product-kind-form-ui/` is verified complete.
+
+- **Sale checkout eligibility hardening** — complete-order revalidation now loads `Product.tenantId` and `deletedAt`, rejecting soft-deleted or cross-tenant line products with `PRODUCT_UNSELLABLE` before FEFO or stock mutation. Added regression coverage; targeted sales verification is 85/85.
+
 - **Crop-input ProductKind catalog (BA)** — added `BIOLOGICAL_PRODUCT`, `GROWTH_REGULATOR`, `SOIL_AMENDMENT` to `ProductKind` + migration; mapped to `CROP_INPUTS` in product contract with required `composition` attrs; documented six types in `docs/core-business-catalog.md` §4.0.
 
 - **Tenant stock adjustments (core reasons)** — added `reasonCode` on adjustment lines, closed ProductKind reason policy, Serializable complete dual-write for Stock/ProductBatch/StockMovement `ADJUSTMENT`, and tenant API `GET/POST /tenant/stock-adjustments` + `POST :id/complete` (`inventory:view` / `inventory:edit`). Returns, transfers, FE cycle-count, and aquaculture reason packs remain out of scope.
@@ -49,6 +54,7 @@ Format theo [Keep a Changelog](https://keepachangelog.com/), tuân thủ [Semant
 - **Tenant auth acceptance coverage** — added deterministic Postgres/Redis tenant lifecycle E2E and re-ran admin auth plus tenant product regressions: 5 suites / 19 tests passing.
 
 ### Fixed
+- **Demo inventory entitlement** — `seed-tenant` now repairs the demo store with a 30-day Starter trial when no active subscription exists, so `/ton-kho` is available for the seeded OWNER account.
 - **Tenant logout when access token idle-expired (H1)** — `logoutUser` accepts controller-decoded claims (including `decodeExpiredAccess`) instead of re-verifying strictly; blacklist + refresh-family revoke still run so `/auth/refresh` cannot revive a logged-out session.
 - **Tenant login/register rate limit (H2)** — wired Redis attempt counters into production `login`/`register` (`assertLoginNotThrottled`); over `USER_LOGIN_MAX_ATTEMPTS` returns 429; Redis errors fail-open per R5.4. Regression e2e cases added in `tenant-auth.e2e-spec.ts`.
 - **Settings network error** — translated unavailable backend/network failures in user API requests into an actionable Vietnamese message and documented the shared authenticated request boundary.
@@ -60,6 +66,7 @@ Format theo [Keep a Changelog](https://keepachangelog.com/), tuân thủ [Semant
 - Plan cards now expose the full header as a clickable, keyboard-accessible expand/collapse control with visible pointer feedback.
 
 ### Changed
+- **Tenant password-change check removed** — users can access business routes even when `mustChangePassword=true`; the optional password-change API and account-management data remain available.
 - Tách tạo mới và chỉnh sửa plan thành các trang riêng: `/admin/plans/new` và `/admin/plans/[id]/edit`; catalog chỉ còn danh sách và thao tác trạng thái.
 
   - `PlatformAdmin` email + password login (`POST /auth/admin/login`) với Argon2id hashing + constant-time decoy verify (R1)

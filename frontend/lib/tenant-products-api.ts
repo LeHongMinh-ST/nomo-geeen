@@ -1,4 +1,9 @@
 import type { Product } from "@/lib/products";
+import type {
+	BusinessGroupId,
+	ProductKindId,
+	TenantBusinessGroup,
+} from "@/lib/product-kind-form";
 import { userFetch } from "@/lib/user-fetch";
 
 export type TenantProduct = {
@@ -19,6 +24,10 @@ export type TenantProduct = {
 	stock: string;
 	createdAt: string;
 	updatedAt?: string;
+	businessGroup: string | null;
+	productKind: string | null;
+	attrs: Record<string, unknown> | null;
+	domain?: string | null;
 	conversions?: Array<{
 		unitId: string;
 		factor: number;
@@ -46,6 +55,9 @@ export type ProductInput = {
 	salePrice?: number;
 	wholesalePrice?: number;
 	isLocked?: boolean;
+	businessGroup?: BusinessGroupId;
+	productKind?: ProductKindId;
+	attrs?: Record<string, unknown>;
 };
 
 export function mapTenantProduct(
@@ -88,6 +100,10 @@ export function mapTenantProduct(
 		locked: row.isLocked,
 		recalled: row.isRecalled,
 		status: row.status.toLowerCase() === "active" ? "active" : "inactive",
+		businessGroup: row.businessGroup as BusinessGroupId | undefined,
+		productKind: row.productKind as ProductKindId | undefined,
+		attrs: row.attrs ?? undefined,
+		domain: row.domain ?? undefined,
 	};
 }
 
@@ -103,6 +119,13 @@ export function getTenantProduct(id: string): Promise<TenantProduct> {
 
 export function getProductLookups(): Promise<ProductLookups> {
 	return userFetch<ProductLookups>(`${base}/lookups`);
+}
+
+export function getTenantBusinessGroups(): Promise<{
+	configured: boolean;
+	groups: TenantBusinessGroup[];
+}> {
+	return userFetch(`${base}/business-groups`);
 }
 
 export function createTenantProduct(

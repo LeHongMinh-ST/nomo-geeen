@@ -13,6 +13,17 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import {
+	BUSINESS_GROUP_CATALOG,
+	getProductKindDefinition,
+	getProductKindsForGroup,
+	getRequiredAttrKeys,
+	normalizeProductAttrs,
+	resolveEnabledBusinessGroups,
+	resolveLegacyProductKind,
+	type BusinessGroupId,
+	type ProductKindId,
+} from "@/lib/product-kind-form";
 import type {
 	PriceTier,
 	Product,
@@ -21,6 +32,7 @@ import type {
 import {
 	createTenantProduct,
 	getProductLookups,
+	getTenantBusinessGroups,
 	updateTenantProduct,
 	type ProductInput,
 	type ProductLookups,
@@ -56,9 +68,58 @@ type FormState = {
 	phi: string;
 	rei: string;
 	locked: boolean;
+	businessGroup: BusinessGroupId | "";
+	productKind: ProductKindId | "";
+	attrs: Record<string, string>;
 };
 
+type ProductFormError = { message: string; field?: string };
+
+function mapProductFormError(cause: unknown): ProductFormError {
+	const reason = typeof cause === "object" && cause && "reason" in cause
+		? String((cause as { reason?: unknown }).reason ?? "")
+		: "";
+	const serverMessage = typeof cause === "object" && cause && "serverMessage" in cause
+		? String((cause as { serverMessage?: unknown }).serverMessage ?? "")
+		: "";
+	const detail = `${reason} ${serverMessage}`;
+	if (detail.includes("businessGroup is not enabled")) {
+		return { message: "Nhóm ngành hàng này chưa được bật cho cửa hàng.", field: "businessGroup" };
+	}
+	if (detail.includes("productKind is incompatible")) {
+		return { message: "Loại sản phẩm không thuộc nhóm ngành đã chọn.", field: "productKind" };
+	}
+	const attrMatch = detail.match(/attrs\.([A-Za-z0-9_]+)/);
+	if (attrMatch) {
+		return { message: "Thông tin chuyên ngành này chưa hợp lệ.", field: attrMatch[1] };
+	}
+	if (cause instanceof Error && cause.message) return { message: cause.message };
+	return { message: "Không thể lưu sản phẩm. Vui lòng kiểm tra dữ liệu và thử lại." };
+}
+
 function toFormState(p?: Product): FormState {
+	const productKind = resolveLegacyProductKind(
+		p?.productKind,
+		p?.agro?.activeIngredient
+			? "PESTICIDE"
+			: p?.domain === "CROP"
+				? "CROP_SEED"
+				: null,
+	);
+	const definition = getProductKindDefinition(productKind);
+	const attrs = Object.fromEntries(
+		(definition?.fields ?? []).map((field) => [
+			field.key,
+			String(
+				p?.attrs?.[field.key] ??
+					(field.key === "activeIngredient" ? p?.agro?.activeIngredient : undefined) ??
+					(field.key === "concentration" ? p?.agro?.concentration : undefined) ??
+					(field.key === "phiDays" ? p?.agro?.phi : undefined) ??
+					(field.key === "reiDays" ? p?.agro?.rei : undefined) ??
+					"",
+			),
+		]),
+	);
 	return {
 		name: p?.name ?? "",
 		sku: p?.sku ?? "",
@@ -81,6 +142,9 @@ function toFormState(p?: Product): FormState {
 		phi: p?.agro?.phi != null ? String(p.agro.phi) : "",
 		rei: p?.agro?.rei != null ? String(p.agro.rei) : "",
 		locked: p?.locked ?? false,
+		businessGroup: p?.businessGroup ?? definition?.businessGroup ?? "",
+		productKind: productKind ?? "",
+		attrs,
 	};
 }
 
@@ -95,14 +159,15 @@ export function ProductForm({
 }) {
 	const router = useRouter();
 	const [form, setForm] = useState<FormState>(() => toFormState(product));
-	const [agroOpen, setAgroOpen] = useState<boolean>(
-		Boolean(product?.agro?.activeIngredient),
-	);
 	const [saving, setSaving] = useState(false);
 	const [lookups, setLookups] = useState<ProductLookups | null>(
 		providedLookups ?? null,
 	);
 	const [error, setError] = useState<string | null>(null);
+	const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+	const [enabledGroups, setEnabledGroups] = useState<
+		(typeof BUSINESS_GROUP_CATALOG)[number][]
+	>([...BUSINESS_GROUP_CATALOG]);
 	const selectedUnitName =
 		lookups?.units.find((unit) => unit.id === form.baseUnit)?.name ?? "";
 
@@ -114,6 +179,75 @@ export function ProductForm({
 				setError("Không thể tải danh mục sản phẩm. Vui lòng thử lại.");
 			});
 	}, [providedLookups]);
+
+	useEffect(() => {
+		void getTenantBusinessGroups()
+			.then((result) =>
+				setEnabledGroups(
+					resolveEnabledBusinessGroups(result.configured, result.groups),
+				),
+			)
+			.catch(() =>
+				setError("Không thể tải nhóm ngành sản phẩm. Vui lòng thử lại."),
+			);
+	}, []);
+
+	const selectedKind = getProductKindDefinition(form.productKind);
+	const availableKinds = form.businessGroup
+		? getProductKindsForGroup(form.businessGroup)
+		: [];
+
+	function setBusinessGroup(value: BusinessGroupId | "") {
+		if (
+			value !== form.businessGroup &&
+			Object.values(form.attrs).some((attr) => attr.trim()) &&
+			!window.confirm("Đổi nhóm ngành sẽ xóa thông tin chuyên ngành đã nhập. Tiếp tục?")
+		) {
+			return;
+		}
+		setFieldErrors((current) => ({ ...current, businessGroup: "", productKind: "" }));
+		setForm((current) => ({
+			...current,
+			businessGroup: value,
+			productKind:
+				value &&
+				current.productKind &&
+				getProductKindDefinition(current.productKind)?.businessGroup === value
+					? current.productKind
+					: "",
+			attrs: {},
+		}));
+	}
+
+	function setProductKind(value: ProductKindId | "") {
+		if (
+			value !== form.productKind &&
+			Object.values(form.attrs).some((attr) => attr.trim()) &&
+			!window.confirm("Đổi loại sản phẩm có thể xóa một số thông tin chuyên ngành. Tiếp tục?")
+		) {
+			return;
+		}
+		setFieldErrors((current) => ({ ...current, productKind: "" }));
+		const definition = getProductKindDefinition(value);
+		setForm((current) => ({
+			...current,
+			productKind: value,
+			attrs: Object.fromEntries(
+				(definition?.fields ?? []).map((field) => [
+					field.key,
+					current.attrs[field.key] ?? "",
+				]),
+			),
+		}));
+	}
+
+	function setAttr(key: string, value: string) {
+		setFieldErrors((current) => ({ ...current, [key]: "" }));
+		setForm((current) => ({
+			...current,
+			attrs: { ...current.attrs, [key]: value },
+		}));
+	}
 
 	function set<K extends keyof FormState>(key: K, value: FormState[K]) {
 		setForm((f) => ({ ...f, [key]: value }));
@@ -153,6 +287,24 @@ export function ProductForm({
 
 	async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
 		e.preventDefault();
+		const requiredAttrs = getRequiredAttrKeys(form.productKind);
+		const nextFieldErrors: Record<string, string> = {};
+		if (!form.businessGroup) nextFieldErrors.businessGroup = "Hãy chọn nhóm ngành hàng.";
+		if (!form.productKind) nextFieldErrors.productKind = "Hãy chọn loại sản phẩm.";
+		for (const key of requiredAttrs) {
+			if (!form.attrs[key]?.trim()) nextFieldErrors[key] = "Trường này bắt buộc.";
+		}
+		if (
+			!form.businessGroup ||
+			!form.productKind ||
+			requiredAttrs.some((key) => !form.attrs[key]?.trim())
+		) {
+			setFieldErrors(nextFieldErrors);
+			setError(
+				"Vui lòng chọn nhóm, loại sản phẩm và điền đủ thông tin chuyên ngành bắt buộc.",
+			);
+			return;
+		}
 		setSaving(true);
 		setError(null);
 		const input: ProductInput = {
@@ -169,6 +321,9 @@ export function ProductForm({
 				? Number(form.wholesalePrice)
 				: undefined,
 			isLocked: form.locked,
+			businessGroup: form.businessGroup,
+			productKind: form.productKind,
+			attrs: normalizeProductAttrs(form.productKind, form.attrs),
 		};
 		try {
 			if (mode === "edit" && product) {
@@ -177,8 +332,10 @@ export function ProductForm({
 				await createTenantProduct(input);
 			}
 			router.push("/san-pham");
-		} catch {
-			setError("Không thể lưu sản phẩm. Vui lòng kiểm tra dữ liệu và thử lại.");
+		} catch (cause) {
+			const mapped = mapProductFormError(cause);
+			setError(mapped.message);
+			if (mapped.field) setFieldErrors({ [mapped.field]: mapped.message });
 			setSaving(false);
 		}
 	}
@@ -188,6 +345,40 @@ export function ProductForm({
 			onSubmit={handleSubmit}
 			className="mx-auto flex w-full max-w-2xl flex-col gap-5 pb-24 lg:mx-0 lg:pb-6"
 		>
+			<Section icon={FlaskConical} tile="#5cad45" title="Phân loại sản phẩm">
+				<Field label="Nhóm ngành hàng" required>
+					<Select
+						value={form.businessGroup}
+						onChange={(value) => setBusinessGroup(value as BusinessGroupId)}
+						placeholder="Chọn nhóm ngành hàng"
+						ariaLabel="Nhóm ngành hàng"
+						ariaInvalid={Boolean(fieldErrors.businessGroup)}
+						ariaDescribedBy="business-group-error"
+						options={enabledGroups.map((group) => ({ value: group.id, label: group.label }))}
+						required
+					/>
+					<InlineFieldError id="business-group-error" message={fieldErrors.businessGroup} />
+				</Field>
+				<Field label="Loại sản phẩm" required>
+					<Select
+						value={form.productKind}
+						onChange={(value) => setProductKind(value as ProductKindId)}
+						placeholder={form.businessGroup ? "Chọn loại sản phẩm" : "Chọn nhóm trước"}
+						ariaLabel="Loại sản phẩm"
+						ariaInvalid={Boolean(fieldErrors.productKind)}
+						ariaDescribedBy="product-kind-error"
+						options={availableKinds.map((kind) => ({ value: kind.id, label: kind.label }))}
+						required
+					/>
+					<InlineFieldError id="product-kind-error" message={fieldErrors.productKind} />
+				</Field>
+				{selectedKind ? (
+					<div className="rounded-[10px] bg-[#f4f8f1] px-3 py-2 text-base text-[#416b35]">
+						Thông tin bắt buộc cho: <strong>{selectedKind.label}</strong>
+					</div>
+				) : null}
+			</Section>
+
 			{/* Section 1: Thông tin cơ bản */}
 			<Section icon={Package} tile="#5cad45" title="Thông tin cơ bản">
 				<Field label="Tên sản phẩm" required>
@@ -477,104 +668,34 @@ export function ProductForm({
 				</div>
 			</Section>
 
-			{/* Section 4: Thông tin chuyên ngành (thu gọn được) */}
-			<div className="overflow-hidden rounded-[16px] border border-border bg-card shadow-card">
-				<button
-					type="button"
-					onClick={() => setAgroOpen((o) => !o)}
-					className="flex w-full items-center gap-3 p-5 text-left"
-				>
-					<span
-						className="flex size-10 shrink-0 items-center justify-center rounded-[10px]"
-						style={{ backgroundColor: "#5cad45" }}
-					>
-						<FlaskConical className="size-5 text-white" aria-hidden />
-					</span>
-					<span className="flex min-w-0 flex-1 flex-col">
-						<span className="text-lg font-semibold text-foreground">
-							Thông tin chuyên ngành
-						</span>
-						<span className="text-sm text-[#616161]">
-							Hoạt chất, nồng độ, cây trồng, cách ly (tùy chọn)
-						</span>
-					</span>
-					<ChevronDown
-						className={`size-5 shrink-0 text-[#9e9e9e] transition-transform duration-200 ${
-							agroOpen ? "rotate-180" : ""
-						}`}
-						aria-hidden
-					/>
-				</button>
-
-				{agroOpen ? (
-					<div className="flex flex-col gap-4 border-t border-border p-5">
-						<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-							<Field label="Hoạt chất">
+			{/* Section 4: Trường chuyên ngành theo ProductKind */}
+			{selectedKind ? (
+				<Section icon={FlaskConical} tile="#5cad45" title="Thông tin chuyên ngành">
+					<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+						{selectedKind.fields.map((field) => (
+							<Field
+								key={field.key}
+								label={field.label}
+								required={!field.optional}
+							>
 								<input
-									type="text"
-									value={form.activeIngredient}
-									onChange={(e) => set("activeIngredient", e.target.value)}
-									placeholder="VD: Fipronil"
-									className={inputClass}
+									type={field.input}
+									inputMode={field.input === "number" ? "numeric" : undefined}
+									min={field.input === "number" ? 0 : undefined}
+									required={!field.optional}
+									value={form.attrs[field.key] ?? ""}
+									aria-label={field.label}
+									aria-invalid={Boolean(fieldErrors[field.key])}
+									aria-describedby={`${field.key}-error`}
+									onChange={(e) => setAttr(field.key, e.target.value)}
+									className={`${inputClass} ${field.input === "number" ? "text-right" : ""}`}
 								/>
+								<InlineFieldError id={`${field.key}-error`} message={fieldErrors[field.key]} />
 							</Field>
-							<Field label="Nồng độ / Hàm lượng">
-								<input
-									type="text"
-									value={form.concentration}
-									onChange={(e) => set("concentration", e.target.value)}
-									placeholder="VD: 800 g/kg"
-									className={inputClass}
-								/>
-							</Field>
-						</div>
-						<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-							<Field label="Cây trồng">
-								<input
-									type="text"
-									value={form.crop}
-									onChange={(e) => set("crop", e.target.value)}
-									placeholder="VD: Lúa"
-									className={inputClass}
-								/>
-							</Field>
-							<Field label="Dịch hại / Đối tượng">
-								<input
-									type="text"
-									value={form.pest}
-									onChange={(e) => set("pest", e.target.value)}
-									placeholder="VD: Rầy nâu, sâu cuốn lá"
-									className={inputClass}
-								/>
-							</Field>
-						</div>
-						<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-							<Field label="Thời gian cách ly - PHI (ngày)">
-								<input
-									type="number"
-									inputMode="numeric"
-									min={0}
-									value={form.phi}
-									onChange={(e) => set("phi", e.target.value)}
-									placeholder="VD: 7"
-									className={`${inputClass} text-right`}
-								/>
-							</Field>
-							<Field label="Cách ly vào lại - REI (giờ)">
-								<input
-									type="number"
-									inputMode="numeric"
-									min={0}
-									value={form.rei}
-									onChange={(e) => set("rei", e.target.value)}
-									placeholder="VD: 24"
-									className={`${inputClass} text-right`}
-								/>
-							</Field>
-						</div>
+						))}
 					</div>
-				) : null}
-			</div>
+				</Section>
+			) : null}
 			{error ? (
 				<p
 					className="rounded-[10px] bg-[#fff5f5] px-3 py-2 text-sm text-destructive"
@@ -670,7 +791,7 @@ function Field({
 }) {
 	return (
 		<div className="flex flex-col gap-2">
-			<span className="text-sm font-medium text-foreground">
+			<span className="text-base font-medium text-foreground">
 				{label}
 				{required ? <span className="ml-0.5 text-destructive">*</span> : null}
 			</span>
@@ -685,12 +806,18 @@ function Select({
 	options,
 	placeholder,
 	required,
+	ariaLabel,
+	ariaInvalid,
+	ariaDescribedBy,
 }: {
 	value: string;
 	onChange: (v: string) => void;
 	options: { value: string; label: string }[];
 	placeholder: string;
 	required?: boolean;
+	ariaLabel?: string;
+	ariaInvalid?: boolean;
+	ariaDescribedBy?: string;
 }) {
 	return (
 		<div className="relative">
@@ -701,6 +828,9 @@ function Select({
 				className={`${inputClass} appearance-none pr-10 ${
 					value ? "text-foreground" : "text-[#9e9e9e]"
 				}`}
+				aria-label={ariaLabel}
+				aria-invalid={ariaInvalid || undefined}
+				aria-describedby={ariaDescribedBy}
 			>
 				<option value="" disabled>
 					{placeholder}
@@ -717,4 +847,12 @@ function Select({
 			/>
 		</div>
 	);
+}
+
+function InlineFieldError({ id, message }: { id: string; message?: string }) {
+	return message ? (
+		<p id={id} className="text-sm text-destructive" role="alert">
+			{message}
+		</p>
+	) : null;
 }

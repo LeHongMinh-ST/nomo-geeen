@@ -3,6 +3,8 @@
  * FE-only: dữ liệu mẫu tại chỗ, thay bằng API ở task backend.
  */
 
+import type { BusinessGroupId, ProductKindId } from "@/lib/product-kind-form";
+
 export type StockStatus = "in-stock" | "low-stock" | "out-of-stock";
 
 /** Đơn vị quy đổi ra Base Unit (base_spec §5.1). */
@@ -66,6 +68,10 @@ export type Product = {
 	lowStockThreshold: number;
 	agro?: AgroInfo;
 	locked?: boolean;
+	businessGroup?: BusinessGroupId;
+	productKind?: ProductKindId;
+	attrs?: Record<string, unknown>;
+	domain?: string;
 };
 
 export type Category = { id: string; name: string };
