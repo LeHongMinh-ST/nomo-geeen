@@ -445,6 +445,8 @@ describe('SalesService', () => {
 					unitPrice: 1000n,
 					lineTotal: 1000n,
 					product: {
+						tenantId: 'tenant-1',
+						deletedAt: null,
 						status: 'ACTIVE',
 						isLocked: false,
 						isRecalled: false,
@@ -754,6 +756,8 @@ describe('SalesService', () => {
 		const { service, tx } = makeService();
 		const sale = draftOrder();
 		sale.lines[0].product = {
+			tenantId: 'tenant-1',
+			deletedAt: null,
 			status: 'ACTIVE',
 			isLocked: false,
 			isRecalled: true,
@@ -785,6 +789,58 @@ describe('SalesService', () => {
 		).rejects.toMatchObject({
 			response: { reason: 'PRODUCT_UNSELLABLE', field: 'productId' },
 		});
+		expect(tx.stockMovement.create).not.toHaveBeenCalled();
+	});
+
+	it('rejects complete when product was soft-deleted after DRAFT', async () => {
+		const { service, tx } = makeService();
+		const sale = draftOrder();
+		sale.lines[0].product = {
+			tenantId: 'tenant-1',
+			deletedAt: new Date('2026-07-23T00:00:00Z'),
+			status: 'ACTIVE',
+			isLocked: false,
+			isRecalled: false,
+			productKind: 'OTHER',
+			attrs: null,
+		};
+		tx.sale.findFirst.mockResolvedValue(sale);
+
+		await expect(
+			service.completeOrder('tenant-1', 'user-1', 'order-1', {
+				paymentMethod: 'CASH',
+				amountPaid: 1000,
+			} as never),
+		).rejects.toMatchObject({
+			response: { reason: 'PRODUCT_UNSELLABLE', field: 'productId' },
+		});
+		expect(tx.stock.updateMany).not.toHaveBeenCalled();
+		expect(tx.stockMovement.create).not.toHaveBeenCalled();
+	});
+
+	it('rejects complete when line product belongs to another tenant', async () => {
+		const { service, tx } = makeService();
+		const sale = draftOrder();
+		sale.lines[0].product = {
+			tenantId: 'tenant-2',
+			deletedAt: null,
+			status: 'ACTIVE',
+			isLocked: false,
+			isRecalled: false,
+			productKind: 'OTHER',
+			attrs: null,
+		};
+		tx.sale.findFirst.mockResolvedValue(sale);
+
+		await expect(
+			service.completeOrder('tenant-1', 'user-1', 'order-1', {
+				paymentMethod: 'CASH',
+				amountPaid: 1000,
+			} as never),
+		).rejects.toMatchObject({
+			response: { reason: 'PRODUCT_UNSELLABLE', field: 'productId' },
+		});
+		expect(tx.stock.updateMany).not.toHaveBeenCalled();
 		expect(tx.stockMovement.create).not.toHaveBeenCalled();
 	});
 

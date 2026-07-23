@@ -15,6 +15,8 @@ export type SaleEligibilityReason =
 /** Product slice needed for hard sale gates (service may pass full Prisma product). */
 export type SaleEligibleProduct = {
 	id?: string;
+	tenantId?: string | null;
+	deletedAt?: Date | null;
 	status?: ProductStatus | string | null;
 	isLocked?: boolean | null;
 	isRecalled?: boolean | null;
@@ -57,8 +59,20 @@ export type SaleAdvisories = Partial<
  */
 export function assertProductSaleEligible(
 	product: SaleEligibleProduct | null | undefined,
+	expectedTenantId?: string,
 ): asserts product is SaleEligibleProduct {
 	if (product == null) {
+		throw new UnprocessableEntityException({
+			reason: 'PRODUCT_UNSELLABLE' satisfies SaleEligibilityReason,
+			message: 'Product is missing or not available for sale',
+			field: 'productId',
+		});
+	}
+
+	if (
+		(product.deletedAt !== null && product.deletedAt !== undefined) ||
+		(expectedTenantId !== undefined && product.tenantId !== expectedTenantId)
+	) {
 		throw new UnprocessableEntityException({
 			reason: 'PRODUCT_UNSELLABLE' satisfies SaleEligibilityReason,
 			message: 'Product is missing or not available for sale',

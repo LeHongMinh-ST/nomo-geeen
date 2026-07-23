@@ -2,7 +2,7 @@
 
 **Date:** 2026-07-23  
 **Spec:** `specs/sale-checkout-kind-gates/`  
-**Phase:** code closeout (R1-02)
+**Phase:** code closeout (R1-02 + review hardening)
 
 ## Commands
 
@@ -15,10 +15,10 @@ pnpm --dir backend build
 | Command | Exit | Result |
 |---|---|---|
 | sale-eligibility-policy.spec.ts | 0 | 12/12 PASS |
-| sales.service.spec.ts | 0 | 71/71 PASS |
+| sales.service.spec.ts | 0 | 73/73 PASS |
 | nest build | 0 | PASS |
 
-Combined tests: **83/83 PASS** (fresh run this closeout).
+Combined tests: **85/85 PASS** (fresh run after review hardening).
 
 ## Artifact / wire proof
 
@@ -29,7 +29,8 @@ Combined tests: **83/83 PASS** (fresh run this closeout).
 | Wire createOrder `sales.service.ts:404` | PASS |
 | Wire completeInTransaction `sales.service.ts:572` | PASS |
 | Wire createQuickSale `sales.service.ts:890` | PASS |
-| complete product select: status, isLocked, isRecalled, productKind, attrs | PASS (`sales.service.ts:539-548`) |
+| complete product select: tenantId, deletedAt, status, isLocked, isRecalled, productKind, attrs | PASS (`sales.service.ts:539-550`) |
+| complete rejects soft-deleted and cross-tenant products | PASS (new regression tests) |
 | FEFO after eligibility | PASS (assert loop before `resolveSaleAllocations`) |
 
 ## Reachability
@@ -56,6 +57,8 @@ Deny path names present:
 - rejects createOrder when product is locked before sale create
 - rejects complete when product became recalled after DRAFT
 - rejects complete when line product is missing
+- rejects complete when product was soft-deleted after DRAFT
+- rejects complete when line product belongs to another tenant
 
 ## out_of_scope (not claimed)
 

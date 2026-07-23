@@ -88,15 +88,19 @@ pnpm --dir backend test --runInBand --runTestsByPath src/platform/sales/sale-eli
 
 **PASS** — sales.service.spec: 71/71 · sale-eligibility-policy.spec: 12/12 · combined 83/83 · exit 0
 
+Review hardening (2026-07-23): **PASS** — sales.service.spec: 73/73 · policy: 12/12 · combined 85/85. Complete now rejects soft-deleted and cross-tenant Product rows before allocation/stock mutation.
+
 Artifact:
 - PASS — `assertProductSaleEligible` at sales.service.ts:404 (createOrder), :572 (complete), :890 (quick)
-- PASS — complete select includes status/isLocked/isRecalled/productKind/attrs
+- PASS — complete select includes tenantId/deletedAt/status/isLocked/isRecalled/productKind/attrs
 - PASS — policy imported `sales.service.ts:13` (not orphan)
 
 Negative paths:
 - createOrder locked → no sale.create (PRODUCT_LOCKED)
 - complete recalled after DRAFT → no stockMovement.create (PRODUCT_RECALLED)
 - complete missing product → PRODUCT_UNSELLABLE
+- complete soft-deleted product → PRODUCT_UNSELLABLE; no stock movement
+- complete cross-tenant product → PRODUCT_UNSELLABLE; no stock movement
 - quick recalled → no stock.updateMany
 
 Quality gate:

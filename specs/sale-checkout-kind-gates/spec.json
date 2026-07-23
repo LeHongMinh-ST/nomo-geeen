@@ -1,11 +1,11 @@
 {
   "feature_name": "sale-checkout-kind-gates",
   "created_at": "2026-07-23T14:49:07+07:00",
-  "updated_at": "2026-07-23T16:00:00+07:00",
+  "updated_at": "2026-07-23T23:51:44+07:00",
   "language": "en",
-  "status": "in_progress",
-  "phase": "code",
-  "current_phase": "code",
+  "status": "completed",
+  "phase": "tasks",
+  "current_phase": "complete",
   "priority": "P1",
   "effort": "2-3 implementation days",
   "tags": [
@@ -122,7 +122,7 @@
     "code_done": "2026-07-23T16:00:00+07:00",
     "test_done": "2026-07-23T16:00:00+07:00",
     "review_done": "2026-07-23T15:06:03+07:00",
-    "validation_done": "2026-07-23T15:06:03+07:00"
+    "validation_done": "2026-07-23T23:51:44+07:00"
   },
   "design_context": {
     "discovery_mode": "light",
@@ -134,7 +134,7 @@
     "status": "completed",
     "session_count": 1,
     "questions_asked": 0,
-    "last_validated_at": "2026-07-23T15:06:03+07:00",
+    "last_validated_at": "2026-07-23T23:51:44+07:00",
     "mode": "red-team-then-validate",
     "validator_exit": 0
   },

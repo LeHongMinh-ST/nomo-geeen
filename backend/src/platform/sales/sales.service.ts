@@ -538,6 +538,8 @@ export class SalesService {
 					include: {
 						product: {
 							select: {
+								tenantId: true,
+								deletedAt: true,
 								status: true,
 								isLocked: true,
 								isRecalled: true,
@@ -569,7 +571,7 @@ export class SalesService {
 		if (settlement.debtAmount > 0n)
 			await this.entitlements.assertFeature(tenantId, 'debt', tx);
 		for (const line of sale.lines) {
-			assertProductSaleEligible(line.product);
+			assertProductSaleEligible(line.product, tenantId);
 		}
 		for (const line of sale.lines) {
 			const qtyBase = this.positiveStorageQuantity(line.qtyBase, 'qtyBase');
