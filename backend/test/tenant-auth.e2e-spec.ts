@@ -1,7 +1,7 @@
 import type { INestApplication } from '@nestjs/common';
 import { ValidationPipe } from '@nestjs/common';
-import { Test } from '@nestjs/testing';
 import { JwtService } from '@nestjs/jwt';
+import { Test } from '@nestjs/testing';
 import cookieParser from 'cookie-parser';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
@@ -117,10 +117,7 @@ describe('Tenant auth session lifecycle (e2e)', () => {
 		await request(server)
 			.get('/tenant/products')
 			.set('Authorization', `Bearer ${access0}`)
-			.expect(403)
-			.expect(({ body }) =>
-				expect(body.message).toBe('Password change required'),
-			);
+			.expect(200);
 		await request(server)
 			.post('/auth/change-password')
 			.set('Authorization', `Bearer ${access0}`)

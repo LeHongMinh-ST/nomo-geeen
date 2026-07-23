@@ -12,7 +12,6 @@ export function UserAuthGuard({ children }: { children: ReactNode }) {
 	const hydrated = useUserAuth((state) => state.hasHydrated);
 	const loading = useUserAuth((state) => state.loading);
 	const hydrate = useUserAuth((state) => state.hydrate);
-	const passwordRoute = pathname === "/doi-mat-khau";
 
 	useEffect(() => {
 		void hydrate();
@@ -22,12 +21,10 @@ export function UserAuthGuard({ children }: { children: ReactNode }) {
 		if (!hydrated || loading) return;
 		if (!user) {
 			router.replace(`/dang-nhap?next=${encodeURIComponent(pathname)}`);
-		} else if (user.mustChangePassword && !passwordRoute) {
-			router.replace("/doi-mat-khau");
 		}
-	}, [hydrated, loading, passwordRoute, pathname, router, user]);
+	}, [hydrated, loading, pathname, router, user]);
 
-	if (!hydrated || loading || !user || (user.mustChangePassword && !passwordRoute)) {
+	if (!hydrated || loading || !user) {
 		return <BootScreen />;
 	}
 	return <>{children}</>;

@@ -1,6 +1,5 @@
 import type { ExecutionContext } from '@nestjs/common';
 import {
-	ForbiddenException,
 	Injectable,
 	ServiceUnavailableException,
 	UnauthorizedException,
@@ -48,12 +47,9 @@ export class TenantAccessTokenGuard extends AuthGuard('tenant-jwt') {
 				deletedAt: null,
 				tenant: { status: 'ACTIVE', deletedAt: null },
 			},
-			select: { id: true, mustChangePassword: true },
+			select: { id: true },
 		});
 		if (!current) throw new UnauthorizedException('User not found');
-		if (current.mustChangePassword) {
-			throw new ForbiddenException('Password change required');
-		}
 		return true;
 	}
 }

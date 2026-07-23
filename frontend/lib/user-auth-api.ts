@@ -31,7 +31,7 @@ function messageForStatus(status: number): string {
 	if (status === 400) return "Thông tin chưa hợp lệ, vui lòng kiểm tra lại.";
 	if (status === 401)
 		return "Thông tin đăng nhập không đúng hoặc phiên đã hết hạn.";
-	if (status === 403) return "Tài khoản cần đổi mật khẩu trước khi tiếp tục.";
+	if (status === 403) return "Bạn không có quyền thực hiện thao tác này.";
 	if (status === 409) return "Tên cửa hàng hoặc tài khoản đã tồn tại.";
 	if (status === 429)
 		return "Bạn thao tác quá nhiều. Vui lòng thử lại sau ít phút.";
@@ -65,7 +65,9 @@ async function requestJson<T>(
 		});
 	} catch {
 		throw Object.assign(
-			new Error("Không thể kết nối máy chủ. Vui lòng kiểm tra backend đang chạy.",),
+			new Error(
+				"Không thể kết nối máy chủ. Vui lòng kiểm tra backend đang chạy.",
+			),
 			{ reason: "NETWORK_ERROR" },
 		) as UserApiError;
 	}
@@ -105,7 +107,9 @@ export function loginUser(input: {
 }
 
 export function refreshUser(): Promise<TenantAuthResponse> {
-	return requestJson<TenantAuthResponse>("/auth/refresh?realm=user", { method: "POST" });
+	return requestJson<TenantAuthResponse>("/auth/refresh?realm=user", {
+		method: "POST",
+	});
 }
 
 export function getCurrentUser(accessToken: string): Promise<TenantAuthUser> {
@@ -115,7 +119,7 @@ export function getCurrentUser(accessToken: string): Promise<TenantAuthUser> {
 }
 
 export function getCurrentProfile(accessToken: string): Promise<TenantProfile> {
-	return requestJson<TenantProfile>('/auth/profile', {
+	return requestJson<TenantProfile>("/auth/profile", {
 		headers: { Authorization: `Bearer ${accessToken}` },
 	});
 }
@@ -124,8 +128,8 @@ export function updateCurrentProfile(
 	accessToken: string,
 	input: { fullName: string; phone?: string; email?: string; address?: string },
 ): Promise<TenantProfile> {
-	return requestJson<TenantProfile>('/auth/profile', {
-		method: 'PATCH',
+	return requestJson<TenantProfile>("/auth/profile", {
+		method: "PATCH",
 		headers: { Authorization: `Bearer ${accessToken}` },
 		body: JSON.stringify(input),
 	});

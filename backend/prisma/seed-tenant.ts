@@ -7,7 +7,7 @@
 // Argon2id khop PasswordService (src/platform/auth/password.service.ts).
 
 import { PrismaPg } from '@prisma/adapter-pg';
-import { PrismaClient } from '@prisma/client';
+import { type Prisma, PrismaClient } from '@prisma/client';
 import * as argon2 from 'argon2';
 
 process.loadEnvFile?.('.env');
@@ -46,14 +46,40 @@ const PER_TENANT_ROLES = [
 	{ code: 'STAFF', name: 'Nhân viên', rank: 3 },
 ] as const;
 
+async function ensureStarterSubscription(
+	client: Prisma.TransactionClient | PrismaClient,
+	tenantId: string,
+) {
+	const existing = await client.subscription.findFirst({
+		where: { tenantId, status: { not: 'CANCELLED' } },
+		select: { id: true },
+	});
+	if (existing) return;
+
+	const starter = await client.plan.findUniqueOrThrow({
+		where: { code: 'starter' },
+		select: { id: true },
+	});
+	await client.subscription.create({
+		data: {
+			tenantId,
+			planId: starter.id,
+			status: 'TRIALING',
+			trialEndsAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+			reason: 'Seed tenant trial',
+		},
+	});
+}
+
 async function main() {
 	const existing = await prisma.tenant.findUnique({
 		where: { slug: TENANT.slug },
 		select: { id: true },
 	});
 	if (existing) {
+		await ensureStarterSubscription(prisma, existing.id);
 		console.log(
-			`Tenant "${TENANT.slug}" da ton tai, bo qua (idempotent). Owner: ${OWNER.username}`,
+			`Tenant "${TENANT.slug}" da ton tai, giu nguyen du lieu. Owner: ${OWNER.username}`,
 		);
 		return;
 	}
@@ -133,6 +159,7 @@ async function main() {
 				createdByType: 'USER',
 			},
 		});
+		await ensureStarterSubscription(tx, tenant.id);
 	});
 
 	console.log('Seed tenant test xong:');

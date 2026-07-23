@@ -6,8 +6,14 @@ import {
 import type { RefreshTokenStore } from '../refresh-token.store';
 import { TenantAccessTokenGuard } from './tenant-access-token.guard';
 
-function ctxWith(authHeader?: string): ExecutionContext {
-	const req = { headers: authHeader ? { authorization: authHeader } : {} };
+function ctxWith(
+	authHeader?: string,
+	user?: { id: string; tenantId: string },
+): ExecutionContext {
+	const req = {
+		headers: authHeader ? { authorization: authHeader } : {},
+		user,
+	};
 	return {
 		switchToHttp: () => ({ getRequest: () => req }),
 	} as unknown as ExecutionContext;
@@ -51,5 +57,36 @@ describe('TenantAccessTokenGuard', () => {
 		await expect(
 			guard.canActivate(ctxWith('Bearer tenant.access.token')),
 		).rejects.toBeInstanceOf(ServiceUnavailableException);
+	});
+
+	it('allows active users whose password change flag is set', async () => {
+		const store = {
+			isUserAccessBlacklisted: jest.fn().mockResolvedValue(false),
+		} as unknown as RefreshTokenStore;
+		const prisma = {
+			user: {
+				findFirst: jest.fn().mockResolvedValue({
+					id: 'user-1',
+					mustChangePassword: true,
+				}),
+			},
+		};
+		const parentCanActivate = jest
+			.spyOn(
+				Object.getPrototypeOf(TenantAccessTokenGuard.prototype),
+				'canActivate',
+			)
+			.mockResolvedValue(true);
+		const guard = new TenantAccessTokenGuard(store, prisma as never);
+
+		await expect(
+			guard.canActivate(
+				ctxWith('Bearer tenant.access.token', {
+					id: 'user-1',
+					tenantId: 'tenant-1',
+				}),
+			),
+		).resolves.toBe(true);
+		parentCanActivate.mockRestore();
 	});
 });
