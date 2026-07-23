@@ -4,9 +4,9 @@ import { BookOpen, Leaf, Pill } from "lucide-react";
 import Link from "next/link";
 import {
 	availableSuggestionCount,
+	categoryBadgeClass,
+	categoryLabel,
 	type Disease,
-	fieldBadgeClass,
-	fieldLabel,
 	typeBadgeClass,
 	typeLabel,
 } from "@/lib/handbook";
@@ -38,9 +38,9 @@ export function DiseaseCard({ disease }: { disease: Disease }) {
 					</span>
 					<div className="flex flex-wrap items-center gap-1.5">
 						<span
-							className={`rounded-full px-2.5 py-0.5 text-sm font-semibold ${fieldBadgeClass[disease.field]}`}
+							className={`rounded-full px-2.5 py-0.5 text-sm font-semibold ${categoryBadgeClass[disease.category]}`}
 						>
-							{fieldLabel[disease.field]}
+							{categoryLabel[disease.category]}
 						</span>
 						<span
 							className={`rounded-full px-2.5 py-0.5 text-sm font-semibold ${typeBadgeClass[disease.type]}`}

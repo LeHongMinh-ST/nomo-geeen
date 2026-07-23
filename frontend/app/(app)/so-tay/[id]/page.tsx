@@ -1,9 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { use } from "react";
+import { use, useEffect, useState } from "react";
 import { DiseaseDetail } from "@/components/app/handbook/disease-detail";
+import type { Disease } from "@/lib/handbook";
 import { getDisease } from "@/lib/handbook";
+import { getHandbookEntry, toDisease } from "@/lib/tenant-handbook-api";
 
 export default function ChiTietSoTayPage({
 	params,
@@ -11,7 +13,25 @@ export default function ChiTietSoTayPage({
 	params: Promise<{ id: string }>;
 }) {
 	const { id } = use(params);
-	const disease = getDisease(id);
+	const [disease, setDisease] = useState<Disease | null | undefined>(undefined);
+
+	useEffect(() => {
+		let cancelled = false;
+		getHandbookEntry(id)
+			.then((entry) => {
+				if (!cancelled) setDisease(toDisease(entry));
+			})
+			.catch(() => {
+				if (!cancelled) setDisease(getDisease(id) ?? null);
+			});
+		return () => {
+			cancelled = true;
+		};
+	}, [id]);
+
+	if (disease === undefined) {
+		return <p className="text-base text-[#9e9e9e]">Đang tải mục sổ tay…</p>;
+	}
 
 	if (!disease) {
 		return (

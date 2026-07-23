@@ -1,7 +1,7 @@
 # Task R0-01: Define the canonical Handbook category contract
 
 **Requirement:** R0 — Shared foundation for Requirements 1, 3, and 4
-**Status:** pending
+**Status:** done
 **Priority:** P1
 **Estimated Effort:** 0.5-1 day
 **Dependencies:** none
@@ -23,15 +23,15 @@
 
 ## Steps
 
-- [ ] 1. Define the canonical category type, ordered catalog, labels, and legacy mapping table in `frontend/lib/handbook.ts` or the smallest shared Handbook domain module that the backend task can mirror.
+- [x] 1. Define the canonical category type, ordered catalog, labels, and legacy mapping table in `frontend/lib/handbook.ts` or the smallest shared Handbook domain module that the backend task can mirror.
   - Business intent: every screen uses the same five words and order.
   - Code detail: expose typed IDs, `{ id, label, selectable }`, `UNCATEGORIZED`, and explicit `AgriDomain` mapping; no `any`.
   - _Requirements: 1.1, 1.2, 1.3_
-- [ ] 2. Record the exact cross-layer contract in implementation-facing comments/tests and make it available to backend DTO/schema work without duplicating display literals.
+- [x] 2. Record the exact cross-layer contract in implementation-facing comments/tests and make it available to backend DTO/schema work without duplicating display literals.
   - Business intent: FE and BE cannot silently drift.
   - Code detail: preserve the `HandbookCategory` JSON block from `design.md` verbatim in contract tests or the chosen shared representation.
   - _Requirements: 1.1, 1.2, 3.2_
-- [ ] 3. Add unit coverage for order, labels, selectable flags, and unknown/deprecated fallback.
+- [x] 3. Add unit coverage for order, labels, selectable flags, and unknown/deprecated fallback.
   - _Requirements: 1.1, 1.2, 1.3_
 
 ## Requirements
@@ -52,26 +52,40 @@
 
 ## Completion Criteria
 
-- [ ] Exactly five selectable category IDs and the non-selectable fallback exist in one canonical contract.
-- [ ] The combined first label is not represented by two options; no aquaculture option is introduced.
-- [ ] Unknown and legacy values map to `Chưa phân loại` without mutating source data.
-- [ ] The contract unit test fails if order, labels, count, or selectable flags drift.
-- [ ] The contract is consumable by the backend and frontend tasks; no runtime-facing artifact is orphaned.
+- [x] Exactly five selectable category IDs and the non-selectable fallback exist in one canonical contract.
+- [x] The combined first label is not represented by two options; no aquaculture option is introduced.
+- [x] Unknown and legacy values map to `Chưa phân loại` without mutating source data.
+- [x] The contract unit test fails if order, labels, count, or selectable flags drift.
+- [x] The contract is consumable by the backend and frontend tasks; no runtime-facing artifact is orphaned.
 
 ## Evidence
+## Evidence
 
-- [ ] Automated verification (unit)
-  - Command(s): `pnpm --dir frontend test -- handbook.test.ts`
-  - Expected proof: catalog and fallback tests pass with exact count/order/labels.
-- [ ] Artifact / runtime verification
-  - Inspect: `frontend/lib/handbook.ts`
-  - Expect: one typed catalog is the source for labels/options; `suggestProducts` behavior is unchanged.
-- [ ] Runtime reachability verification
-  - Entrypoint/caller: `frontend/app/(app)/so-tay/page.tsx` → `frontend/components/app/handbook/handbook-list.tsx`
-  - Expect: later UI task imports this contract rather than re-declaring categories.
-- [ ] Contract / negative-path verification
-  - Check: pass invalid and deprecated IDs to the mapper.
-  - Expect: `UNCATEGORIZED`/`Chưa phân loại`, never an arbitrary core category.
+### Automated verification
+
+```bash
+pnpm --dir frontend test -- lib/handbook.test.ts
+```
+
+```text
+# RESULT
+# exit: 0
+# summary: handbook.test.ts PASS (catalog order/labels/fallback/legacy map/suggestProducts); full frontend suite 59 passed 2026-07-23
+```
+
+### Artifact verification
+
+```text
+# RESULT
+# PASS — frontend/lib/handbook.ts HANDBOOK_CATEGORY_CATALOG + mappers; mock uses category
+```
+
+### Runtime reachability verification
+
+```text
+# RESULT
+# PASS — handbook-list / disease-form / card / detail import category contract
+```
 
 ## Risk Assessment
 

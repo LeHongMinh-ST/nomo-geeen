@@ -18,9 +18,9 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { formatDate, formatVND } from "@/lib/format";
 import {
+	categoryBadgeClass,
+	categoryLabel,
 	type Disease,
-	fieldBadgeClass,
-	fieldLabel,
 	type Suggestion,
 	suggestProducts,
 	suggestReasonLabel,
@@ -76,9 +76,9 @@ export function DiseaseDetail({ disease }: { disease: Disease }) {
 						</h1>
 						<div className="flex flex-wrap items-center gap-1.5">
 							<span
-								className={`rounded-full px-3 py-1 text-sm font-semibold ${fieldBadgeClass[disease.field]}`}
+								className={`rounded-full px-3 py-1 text-sm font-semibold ${categoryBadgeClass[disease.category]}`}
 							>
-								{fieldLabel[disease.field]}
+								{categoryLabel[disease.category]}
 							</span>
 							<span
 								className={`rounded-full px-3 py-1 text-sm font-semibold ${typeBadgeClass[disease.type]}`}

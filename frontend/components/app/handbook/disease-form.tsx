@@ -4,25 +4,29 @@ import { ChevronDown, FlaskConical, Leaf, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import {
+	categoryLabel,
 	type Disease,
 	type DiseaseType,
-	fieldLabel,
-	type HandbookField,
+	type HandbookCategoryId,
+	SELECTABLE_HANDBOOK_CATEGORY_IDS,
 	typeLabel,
 } from "@/lib/handbook";
+import {
+	createHandbookEntry,
+	toApiDiseaseType,
+	updateHandbookEntry,
+} from "@/lib/tenant-handbook-api";
 
 /**
  * Form Thêm/Sửa mục Sổ tay (base_spec §21.2, DESIGN.md §8, §24 — trang riêng).
  * Mobile-first: chia section, nút Lưu dính đáy full-width (§7).
- * FE-only: state cục bộ, submit → điều hướng về danh sách (chưa nối API).
+ * Submit POST/PATCH /tenant/handbook; lỗi hiển thị trên form.
  */
 
 type FormMode = "create" | "edit";
 
-const fieldOptions: HandbookField[] = [
-	"cultivation",
-	"livestock",
-	"aquaculture",
+const categoryOptions: HandbookCategoryId[] = [
+	...SELECTABLE_HANDBOOK_CATEGORY_IDS,
 ];
 
 const typeOptions: DiseaseType[] = ["disease", "pest", "weed", "epidemic"];
@@ -30,7 +34,7 @@ const typeOptions: DiseaseType[] = ["disease", "pest", "weed", "epidemic"];
 type FormState = {
 	name: string;
 	subject: string;
-	field: HandbookField;
+	category: HandbookCategoryId;
 	type: DiseaseType;
 	symptom: string;
 	aliases: string[];
@@ -44,7 +48,7 @@ function toFormState(d?: Disease): FormState {
 	return {
 		name: d?.name ?? "",
 		subject: d?.subject ?? "",
-		field: d?.field ?? "cultivation",
+		category: d?.category ?? "CROP_PROTECTION_AND_FERTILIZER",
 		type: d?.type ?? "disease",
 		symptom: d?.symptom ?? "",
 		aliases: d?.aliases ?? [],
@@ -70,13 +74,44 @@ export function DiseaseForm({
 		setForm((f) => ({ ...f, [key]: value }));
 	}
 
-	function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+	const [error, setError] = useState<string | null>(null);
+
+	async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
 		e.preventDefault();
 		setSaving(true);
-		// TODO: gọi API tạo/cập nhật mục Sổ tay khi backend sẵn sàng.
-		setTimeout(() => {
-			router.push(disease ? `/so-tay/${disease.id}` : "/so-tay");
-		}, 400);
+		setError(null);
+		const category = form.category;
+		if (category === "UNCATEGORIZED") {
+			setError("Chọn một danh mục hợp lệ.");
+			setSaving(false);
+			return;
+		}
+		const payload = {
+			name: form.name.trim(),
+			category,
+			subject: form.subject.trim() || undefined,
+			type: toApiDiseaseType(form.type),
+			symptom: form.symptom.trim() || undefined,
+			note: form.note.trim() || undefined,
+			aliases: form.aliases,
+			recommendedIngredients: form.recommendedIngredients,
+		};
+		try {
+			if (mode === "edit" && disease) {
+				const updated = await updateHandbookEntry(disease.id, payload);
+				router.push(`/so-tay/${updated.id}`);
+			} else {
+				const created = await createHandbookEntry(payload);
+				router.push(`/so-tay/${created.id}`);
+			}
+		} catch (err) {
+			setError(
+				err instanceof Error
+					? err.message
+					: "Không lưu được sổ tay. Kiểm tra quyền handbook:create/edit.",
+			);
+			setSaving(false);
+		}
 	}
 
 	const submitLabel = mode === "create" ? "Thêm sổ tay" : "Lưu thay đổi";
@@ -86,6 +121,11 @@ export function DiseaseForm({
 			onSubmit={handleSubmit}
 			className="mx-auto flex w-full max-w-2xl flex-col gap-5 pb-24 lg:mx-0 lg:pb-6"
 		>
+			{error ? (
+				<p className="rounded-[10px] border border-[#ffcdd2] bg-[#ffebee] px-3 py-2 text-sm text-[#c62828]">
+					{error}
+				</p>
+			) : null}
 			{/* Section 1: Thông tin bệnh */}
 			<Section icon={Leaf} tile="#5cad45" title="Thông tin bệnh / vấn đề">
 				<Field label="Tên bệnh / vấn đề" required>
@@ -99,20 +139,20 @@ export function DiseaseForm({
 					/>
 				</Field>
 
-				<Field label="Lĩnh vực" required>
-					<div className="grid grid-cols-3 gap-1 rounded-[12px] bg-[#f0f2f1] p-1">
-						{fieldOptions.map((f) => (
+				<Field label="Danh mục" required>
+					<div className="grid grid-cols-1 gap-1 rounded-[12px] bg-[#f0f2f1] p-1 sm:grid-cols-2">
+						{categoryOptions.map((c) => (
 							<button
-								key={f}
+								key={c}
 								type="button"
-								onClick={() => set("field", f)}
-								className={`h-10 rounded-[9px] px-1 text-sm font-semibold transition-colors duration-200 ease-out ${
-									form.field === f
+								onClick={() => set("category", c)}
+								className={`min-h-12 rounded-[9px] px-2 py-2 text-left text-sm font-semibold transition-colors duration-200 ease-out ${
+									form.category === c
 										? "bg-card text-primary shadow-[0_1px_3px_rgba(0,0,0,0.08)]"
 										: "text-[#616161] hover:text-foreground"
 								}`}
 							>
-								{fieldLabel[f]}
+								{categoryLabel[c]}
 							</button>
 						))}
 					</div>

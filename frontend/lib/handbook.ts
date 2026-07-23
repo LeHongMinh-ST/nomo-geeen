@@ -22,8 +22,119 @@ import {
 /** Mốc "hôm nay" cố định cho mock — khớp docs/currentDate. */
 export const TODAY = "2026-07-17";
 
-/** Lĩnh vực nuôi trồng (base_spec §21.2 — phủ đủ 3 lĩnh vực). */
+/**
+ * Canonical Handbook category contract (specs/handbook-core-catalog).
+ * Not the same as product BusinessGroup (CROP_INPUTS vs advice taxonomy).
+ */
+export type HandbookCategoryId =
+	| "CROP_PROTECTION_AND_FERTILIZER"
+	| "CROP_SEEDLINGS"
+	| "ANIMAL_FEED"
+	| "VETERINARY_DRUGS"
+	| "LIVESTOCK"
+	| "UNCATEGORIZED";
+
+export type HandbookCategoryOption = {
+	id: HandbookCategoryId;
+	label: string;
+	selectable: boolean;
+};
+
+/** Ordered catalog — only source for labels/options (design contract). */
+export const HANDBOOK_CATEGORY_CATALOG: readonly HandbookCategoryOption[] = [
+	{
+		id: "CROP_PROTECTION_AND_FERTILIZER",
+		label: "Thuốc bảo vệ thực vật + Phân bón",
+		selectable: true,
+	},
+	{
+		id: "CROP_SEEDLINGS",
+		label: "Cây giống",
+		selectable: true,
+	},
+	{
+		id: "ANIMAL_FEED",
+		label: "Thức ăn chăn nuôi",
+		selectable: true,
+	},
+	{
+		id: "VETERINARY_DRUGS",
+		label: "Thuốc thú y",
+		selectable: true,
+	},
+	{
+		id: "LIVESTOCK",
+		label: "Con giống",
+		selectable: true,
+	},
+	{
+		id: "UNCATEGORIZED",
+		label: "Chưa phân loại",
+		selectable: false,
+	},
+] as const;
+
+export const SELECTABLE_HANDBOOK_CATEGORY_IDS =
+	HANDBOOK_CATEGORY_CATALOG.filter((c) => c.selectable).map((c) => c.id);
+
+const categoryById = Object.fromEntries(
+	HANDBOOK_CATEGORY_CATALOG.map((c) => [c.id, c]),
+) as Record<HandbookCategoryId, HandbookCategoryOption>;
+
+export function getHandbookCategory(
+	id: string | null | undefined,
+): HandbookCategoryOption {
+	if (id && id in categoryById) return categoryById[id as HandbookCategoryId];
+	return categoryById.UNCATEGORIZED;
+}
+
+export function handbookCategoryLabel(id: string | null | undefined): string {
+	return getHandbookCategory(id).label;
+}
+
+/** Prisma AgriDomain → Handbook category (lossless fallback UNCATEGORIZED). */
+export type LegacyAgriDomain =
+	| "CROP"
+	| "LIVESTOCK"
+	| "AQUACULTURE"
+	| "GENERAL"
+	| string;
+
+export function mapLegacyAgriDomain(
+	domain: LegacyAgriDomain | null | undefined,
+): HandbookCategoryId {
+	switch (domain) {
+		case "CROP":
+			return "CROP_PROTECTION_AND_FERTILIZER";
+		case "LIVESTOCK":
+			return "VETERINARY_DRUGS";
+		case "AQUACULTURE":
+		case "GENERAL":
+		case null:
+		case undefined:
+			return "UNCATEGORIZED";
+		default:
+			return "UNCATEGORIZED";
+	}
+}
+
+/** @deprecated Use HandbookCategoryId — kept for gradual UI migration. */
 export type HandbookField = "cultivation" | "livestock" | "aquaculture";
+
+export function mapLegacyHandbookField(
+	field: HandbookField | string | null | undefined,
+): HandbookCategoryId {
+	switch (field) {
+		case "cultivation":
+			return "CROP_PROTECTION_AND_FERTILIZER";
+		case "livestock":
+			return "VETERINARY_DRUGS";
+		case "aquaculture":
+			return "UNCATEGORIZED";
+		default:
+			return getHandbookCategory(field as string).id;
+	}
+}
 
 /** Loại vấn đề trong Sổ tay (§21.2). */
 export type DiseaseType = "disease" | "pest" | "weed" | "epidemic";
@@ -38,7 +149,12 @@ export type Disease = {
 	name: string;
 	/** Tên gọi khác / từ khóa tìm — gõ kiểu gì cũng ra. */
 	aliases: string[];
-	field: HandbookField;
+	/** Canonical Handbook category (five core + UNCATEGORIZED). */
+	category: HandbookCategoryId;
+	/**
+	 * @deprecated Prefer `category`. Kept for older call sites during migration.
+	 */
+	field?: HandbookField;
 	/** Đối tượng cụ thể: Lúa, Bắp, Lợn, Gà, Tôm, Cá... */
 	subject: string;
 	type: DiseaseType;
@@ -66,11 +182,26 @@ export const fieldLabel: Record<HandbookField, string> = {
 	aquaculture: "Thủy sản",
 };
 
+/** Labels from canonical catalog only. */
+export const categoryLabel: Record<HandbookCategoryId, string> =
+	Object.fromEntries(
+		HANDBOOK_CATEGORY_CATALOG.map((c) => [c.id, c.label]),
+	) as Record<HandbookCategoryId, string>;
+
 /** Class badge lĩnh vực (DESIGN.md §13 — nền + chữ, không chỉ màu). */
 export const fieldBadgeClass: Record<HandbookField, string> = {
 	cultivation: "bg-[#e8f5e9] text-[#2e7d32]",
 	livestock: "bg-[#fff3e0] text-[#e65100]",
 	aquaculture: "bg-[#e3f2fd] text-[#1565c0]",
+};
+
+export const categoryBadgeClass: Record<HandbookCategoryId, string> = {
+	CROP_PROTECTION_AND_FERTILIZER: "bg-[#e8f5e9] text-[#2e7d32]",
+	CROP_SEEDLINGS: "bg-[#f1f8e9] text-[#558b2f]",
+	ANIMAL_FEED: "bg-[#fff8e1] text-[#f57f17]",
+	VETERINARY_DRUGS: "bg-[#fff3e0] text-[#e65100]",
+	LIVESTOCK: "bg-[#fce4ec] text-[#ad1457]",
+	UNCATEGORIZED: "bg-[#eceff1] text-[#546e7a]",
 };
 
 export const typeLabel: Record<DiseaseType, string> = {
@@ -186,7 +317,7 @@ export function getDisease(id: string): Disease | undefined {
 /* --------------------------------- Mock ---------------------------------- */
 
 /**
- * Bộ bệnh phổ biến seed sẵn, phủ đủ 3 lĩnh vực (§21.2).
+ * Bộ bệnh phổ biến seed sẵn, phủ 5 danh mục Handbook (legacy aquaculture → UNCATEGORIZED) (§21.2).
  * Hoạt chất khớp products.ts: Fipronil→Regent (p2), Paraquat→Gramoxone (p4).
  * Các bệnh chăn nuôi/thủy sản dùng ghim tay minh họa (kho chưa có agro tương ứng).
  */
@@ -196,7 +327,7 @@ export const handbookDiseases: Disease[] = [
 		code: "ST-001",
 		name: "Đạo ôn",
 		aliases: ["cháy lá", "đạo ôn lá", "blast"],
-		field: "cultivation",
+		category: "CROP_PROTECTION_AND_FERTILIZER",
 		subject: "Lúa",
 		type: "disease",
 		symptom:
@@ -215,7 +346,7 @@ export const handbookDiseases: Disease[] = [
 		code: "ST-002",
 		name: "Rầy nâu",
 		aliases: ["rầy", "rầy nâu hại lúa", "cháy rầy"],
-		field: "cultivation",
+		category: "CROP_PROTECTION_AND_FERTILIZER",
 		subject: "Lúa",
 		type: "pest",
 		symptom:
@@ -234,7 +365,7 @@ export const handbookDiseases: Disease[] = [
 		code: "ST-003",
 		name: "Sâu cuốn lá",
 		aliases: ["sâu cuốn lá nhỏ", "cuốn lá"],
-		field: "cultivation",
+		category: "CROP_PROTECTION_AND_FERTILIZER",
 		subject: "Lúa",
 		type: "pest",
 		symptom:
@@ -253,7 +384,7 @@ export const handbookDiseases: Disease[] = [
 		code: "ST-004",
 		name: "Cỏ dại ruộng cạn",
 		aliases: ["cỏ", "diệt cỏ", "cỏ lồng vực"],
-		field: "cultivation",
+		category: "CROP_PROTECTION_AND_FERTILIZER",
 		subject: "Cây trồng cạn",
 		type: "weed",
 		symptom: "Cỏ mọc dày tranh dinh dưỡng, che sáng cây trồng non.",
@@ -271,7 +402,7 @@ export const handbookDiseases: Disease[] = [
 		code: "ST-005",
 		name: "Vàng lá gân xanh",
 		aliases: ["greening", "vàng lá cam", "HLB"],
-		field: "cultivation",
+		category: "CROP_PROTECTION_AND_FERTILIZER",
 		subject: "Cam quýt",
 		type: "disease",
 		symptom: "Lá vàng loang lổ nhưng gân còn xanh, trái méo lệch, cây suy dần.",
@@ -289,7 +420,7 @@ export const handbookDiseases: Disease[] = [
 		code: "ST-006",
 		name: "Sương mai",
 		aliases: ["mốc sương", "downy mildew"],
-		field: "cultivation",
+		category: "CROP_PROTECTION_AND_FERTILIZER",
 		subject: "Rau màu",
 		type: "disease",
 		symptom:
@@ -308,7 +439,7 @@ export const handbookDiseases: Disease[] = [
 		code: "ST-007",
 		name: "Dịch tả lợn",
 		aliases: ["dịch tả heo", "tả lợn châu Phi", "ASF"],
-		field: "livestock",
+		category: "VETERINARY_DRUGS",
 		subject: "Lợn",
 		type: "epidemic",
 		symptom:
@@ -327,7 +458,7 @@ export const handbookDiseases: Disease[] = [
 		code: "ST-008",
 		name: "Cúm gia cầm",
 		aliases: ["cúm gà", "H5N1", "cúm vịt"],
-		field: "livestock",
+		category: "VETERINARY_DRUGS",
 		subject: "Gà, vịt",
 		type: "epidemic",
 		symptom:
@@ -346,7 +477,7 @@ export const handbookDiseases: Disease[] = [
 		code: "ST-009",
 		name: "Tụ huyết trùng",
 		aliases: ["tụ huyết trùng trâu bò", "bệnh toi"],
-		field: "livestock",
+		category: "VETERINARY_DRUGS",
 		subject: "Trâu, bò",
 		type: "disease",
 		symptom:
@@ -365,7 +496,7 @@ export const handbookDiseases: Disease[] = [
 		code: "ST-010",
 		name: "Đốm trắng ở tôm",
 		aliases: ["bệnh đốm trắng", "WSSV", "white spot"],
-		field: "aquaculture",
+		category: "UNCATEGORIZED",
 		subject: "Tôm",
 		type: "epidemic",
 		symptom:
@@ -384,7 +515,7 @@ export const handbookDiseases: Disease[] = [
 		code: "ST-011",
 		name: "Hoại tử gan tụy cấp",
 		aliases: ["gan tụy", "EMS", "AHPND", "phân trắng"],
-		field: "aquaculture",
+		category: "UNCATEGORIZED",
 		subject: "Tôm",
 		type: "disease",
 		symptom: "Tôm bỏ ăn, gan tụy nhợt teo, ruột rỗng; tôm nhỏ chết đáy ao.",
@@ -402,7 +533,7 @@ export const handbookDiseases: Disease[] = [
 		code: "ST-012",
 		name: "Xuất huyết ở cá",
 		aliases: ["đốm đỏ", "xuất huyết cá tra", "lở loét"],
-		field: "aquaculture",
+		category: "UNCATEGORIZED",
 		subject: "Cá",
 		type: "disease",
 		symptom:
@@ -415,5 +546,50 @@ export const handbookDiseases: Disease[] = [
 		excludedProductIds: [],
 		updatedBy: "Minh Tâm",
 		updatedAt: "2026-07-11",
+	},
+	{
+		id: "st-giong-lua",
+		code: "ST-013",
+		name: "Chọn giống lúa vụ ĐX",
+		aliases: ["giống lúa", "lúa lai"],
+		category: "CROP_SEEDLINGS",
+		subject: "Lúa",
+		type: "disease",
+		symptom: "Tư vấn chọn giống theo vụ/mùa, mật độ gieo.",
+		recommendedIngredients: [],
+		pinnedProductIds: [],
+		excludedProductIds: [],
+		updatedBy: "Minh Tâm",
+		updatedAt: "2026-07-15",
+	},
+	{
+		id: "st-cam-heo",
+		code: "ST-014",
+		name: "Chọn cám heo giai đoạn vỗ béo",
+		aliases: ["thức ăn heo", "cám"],
+		category: "ANIMAL_FEED",
+		subject: "Lợn",
+		type: "disease",
+		symptom: "Tư vấn khẩu phần theo giai đoạn sinh trưởng.",
+		recommendedIngredients: [],
+		pinnedProductIds: [],
+		excludedProductIds: [],
+		updatedBy: "Minh Tâm",
+		updatedAt: "2026-07-15",
+	},
+	{
+		id: "st-heo-giong",
+		code: "ST-015",
+		name: "Chọn heo giống hậu bị",
+		aliases: ["heo giống", "con giống"],
+		category: "LIVESTOCK",
+		subject: "Lợn",
+		type: "disease",
+		symptom: "Tiêu chuẩn giống, tuổi, sức khỏe khi nhập.",
+		recommendedIngredients: [],
+		pinnedProductIds: [],
+		excludedProductIds: [],
+		updatedBy: "Minh Tâm",
+		updatedAt: "2026-07-15",
 	},
 ];

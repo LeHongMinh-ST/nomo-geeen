@@ -8,29 +8,33 @@ import { ListFilterBar } from "@/components/app/shared/list-filter-bar";
 import { LoadMoreSentinel } from "@/components/app/shared/load-more-sentinel";
 import {
 	availableSuggestionCount,
+	categoryBadgeClass,
+	categoryLabel,
 	type Disease,
-	fieldBadgeClass,
-	fieldLabel,
-	type HandbookField,
+	HANDBOOK_CATEGORY_CATALOG,
+	type HandbookCategoryId,
+	handbookCategoryLabel,
 	handbookDiseases,
 	typeBadgeClass,
 	typeLabel,
 } from "@/lib/handbook";
+import { listHandbookEntries, toDisease } from "@/lib/tenant-handbook-api";
 import { DiseaseCard } from "./disease-card";
 
 /**
  * Danh sách Sổ tay — responsive (DESIGN.md §12).
- * Segmented lọc lĩnh vực (Tất cả / Trồng trọt / Chăn nuôi / Thủy sản) + tìm kiếm.
+ * Segmented lọc 5 danh mục core + tìm kiếm.
  * Mobile: card list + tải dần. Desktop (lg+): bảng đầy đủ + phân trang.
  */
 
-type FieldFilter = "all" | HandbookField;
+type CategoryFilter = "all" | HandbookCategoryId;
 
-const fieldFilters: { value: FieldFilter; label: string }[] = [
+const categoryFilters: { value: CategoryFilter; label: string }[] = [
 	{ value: "all", label: "Tất cả" },
-	{ value: "cultivation", label: "Trồng trọt" },
-	{ value: "livestock", label: "Chăn nuôi" },
-	{ value: "aquaculture", label: "Thủy sản" },
+	...HANDBOOK_CATEGORY_CATALOG.filter((c) => c.selectable).map((c) => ({
+		value: c.id as CategoryFilter,
+		label: c.label,
+	})),
 ];
 
 const PAGE_SIZE = 10;
@@ -38,28 +42,62 @@ const MOBILE_BATCH = 8;
 
 export function HandbookList() {
 	const [query, setQuery] = useState("");
-	const [field, setField] = useState<FieldFilter>("all");
+	const [category, setCategory] = useState<CategoryFilter>("all");
 	const [page, setPage] = useState(1);
 	const [mobileCount, setMobileCount] = useState(MOBILE_BATCH);
+	const [entries, setEntries] = useState<Disease[]>(handbookDiseases);
+	const [loadError, setLoadError] = useState<string | null>(null);
+	const [loading, setLoading] = useState(true);
+
+	useEffect(() => {
+		let cancelled = false;
+		setLoading(true);
+		listHandbookEntries({ page: 1, pageSize: 50 })
+			.then((res) => {
+				if (cancelled) return;
+				if (res.items.length > 0) {
+					setEntries(res.items.map(toDisease));
+					setLoadError(null);
+				} else {
+					// Empty tenant: keep empty list (not mock) once API reachable.
+					setEntries([]);
+					setLoadError(null);
+				}
+			})
+			.catch(() => {
+				if (cancelled) return;
+				// Offline / no perm: fall back to mock so counter still works.
+				setEntries(handbookDiseases);
+				setLoadError("API sổ tay chưa sẵn sàng — đang dùng dữ liệu mẫu.");
+			})
+			.finally(() => {
+				if (!cancelled) setLoading(false);
+			});
+		return () => {
+			cancelled = true;
+		};
+	}, []);
 
 	const filtered = useMemo(() => {
 		const q = query.trim().toLowerCase();
-		return handbookDiseases.filter((d) => {
-			if (field !== "all" && d.field !== field) return false;
+		return entries.filter((d) => {
+			if (category !== "all" && d.category !== category) return false;
 			if (!q) return true;
+			const catLabel = handbookCategoryLabel(d.category).toLowerCase();
 			return (
 				d.name.toLowerCase().includes(q) ||
 				d.subject.toLowerCase().includes(q) ||
+				catLabel.includes(q) ||
 				d.aliases.some((a) => a.toLowerCase().includes(q))
 			);
 		});
-	}, [query, field]);
+	}, [query, category, entries]);
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: reset khi tiêu chí lọc đổi
 	useEffect(() => {
 		setPage(1);
 		setMobileCount(MOBILE_BATCH);
-	}, [query, field]);
+	}, [query, category]);
 
 	const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
 	const safePage = Math.min(page, pageCount);
@@ -80,11 +118,11 @@ export function HandbookList() {
 							Sổ tay
 						</h1>
 						<span className="rounded-full bg-[#e3f2fd] px-2.5 py-0.5 text-sm font-semibold text-[#1565c0]">
-							{handbookDiseases.length}
+							{entries.length}
 						</span>
 					</div>
 					<p className="text-base text-[#616161]">
-						Tra bệnh theo cây trồng, vật nuôi, thủy sản — gợi ý thuốc đang có.
+						Tra bệnh theo 5 nhóm vật tư — gợi ý thuốc đang có.
 					</p>
 				</div>
 
@@ -97,6 +135,15 @@ export function HandbookList() {
 					Thêm sổ tay
 				</Link>
 			</div>
+
+			{loadError ? (
+				<p className="rounded-[10px] border border-[#ffe0b2] bg-[#fff8e1] px-3 py-2 text-sm text-[#e65100]">
+					{loadError}
+				</p>
+			) : null}
+			{loading ? (
+				<p className="text-sm text-[#9e9e9e]">Đang tải sổ tay…</p>
+			) : null}
 
 			{/* Tìm kiếm */}
 			<div className="relative">
@@ -113,22 +160,22 @@ export function HandbookList() {
 				/>
 			</div>
 
-			{/* Lọc lĩnh vực */}
+			{/* Lọc danh mục */}
 			<ListFilterBar
 				groups={[
 					{
-						key: "field",
-						label: "Lĩnh vực",
-						value: field,
-						options: fieldFilters,
-						onChange: (v) => setField(v as FieldFilter),
+						key: "category",
+						label: "Danh mục",
+						value: category,
+						options: categoryFilters,
+						onChange: (v) => setCategory(v as CategoryFilter),
 					},
 				]}
 			/>
 
 			{/* Kết quả */}
 			{filtered.length === 0 ? (
-				<EmptyState hasEntries={handbookDiseases.length > 0} />
+				<EmptyState hasEntries={entries.length > 0} />
 			) : (
 				<>
 					{/* Mobile — card list + tải dần */}
@@ -161,7 +208,7 @@ export function HandbookList() {
 											Tên bệnh / vấn đề
 										</th>
 										<th className="min-w-[130px] whitespace-nowrap px-4 py-3 font-semibold">
-											Lĩnh vực
+											Danh mục
 										</th>
 										<th className="min-w-[140px] whitespace-nowrap px-4 py-3 font-semibold">
 											Đối tượng
@@ -236,9 +283,9 @@ function DiseaseRow({ disease }: { disease: Disease }) {
 			</td>
 			<td className="whitespace-nowrap px-4 py-3">
 				<span
-					className={`inline-flex rounded-full px-3 py-1 text-sm font-semibold ${fieldBadgeClass[disease.field]}`}
+					className={`inline-flex rounded-full px-3 py-1 text-sm font-semibold ${categoryBadgeClass[disease.category]}`}
 				>
-					{fieldLabel[disease.field]}
+					{categoryLabel[disease.category]}
 				</span>
 			</td>
 			<td className="whitespace-nowrap px-4 py-3 text-base text-[#616161]">

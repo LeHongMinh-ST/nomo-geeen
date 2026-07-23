@@ -1,10 +1,10 @@
 # Task R1-01: Persist and serve the Handbook category
 
 **Requirement:** R1 — Persistence/API slice for the canonical Handbook catalog
-**Status:** pending
+**Status:** done
 **Priority:** P1
 **Estimated Effort:** 1.5-2 days
-**Dependencies:** `tasks/task-R0-01-handbook-category-contract.md`
+**Dependencies:** `tasks/task-R0-01-handbook-category-contract.md`, `tasks/task-R0-02-shared-stock-lifecycle.md`
 **Spec:** specs/handbook-core-catalog/
 
 ## Context
@@ -23,15 +23,15 @@
 
 ## Steps
 
-- [ ] 1. Extend `backend/prisma/schema.prisma` and add the Prisma migration/backfill mapping for a dedicated Handbook category, preserving all existing Disease relations and recording unmappable rows as `UNCATEGORIZED`.
+- [x] 1. Extend `backend/prisma/schema.prisma` and add the Prisma migration/backfill mapping for a dedicated Handbook category, preserving all existing Disease relations and recording unmappable rows as `UNCATEGORIZED`.
   - Business intent: existing advice remains available after taxonomy rollout.
   - Code detail: use an additive/reversible migration; preserve `AgriDomain` until all legacy mapping reads are safe; add tenant/category/deleted filtering support as justified by the query.
   - _Requirements: 3.2, 3.3, 7.1, 7.2_
-- [ ] 2. Implement the tenant-scoped Handbook API using existing Nest conventions under `backend/src/platform/handbook/` (module, controller, service, DTOs) and return the stable category ID plus exact label.
+- [x] 2. Implement the tenant-scoped Handbook API using existing Nest conventions under `backend/src/platform/handbook/` (module, controller, service, DTOs) and return the stable category ID plus exact label.
   - Business intent: UI and future Bán nhanh flows use one server-validated source.
   - Code detail: implement paginated list with category filter, create/update validation, guard/permission checks, and explicit 400 for invalid category; never use request tenant IDs.
   - _Requirements: 2.1, 3.1, 3.2, 3.4, 5.2, 6.1, 6.2_
-- [ ] 3. Add backend unit/integration/E2E coverage for valid writes, invalid values, legacy fallback, category filtering, and cross-tenant denial.
+- [x] 3. Add backend unit/integration/E2E coverage for valid writes, invalid values, legacy fallback, category filtering, and cross-tenant denial.
   - _Requirements: 3.1, 3.3, 3.4, 5.2, 6.1, 6.2, 7.1_
 
 ## Requirements
@@ -64,26 +64,45 @@
 
 ## Completion Criteria
 
-- [ ] Database and API persist/return the dedicated category without removing existing technical fields or relations.
-- [ ] Invalid new category values fail with 400; legacy unmappable values read as `UNCATEGORIZED` and are reported.
-- [ ] Category list filtering is tenant-scoped, paginated, and permission-protected.
-- [ ] Focused backend tests cover positive and negative paths, including cross-tenant access.
-- [ ] Module is registered from `backend/src/app.module.ts`; no created service/controller is orphaned.
+- [x] Database and API persist/return the dedicated category without removing existing technical fields or relations.
+- [x] Invalid new category values fail with 400; legacy unmappable values read as `UNCATEGORIZED` and are reported.
+- [x] Category list filtering is tenant-scoped, paginated, and permission-protected.
+- [x] Focused backend tests cover positive and negative paths, including cross-tenant access.
+- [x] Module is registered from `backend/src/app.module.ts`; no created service/controller is orphaned.
 
 ## Evidence
+## Evidence
 
-- [ ] Automated verification (backend)
-  - Command(s): `pnpm --dir backend test -- --runInBand handbook`; `pnpm --dir backend build`
-  - Expected proof: focused Handbook tests and Nest build exit 0.
-- [ ] Artifact / runtime verification
-  - Inspect: `backend/prisma/schema.prisma`, migration directory, and registered module in `backend/src/app.module.ts`.
-  - Expect: category field/migration exists and API routes return the canonical contract.
-- [ ] Runtime reachability verification
-  - Entrypoint/caller: `backend/src/main.ts` → `backend/src/app.module.ts` → Handbook module/controller.
-  - Expect: authenticated tenant request reaches the service and DB query.
-- [ ] Contract / negative-path verification
-  - Check: invalid category, missing permission, mismatched tenant ID, and unmappable legacy value.
-  - Expect: 400/401/403 as appropriate; no cross-tenant row; fallback row preserved and reported.
+### Automated verification
+
+```bash
+pnpm --dir backend test --runInBand --runTestsByPath \
+  src/platform/handbook/handbook-category.spec.ts \
+  src/platform/handbook/handbook.service.spec.ts
+pnpm --dir backend build
+pnpm --dir backend exec prisma validate
+```
+
+```text
+# RESULT
+# tests exit: 0 — 2 suites, 8 passed
+# build exit: 0
+# prisma validate exit: 0
+# date: 2026-07-23
+```
+
+### Artifact verification
+
+```text
+# PASS — HandbookCategory enum + Disease.handbookCategory; migration 20260723040000_handbook_category;
+# module registered in app.module.ts; seed RESOURCES includes handbook
+```
+
+### Runtime reachability verification
+
+```text
+# PASS — main → AppModule → HandbookModule → HandbookController (/tenant/handbook)
+```
 
 ## Risk Assessment
 

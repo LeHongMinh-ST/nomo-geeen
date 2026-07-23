@@ -1,97 +1,74 @@
-# Task R1-03: Animal feed domain
+# Task R1-03: Handbook fixtures for five categories
 
-**Requirement:** R1 — {{REQUIREMENT_TITLE}}
-**Status:** pending
+**Requirement:** R1, R2, R4
+**Status:** done
 **Priority:** P2
-**Estimated Effort:** TBD
-**Dependencies:** none
+**Estimated Effort:** 0.5-1 day
+**Dependencies:** `tasks/task-R0-01-handbook-category-contract.md`, `tasks/task-R1-01-backend-handbook-category.md`
 **Spec:** specs/handbook-core-catalog/
 
 ## Context
 
-- **Why**: {{Business/user reason this task exists}}
-- **Current state**: {{Relevant existing files, route, model, API, screen, or "greenfield"}}
-- **Target outcome**: {{Observable behavior after this task is done}}
+- **Why**: Filter UX and empty states need sample entries across all five core categories.
+- **Current state**: Mock data in `frontend/lib/handbook.ts` uses old three domains.
+- **Target outcome**: Seed/mock entries use five IDs; list filter can show each category non-empty in demo.
 
 ## Constraints
 
-- **MUST**: {{Non-negotiable requirement or technical constraint}}
-- **SHOULD**: {{Recommended approach or optimization}}
-- **MUST NOT**: {{Explicitly forbidden action or approach}}
-- **SCOPE**: Implement only the behavior mapped to R1 and the approved `scope_lock`; do not add out-of-scope features or leave scoped acceptance criteria unwired.
+- **MUST**: Use only five selectable IDs + exact Vietnamese labels from catalog.
+- **MUST NOT**: Implement purchase/sale/adjustment per product domain.
+- **SCOPE**: Seed/mock Handbook entries + filter tests.
 
 ## Steps
 
-- [ ] 1. {{Actionable step with exact file/path/contract}}
-  - {{Business intent: what user/system behavior this enables}}
-  - {{Code detail: schema/API/component/function/route and validation rules}}
-  - _Requirements: 1.{{X}}_
-
-- [ ] 2. {{Next actionable step}}
-  - {{Business intent}}
-  - {{Code detail, edge case, or integration contract}}
-  - _Requirements: 1.{{Y}}_
-
-- [ ] 3. Verification implementation
-  - {{Unit/integration/e2e test or explicit manual verification hook}}
-  - _Requirements: 1_
+- [x] 1. Replace mock entries category field with canonical IDs; ensure at least one entry per five categories.
+  - _Requirements: 1.1, 2.1_
+- [x] 2. Component/unit test: filter each category returns expected subset; `Tất cả` returns all.
+  - _Requirements: 2.1, 2.4, 4.3_
 
 ## Requirements
 
-- 1.{{X}} — {{Acceptance criterion or requirement covered}}
-- 1.{{Y}} — {{Acceptance criterion or requirement covered}}
+- 1.1, 2.1, 2.4, 4.3
 
 ## Related Files
 
 | Path | Action | Description |
 |---|---|---|
-| `{{FILE_PATH_1}}` | Create / Modify / Delete | {{DESCRIPTION_1}} |
-| `{{FILE_PATH_2}}` | Create / Modify / Delete | {{DESCRIPTION_2}} |
+| `frontend/lib/handbook.ts` | Modify | Mock seed entries. |
+| `frontend/components/app/handbook/handbook-list.tsx` | Read | Filter consumer. |
 
 ## Completion Criteria
 
-- [ ] {{Criteria 1 — observable output or artifact, maps to acceptance criteria R1}}
-- [ ] {{Criteria 2 — measurable behavior or negative-path outcome}}
-- [ ] {{Criteria 3 — maps directly to acceptance criteria from requirements.md and can be proven below}}
-- [ ] {{Criteria 4 — no orphaned component/service/route/command; created runtime-facing work is reachable from the declared entrypoint or explicitly deferred to a named integration task}}
+- [x] Five categories each have at least one mock entry after seed.
+- [x] Filter tests pass for each category id.
 
 ## Evidence
+## Evidence
 
-This section is both the task-level test plan and the proof checklist. Keep it short, exact, and executable.
-Select the proof by task risk; do not run every test type for every task.
+### Automated verification
 
-- Logic/data/validator task: include unit tests.
-- Stateful UI/component task: include component or integration tests.
-- Cross-module/API/state flow task: include integration tests.
-- User-facing end-to-end workflow: include E2E/UI flow verification.
-- Layout/theme/responsive task: include visual/runtime viewport checks.
-- Interactive UI task: include accessibility checks when keyboard, focus, labels, or ARIA can regress.
-- Scaffold/release task: include smoke build/test/dev-server checks.
-- Performance/security checks are required only when the requirement, risk, or touched surface calls for them.
+```bash
+pnpm --dir frontend test -- lib/handbook.test.ts
+```
 
-- [ ] Automated verification (unit/component/integration/E2E as applicable)
-  - Command(s): `{{TYPECHECK / TEST / BUILD COMMANDS OR N/A}}`
-  - Expected proof: {{What output, exit code, or report proves success}}
-- [ ] Artifact / runtime verification
-  - Inspect: `{{artifact path | route | UI state | DB object | manifest entry}}`
-  - Expect: {{Observable result that proves the task is really wired}}
-- [ ] Runtime reachability verification
-  - Entrypoint/caller: `{{App.tsx | route file | CLI command | worker registration | manifest | API consumer}}`
-  - Expect: {{Created component/service/route/worker/loader is imported, mounted, registered, or invoked from the runtime path; if deferred, name the later integration task}}
-- [ ] Contract / negative-path verification
-  - Check: {{Unauthorized path, validation error, permission omission, missing env behavior, deletion effect, etc.}}
-  - Expect: {{Concrete failure mode or contract-preserving behavior}}
+```text
+# RESULT exit 0 — catalog fixtures + filters (2026-07-23)
+```
+
+### Artifact verification
+
+```text
+# PASS — mock entries cover five selectable categories where applicable
+```
+
+### Runtime reachability verification
+
+```text
+# PASS — HandbookList category filter + search includes category label
+```
 
 ## Risk Assessment
 
 | Risk | Severity | Mitigation |
 |---|---|---|
-| {{RISK_1}} | High/Medium/Low | {{MITIGATION_1}} |
-| {{RISK_2}} | High/Medium/Low | {{MITIGATION_2}} |
-
----
-
-> **Parallel marker**: Append `(P)` to the title if this task can run concurrently with another (usually when serving different requirements).
-> **Test note**: If a test coverage sub-task can be deferred post-MVP, mark it with `- [ ]*`.
-> **Requirement mapping**: Every sub-task MUST end with `_Requirements: X.X_`. No mapping = invalid task file.
-> **Evidence rule**: No `## Evidence` section = invalid task file. Existing specs may use `## Task Test Plan & Verification Evidence` or legacy `## Verification & Evidence`; agents must support all three headings.
+| Seed overwrites tenant data | Medium | Seed only demo tenant / mock FE |

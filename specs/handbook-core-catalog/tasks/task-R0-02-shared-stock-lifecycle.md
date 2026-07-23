@@ -1,97 +1,82 @@
-# Task R0-02: Shared stock lifecycle
+# Task R0-02: Legacy domain mapping foundation
 
-**Requirement:** R0 — {{REQUIREMENT_TITLE}}
-**Status:** pending
-**Priority:** P2
-**Estimated Effort:** TBD
-**Dependencies:** none
+**Requirement:** R3, R7
+**Status:** done
+**Priority:** P1
+**Estimated Effort:** 0.5 day
+**Dependencies:** `tasks/task-R0-01-handbook-category-contract.md`
 **Spec:** specs/handbook-core-catalog/
 
 ## Context
 
-- **Why**: {{Business/user reason this task exists}}
-- **Current state**: {{Relevant existing files, route, model, API, screen, or "greenfield"}}
-- **Target outcome**: {{Observable behavior after this task is done}}
+- **Why**: Existing `Disease.domain` uses `AgriDomain` (`CROP|LIVESTOCK|AQUACULTURE|GENERAL`). Rollout must be lossless.
+- **Current state**: Prisma `AgriDomain` on `Disease`; no Handbook category field yet (R1-01).
+- **Target outcome**: Explicit mapping table and rules: mappable legacy → five IDs; unmappable → `UNCATEGORIZED` + report; no silent misclassification.
 
 ## Constraints
 
-- **MUST**: {{Non-negotiable requirement or technical constraint}}
-- **SHOULD**: {{Recommended approach or optimization}}
-- **MUST NOT**: {{Explicitly forbidden action or approach}}
-- **SCOPE**: Implement only the behavior mapped to R0 and the approved `scope_lock`; do not add out-of-scope features or leave scoped acceptance criteria unwired.
+- **MUST**: Document mapping in design/contract tests; unmappable → `UNCATEGORIZED` / `Chưa phân loại`.
+- **MUST NOT**: Delete pins, ingredients, or non-category fields; invent product-domain FEFO here (owned by `core-stock-lifecycle`).
+- **SCOPE**: Mapping rules + unit tests only; migration apply lives in R1-01.
 
 ## Steps
 
-- [ ] 1. {{Actionable step with exact file/path/contract}}
-  - {{Business intent: what user/system behavior this enables}}
-  - {{Code detail: schema/API/component/function/route and validation rules}}
-  - _Requirements: 0.{{X}}_
-
-- [ ] 2. {{Next actionable step}}
-  - {{Business intent}}
-  - {{Code detail, edge case, or integration contract}}
-  - _Requirements: 0.{{Y}}_
-
-- [ ] 3. Verification implementation
-  - {{Unit/integration/e2e test or explicit manual verification hook}}
-  - _Requirements: 0_
+- [x] 1. Encode mapping table from `AgriDomain` to HandbookCategory IDs (and UNCATEGORIZED) in the shared catalog module from R0-01.
+  - Business intent: migration is deterministic and reviewable.
+  - Code detail: pure functions `mapLegacyDomain(domain) → HandbookCategoryId`; tests for each legacy value.
+  - _Requirements: 1.3, 3.3, 7.1_
+- [x] 2. Define migration report shape (count mapped / uncategorized) for R1-01 to emit.
+  - _Requirements: 7.1, 7.2_
 
 ## Requirements
 
-- 0.{{X}} — {{Acceptance criterion or requirement covered}}
-- 0.{{Y}} — {{Acceptance criterion or requirement covered}}
+- 1.3 — Unknown/deprecated identifiers surface as `Chưa phân loại`.
+- 3.3 — Explicit migration rules; no data loss.
+- 7.1 — Unmappable preserved with observable report.
+- 7.2 — Rollout reversible without deleting entries.
 
 ## Related Files
 
 | Path | Action | Description |
 |---|---|---|
-| `{{FILE_PATH_1}}` | Create / Modify / Delete | {{DESCRIPTION_1}} |
-| `{{FILE_PATH_2}}` | Create / Modify / Delete | {{DESCRIPTION_2}} |
+| `frontend/lib/handbook.ts` | Modify | Host mapping helpers with catalog from R0-01. |
+| `backend/prisma/schema.prisma` | Read | Confirm `AgriDomain` values. |
+| `specs/handbook-core-catalog/design.md` | Read | Contract `HandbookCategory`. |
 
 ## Completion Criteria
 
-- [ ] {{Criteria 1 — observable output or artifact, maps to acceptance criteria R0}}
-- [ ] {{Criteria 2 — measurable behavior or negative-path outcome}}
-- [ ] {{Criteria 3 — maps directly to acceptance criteria from requirements.md and can be proven below}}
-- [ ] {{Criteria 4 — no orphaned component/service/route/command; created runtime-facing work is reachable from the declared entrypoint or explicitly deferred to a named integration task}}
+- [x] Mapping pure functions cover all `AgriDomain` values.
+- [x] Unmappable path documented and tested.
+- [x] No product stock/purchase code in this task.
 
 ## Evidence
+## Evidence
 
-This section is both the task-level test plan and the proof checklist. Keep it short, exact, and executable.
-Select the proof by task risk; do not run every test type for every task.
+### Automated verification
 
-- Logic/data/validator task: include unit tests.
-- Stateful UI/component task: include component or integration tests.
-- Cross-module/API/state flow task: include integration tests.
-- User-facing end-to-end workflow: include E2E/UI flow verification.
-- Layout/theme/responsive task: include visual/runtime viewport checks.
-- Interactive UI task: include accessibility checks when keyboard, focus, labels, or ARIA can regress.
-- Scaffold/release task: include smoke build/test/dev-server checks.
-- Performance/security checks are required only when the requirement, risk, or touched surface calls for them.
+```bash
+pnpm --dir frontend test -- lib/handbook.test.ts
+```
 
-- [ ] Automated verification (unit/component/integration/E2E as applicable)
-  - Command(s): `{{TYPECHECK / TEST / BUILD COMMANDS OR N/A}}`
-  - Expected proof: {{What output, exit code, or report proves success}}
-- [ ] Artifact / runtime verification
-  - Inspect: `{{artifact path | route | UI state | DB object | manifest entry}}`
-  - Expect: {{Observable result that proves the task is really wired}}
-- [ ] Runtime reachability verification
-  - Entrypoint/caller: `{{App.tsx | route file | CLI command | worker registration | manifest | API consumer}}`
-  - Expect: {{Created component/service/route/worker/loader is imported, mounted, registered, or invoked from the runtime path; if deferred, name the later integration task}}
-- [ ] Contract / negative-path verification
-  - Check: {{Unauthorized path, validation error, permission omission, missing env behavior, deletion effect, etc.}}
-  - Expect: {{Concrete failure mode or contract-preserving behavior}}
+```text
+# RESULT
+# exit: 0 — mapLegacyAgriDomain coverage in handbook.test.ts
+```
+
+### Artifact verification
+
+```text
+# PASS — mapLegacyAgriDomain / mapLegacyHandbookField in frontend/lib/handbook.ts
+```
+
+### Runtime reachability verification
+
+```text
+# PASS — pure mappers for R1-01 migration consumption
+```
 
 ## Risk Assessment
 
 | Risk | Severity | Mitigation |
 |---|---|---|
-| {{RISK_1}} | High/Medium/Low | {{MITIGATION_1}} |
-| {{RISK_2}} | High/Medium/Low | {{MITIGATION_2}} |
-
----
-
-> **Parallel marker**: Append `(P)` to the title if this task can run concurrently with another (usually when serving different requirements).
-> **Test note**: If a test coverage sub-task can be deferred post-MVP, mark it with `- [ ]*`.
-> **Requirement mapping**: Every sub-task MUST end with `_Requirements: X.X_`. No mapping = invalid task file.
-> **Evidence rule**: No `## Evidence` section = invalid task file. Existing specs may use `## Task Test Plan & Verification Evidence` or legacy `## Verification & Evidence`; agents must support all three headings.
+| Wrong seed mapping | High | Prefer UNCATEGORIZED over silent group assign |

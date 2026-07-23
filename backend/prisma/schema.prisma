@@ -647,6 +647,16 @@ enum AgriDomain {
   GENERAL
 }
 
+/// Handbook advice categories (not product BusinessGroup).
+enum HandbookCategory {
+  CROP_PROTECTION_AND_FERTILIZER
+  CROP_SEEDLINGS
+  ANIMAL_FEED
+  VETERINARY_DRUGS
+  LIVESTOCK
+  UNCATEGORIZED
+}
+
 enum BusinessGroup {
   CROP_INPUTS
   CROP_SEEDLINGS
@@ -1473,18 +1483,20 @@ model Disease {
   nameSearch    String?
   aliases       Json?
   aliasesSearch String?
-  domain        AgriDomain   @default(GENERAL)
-  target        String?
-  type          DiseaseType?
-  symptom       String?
-  note          String?
-  formulaExpr   String?
-  isPinned      Boolean      @default(false)
-  sortOrder     Int          @default(0)
-  isActive      Boolean      @default(true)
-  deletedAt     DateTime?
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
+  domain            AgriDomain        @default(GENERAL)
+  /// Canonical Handbook category (five core + UNCATEGORIZED). Independent of product BusinessGroup.
+  handbookCategory  HandbookCategory  @default(UNCATEGORIZED)
+  target            String?
+  type              DiseaseType?
+  symptom           String?
+  note              String?
+  formulaExpr       String?
+  isPinned          Boolean           @default(false)
+  sortOrder         Int               @default(0)
+  isActive          Boolean           @default(true)
+  deletedAt         DateTime?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
 
   tenant      Tenant                   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   ingredients DiseaseIngredient[]
@@ -1495,6 +1507,7 @@ model Disease {
 
   @@index([tenantId, isPinned])
   @@index([tenantId, nameSearch])
+  @@index([tenantId, handbookCategory])
   @@map("disease")
 }
 

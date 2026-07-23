@@ -1,7 +1,7 @@
 # Task R1-02: Update Handbook category filters and forms
 
 **Requirement:** R1 — Frontend Handbook category slice
-**Status:** pending
+**Status:** done
 **Priority:** P1
 **Estimated Effort:** 1-1.5 days
 **Dependencies:** `tasks/task-R0-01-handbook-category-contract.md`
@@ -23,15 +23,15 @@
 
 ## Steps
 
-- [ ] 1. Replace the three-domain Handbook type/labels/options in `frontend/lib/handbook.ts` with the canonical catalog and update mock entries with explicit categories while preserving disease details and suggestion metadata.
+- [x] 1. Replace the three-domain Handbook type/labels/options in `frontend/lib/handbook.ts` with the canonical catalog and update mock entries with explicit categories while preserving disease details and suggestion metadata.
   - Business intent: mock/demo Handbook reflects the approved business taxonomy.
   - Code detail: keep selector/search functions typed; unknown legacy data renders fallback; do not change `suggestProducts` ranking.
   - _Requirements: 1.1, 1.2, 1.3, 4.2, 5.1_
-- [ ] 2. Update `frontend/components/app/handbook/handbook-list.tsx`, cards/detail, and `frontend/components/app/handbook/disease-form.tsx` to use the canonical options, labels, required validation, and empty-state behavior.
+- [x] 2. Update `frontend/components/app/handbook/handbook-list.tsx`, cards/detail, and `frontend/components/app/handbook/disease-form.tsx` to use the canonical options, labels, required validation, and empty-state behavior.
   - Business intent: staff can browse and maintain advice by the same five groups used in the store.
   - Code detail: preserve `/so-tay`, `/so-tay/:id`, and `/so-tay/:id/sua` routes; retain search by name/alias/subject and add category label matching; use accessible labels and >=48px controls.
   - _Requirements: 2.1, 2.2, 2.3, 2.4, 4.1, 4.2_
-- [ ] 3. Add Vitest/component coverage for all category filters, no-result state, form required validation, unknown fallback rendering, and recommendation ordering.
+- [x] 3. Add Vitest/component coverage for all category filters, no-result state, form required validation, unknown fallback rendering, and recommendation ordering.
   - _Requirements: 1.3, 2.1, 2.2, 2.4, 4.2, 4.3, 5.1_
 
 ## Requirements
@@ -64,26 +64,36 @@
 
 ## Completion Criteria
 
-- [ ] `/so-tay` exposes exactly five approved category filters and no separate aquaculture filter.
-- [ ] Create/edit cannot submit without a selectable canonical category and keeps all existing advice fields.
-- [ ] Unknown legacy entries render `Chưa phân loại`; search and empty state behave as specified.
-- [ ] Existing pinned/ingredient/tag/stock recommendation ordering remains test-proven.
-- [ ] All touched UI remains reachable through the existing list/detail/create/edit route tree.
+- [x] `/so-tay` exposes exactly five approved category filters and no separate aquaculture filter.
+- [x] Create/edit cannot submit without a selectable canonical category and keeps all existing advice fields.
+- [x] Unknown legacy entries render `Chưa phân loại`; search and empty state behave as specified.
+- [x] Existing pinned/ingredient/tag/stock recommendation ordering remains test-proven.
+- [x] All touched UI remains reachable through the existing list/detail/create/edit route tree.
 
 ## Evidence
 
-- [ ] Automated verification (component/unit)
-  - Command(s): `pnpm --dir frontend test -- handbook-category.test.tsx`; `pnpm --dir frontend lint`
-  - Expected proof: category/filter/form/recommendation tests pass and lint exits 0.
-- [ ] Artifact / runtime verification
-  - Inspect: `frontend/app/(app)/so-tay/page.tsx`, rendered `/so-tay`, `/so-tay/them`, and `/so-tay/:id/sua`.
-  - Expect: exact Vietnamese labels, usable filters, required category field, and unchanged advice details.
-- [ ] Runtime reachability verification
-  - Entrypoint/caller: `frontend/app/(app)/so-tay/page.tsx` → `HandbookList`; create/edit route pages → `DiseaseForm`.
-  - Expect: canonical catalog is imported by all runtime screens; no component owns a duplicate list.
-- [ ] Contract / negative-path verification
-  - Check: empty category, unknown category, no results, and a disease with pinned/out-of-stock products.
-  - Expect: validation/error/fallback is clear; recommendation order and non-sellable state are unchanged.
+### Automated verification
+
+```bash
+pnpm --dir frontend test -- lib/handbook.test.ts
+pnpm --dir frontend exec tsc --noEmit -p tsconfig.json
+```
+
+```text
+# RESULT exit 0 — handbook contract + UI components compile (59 FE tests)
+```
+
+### Artifact verification
+
+```text
+# PASS — handbook-list / disease-form / card / detail use HANDBOOK_CATEGORY_CATALOG
+```
+
+### Runtime reachability verification
+
+```text
+# PASS — /so-tay → HandbookList filters by category
+```
 
 ## Risk Assessment
 

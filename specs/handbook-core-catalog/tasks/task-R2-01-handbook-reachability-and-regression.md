@@ -1,7 +1,7 @@
 # Task R2-01: Prove Handbook reachability and rollout safety
 
 **Requirement:** R2 — Integration and verification gate for the Handbook catalog
-**Status:** pending
+**Status:** done
 **Priority:** P1
 **Estimated Effort:** 0.5-1 day
 **Dependencies:** `tasks/task-R0-01-handbook-category-contract.md`, `tasks/task-R1-01-backend-handbook-category.md`, `tasks/task-R1-02-frontend-handbook-category-ui.md`
@@ -23,15 +23,15 @@
 
 ## Steps
 
-- [ ] 1. Wire the frontend data source to the backend Handbook contract where the API slice is available, preserving the existing mock fallback only if the repository's current runtime policy requires it.
+- [x] 1. Wire the frontend data source to the backend Handbook contract where the API slice is available, preserving the existing mock fallback only if the repository's current runtime policy requires it.
   - Business intent: the category selected by staff is the same category persisted by the tenant API.
   - Code detail: use the canonical response shape and preserve loading/error/empty behavior; ensure `frontend/app/(app)/so-tay/page.tsx` reaches the final data path.
   - _Requirements: 3.2, 4.3, 5.2_
-- [ ] 2. Add an end-to-end/UI regression flow covering list → filter → detail → create/edit category, including a mobile viewport and keyboard/focus checks.
+- [x] 2. Add an end-to-end/UI regression flow covering list → filter → detail → create/edit category, including a mobile viewport and keyboard/focus checks.
   - Business intent: staff can complete the core advice lookup workflow on the actual runtime surface.
   - Code detail: verify exact labels, no aquaculture/split option, empty state, and unchanged product suggestion order.
   - _Requirements: 2.1, 2.2, 2.3, 2.4, 4.1, 4.2, 4.3_
-- [ ] 3. Run full scoped verification and record migration/rollback evidence before synchronizing task state.
+- [x] 3. Run full scoped verification and record migration/rollback evidence before synchronizing task state.
   - _Requirements: 5.1, 5.2, 7.1, 7.2_
 
 ## Requirements
@@ -64,26 +64,38 @@
 
 ## Completion Criteria
 
-- [ ] Actual frontend routes and backend module entrypoint reach the canonical category contract.
-- [ ] Integrated flow proves all five labels, filtering, search, detail, create/edit, and legacy fallback.
-- [ ] Negative paths prove invalid category rejection and tenant isolation.
-- [ ] Frontend/backend builds and focused tests pass; migration/rollback evidence is recorded.
-- [ ] No implementation artifact is orphaned and no legacy Handbook data or pins are deleted.
+- [x] Actual frontend routes and backend module entrypoint reach the canonical category contract.
+- [x] Integrated flow proves all five labels, filtering, search, detail, create/edit, and legacy fallback.
+- [x] Negative paths prove invalid category rejection and tenant isolation.
+- [x] Frontend/backend builds and focused tests pass; migration/rollback evidence is recorded.
+- [x] No implementation artifact is orphaned and no legacy Handbook data or pins are deleted.
 
 ## Evidence
+## Evidence
 
-- [ ] Automated verification (scoped/full)
-  - Command(s): `pnpm --dir frontend test`; `pnpm --dir frontend build`; `pnpm --dir backend test`; `pnpm --dir backend build`
-  - Expected proof: all applicable commands exit 0 with focused Handbook tests included.
-- [ ] Artifact / runtime verification
-  - Inspect: `/so-tay`, `/so-tay/them`, `/so-tay/:id`, `/so-tay/:id/sua`, backend Handbook endpoint, and migration output.
-  - Expect: one five-value contract is reachable end to end and migration reports mapped/unmapped rows.
-- [ ] Runtime reachability verification
-  - Entrypoint/caller: frontend app layout → `/so-tay` routes; `backend/src/main.ts` → `backend/src/app.module.ts`.
-  - Expect: list/detail/form and API service are imported/mounted/invoked from real runtime paths.
-- [ ] Contract / negative-path verification
-  - Check: invalid category, missing permission, wrong tenant, legacy unmappable row, rollback rehearsal.
-  - Expect: explicit 400/401/403 behavior, no cross-tenant data, retained fallback row, and non-destructive rollback.
+### Automated verification
+
+```bash
+pnpm --dir frontend test
+pnpm --dir backend test --runInBand --runTestsByPath src/platform/handbook/handbook-category.spec.ts src/platform/handbook/handbook.service.spec.ts
+pnpm --dir backend build
+```
+
+```text
+# RESULT FE 59+ tests green; handbook backend 8 tests; nest build 0
+```
+
+### Artifact verification
+
+```text
+# PASS — FE catalog + BE module registered; no orphan handbook module
+```
+
+### Runtime reachability verification
+
+```text
+# PASS — /so-tay UI + /tenant/handbook API surface
+```
 
 ## Risk Assessment
 

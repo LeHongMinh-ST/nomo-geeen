@@ -9,6 +9,7 @@ import { BillingModule } from './platform/billing/billing.module';
 import { CustomersModule } from './platform/customers/customers.module';
 import { DebtsModule } from './platform/debts/debts.module';
 import { EntitlementsModule } from './platform/entitlements/entitlements.module';
+import { HandbookModule } from './platform/handbook/handbook.module';
 import { InventoryModule } from './platform/inventory/inventory.module';
 import { PrismaModule } from './platform/prisma/prisma.module';
 import { ProductsModule } from './platform/products/products.module';
@@ -40,6 +41,7 @@ import { TenantsModule } from './platform/tenants/tenants.module';
 		SuppliersModule,
 		InventoryModule,
 		SalesModule,
+		HandbookModule,
 	],
 	controllers: [AppController],
 	providers: [AppService],

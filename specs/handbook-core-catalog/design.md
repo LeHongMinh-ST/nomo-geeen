@@ -15,8 +15,17 @@ The implementation is intentionally bounded: the Handbook remains a rule-based a
 ### Non-Goals
 
 - Product catalog redesign or renaming of tenant-editable product categories.
+- Product kind/attrs/tenant `BusinessGroup` enablement (owned by `core-catalog-foundation`).
+- Batch FEFO / purchase receive (owned by `core-stock-lifecycle`).
+- Per-kind sale checkout (PHI/REI/withdrawal), stock adjustment, returns (future specs).
 - New consultation formulas, AI, image recognition, or native mobile code.
 - Splitting the combined first category or adding a sixth category.
+
+### Core-value alignment
+
+Handbook categories mirror the five commercial advice labels from `docs/core-business-catalog.md` §12.
+They are **not** the same enum as product `BusinessGroup` (`CROP_INPUTS` vs Handbook `CROP_PROTECTION_AND_FERTILIZER`) — different purpose: product taxonomy vs advice browsing.
+Product kinds (PESTICIDE vs FERTILIZER) stay under product contract; Handbook keeps one combined first filter label.
 
 ## Requirements Traceability
 

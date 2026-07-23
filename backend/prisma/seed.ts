@@ -110,6 +110,7 @@ const RESOURCES = [
 	'report',
 	'setting',
 	'user',
+	'handbook',
 ];
 const ACTIONS = ['view', 'create', 'edit', 'delete', 'approve', 'export'];
 
