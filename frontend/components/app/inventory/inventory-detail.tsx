@@ -2,16 +2,19 @@
 import { ArrowLeft, History, Warehouse } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { AdjustSheet } from "@/components/app/inventory/adjust-sheet";
 import { formatDate, formatVND } from "@/lib/format";
 import {
 	getTenantInventoryDetail,
 	type InventoryDetail as InventoryDetailData,
 } from "@/lib/tenant-inventory-api";
+import { listTenantStockAdjustments } from "@/lib/tenant-stock-adjustments-api";
 export function InventoryDetail({ productId }: { productId: string }) {
 	const router = useRouter();
 	const [item, setItem] = useState<InventoryDetailData | null>(null);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
+	const [adjusting, setAdjusting] = useState(false);
 	useEffect(() => {
 		let active = true;
 		setLoading(true);
@@ -54,6 +57,33 @@ export function InventoryDetail({ productId }: { productId: string }) {
 		);
 	const qty = Number(item.qty);
 	const cost = Number(item.avgCost);
+	function refreshAfterAdjustment(adjustmentId: string) {
+		setAdjusting(false);
+		setLoading(true);
+		let refreshed = false;
+		Promise.all([
+			getTenantInventoryDetail(productId),
+			listTenantStockAdjustments({ page: 1, pageSize: 20 }),
+		])
+			.then(([next]) => {
+				setItem(next);
+				setError(null);
+				refreshed = true;
+			})
+			.catch((reason) =>
+				setError(
+					reason instanceof Error
+						? reason.message
+						: "Không thể làm mới tồn kho",
+				),
+			)
+			.finally(() => {
+				setLoading(false);
+				if (refreshed) {
+					router.push(`/ton-kho/${productId}?adjustment=${adjustmentId}`);
+				}
+			});
+	}
 	return (
 		<div className="mx-auto flex w-full max-w-2xl flex-col gap-5 pb-28 lg:mx-0">
 			<div className="flex items-start gap-3">
@@ -72,6 +102,13 @@ export function InventoryDetail({ productId }: { productId: string }) {
 					<p className="text-base text-[#616161]">{item.sku}</p>
 				</div>
 			</div>
+			<button
+				type="button"
+				onClick={() => setAdjusting(true)}
+				className="h-12 rounded-[10px] bg-primary px-4 font-semibold text-white"
+			>
+				Điều chỉnh tồn
+			</button>
 			<section className="grid grid-cols-2 gap-3">
 				<div className="rounded-[16px] border border-border bg-card p-5">
 					<span className="text-sm text-[#616161]">Tồn kho</span>
@@ -155,6 +192,33 @@ export function InventoryDetail({ productId }: { productId: string }) {
 				<Warehouse className="mr-2 inline size-4" aria-hidden />
 				Kiểm kê/điều chỉnh sẽ được triển khai ở scope riêng.
 			</div>
+			<AdjustSheet
+				product={
+					adjusting
+						? {
+								id: item.productId,
+								name: item.productName,
+								sku: item.sku,
+								categoryId: "",
+								baseUnit: item.baseUnit,
+								conversions: [],
+								costPrice: Number(item.avgCost),
+								salePrice: 0,
+								priceTiers: [],
+								stock: qty,
+								lowStockThreshold: 0,
+							}
+						: null
+				}
+				stockValue={item.qty}
+				batches={item.batches.map((batch) => ({
+					id: batch.id,
+					batchCode: batch.batchCode,
+				}))}
+				warehouseId={item.warehouseId}
+				onClose={() => setAdjusting(false)}
+				onSaved={refreshAfterAdjustment}
+			/>
 		</div>
 	);
 }

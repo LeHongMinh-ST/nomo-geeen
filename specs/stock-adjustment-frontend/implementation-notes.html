@@ -1,0 +1,9 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Stock adjustment frontend implementation notes</title><style>body{font:16px system-ui,sans-serif;background:#f5f7f4;color:#243024;max-width:900px;margin:40px auto;padding:0 20px}.card{background:#fff;border-left:4px solid #5cad45;border-radius:12px;padding:16px;margin:14px 0;box-shadow:0 2px 12px #0000000d}code{font-family:ui-monospace,monospace}</style></head>
+<body><h1>Stock adjustment frontend</h1><p>Implementation notes · full-spec mode · 2026-07-24</p>
+<div class="card"><strong>R0-01 · done</strong><p>Added authenticated typed API client, decimal-string contract, structured error propagation, and route tests.</p></div>
+<div class="card"><strong>R1-01 · done</strong><p>Mounted responsive adjustment history in <code>/ton-kho</code>; detail uses the existing dynamic route with an adjustment query and completed records are read-only.</p></div>
+<div class="card"><strong>R2-01 · done</strong><p>Added closed reason catalog, batch selection, exact decimal subtraction, warehouse blocking, draft/complete confirmation, and structured failure feedback.</p></div>
+<div class="card"><strong>R3-01 · done</strong><p>Mounted the form from authenticated inventory detail, refetches inventory detail and adjustment history after completion, preserves structured reason/message feedback, shows the created draft identity, and navigates to adjustment detail. Docs impact: none.</p><p>Verification: <code>pnpm --dir frontend test</code> 26 files/100 tests pass; <code>pnpm --dir frontend build</code> pass; focused Biome lint pass. Full lint has pre-existing unrelated diagnostics.</p></div>
+</body></html>

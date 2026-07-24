@@ -1,196 +1,335 @@
 "use client";
 
-import { ClipboardCheck, Minus, Plus, X } from "lucide-react";
-import { useEffect, useState } from "react";
-import { formatVND } from "@/lib/format";
+import { ClipboardCheck, X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { AdjustmentConfirmation } from "@/components/app/inventory/adjustment-confirmation";
 import type { Product } from "@/lib/products";
+import {
+	STOCK_ADJUSTMENT_REASONS,
+	type StockAdjustmentReasonCode,
+} from "@/lib/stock-adjustment-reasons";
+import {
+	completeTenantStockAdjustment,
+	createTenantStockAdjustment,
+} from "@/lib/tenant-stock-adjustments-api";
 import { useScrollLock } from "@/lib/use-scroll-lock";
 
-/**
- * Sheet điều chỉnh / kiểm kê tồn (base_spec §9, DESIGN.md §24).
- * Nhập số lượng thực tế → hệ thống tính chênh lệch so với sổ sách, ghi Adjustment.
- * FE-only: gọi onConfirm với delta + lý do; chưa nối API.
- */
 export function AdjustSheet({
 	product,
+	warehouseId,
+	stockValue,
+	batches,
 	onClose,
-	onConfirm,
+	onSaved,
 }: {
-	/** Sản phẩm đang kiểm kê; null = đóng. */
 	product: Product | null;
+	warehouseId?: string;
+	stockValue?: string;
+	batches?: Array<{ id: string; batchCode: string }>;
 	onClose: () => void;
-	onConfirm: (actual: number, reason: string) => void;
+	onSaved?: (adjustmentId: string) => void;
 }) {
 	const open = product !== null;
-	const bookStock = product?.stock ?? 0;
-
 	const [actual, setActual] = useState("");
-	const [reason, setReason] = useState("");
-
-	// Reset mỗi lần mở sản phẩm mới — mặc định điền đúng số sổ sách.
-	// biome-ignore lint/correctness/useExhaustiveDependencies: chỉ reset khi đổi sản phẩm
-	useEffect(() => {
-		if (product) {
-			setActual(String(product.stock));
-			setReason("");
-		}
-	}, [product?.id]);
-
+	const [reasonCode, setReasonCode] = useState<StockAdjustmentReasonCode | "">(
+		"",
+	);
+	const [batchId, setBatchId] = useState("");
+	const [note, setNote] = useState("");
+	const [draftId, setDraftId] = useState<string | null>(null);
+	const [draftDocNo, setDraftDocNo] = useState("");
+	const [confirming, setConfirming] = useState(false);
+	const [pending, setPending] = useState(false);
+	const [error, setError] = useState<string | null>(null);
+	const dialogRef = useRef<HTMLDivElement>(null);
+	const closeButtonRef = useRef<HTMLButtonElement>(null);
 	useScrollLock(open);
 
 	useEffect(() => {
 		if (!open) return;
-		function onKey(e: KeyboardEvent) {
-			if (e.key === "Escape") onClose();
-		}
-		window.addEventListener("keydown", onKey);
-		return () => window.removeEventListener("keydown", onKey);
+		const previous = document.activeElement as HTMLElement | null;
+		closeButtonRef.current?.focus();
+		const onKeyDown = (event: KeyboardEvent) => {
+			if (
+				document.querySelector(
+					"[aria-labelledby=adjustment-confirmation-title]",
+				)
+			)
+				return;
+			if (event.key === "Escape") {
+				event.preventDefault();
+				onClose();
+				return;
+			}
+			if (event.key !== "Tab" || !dialogRef.current) return;
+			const focusable = Array.from(
+				dialogRef.current.querySelectorAll<HTMLElement>(
+					"button, input, select, textarea",
+				),
+			).filter((element) => !element.hasAttribute("disabled"));
+			if (!focusable.length) return;
+			const first = focusable[0];
+			const last = focusable[focusable.length - 1];
+			if (event.shiftKey && document.activeElement === first) {
+				event.preventDefault();
+				last.focus();
+			} else if (!event.shiftKey && document.activeElement === last) {
+				event.preventDefault();
+				first.focus();
+			}
+		};
+		document.addEventListener("keydown", onKeyDown);
+		return () => {
+			document.removeEventListener("keydown", onKeyDown);
+			previous?.focus();
+		};
 	}, [open, onClose]);
 
-	const actualNum = Number(actual.replace(/\D/g, "")) || 0;
-	const delta = actualNum - bookStock;
-	const changed = delta !== 0;
+	useEffect(() => {
+		if (product) {
+			setActual(stockValue ?? String(product.stock));
+			setReasonCode("");
+			setBatchId("");
+			setNote("");
+			setDraftId(null);
+			setDraftDocNo("");
+			setConfirming(false);
+			setError(null);
+		}
+	}, [product, stockValue]);
+	if (!open) return null;
+
+	const bookStock = stockValue ?? String(product.stock);
+	const delta = subtractDecimal(actual, bookStock);
+	const validBatch =
+		!batchId || Boolean(batches?.some((batch) => batch.id === batchId));
+	const valid = Boolean(
+		warehouseId &&
+			reasonCode &&
+			validBatch &&
+			delta !== "0" &&
+			delta !== "-0" &&
+			actual.trim(),
+	);
+
+	async function saveDraft() {
+		if (!product) return;
+		if (!warehouseId)
+			return setError(
+				"Chưa có kho mặc định. Vui lòng thiết lập kho trước khi điều chỉnh.",
+			);
+		if (!delta || delta === "0" || delta === "-0")
+			return setError("Chênh lệch phải là số hợp lệ và khác 0.");
+		if (!reasonCode) return setError("Vui lòng chọn lý do điều chỉnh.");
+		if (!validBatch) return setError("Lô hàng không hợp lệ.");
+		setPending(true);
+		setError(null);
+		try {
+			const draft = await createTenantStockAdjustment({
+				warehouseId,
+				note: note.trim() || undefined,
+				lines: [
+					{
+						productId: product.id,
+						delta,
+						reasonCode,
+						...(batchId ? { batchId } : {}),
+					},
+				],
+			});
+			setDraftId(draft.id);
+			setDraftDocNo(draft.docNo);
+			setConfirming(true);
+		} catch (reason) {
+			setError(formatAdjustmentError(reason, "Không thể lưu phiếu điều chỉnh"));
+		} finally {
+			setPending(false);
+		}
+	}
+
+	async function completeDraft() {
+		if (!draftId) return;
+		setPending(true);
+		setError(null);
+		try {
+			const completed = await completeTenantStockAdjustment(draftId);
+			onSaved?.(completed.id);
+			onClose();
+		} catch (reason) {
+			setError(
+				formatAdjustmentError(reason, "Không thể hoàn tất phiếu điều chỉnh"),
+			);
+		} finally {
+			setPending(false);
+		}
+	}
 
 	return (
-		<div
-			className={`fixed inset-0 z-50 ${open ? "" : "pointer-events-none"}`}
-			aria-hidden={!open}
-		>
-			<button
-				type="button"
-				aria-label="Đóng"
-				onClick={onClose}
-				className={`absolute inset-0 bg-black/40 transition-opacity duration-200 ease-out ${
-					open ? "opacity-100" : "opacity-0"
-				}`}
-			/>
-
+		<>
 			<div
+				className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 sm:items-center"
 				role="dialog"
 				aria-modal="true"
-				aria-label="Điều chỉnh tồn kho"
-				className={`absolute inset-x-0 bottom-0 mx-auto flex max-h-[92dvh] w-full max-w-2xl flex-col rounded-t-[18px] bg-card transition-transform duration-300 ease-out ${
-					open ? "translate-y-0" : "translate-y-full"
-				}`}
+				aria-labelledby="adjust-sheet-title"
+				aria-hidden={confirming}
 			>
-				<div className="relative flex items-center justify-center pb-1 pt-3">
-					<span className="h-1.5 w-10 rounded-full bg-[#e0e0e0]" />
-					<button
-						type="button"
-						onClick={onClose}
-						aria-label="Đóng"
-						className="absolute right-3 top-2 flex size-10 items-center justify-center rounded-[10px] text-[#616161] hover:bg-[#f5f5f5]"
-					>
-						<X className="size-5" aria-hidden />
-					</button>
-				</div>
-
-				<div className="overflow-y-auto overscroll-contain px-4 pb-4">
-					<h2 className="mb-1 text-lg font-bold text-foreground">
-						Kiểm kê tồn kho
-					</h2>
-					<p className="mb-4 line-clamp-1 text-sm text-[#616161]">
-						{product?.name}
+				<div
+					ref={dialogRef}
+					className="max-h-[92dvh] w-full max-w-2xl overflow-y-auto rounded-t-[18px] bg-card p-5 sm:rounded-[18px]"
+				>
+					<div className="flex items-center justify-between">
+						<h2 id="adjust-sheet-title" className="text-lg font-bold">
+							Điều chỉnh tồn kho
+						</h2>
+						<button
+							ref={closeButtonRef}
+							type="button"
+							onClick={onClose}
+							aria-label="Đóng"
+							className="flex size-11 items-center justify-center rounded-[10px]"
+						>
+							<X className="size-5" aria-hidden />
+						</button>
+					</div>
+					<p className="mt-1 text-sm text-[#616161]">
+						{product.name} · Tồn sổ sách {bookStock} {product.baseUnit}
 					</p>
-
-					{/* Tồn sổ sách */}
-					<div className="mb-4 flex items-center justify-between rounded-[12px] bg-[#f5f5f5] px-4 py-3">
-						<span className="text-base font-medium text-[#616161]">
-							Tồn sổ sách
-						</span>
-						<span className="text-lg font-bold text-foreground">
-							{formatVND(bookStock)} {product?.baseUnit}
-						</span>
-					</div>
-
-					{/* Số thực tế */}
-					<div className="mb-4 flex flex-col gap-2">
-						<label
-							htmlFor="actual"
-							className="text-sm font-semibold text-[#616161]"
+					{!warehouseId ? (
+						<p
+							role="alert"
+							className="mt-4 rounded-[10px] bg-[#fff8e1] px-4 py-3 text-sm text-[#8a6100]"
 						>
-							Số lượng thực tế
-						</label>
-						<div className="flex items-center gap-2">
-							<button
-								type="button"
-								aria-label="Giảm"
-								onClick={() => setActual(String(Math.max(0, actualNum - 1)))}
-								className="flex size-12 shrink-0 items-center justify-center rounded-[10px] border border-border bg-card text-foreground transition-colors hover:bg-[#f5f5f5]"
-							>
-								<Minus className="size-5" aria-hidden />
-							</button>
-							<input
-								id="actual"
-								inputMode="numeric"
-								value={actual ? formatVND(actualNum) : ""}
-								onChange={(e) => setActual(e.target.value)}
-								placeholder="0"
-								className="h-12 flex-1 rounded-[10px] border border-border bg-white px-4 text-center text-xl font-bold text-foreground placeholder:text-[#cfcfcf] focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/25"
-							/>
-							<button
-								type="button"
-								aria-label="Tăng"
-								onClick={() => setActual(String(actualNum + 1))}
-								className="flex size-12 shrink-0 items-center justify-center rounded-[10px] border border-border bg-card text-foreground transition-colors hover:bg-[#f5f5f5]"
-							>
-								<Plus className="size-5" aria-hidden />
-							</button>
-						</div>
-					</div>
-
-					{/* Chênh lệch */}
-					{changed ? (
-						<div
-							className={`mb-4 flex items-center justify-between rounded-[12px] px-4 py-3 ${
-								delta > 0 ? "bg-[#e8f5e9]" : "bg-[#fff8e1]"
-							}`}
-						>
-							<span className="text-base font-medium text-[#616161]">
-								Chênh lệch
-							</span>
-							<span
-								className={`text-lg font-bold ${
-									delta > 0 ? "text-[#2e7d32]" : "text-[#f57f17]"
-								}`}
-							>
-								{delta > 0 ? "+" : "−"}
-								{formatVND(Math.abs(delta))} {product?.baseUnit}
-							</span>
-						</div>
+							Chưa có kho mặc định. Không thể gửi phiếu.
+						</p>
 					) : null}
-
-					{/* Lý do */}
-					<div className="flex flex-col gap-1.5">
-						<label
-							htmlFor="reason"
-							className="text-sm font-semibold text-[#616161]"
-						>
-							Lý do điều chỉnh
+					<div className="mt-4 grid gap-4">
+						<label className="flex flex-col gap-1.5 text-sm font-semibold">
+							Số lượng thực tế
+							<input
+								aria-label="Số lượng thực tế"
+								type="text"
+								inputMode="decimal"
+								value={actual}
+								onChange={(event) => setActual(event.target.value)}
+								className="h-12 rounded-[10px] border border-border px-4 text-base"
+							/>
 						</label>
-						<input
-							id="reason"
-							value={reason}
-							onChange={(e) => setReason(e.target.value)}
-							placeholder="Kiểm kê lệch, hư hỏng, mất..."
-							className="h-12 w-full rounded-[10px] border border-border bg-white px-4 text-base text-foreground placeholder:text-[#9e9e9e] focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/25"
-						/>
+						{batches?.length ? (
+							<label className="flex flex-col gap-1.5 text-sm font-semibold">
+								Lô hàng
+								<select
+									aria-label="Lô hàng"
+									value={batchId}
+									onChange={(event) => setBatchId(event.target.value)}
+									className="h-12 rounded-[10px] border border-border bg-white px-4 text-base"
+								>
+									<option value="">Không chọn lô</option>
+									{batches.map((batch) => (
+										<option key={batch.id} value={batch.id}>
+											{batch.batchCode}
+										</option>
+									))}
+								</select>
+							</label>
+						) : null}
+						<label className="flex flex-col gap-1.5 text-sm font-semibold">
+							Lý do
+							<select
+								aria-label="Lý do điều chỉnh"
+								value={reasonCode}
+								onChange={(event) =>
+									setReasonCode(event.target.value as StockAdjustmentReasonCode)
+								}
+								className="h-12 rounded-[10px] border border-border bg-white px-4 text-base"
+							>
+								<option value="">Chọn lý do</option>
+								{STOCK_ADJUSTMENT_REASONS.map((reason) => (
+									<option key={reason.code} value={reason.code}>
+										{reason.label}
+									</option>
+								))}
+							</select>
+						</label>
+						<label className="flex flex-col gap-1.5 text-sm font-semibold">
+							Ghi chú
+							<textarea
+								aria-label="Ghi chú"
+								value={note}
+								onChange={(event) => setNote(event.target.value)}
+								className="min-h-24 rounded-[10px] border border-border p-3 text-base"
+							/>
+						</label>
 					</div>
-				</div>
-
-				{/* Nút xác nhận — dính đáy sheet */}
-				<div className="pb-safe border-t border-border bg-card px-4 py-3">
+					{error && !confirming ? (
+						<p role="alert" className="mt-4 text-sm text-destructive">
+							{error}
+						</p>
+					) : null}
+					<p className="mt-4 rounded-[10px] bg-[#f5f5f5] px-4 py-3 text-sm">
+						Chênh lệch:{" "}
+						<b>
+							{delta?.startsWith("-") ? `−${delta.slice(1)}` : `+${delta}`}{" "}
+							{product.baseUnit}
+						</b>
+					</p>
 					<button
 						type="button"
-						disabled={!changed || !reason.trim()}
-						onClick={() => onConfirm(actualNum, reason.trim())}
-						className="flex h-14 w-full items-center justify-center gap-2 rounded-[10px] bg-primary text-lg font-bold text-white transition-colors duration-200 ease-out hover:bg-[#5cad45] active:bg-[#3f8530] disabled:cursor-not-allowed disabled:bg-[#a5d6a7]"
+						disabled={!valid || pending}
+						onClick={saveDraft}
+						className="mt-5 flex h-12 w-full items-center justify-center gap-2 rounded-[10px] bg-primary font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
 					>
-						<ClipboardCheck className="size-6" aria-hidden />
-						Lưu điều chỉnh
+						<ClipboardCheck className="size-5" aria-hidden />
+						{pending ? "Đang lưu..." : "Lưu nháp"}
 					</button>
 				</div>
 			</div>
-		</div>
+			<AdjustmentConfirmation
+				open={confirming}
+				docNo={draftDocNo}
+				delta={
+					(delta.startsWith("-") ? "−" : "+") +
+					delta.replace(/^-/, "") +
+					" " +
+					product.baseUnit
+				}
+				error={error}
+				pending={pending}
+				onCancel={() => setConfirming(false)}
+				onConfirm={completeDraft}
+			/>
+		</>
 	);
+}
+
+function formatAdjustmentError(reason: unknown, fallback: string): string {
+	if (!reason || typeof reason !== "object") return fallback;
+	const error = reason as {
+		reason?: string;
+		serverMessage?: string;
+		message?: string;
+	};
+	const message = error.serverMessage ?? error.message ?? fallback;
+	return error.reason ? `${message} (${error.reason})` : message;
+}
+
+function subtractDecimal(left: string, right: string): string {
+	const [leftWhole, leftFraction = ""] = left.trim().split(".");
+	const [rightWhole, rightFraction = ""] = right.trim().split(".");
+	if (
+		!/^\d+$/.test(leftWhole) ||
+		!/^\d+$/.test(rightWhole) ||
+		!/^\d*$/.test(leftFraction) ||
+		!/^\d*$/.test(rightFraction)
+	)
+		return "";
+	const scale = Math.max(leftFraction.length, rightFraction.length);
+	const leftInt = BigInt(leftWhole + leftFraction.padEnd(scale, "0"));
+	const rightInt = BigInt(rightWhole + rightFraction.padEnd(scale, "0"));
+	const sign = leftInt < rightInt ? "-" : "";
+	const value = (leftInt < rightInt ? rightInt - leftInt : leftInt - rightInt)
+		.toString()
+		.padStart(scale + 1, "0");
+	const whole = scale ? value.slice(0, -scale) || "0" : value;
+	const fraction = scale ? value.slice(-scale).replace(/0+$/, "") : "";
+	return sign + whole + (fraction ? `.${fraction}` : "");
 }

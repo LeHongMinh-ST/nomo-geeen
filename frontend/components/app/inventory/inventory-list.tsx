@@ -2,6 +2,7 @@
 import { Search, Warehouse } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { AdjustmentList } from "@/components/app/inventory/adjustment-list";
 import { DataPagination } from "@/components/app/shared/data-pagination";
 import { ListFilterBar } from "@/components/app/shared/list-filter-bar";
 import { ListSkeleton } from "@/components/app/shared/list-skeleton";
@@ -210,6 +211,7 @@ export function InventoryList() {
 					/>
 				</>
 			)}
+			<AdjustmentList />
 		</div>
 	);
 }
