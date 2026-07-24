@@ -135,7 +135,8 @@ The repository contains local runtime/package configuration and migrations, but 
 - Read-only operational reports are exposed at `/tenant/reports/stock-summary` and
   `/tenant/reports/sales-summary`; both are tenant-scoped and guarded by existing inventory/sales
   permissions and entitlements. The first slice returns stock/batch expiry data and bounded completed
-  sales totals/top products; charts, exports, and financial accounting remain separate.
+  sales totals/top products; money and decimal quantities are serialized as JSON-safe strings.
+  Charts, exports, and financial accounting remain separate.
 - Sales order creation can optionally resolve a tenant Handbook `diseaseId` and persist
   `diseaseNameSnapshot`, `consultContext`, and `suggestedQtyMeta` on the Sale. These fields are
   historical snapshots; completed orders do not depend on later Handbook edits.

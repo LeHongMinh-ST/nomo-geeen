@@ -8,6 +8,8 @@ Format theo [Keep a Changelog](https://keepachangelog.com/), tuân thủ [Semant
 ## [Unreleased]
 
 ### Added
+- **Reports HTTP contract hardening** — stock/sales summaries now serialize BigInt and Decimal values as JSON-safe strings while preserving tenant and date-range behavior.
+- **Frontend sales error mapping** — added safe Vietnamese copy for user-actionable structured sales reasons, including livestock/regulatory gates and return/order lifecycle errors; internal conflict details continue using generic fallback.
 - **Business catalog audit re-sync** — cập nhật lại trạng thái Reports, StockAdjustment, PHI/withdrawal, returns, SALE_DENY và livestock safety theo source commit `64c4918`; ghi rõ các phần partial và thứ tự ưu tiên tiếp theo.
 - **Sale regulatory date gates** — order and quick-sale lines now snapshot optional harvest/withdrawal dates; PHI and active veterinary-withdrawal dates are rejected before stock mutation, including draft-order completion revalidation. Regulatory master data, prescription calculation, and frontend fields remain out of scope.
 - **Verification baseline repair** — restored the historical admin billing migration fixture required by `billing-foundation.spec.ts`; full backend verification now passes 399 tests across 49 suites (1 suite skipped).

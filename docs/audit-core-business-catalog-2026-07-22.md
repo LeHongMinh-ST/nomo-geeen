@@ -210,8 +210,8 @@
 | PHI/REI hard theo ngay thu hoach | ❌ | `out_of_scope` (can harvest/event date) — catalog display-first |
 | 7 nhanh hard-rule rieng theo ProductKind | ❌ | Design: hard = flags; kind khong invent hard reject them (livestock SM / kind-only rules deferred) |
 | Livestock: khong ban con benh/cach ly/loai | ❌ | State machine van gap Top10 #5 / § nhom 5 |
-| FE map full reason codes | ⚠️ | Runtime throw LOCKED/RECALLED/INACTIVE; `QuickSaleApiErrorReason` DTO van chu yeu legacy `PRODUCT_UNSELLABLE` |
-| Tenant audit log SALE_DENY / COMPLETE | ❌ | `out_of_scope` feature; Top10 #8 van mo |
+| FE map full reason codes | ⚠️ | `sales-api-error.ts` đã map các reason user-actionable, gồm livestock/PHI/withdrawal/eligible-batch; các lỗi nội bộ vẫn dùng fallback an toàn |
+| Tenant audit log SALE_DENY / COMPLETE | ⚠️ partial | `SALE_DENY` đã có cho sale order/quick-sale; audit `COMPLETE` và coverage đầy đủ các business action vẫn còn mở |
 
 #### Tom tat business
 
@@ -244,11 +244,11 @@ pnpm --dir backend build
 
 | Hạng mục từng bị ghi “chưa làm” | Trạng thái hiện tại | Bằng chứng chính |
 |---|---|---|
-| Reports | ⚠️ partial | `reports/` có `stock-summary` và `sales-summary`, tenant-scoped, guarded; chưa có UI, chart, export, accounting và đủ 8 endpoint |
+| Reports | ⚠️ partial | `reports/` có `stock-summary` và `sales-summary`, tenant-scoped, guarded, response đã JSON-safe; chưa có UI, chart, export, accounting và đủ 8 endpoint |
 | StockAdjustment | ✅ | `stock-adjustments.service/controller` có draft/complete, closed reason policy, transaction Stock + StockMovement |
-| PHI/withdrawal | ⚠️ partial | `assertSaleRegulatoryDates` chặn khi request có harvest/withdrawal date; chưa có master-data đầy đủ, FE POS map/display và calendar workflow |
+| PHI/withdrawal | ⚠️ partial | `assertSaleRegulatoryDates` chặn khi request có harvest/withdrawal date; frontend đã map lỗi PHI/withdrawal, nhưng chưa có master-data đầy đủ, advisory fields và calendar workflow |
 | Full returns | ✅ slice hiện tại | Full sales/purchase return route, stock/batch/debt compensation, duplicate guard và audit đã có; partial returns/refunds còn mở |
-| SALE_DENY audit | ✅ backend | Sales order/quick-sale ghi `AuditAction.SALE_DENY` cho HTTP denial; frontend mapping reason codes còn thiếu |
+| SALE_DENY audit | ✅ backend + FE mapping | Sales order/quick-sale ghi `AuditAction.SALE_DENY`; frontend đã map các reason user-actionable, giữ fallback an toàn cho lỗi nội bộ |
 | Livestock state machine | ❌ | Hiện chỉ đọc `Product.attrs` và chặn 4 trạng thái trong sale policy; chưa có transition API/persistence, audit transition, stock adjustment integration |
 
 #### Verification receipt
