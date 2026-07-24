@@ -123,11 +123,11 @@ The repository contains local runtime/package configuration and migrations, but 
   harvest date before clearance, and positive meat/milk/egg withdrawal attributes block an active
   `withdrawalEndDate`. Dates are snapshotted on `SaleLine`, so draft completion re-checks the same
   context; missing dates remain backward compatible.
-- The lifecycle is verified across purchase complete, quick sale, and order completion. Returns,
+- The lifecycle is verified across purchase complete, quick sale, and order completion.
 - Full sales returns are exposed at `POST /tenant/sales/orders/:id/return` for completed sales;
-    the return keeps the original sale immutable, restores Stock and SaleLineBatch allocations,
-    compensates customer debt atomically, and writes `SALE_RETURN` movements/audit. Partial returns,
-    payment refunds, and purchase returns remain separate slices.
+  the return keeps the original sale immutable, restores Stock and SaleLineBatch allocations,
+  compensates customer debt atomically, and writes `SALE_RETURN` movements/audit. Partial returns,
+  payment refunds, and purchase returns remain separate slices.
 - Full purchase returns are exposed at `POST /tenant/purchases/:id/return` for completed purchases;
   the return keeps the original purchase immutable, decrements Stock/ProductBatch quantities,
   compensates supplier debt atomically, and writes `PURCHASE_RETURN` movements/audit. Partial returns,

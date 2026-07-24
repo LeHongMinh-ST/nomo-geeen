@@ -224,6 +224,9 @@ AVAILABLE → QUARANTINED → HEALTHY/SELLABLE
           ↘ SICK / DEAD / REJECTED
 ```
 
+Trạng thái trên là hợp đồng nghiệp vụ mục tiêu. Batch hiện tại mới có sale safety gate dựa trên
+`Product.attrs`, chưa có entity/transition API bền vững; state machine là ưu tiên kế tiếp.
+
 Kho phải theo dõi số con thực tế và số con được phép bán. Chết, bệnh, loại, cách ly và trả
 nguồn giống là reason riêng. Không dùng HSD thuốc; thay bằng tuổi, giai đoạn, sức khỏe và
 điều kiện xuất bán.
@@ -351,6 +354,10 @@ Báo cáo riêng:
 
 Mọi điều chỉnh theo nhóm phải có reason và Audit Log. Bộ lọc nhóm, profile cửa hàng và
 trạng thái bật/tắt không được vượt qua tenant isolation hoặc permission.
+
+Trạng thái triển khai hiện tại: backend đã có hai báo cáo summary tenant-scoped (stock và sales),
+full sales/purchase return có audit và StockAdjustment có reason policy. UI reports, partial
+returns/refunds và báo cáo đầy đủ theo nhóm vẫn là scope tiếp theo.
 
 ## 14. Phạm vi và điểm cần chốt
 

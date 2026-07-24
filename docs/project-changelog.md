@@ -8,6 +8,7 @@ Format theo [Keep a Changelog](https://keepachangelog.com/), tuân thủ [Semant
 ## [Unreleased]
 
 ### Added
+- **Business catalog audit re-sync** — cập nhật lại trạng thái Reports, StockAdjustment, PHI/withdrawal, returns, SALE_DENY và livestock safety theo source commit `64c4918`; ghi rõ các phần partial và thứ tự ưu tiên tiếp theo.
 - **Sale regulatory date gates** — order and quick-sale lines now snapshot optional harvest/withdrawal dates; PHI and active veterinary-withdrawal dates are rejected before stock mutation, including draft-order completion revalidation. Regulatory master data, prescription calculation, and frontend fields remain out of scope.
 - **Verification baseline repair** — restored the historical admin billing migration fixture required by `billing-foundation.spec.ts`; full backend verification now passes 399 tests across 49 suites (1 suite skipped).
 - **Handbook order snapshot** — sales order creation now accepts an optional tenant-scoped disease reference plus consultation/quantity metadata and stores immutable disease-name/context snapshots on Sale; quick-sale and AI diagnosis remain out of scope.

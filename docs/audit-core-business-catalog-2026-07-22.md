@@ -5,7 +5,7 @@
 
 ## 1. Tóm tắt một dòng
 
-**Schema có nền tảng chung** (Product/Stock/Sale/Purchase) nhưng **không có taxonomy `BusinessGroup` chuẩn**, `ProductKind` lệch hợp đồng, không validate theo kind ở bất kỳ layer nào, không có báo cáo, không có StockAdjustment, không có audit log nghiệp vụ, Sổ tay mới ở phase `tasks`.
+Đây là baseline audit ngày 2026-07-22. Các kết luận lịch sử bên dưới được giữ để truy vết; trạng thái hiện tại phải đọc theo các mục re-audit mới nhất, đặc biệt §8.5.
 
 ## 2. Trạng thái theo 4 trục
 
@@ -26,15 +26,15 @@
 |---|---|---|---|
 | 1 | `stock.qty` per Tenant/Warehouse/Product ở Base Unit | ✅ | `Stock.qty Decimal(18,6)` + `@@unique([warehouseId, productId])` (`schema.prisma:1037-1052`) |
 | 2 | Không tồn âm ở sale | ✅ | `stock.updateMany({ qty: { gte: qtyBase }})` (`sales.service.ts:580-584`) |
-| 3 | IN/OUT movement append-only trong transaction | ⚠️ | Có PURCHASE_IN, SALE_OUT, SALE_CANCEL; thiếu PURCHASE_RETURN/SALE_RETURN/ADJUSTMENT |
+| 3 | IN/OUT movement append-only trong transaction | ✅ | Có PURCHASE_IN, SALE_OUT, SALE_CANCEL, SALE_RETURN, PURCHASE_RETURN và ADJUSTMENT |
 | 4 | Batch = tổng các `ProductBatch.qtyOnHand` | ❌ | `ProductBatch.qtyOnHand` không bao giờ được cập nhật khi nhập |
 | 5 | FEFO mặc định khi có HSD | ❌ | View sort `expiresAt`; sale decrement `stock.qty` không chọn batch |
 | 6 | `SaleLineBatch`/sale-to-lot traceability | ❌ | Model có, code không ghi |
 | 7 | Chặn batch hết hạn/thu hồi/bảo quản sai khi bán | ❌ | Sale chỉ check `Product.isLocked/isRecalled`, không query `ProductBatch` |
 | 8 | Per-kind inbound required fields (lô/HSD/dạng thuốc/tuổi cây/số con) | ❌ | DTO generic; `productKind` không được đọc ở purchase service |
 | 9 | Cảnh báo 180/90/30 ngày | ❌ | `NotificationType.NEAR_EXPIRED` có enum, không có emitter |
-| 10 | StockAdjustment + reason taxonomy per nhóm | ❌ | Model + enum có, không có service/controller |
-| 11 | SalesReturn + PurchaseReturn | ❌ | `SalesReturn` model có, không có route; spec sales-order `out_of_scope: "Sales returns"` |
+| 10 | StockAdjustment + reason taxonomy per nhóm | ✅ | `stock-adjustments` service/controller đã validate reason theo `ProductKind` và ghi movement |
+| 11 | SalesReturn + PurchaseReturn | ⚠️ | Đã có full-return route/service cho cả hai; partial returns và payment refund còn mở |
 
 ### 2.3 Bán + Sổ tay — 4 ✅ / 7 ⚠️ / 21 ❌
 
@@ -46,19 +46,19 @@
 | 4 | Order Completed immutable | ⚠️ | Không có PUT/PATCH; thiếu test guard version; thiếu return route |
 | 5 | Handbook entry: `business_group` / `product_kind` / `câu hỏi` / `metadata match` / `quyền` / `pinnedProducts` UI | ❌ | Schema `Disease` thiếu các field; form FE (`disease-form.tsx`) cắt gọn |
 | 6 | 5 handbook domains (cây/sâu bệnh, hạt cây, thức ăn, bệnh vật nuôi, chọn con giống) | ❌ | `suggestProducts` mock trong `frontend/lib/handbook.ts`; không phân nhánh kind |
-| 7 | Snapshot handbook trên đơn (diseaseNameSnapshot, consultContext, suggestedQtyMeta) | ❌ | Field schema có, `sales.service.ts` không ghi (`grep` 0 hit) |
+| 7 | Snapshot handbook trên đơn (diseaseNameSnapshot, consultContext, suggestedQtyMeta) | ✅ | Sales order có thể resolve disease tenant-scoped và ghi snapshot bất biến trên Sale |
 
 ### 2.4 Báo cáo + RBAC + Audit — tỉ lệ
 
 | Khu vực | Tỉ lệ |
 |---|---|
-| Reports module + 8 endpoint | 0% |
+| Reports module + 8 endpoint | partial — 2 read-only summary endpoint |
 | Per-group reports (6 nhóm) | 0% |
 | RBAC (tenant resources) | 4/5 = 80% — thiếu `handbook:*` |
 | Tenant isolation | 100% ✅ |
 | `BusinessGroup` taxonomy + `enabled_business_groups` | 0% |
 | Audit infrastructure | 100% ✅ |
-| Audit coverage trên sale/purchase/inventory/product/handbook/deny | 0/6 = 0% |
+| Audit coverage trên sale/purchase/inventory/product/handbook/deny | partial — tenant business actions và SALE_DENY đã có; cần tiếp tục mở rộng coverage |
 | Audit query + UI admin | 100% ✅ |
 
 ## 3. Top 10 gap xếp theo tác động tới Phase 1
@@ -237,3 +237,29 @@ pnpm --dir backend build
 - Policy: 12/12 PASS · Service: 71/71 PASS · build: exit 0.
 - Receipt: `specs/sale-checkout-kind-gates/reports/verification-receipt.md`.
 - Spec tasks R0-01 / R1-01 / R1-02: `done`.
+
+### 8.5 Re-audit batch ổn định — 2026-07-24
+
+Đối chiếu commit `64c4918ab07147b16190ce16e76220f24fdaaaad` với source hiện tại:
+
+| Hạng mục từng bị ghi “chưa làm” | Trạng thái hiện tại | Bằng chứng chính |
+|---|---|---|
+| Reports | ⚠️ partial | `reports/` có `stock-summary` và `sales-summary`, tenant-scoped, guarded; chưa có UI, chart, export, accounting và đủ 8 endpoint |
+| StockAdjustment | ✅ | `stock-adjustments.service/controller` có draft/complete, closed reason policy, transaction Stock + StockMovement |
+| PHI/withdrawal | ⚠️ partial | `assertSaleRegulatoryDates` chặn khi request có harvest/withdrawal date; chưa có master-data đầy đủ, FE POS map/display và calendar workflow |
+| Full returns | ✅ slice hiện tại | Full sales/purchase return route, stock/batch/debt compensation, duplicate guard và audit đã có; partial returns/refunds còn mở |
+| SALE_DENY audit | ✅ backend | Sales order/quick-sale ghi `AuditAction.SALE_DENY` cho HTTP denial; frontend mapping reason codes còn thiếu |
+| Livestock state machine | ❌ | Hiện chỉ đọc `Product.attrs` và chặn 4 trạng thái trong sale policy; chưa có transition API/persistence, audit transition, stock adjustment integration |
+
+#### Verification receipt
+
+- `pnpm --dir backend test --runInBand`: **PASS** — 49 suite pass, 404 tests pass, 1 suite/test skipped; Redis chạy qua Docker.
+- `pnpm --dir backend build`: cần chạy lại trong closeout nếu source thay đổi sau commit.
+- `pnpm --dir backend exec prisma validate`: cần chạy lại trong closeout nếu migration/schema thay đổi.
+
+#### Trình tự tiếp theo đã chốt
+
+1. Livestock state machine: `HEALTHY → QUARANTINED/SICK/DEAD/REJECTED`, transition policy, audit và deny ở stock/sale.
+2. Hoàn chỉnh frontend error map theo toàn bộ structured reason codes.
+3. Partial returns/refunds.
+4. UI reports trên hai summary endpoint hiện có, sau đó mở rộng báo cáo theo catalog.
