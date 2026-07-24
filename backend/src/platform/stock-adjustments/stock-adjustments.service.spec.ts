@@ -201,6 +201,7 @@ describe('StockAdjustmentsService', () => {
 			id: 'b-1',
 			qtyOnHand: new Prisma.Decimal(5),
 			healthState: 'SICK',
+			version: 7,
 		});
 		tx.productBatch.updateMany.mockResolvedValue({ count: 1 });
 		tx.stock.updateMany.mockResolvedValue({ count: 1 });
@@ -234,8 +235,16 @@ describe('StockAdjustmentsService', () => {
 			}),
 		);
 		expect(tx.productBatch.updateMany).toHaveBeenCalled();
+		expect(tx.productBatch.updateMany.mock.calls[0][0].where).toEqual(
+			expect.objectContaining({
+				id: 'b-1',
+				version: 7,
+				qtyOnHand: { gte: expect.anything() },
+			}),
+		);
 		expect(tx.productBatch.updateMany.mock.calls[0][0].data).toEqual({
 			qtyOnHand: { decrement: new Prisma.Decimal(2) },
+			version: { increment: 1 },
 		});
 		expect(tx.stockMovement.create).toHaveBeenCalledWith(
 			expect.objectContaining({
@@ -339,7 +348,7 @@ describe('StockAdjustmentsService', () => {
 		);
 	});
 
-	it('rejects INSUFFICIENT_BATCH when batch qty too low', async () => {
+	it('rejects INSUFFICIENT_BATCH when batch qty too low (not STALE_VERSION)', async () => {
 		const { service, tx } = makeService();
 		tx.stockAdjustment.findFirst.mockResolvedValue({
 			id: 'adj-1',
@@ -368,13 +377,113 @@ describe('StockAdjustmentsService', () => {
 		tx.productBatch.findFirst.mockResolvedValue({
 			id: 'b-1',
 			qtyOnHand: new Prisma.Decimal(1),
+			version: 1,
 		});
-		tx.productBatch.updateMany.mockResolvedValue({ count: 0 });
 
 		await expect(service.complete('t-1', 'u-1', 'adj-1')).rejects.toMatchObject(
 			{
 				response: { reason: 'INSUFFICIENT_BATCH' },
 			},
+		);
+		expect(tx.productBatch.updateMany).not.toHaveBeenCalled();
+		expect(tx.stockMovement.create).not.toHaveBeenCalled();
+	});
+
+	it('rejects STALE_VERSION when batch CAS loses with sufficient qty', async () => {
+		const { service, tx } = makeService();
+		tx.stockAdjustment.findFirst.mockResolvedValue({
+			id: 'adj-1',
+			tenantId: 't-1',
+			warehouseId: 'wh-1',
+			status: 'DRAFT',
+			lines: [
+				{
+					id: 'line-1',
+					productId: 'p-1',
+					batchId: 'b-1',
+					qtyBefore: new Prisma.Decimal(0),
+					qtyAfter: new Prisma.Decimal(0),
+					delta: new Prisma.Decimal(-3),
+					reasonCode: 'EXPIRED_SCRAP',
+				},
+			],
+		});
+		tx.product.findMany.mockResolvedValue([
+			{ id: 'p-1', productKind: ProductKind.PESTICIDE },
+		]);
+		tx.stock.findFirst.mockResolvedValue({
+			id: 'stock-1',
+			qty: new Prisma.Decimal(10),
+		});
+		tx.productBatch.findFirst.mockResolvedValue({
+			id: 'b-1',
+			qtyOnHand: new Prisma.Decimal(5),
+			version: 3,
+		});
+		tx.productBatch.updateMany.mockResolvedValue({ count: 0 });
+
+		await expect(service.complete('t-1', 'u-1', 'adj-1')).rejects.toMatchObject(
+			{
+				response: {
+					reason: 'STALE_VERSION',
+					currentVersion: 3,
+				},
+			},
+		);
+		expect(tx.stockMovement.create).not.toHaveBeenCalled();
+	});
+
+	it('rejects STALE_VERSION on batch increase when version CAS loses', async () => {
+		const { service, tx } = makeService();
+		tx.stockAdjustment.findFirst.mockResolvedValue({
+			id: 'adj-1',
+			tenantId: 't-1',
+			warehouseId: 'wh-1',
+			status: 'DRAFT',
+			lines: [
+				{
+					id: 'line-1',
+					productId: 'p-1',
+					batchId: 'b-1',
+					qtyBefore: new Prisma.Decimal(0),
+					qtyAfter: new Prisma.Decimal(0),
+					delta: new Prisma.Decimal(2),
+					reasonCode: 'COUNT_CORRECTION',
+				},
+			],
+		});
+		tx.product.findMany.mockResolvedValue([
+			{ id: 'p-1', productKind: ProductKind.PESTICIDE },
+		]);
+		tx.stock.findFirst.mockResolvedValue({
+			id: 'stock-1',
+			qty: new Prisma.Decimal(10),
+		});
+		tx.productBatch.findFirst.mockResolvedValue({
+			id: 'b-1',
+			version: 4,
+		});
+		tx.productBatch.updateMany.mockResolvedValue({ count: 0 });
+
+		await expect(service.complete('t-1', 'u-1', 'adj-1')).rejects.toMatchObject(
+			{
+				response: {
+					reason: 'STALE_VERSION',
+					currentVersion: 4,
+				},
+			},
+		);
+		expect(tx.productBatch.updateMany).toHaveBeenCalledWith(
+			expect.objectContaining({
+				where: expect.objectContaining({
+					id: 'b-1',
+					tenantId: 't-1',
+					version: 4,
+				}),
+				data: expect.objectContaining({
+					version: { increment: 1 },
+				}),
+			}),
 		);
 		expect(tx.stockMovement.create).not.toHaveBeenCalled();
 	});

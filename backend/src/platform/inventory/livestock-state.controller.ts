@@ -46,6 +46,7 @@ export class LivestockStateController {
 			{
 				toState: dto.toState,
 				expectedVersion: dto.expectedVersion,
+				approveRecovery: dto.approveRecovery === true,
 				reason: dto.reason,
 				note: dto.note,
 			},

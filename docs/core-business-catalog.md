@@ -224,10 +224,13 @@ AVAILABLE → QUARANTINED → HEALTHY/SELLABLE
           ↘ SICK / DEAD / REJECTED
 ```
 
-Trạng thái persisted hiện dùng `ProductBatch.healthState` với optimistic `version`. Slice đầu
-cho phép `HEALTHY → QUARANTINED/SICK/DEAD/REJECTED`, ghi audit transition và FEFO chỉ bán
-batch `HEALTHY`; chưa có recovery approval, CAS riêng cho stock-adjustment/return hoặc UI quản lý.
-`Product.attrs` vẫn là legacy fallback trong sale eligibility.
+Trạng thái persisted hiện dùng `ProductBatch.healthState` với optimistic `version`.
+Cho phép `HEALTHY → QUARANTINED/SICK/DEAD/REJECTED` và recovery có chủ đích
+`QUARANTINED|SICK → HEALTHY` khi `approveRecovery=true` (permission `inventory:edit`, audit
+`LIVESTOCK_STATE_CHANGE`). `DEAD`/`REJECTED` terminal trong slice này. FEFO chỉ bán batch
+`HEALTHY`. Stock-adjustment complete và full sales/purchase return CAS `ProductBatch.version`
+khi đổi `qtyOnHand`. Chưa có UI quản lý health-state; `Product.attrs` vẫn là legacy fallback
+trong sale eligibility. Partial return/refund ngoài scope — xem `specs/livestock-cas-recovery/design.md`.
 
 Kho phải theo dõi số con thực tế và số con được phép bán. Chết, bệnh, loại, cách ly và trả
 nguồn giống là reason riêng. Không dùng HSD thuốc; thay bằng tuổi, giai đoạn, sức khỏe và

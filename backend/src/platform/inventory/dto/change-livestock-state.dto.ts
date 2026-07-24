@@ -1,5 +1,6 @@
 import { LivestockHealthState } from '@prisma/client';
 import {
+	IsBoolean,
 	IsIn,
 	IsInt,
 	IsOptional,
@@ -8,8 +9,9 @@ import {
 	Min,
 } from 'class-validator';
 
-/** Allowed targets for first-slice HEALTHY → * transitions. */
+/** Allowed toState values; policy enforces legal edges (incl. recovery). */
 const TARGET_STATES = [
+	LivestockHealthState.HEALTHY,
 	LivestockHealthState.QUARANTINED,
 	LivestockHealthState.SICK,
 	LivestockHealthState.DEAD,
@@ -26,6 +28,14 @@ export class ChangeLivestockStateDto {
 	@IsInt()
 	@Min(0)
 	expectedVersion!: number;
+
+	/**
+	 * Required true for QUARANTINED|SICK → HEALTHY recovery.
+	 * Ignored for HEALTHY outbound transitions.
+	 */
+	@IsOptional()
+	@IsBoolean()
+	approveRecovery?: boolean;
 
 	@IsOptional()
 	@IsString()

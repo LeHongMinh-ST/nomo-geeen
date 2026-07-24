@@ -4,6 +4,7 @@ import {
 	assertLivestockTransition,
 	isAllowedLivestockTarget,
 	isLivestockProductKind,
+	isRecoverableSource,
 } from './livestock-state-policy';
 
 describe('livestock-state-policy', () => {
@@ -58,20 +59,48 @@ describe('livestock-state-policy', () => {
 			);
 		});
 
-		it.each([
-			LivestockHealthState.QUARANTINED,
-			LivestockHealthState.SICK,
-			LivestockHealthState.DEAD,
-			LivestockHealthState.REJECTED,
-		])('rejects recovery from %s (no auto recovery)', (from) => {
-			expect(() =>
-				assertLivestockTransition(from, LivestockHealthState.HEALTHY),
-			).toThrow(
-				expect.objectContaining({
-					response: expect.objectContaining({ reason: 'INVALID_TRANSITION' }),
-				}),
-			);
-		});
+		it.each([LivestockHealthState.QUARANTINED, LivestockHealthState.SICK])(
+			'rejects recovery from %s without approveRecovery',
+			(from) => {
+				expect(() =>
+					assertLivestockTransition(from, LivestockHealthState.HEALTHY),
+				).toThrow(
+					expect.objectContaining({
+						response: expect.objectContaining({
+							reason: 'RECOVERY_NOT_APPROVED',
+						}),
+					}),
+				);
+				expect(isRecoverableSource(from)).toBe(true);
+			},
+		);
+
+		it.each([LivestockHealthState.QUARANTINED, LivestockHealthState.SICK])(
+			'allows recovery from %s with approveRecovery',
+			(from) => {
+				expect(() =>
+					assertLivestockTransition(from, LivestockHealthState.HEALTHY, {
+						approveRecovery: true,
+					}),
+				).not.toThrow();
+			},
+		);
+
+		it.each([LivestockHealthState.DEAD, LivestockHealthState.REJECTED])(
+			'rejects recovery from terminal %s even with approveRecovery',
+			(from) => {
+				expect(() =>
+					assertLivestockTransition(from, LivestockHealthState.HEALTHY, {
+						approveRecovery: true,
+					}),
+				).toThrow(
+					expect.objectContaining({
+						response: expect.objectContaining({ reason: 'INVALID_TRANSITION' }),
+					}),
+				);
+				expect(isRecoverableSource(from)).toBe(false);
+			},
+		);
 
 		it('rejects non-HEALTHY source even to another terminal', () => {
 			expect(() =>

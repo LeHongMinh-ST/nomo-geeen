@@ -2,13 +2,13 @@ import {
 	Body,
 	Controller,
 	Get,
+	Optional,
 	Param,
 	Patch,
 	Post,
 	Query,
 	Req,
 	UseGuards,
-	Optional,
 } from '@nestjs/common';
 import type { Request } from 'express';
 import { RequireTenantPermission } from '../auth/decorators/require-tenant-permission.decorator';
@@ -17,14 +17,15 @@ import { TenantPermissionGuard } from '../auth/guards/tenant-permission.guard';
 import type { TenantIdentity } from '../auth/token.service';
 import { RequireFeature } from '../entitlements/entitlement.constants';
 import { EntitlementsGuard } from '../entitlements/entitlements.guard';
+import { CreatePartialPurchaseReturnDto } from './dto/create-partial-purchase-return.dto';
 import { CreatePurchaseDto } from './dto/create-purchase.dto';
 import { CreatePurchaseReturnDto } from './dto/create-purchase-return.dto';
 import {
 	CompletePurchaseDto,
 	PurchaseQueryDto,
 } from './dto/purchase-query.dto';
-import { PurchasesService } from './purchases.service';
 import { PurchaseReturnsService } from './purchase-return.service';
+import { PurchasesService } from './purchases.service';
 
 interface TenantRequest extends Request {
 	user: TenantIdentity;
@@ -88,8 +89,35 @@ export class PurchasesController {
 	@Post(':id/return')
 	@RequireTenantPermission('purchase:edit')
 	@RequireFeature('inventory')
-	returnPurchase(@Req() req: TenantRequest, @Param('id') id: string, @Body() dto: CreatePurchaseReturnDto) {
-		if (!this.purchaseReturns) throw new Error('Purchase return service is not configured');
-		return this.purchaseReturns.createFullReturn(req.user.tenantId, req.user.id, id, dto.note);
+	returnPurchase(
+		@Req() req: TenantRequest,
+		@Param('id') id: string,
+		@Body() dto: CreatePurchaseReturnDto,
+	) {
+		if (!this.purchaseReturns)
+			throw new Error('Purchase return service is not configured');
+		return this.purchaseReturns.createFullReturn(
+			req.user.tenantId,
+			req.user.id,
+			id,
+			dto.note,
+		);
+	}
+	@Post(':id/return/partial')
+	@RequireTenantPermission('purchase:edit')
+	@RequireFeature('inventory')
+	returnPurchasePartial(
+		@Req() req: TenantRequest,
+		@Param('id') id: string,
+		@Body() dto: CreatePartialPurchaseReturnDto,
+	) {
+		if (!this.purchaseReturns)
+			throw new Error('Purchase return service is not configured');
+		return this.purchaseReturns.createPartialReturn(
+			req.user.tenantId,
+			req.user.id,
+			id,
+			dto,
+		);
 	}
 }

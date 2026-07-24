@@ -34,6 +34,7 @@ describe('LivestockStateController', () => {
 			{
 				toState: LivestockHealthState.QUARANTINED,
 				expectedVersion: 0,
+				approveRecovery: false,
 				reason: 'check',
 				note: undefined,
 			},

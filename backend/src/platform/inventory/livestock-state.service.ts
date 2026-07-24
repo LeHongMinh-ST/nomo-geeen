@@ -22,6 +22,8 @@ type Tx = Prisma.TransactionClient;
 export type ChangeLivestockStateInput = {
 	toState: LivestockHealthState;
 	expectedVersion: number;
+	/** Required true for QUARANTINED|SICK → HEALTHY. */
+	approveRecovery?: boolean;
 	reason?: string | null;
 	note?: string | null;
 };
@@ -75,7 +77,9 @@ export class LivestockStateService {
 			}
 
 			assertLivestockProductKind(batch.product.productKind);
-			assertLivestockTransition(batch.healthState, input.toState);
+			assertLivestockTransition(batch.healthState, input.toState, {
+				approveRecovery: input.approveRecovery === true,
+			});
 
 			if (batch.version !== input.expectedVersion) {
 				throw new ConflictException({

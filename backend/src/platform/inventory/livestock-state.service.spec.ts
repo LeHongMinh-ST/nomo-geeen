@@ -215,7 +215,7 @@ describe('LivestockStateService', () => {
 		expect(audit.writeInTx).toHaveBeenCalled();
 	});
 
-	it('rejects invalid transition from non-HEALTHY without audit', async () => {
+	it('rejects recovery without approveRecovery and writes no audit', async () => {
 		const { service, tx, audit } = makeService();
 		tx.productBatch.findFirst.mockResolvedValue({
 			...baseBatch,
@@ -229,8 +229,88 @@ describe('LivestockStateService', () => {
 				expectedVersion: 1,
 			}),
 		).rejects.toMatchObject({
+			response: expect.objectContaining({ reason: 'RECOVERY_NOT_APPROVED' }),
+		});
+		expect(audit.writeInTx).not.toHaveBeenCalled();
+	});
+
+	it('recovers QUARANTINED -> HEALTHY with approveRecovery and audits', async () => {
+		const { service, tx, audit } = makeService();
+		const quarantined = {
+			...baseBatch,
+			healthState: LivestockHealthState.QUARANTINED,
+			version: 2,
+			healthReason: 'hold',
+		};
+		tx.productBatch.findFirst.mockResolvedValue(quarantined);
+		tx.productBatch.updateMany.mockResolvedValue({ count: 1 });
+		const after = {
+			...quarantined,
+			healthState: LivestockHealthState.HEALTHY,
+			version: 3,
+			healthReason: 'cleared',
+			healthNote: 'vet ok',
+			healthChangedAt: new Date('2026-07-24T01:00:00.000Z'),
+			healthChangedBy: 'u-1',
+		};
+		tx.productBatch.findFirstOrThrow.mockResolvedValue(after);
+
+		const result = await service.changeState('t-1', 'u-1', 'batch-1', {
+			toState: LivestockHealthState.HEALTHY,
+			expectedVersion: 2,
+			approveRecovery: true,
+			reason: 'cleared',
+			note: 'vet ok',
+		});
+
+		expect(result.healthState).toBe(LivestockHealthState.HEALTHY);
+		expect(result.version).toBe(3);
+		expect(tx.productBatch.updateMany).toHaveBeenCalledWith(
+			expect.objectContaining({
+				where: expect.objectContaining({
+					version: 2,
+					healthState: LivestockHealthState.QUARANTINED,
+				}),
+				data: expect.objectContaining({
+					healthState: LivestockHealthState.HEALTHY,
+					version: { increment: 1 },
+				}),
+			}),
+		);
+		expect(audit.writeInTx).toHaveBeenCalledWith(
+			tx,
+			expect.objectContaining({
+				action: AuditAction.LIVESTOCK_STATE_CHANGE,
+				before: expect.objectContaining({
+					healthState: LivestockHealthState.QUARANTINED,
+					version: 2,
+				}),
+				after: expect.objectContaining({
+					healthState: LivestockHealthState.HEALTHY,
+					version: 3,
+				}),
+			}),
+		);
+	});
+
+	it('rejects DEAD recovery even with approveRecovery', async () => {
+		const { service, tx, audit } = makeService();
+		tx.productBatch.findFirst.mockResolvedValue({
+			...baseBatch,
+			healthState: LivestockHealthState.DEAD,
+			version: 4,
+		});
+
+		await expect(
+			service.changeState('t-1', 'u-1', 'batch-1', {
+				toState: LivestockHealthState.HEALTHY,
+				expectedVersion: 4,
+				approveRecovery: true,
+			}),
+		).rejects.toMatchObject({
 			response: expect.objectContaining({ reason: 'INVALID_TRANSITION' }),
 		});
+		expect(tx.productBatch.updateMany).not.toHaveBeenCalled();
 		expect(audit.writeInTx).not.toHaveBeenCalled();
 	});
 

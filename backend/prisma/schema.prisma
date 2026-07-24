@@ -1109,6 +1109,7 @@ model ProductBatch {
   purchaseReturnLines PurchaseReturnLine[]
   saleLines     SaleLine[]
   saleLineBatches SaleLineBatch[]
+  salesReturnLines SalesReturnLine[]
 
   @@unique([tenantId, productId, warehouseId, batchCode])
   @@index([expiresAt])
@@ -1271,6 +1272,7 @@ model PurchaseReturn {
   total               BigInt         @default(0)
   debtAdjust          BigInt         @default(0)
   note                String?
+  idempotencyKey      String?
   createdBy           String?
   completedAt         DateTime?
   createdAt           DateTime       @default(now())
@@ -1283,6 +1285,7 @@ model PurchaseReturn {
   lines           PurchaseReturnLine[]
 
   @@unique([tenantId, docNo])
+  @@unique([tenantId, idempotencyKey])
   @@index([tenantId, originalPurchaseId])
   @@map("purchase_return")
 }
@@ -1290,6 +1293,7 @@ model PurchaseReturn {
 model PurchaseReturnLine {
   id               String   @id @default(uuid())
   purchaseReturnId String
+  purchaseLineId   String?
   productId        String
   batchId          String?
   qtyBase          Decimal  @db.Decimal(18, 6)
@@ -1300,6 +1304,7 @@ model PurchaseReturnLine {
   batch          ProductBatch?  @relation(fields: [batchId], references: [id], onDelete: SetNull)
 
   @@index([purchaseReturnId])
+  @@index([purchaseLineId])
   @@map("purchase_return_line")
 }
 
@@ -1405,6 +1410,7 @@ model SalesReturn {
   total          BigInt     @default(0)
   debtAdjust     BigInt     @default(0)
   note           String?
+  idempotencyKey String?
   createdBy      String?
   completedAt    DateTime?
   createdAt      DateTime   @default(now())
@@ -1417,19 +1423,25 @@ model SalesReturn {
   lines        SalesReturnLine[]
 
   @@unique([tenantId, docNo])
+  @@unique([tenantId, idempotencyKey])
+  @@index([tenantId, originalSaleId])
   @@map("sales_return")
 }
 
 model SalesReturnLine {
   id            String  @id @default(uuid())
   salesReturnId String
+  saleLineId    String?
   productId     String
+  batchId       String?
   qtyBase       Decimal @db.Decimal(18, 6)
   lineTotal     BigInt  @default(0)
 
-  salesReturn SalesReturn @relation(fields: [salesReturnId], references: [id], onDelete: Cascade)
+  salesReturn SalesReturn  @relation(fields: [salesReturnId], references: [id], onDelete: Cascade)
+  batch       ProductBatch? @relation(fields: [batchId], references: [id], onDelete: SetNull)
 
   @@index([salesReturnId])
+  @@index([saleLineId])
   @@map("sales_return_line")
 }
 

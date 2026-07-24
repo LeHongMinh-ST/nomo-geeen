@@ -6,11 +6,12 @@ describe('SalesReturnsService', () => {
 			sale: { findFirst: jest.fn() },
 			salesReturn: {
 				findFirst: jest.fn(),
+				findMany: jest.fn(),
 				create: jest.fn(),
 				update: jest.fn(),
 			},
 			stock: { updateMany: jest.fn() },
-			productBatch: { updateMany: jest.fn() },
+			productBatch: { findFirst: jest.fn(), updateMany: jest.fn() },
 			stockMovement: { create: jest.fn() },
 			customer: { updateMany: jest.fn(), findFirstOrThrow: jest.fn() },
 			debtLedger: { create: jest.fn() },
@@ -19,65 +20,256 @@ describe('SalesReturnsService', () => {
 			$transaction: jest.fn(async (callback: (value: typeof tx) => unknown) =>
 				callback(tx),
 			),
+			salesReturn: { findFirst: jest.fn() },
 		};
 		const audit = { writeInTx: jest.fn() };
-		return { service: new SalesReturnsService(prisma as never, audit as never), tx, prisma, audit };
+		return {
+			service: new SalesReturnsService(prisma as never, audit as never),
+			tx,
+			prisma,
+			audit,
+		};
 	}
 
-	it('restores stock and allocated batches atomically', async () => {
+	const completedSale = {
+		id: 'sale-1',
+		status: 'COMPLETED',
+		tenantId: 'tenant-1',
+		warehouseId: 'warehouse-1',
+		customerId: 'customer-1',
+		total: 1200n,
+		debtAmount: 600n,
+		lines: [
+			{
+				id: 'line-1',
+				productId: 'product-1',
+				qtyBase: '4',
+				lineTotal: 1200n,
+				batches: [
+					{ batchId: 'batch-1', qtyBase: '3' },
+					{ batchId: 'batch-2', qtyBase: '1' },
+				],
+			},
+		],
+	};
+
+	it('restores stock and allocated batches atomically on full return', async () => {
 		const { service, tx, audit } = setup();
-		tx.sale.findFirst.mockResolvedValue({
-			id: 'sale-1',
-			status: 'COMPLETED',
-			tenantId: 'tenant-1',
-			warehouseId: 'warehouse-1',
-			customerId: null,
-			total: 1200n,
-			debtAmount: 0n,
-			lines: [
-				{
-					id: 'line-1',
-					productId: 'product-1',
-					qtyBase: '2',
-					lineTotal: 1200n,
-					batches: [{ batchId: 'batch-1', qtyBase: '2' }],
-				},
-			],
-		});
+		tx.sale.findFirst.mockResolvedValue(completedSale);
 		tx.salesReturn.findFirst.mockResolvedValue(null);
 		tx.salesReturn.create.mockResolvedValue({ id: 'return-1' });
 		tx.salesReturn.update.mockResolvedValue({
 			id: 'return-1',
 			total: 1200n,
-			debtAdjust: 0n,
+			debtAdjust: 600n,
 			lines: [],
 		});
 		tx.stock.updateMany.mockResolvedValue({ count: 1 });
+		tx.productBatch.findFirst
+			.mockResolvedValueOnce({ id: 'batch-1', version: 4, healthState: 'SICK' })
+			.mockResolvedValueOnce({
+				id: 'batch-2',
+				version: 1,
+				healthState: 'SICK',
+			});
 		tx.productBatch.updateMany.mockResolvedValue({ count: 1 });
+		tx.customer.updateMany.mockResolvedValue({ count: 1 });
+		tx.customer.findFirstOrThrow.mockResolvedValue({ balance: 0n });
 
 		await service.createFullReturn('tenant-1', 'user-1', 'sale-1', 'damaged');
 
-		expect(tx.stock.updateMany).toHaveBeenCalledWith(
+		expect(tx.productBatch.updateMany).toHaveBeenCalledWith(
 			expect.objectContaining({
-				where: expect.objectContaining({ tenantId: 'tenant-1', productId: 'product-1' }),
+				where: { id: 'batch-1', tenantId: 'tenant-1', version: 4 },
+				data: expect.objectContaining({ version: { increment: 1 } }),
 			}),
 		);
-		expect(tx.productBatch.updateMany).toHaveBeenCalledWith(
-			expect.objectContaining({ where: { id: 'batch-1', tenantId: 'tenant-1' } }),
-		);
-		expect(tx.stockMovement.create).toHaveBeenCalledWith(
-			expect.objectContaining({ data: expect.objectContaining({ reason: 'SALE_RETURN', batchId: 'batch-1' }) }),
+		expect(tx.productBatch.updateMany).not.toHaveBeenCalledWith(
+			expect.objectContaining({
+				data: expect.objectContaining({ healthState: 'HEALTHY' }),
+			}),
 		);
 		expect(audit.writeInTx).toHaveBeenCalled();
 	});
 
-	it('rejects a second completed return before any stock write', async () => {
+	it('rejects a second full return before any stock write', async () => {
 		const { service, tx } = setup();
 		tx.sale.findFirst.mockResolvedValue({ id: 'sale-1', status: 'COMPLETED' });
 		tx.salesReturn.findFirst.mockResolvedValue({ id: 'return-1' });
 
-		await expect(service.createFullReturn('tenant-1', 'user-1', 'sale-1')).rejects.toMatchObject({
+		await expect(
+			service.createFullReturn('tenant-1', 'user-1', 'sale-1'),
+		).rejects.toMatchObject({
 			response: { reason: 'SALE_ALREADY_RETURNED' },
+		});
+		expect(tx.stock.updateMany).not.toHaveBeenCalled();
+	});
+
+	it('partial return restores only requested qty with CAS', async () => {
+		const { service, tx, audit } = setup();
+		tx.sale.findFirst.mockResolvedValue(completedSale);
+		tx.salesReturn.findFirst.mockResolvedValue(null);
+		tx.salesReturn.findMany.mockResolvedValue([]);
+		tx.salesReturn.create.mockResolvedValue({ id: 'return-p1' });
+		tx.salesReturn.update.mockResolvedValue({
+			id: 'return-p1',
+			total: 300n,
+			debtAdjust: 150n,
+			lines: [{ saleLineId: 'line-1', batchId: 'batch-1', qtyBase: '1' }],
+		});
+		tx.stock.updateMany.mockResolvedValue({ count: 1 });
+		tx.productBatch.findFirst.mockResolvedValue({
+			id: 'batch-1',
+			version: 7,
+			healthState: 'QUARANTINED',
+		});
+		tx.productBatch.updateMany.mockResolvedValue({ count: 1 });
+		tx.customer.updateMany.mockResolvedValue({ count: 1 });
+		tx.customer.findFirstOrThrow.mockResolvedValue({ balance: 450n });
+
+		const result = await service.createPartialReturn(
+			'tenant-1',
+			'user-1',
+			'sale-1',
+			{
+				lines: [{ saleLineId: 'line-1', batchId: 'batch-1', qtyBase: '1' }],
+			},
+		);
+
+		expect(result.id).toBe('return-p1');
+		expect(tx.stock.updateMany).toHaveBeenCalledWith(
+			expect.objectContaining({
+				data: { qty: { increment: expect.anything() } },
+			}),
+		);
+		expect(tx.productBatch.updateMany).toHaveBeenCalledWith(
+			expect.objectContaining({
+				where: { id: 'batch-1', tenantId: 'tenant-1', version: 7 },
+				data: expect.objectContaining({
+					qtyOnHand: { increment: expect.anything() },
+					version: { increment: 1 },
+				}),
+			}),
+		);
+		expect(tx.debtLedger.create).toHaveBeenCalledWith(
+			expect.objectContaining({
+				data: expect.objectContaining({
+					entryType: 'ADJUST',
+					direction: 'DECREASE',
+					amount: 150n,
+				}),
+			}),
+		);
+		expect(audit.writeInTx).toHaveBeenCalled();
+		// healthState never written
+		const batchUpdates = tx.productBatch.updateMany.mock.calls.map(
+			(c: unknown[]) => c[0],
+		);
+		for (const call of batchUpdates) {
+			expect(
+				(call as { data: Record<string, unknown> }).data,
+			).not.toHaveProperty('healthState');
+		}
+	});
+
+	it('rejects over-return qty without stock mutation', async () => {
+		const { service, tx } = setup();
+		tx.sale.findFirst.mockResolvedValue(completedSale);
+		tx.salesReturn.findFirst.mockResolvedValue(null);
+		tx.salesReturn.findMany.mockResolvedValue([
+			{
+				id: 'prior',
+				lines: [{ saleLineId: 'line-1', batchId: 'batch-1', qtyBase: '3' }],
+			},
+		]);
+
+		await expect(
+			service.createPartialReturn('tenant-1', 'user-1', 'sale-1', {
+				lines: [{ saleLineId: 'line-1', batchId: 'batch-1', qtyBase: '1' }],
+			}),
+		).rejects.toMatchObject({
+			response: { reason: 'RETURN_QTY_EXCEEDS_REMAINING' },
+		});
+		expect(tx.stock.updateMany).not.toHaveBeenCalled();
+		expect(tx.debtLedger.create).not.toHaveBeenCalled();
+	});
+
+	it('rejects stale batch CAS and does not complete debt', async () => {
+		const { service, tx } = setup();
+		tx.sale.findFirst.mockResolvedValue(completedSale);
+		tx.salesReturn.findFirst.mockResolvedValue(null);
+		tx.salesReturn.findMany.mockResolvedValue([]);
+		tx.salesReturn.create.mockResolvedValue({ id: 'return-p2' });
+		tx.stock.updateMany.mockResolvedValue({ count: 1 });
+		tx.productBatch.findFirst.mockResolvedValue({
+			id: 'batch-1',
+			version: 2,
+			healthState: 'HEALTHY',
+		});
+		tx.productBatch.updateMany.mockResolvedValue({ count: 0 });
+
+		await expect(
+			service.createPartialReturn('tenant-1', 'user-1', 'sale-1', {
+				lines: [{ saleLineId: 'line-1', batchId: 'batch-1', qtyBase: '1' }],
+			}),
+		).rejects.toMatchObject({
+			response: { reason: 'BATCH_RETURN_CONFLICT' },
+		});
+		expect(tx.debtLedger.create).not.toHaveBeenCalled();
+	});
+
+	it('replays idempotent partial return without double stock write', async () => {
+		const { service, tx } = setup();
+		const existing = {
+			id: 'return-existing',
+			idempotencyKey: 'idem-1',
+			lines: [],
+		};
+		tx.salesReturn.findFirst.mockResolvedValue(existing);
+
+		const result = await service.createPartialReturn(
+			'tenant-1',
+			'user-1',
+			'sale-1',
+			{
+				idempotencyKey: 'idem-1',
+				lines: [{ saleLineId: 'line-1', batchId: 'batch-1', qtyBase: '1' }],
+			},
+		);
+
+		expect(result).toEqual(existing);
+		expect(tx.sale.findFirst).not.toHaveBeenCalled();
+		expect(tx.stock.updateMany).not.toHaveBeenCalled();
+	});
+
+	it('rejects foreign-tenant sale as not found', async () => {
+		const { service, tx } = setup();
+		tx.sale.findFirst.mockResolvedValue(null);
+		tx.salesReturn.findFirst.mockResolvedValue(null);
+
+		await expect(
+			service.createPartialReturn('tenant-other', 'user-1', 'sale-1', {
+				lines: [{ saleLineId: 'line-1', batchId: 'batch-1', qtyBase: '1' }],
+			}),
+		).rejects.toMatchObject({ message: 'Sale not found' });
+		expect(tx.stock.updateMany).not.toHaveBeenCalled();
+	});
+
+	it('fails closed on cash REFUND_VOUCHER settlement', async () => {
+		const { service, tx } = setup();
+		tx.sale.findFirst.mockResolvedValue({
+			...completedSale,
+			debtAmount: 0n,
+		});
+		tx.salesReturn.findFirst.mockResolvedValue(null);
+
+		await expect(
+			service.createPartialReturn('tenant-1', 'user-1', 'sale-1', {
+				settlementMode: 'REFUND_VOUCHER',
+				lines: [{ saleLineId: 'line-1', batchId: 'batch-1', qtyBase: '1' }],
+			}),
+		).rejects.toMatchObject({
+			response: { reason: 'SETTLEMENT_NOT_SUPPORTED' },
 		});
 		expect(tx.stock.updateMany).not.toHaveBeenCalled();
 	});

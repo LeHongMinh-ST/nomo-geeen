@@ -1,0 +1,109 @@
+{
+  "feature_name": "livestock-cas-recovery",
+  "created_at": "2026-07-24T23:41:33+07:00",
+  "updated_at": "2026-07-24T23:55:00+07:00",
+  "language": "en",
+  "status": "completed",
+  "phase": "code",
+  "current_phase": "complete",
+  "priority": "P1",
+  "effort": "1-2 implementation days",
+  "tags": [
+    "inventory",
+    "livestock",
+    "cas",
+    "recovery",
+    "stock-adjustment",
+    "returns",
+    "audit"
+  ],
+  "approvals": {
+    "requirements": {
+      "generated": true,
+      "approved": true
+    },
+    "design": {
+      "generated": true,
+      "approved": true
+    },
+    "tasks": {
+      "generated": true,
+      "approved": true
+    }
+  },
+  "scope_lock": {
+    "source": "Lu\u1ed3ng B after livestock state-machine first slice. Catalog \u00a79 + audit \u00a78.5 item 2: recovery approval + CAS on stock-adjustment/return when ProductBatch qty/state mutates; only HEALTHY sellable via FEFO.",
+    "in_scope": [
+      "Explicit recovery transitions QUARANTINED|SICK \u2192 HEALTHY with approveRecovery=true, tenant-scoped, inventory:edit, audit LIVESTOCK_STATE_CHANGE",
+      "Keep DEAD/REJECTED non-recoverable without inventing multi-step approval workflow",
+      "Consistent ProductBatch.version CAS on stock-adjustment complete (qty mutate) and full sales/purchase return batch qty mutate",
+      "Preserve FEFO HEALTHY-only sell eligibility; first-slice HEALTHY\u2192blocked states",
+      "Unit tests: recovery allow/deny, stale version, adjustment/return CAS conflict paths, audit presence",
+      "Focused backend tests + build + prisma validate"
+    ],
+    "out_of_scope": [
+      "Frontend error map / livestock UI",
+      "Reports UI",
+      "Partial sales/purchase returns and payment refunds (dependency only)",
+      "New RBAC permission codes beyond inventory:edit",
+      "Multi-step approval workflow / dual-control",
+      "Livestock individual (per-head) entity",
+      "Aquaculture",
+      "Attrs-only sale eligibility rewrite (legacy fallback stays)"
+    ],
+    "expansion_policy": "requires-user-approval"
+  },
+  "dependencies": {
+    "blockedBy": [
+      "specs/core-stock-lifecycle/",
+      "specs/stock-adjustment-core-reasons/",
+      "specs/sales-return-core/",
+      "specs/purchase-return-core/"
+    ],
+    "blocks": [
+      "partial returns/refunds (need batch version + health contract on return lines)"
+    ]
+  },
+  "task_files": [
+    "tasks/task-R0-01-recovery-policy.md",
+    "tasks/task-R1-01-batch-cas-adjustment-returns.md",
+    "tasks/task-R1-02-cas-recovery-verification.md"
+  ],
+  "task_registry": {
+    "tasks/task-R0-01-recovery-policy.md": {
+      "id": "R0-01",
+      "title": "Recovery policy and service",
+      "status": "done",
+      "dependencies": [],
+      "blocker": null,
+      "started_at": "2026-07-24T23:46:00+07:00",
+      "completed_at": "2026-07-24T23:55:00+07:00",
+      "last_updated_at": "2026-07-24T23:55:00+07:00"
+    },
+    "tasks/task-R1-01-batch-cas-adjustment-returns.md": {
+      "id": "R1-01",
+      "title": "CAS on adjustment and full returns",
+      "status": "done",
+      "dependencies": [
+        "tasks/task-R0-01-recovery-policy.md"
+      ],
+      "blocker": null,
+      "started_at": "2026-07-24T23:55:00+07:00",
+      "completed_at": "2026-07-24T23:55:00+07:00",
+      "last_updated_at": "2026-07-24T23:55:00+07:00"
+    },
+    "tasks/task-R1-02-cas-recovery-verification.md": {
+      "id": "R1-02",
+      "title": "Cas recovery verification",
+      "status": "done",
+      "dependencies": [
+        "tasks/task-R0-01-recovery-policy.md",
+        "tasks/task-R1-01-batch-cas-adjustment-returns.md"
+      ],
+      "blocker": null,
+      "started_at": "2026-07-24T23:55:00+07:00",
+      "completed_at": "2026-07-24T23:55:00+07:00",
+      "last_updated_at": "2026-07-24T23:55:00+07:00"
+    }
+  }
+}

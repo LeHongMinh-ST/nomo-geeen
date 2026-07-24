@@ -248,7 +248,53 @@ export class StockAdjustmentsService {
 							productId: line.productId,
 							warehouseId: adjustment.warehouseId,
 						},
-						select: { id: true, qtyOnHand: true },
+						select: { id: true, qtyOnHand: true, version: true },
+					});
+					if (!batch) {
+						throw new UnprocessableEntityException({
+							reason: 'BATCH_REQUIRED',
+							message: 'Batch not found for product/warehouse',
+							field: 'batchId',
+						});
+					}
+					// Pre-check qty so insufficient stock is not conflated with CAS/stale.
+					if (new Prisma.Decimal(batch.qtyOnHand.toString()).lt(absDelta)) {
+						throw new UnprocessableEntityException({
+							reason: 'INSUFFICIENT_BATCH',
+							message: 'Insufficient batch qtyOnHand',
+							field: 'batchId',
+						});
+					}
+					const batchUpdated = await tx.productBatch.updateMany({
+						where: {
+							id: batch.id,
+							tenantId,
+							version: batch.version,
+							qtyOnHand: { gte: absDelta },
+						},
+						data: {
+							qtyOnHand: { decrement: absDelta },
+							version: { increment: 1 },
+						},
+					});
+					if (batchUpdated.count !== 1) {
+						throw new ConflictException({
+							reason: 'STALE_VERSION',
+							message: 'Batch changed concurrently; reload and retry',
+							field: 'batchId',
+							currentVersion: batch.version,
+						});
+					}
+				} else if (!isDecrease && batchId) {
+					// Optional increase onto existing batch (CAS version)
+					const batch = await tx.productBatch.findFirst({
+						where: {
+							id: batchId,
+							tenantId,
+							productId: line.productId,
+							warehouseId: adjustment.warehouseId,
+						},
+						select: { id: true, version: true },
 					});
 					if (!batch) {
 						throw new UnprocessableEntityException({
@@ -261,39 +307,21 @@ export class StockAdjustmentsService {
 						where: {
 							id: batch.id,
 							tenantId,
-							qtyOnHand: { gte: absDelta },
+							version: batch.version,
 						},
-						data: { qtyOnHand: { decrement: absDelta } },
+						data: {
+							qtyOnHand: { increment: absDelta },
+							version: { increment: 1 },
+						},
 					});
 					if (batchUpdated.count !== 1) {
-						throw new UnprocessableEntityException({
-							reason: 'INSUFFICIENT_BATCH',
-							message: 'Insufficient batch qtyOnHand',
+						throw new ConflictException({
+							reason: 'STALE_VERSION',
+							message: 'Batch changed concurrently during adjustment',
 							field: 'batchId',
+							currentVersion: batch.version,
 						});
 					}
-				} else if (!isDecrease && batchId) {
-					// Optional increase onto existing batch
-					const batch = await tx.productBatch.findFirst({
-						where: {
-							id: batchId,
-							tenantId,
-							productId: line.productId,
-							warehouseId: adjustment.warehouseId,
-						},
-						select: { id: true },
-					});
-					if (!batch) {
-						throw new UnprocessableEntityException({
-							reason: 'BATCH_REQUIRED',
-							message: 'Batch not found for product/warehouse',
-							field: 'batchId',
-						});
-					}
-					await tx.productBatch.update({
-						where: { id: batch.id },
-						data: { qtyOnHand: { increment: absDelta } },
-					});
 				}
 
 				if (stock) {

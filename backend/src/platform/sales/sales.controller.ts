@@ -3,12 +3,12 @@ import {
 	Controller,
 	Get,
 	HttpCode,
+	Optional,
 	Param,
-	Query,
 	Post,
+	Query,
 	Req,
 	UseGuards,
-	Optional,
 } from '@nestjs/common';
 import type { Request } from 'express';
 import { RequireTenantPermission } from '../auth/decorators/require-tenant-permission.decorator';
@@ -17,8 +17,9 @@ import { TenantPermissionGuard } from '../auth/guards/tenant-permission.guard';
 import type { TenantIdentity } from '../auth/token.service';
 import { RequireFeature } from '../entitlements/entitlement.constants';
 import { EntitlementsGuard } from '../entitlements/entitlements.guard';
-import { CreateQuickSaleDto } from './dto/create-quick-sale.dto';
 import { CompleteSalesOrderDto } from './dto/complete-sales-order.dto';
+import { CreatePartialSalesReturnDto } from './dto/create-partial-sales-return.dto';
+import { CreateQuickSaleDto } from './dto/create-quick-sale.dto';
 import { CreateSalesOrderDto } from './dto/create-sales-order.dto';
 import { CreateSalesReturnDto } from './dto/create-sales-return.dto';
 import { SalesOrderQueryDto } from './dto/sales-order-query.dto';
@@ -82,11 +83,7 @@ export class SalesController {
 	@RequireTenantPermission('sales:edit')
 	@RequireFeature('advanced_mode')
 	cancelOrder(@Req() request: TenantRequest, @Param('id') id: string) {
-		return this.sales.cancelOrder(
-			request.user.tenantId,
-			request.user.id,
-			id,
-		);
+		return this.sales.cancelOrder(request.user.tenantId, request.user.id, id);
 	}
 
 	@Post('orders/:id/return')
@@ -104,6 +101,24 @@ export class SalesController {
 			request.user.id,
 			id,
 			dto.note,
+		);
+	}
+
+	@Post('orders/:id/return/partial')
+	@RequireTenantPermission('sales:edit')
+	@RequireFeature('inventory')
+	returnOrderPartial(
+		@Req() request: TenantRequest,
+		@Param('id') id: string,
+		@Body() dto: CreatePartialSalesReturnDto,
+	) {
+		if (!this.salesReturns)
+			throw new Error('Sales return service is not configured');
+		return this.salesReturns.createPartialReturn(
+			request.user.tenantId,
+			request.user.id,
+			id,
+			dto,
 		);
 	}
 
