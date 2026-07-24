@@ -71,7 +71,7 @@ Expected: PASS FEFO multi-batch order, skip expired/recalled, insufficient eligi
 # notes: multi-batch FEFO order; SaleLineBatch + OUT batchId; INSUFFICIENT_ELIGIBLE_BATCH
 ```
 
-### Runtime reachability
+### Runtime reachability verification
 
 - Quick sale **and** order completion call same `allocateFefo` under `backend/src/platform/inventory/fefo-allocator.ts`.
 - Proof: unit test asserts both paths call allocator, or shared helper import + mock call counts.

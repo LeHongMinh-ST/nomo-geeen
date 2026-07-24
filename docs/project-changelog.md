@@ -8,6 +8,7 @@ Format theo [Keep a Changelog](https://keepachangelog.com/), tuân thủ [Semant
 ## [Unreleased]
 
 ### Added
+- **Core catalog verification sync** — re-verified batch/FEFO lifecycle (4 suites, 99 tests) and stock-adjustment reasons/API (3 suites, 21 tests), with backend build and Prisma schema validation passing; closed the corresponding spec status drift.
 - **Frontend ProductKind contract** — added the ordered BusinessGroup/ProductKind catalog, required specialist-attribute metadata, tenant-enabled group lookup, and API/Product mapping for `businessGroup`, `productKind`, and `attrs`.
 - **Dynamic ProductKind product form** — ProductForm now loads tenant-enabled groups, filters compatible kinds, renders catalog-driven specialist fields, validates required attrs, confirms destructive kind changes, normalizes create/update payloads, hydrates edit state, and preserves the mobile sticky save action. Spec `specs/product-kind-form-ui/` is verified complete.
 

@@ -72,7 +72,7 @@ Expected: PASS cases create batch, reuse batch (qtyOnHand increment), tenant iso
 # notes: upsert unique key; PurchaseLine.batchId; StockMovement IN batchId
 ```
 
-### Runtime reachability
+### Runtime reachability verification
 
 - `PurchasesController.complete` → `completeInTransaction` (Serializable) → `productBatch.upsert` when `isBatchControlled(productKind)`.
 - Proof: test spies / coverage of upsert path, or code path assertion in unit test with mock `tx.productBatch.upsert`.

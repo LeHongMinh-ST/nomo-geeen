@@ -1,0 +1,222 @@
+{
+  "feature_name": "tenant-business-audit-coverage",
+  "created_at": "2026-07-24T08:59:43+07:00",
+  "updated_at": "2026-07-24T13:14:26+07:00",
+  "language": "en",
+  "status": "done",
+  "phase": "develop",
+  "current_phase": "develop",
+  "priority": "P1",
+  "effort": "5-8 implementation days",
+  "tags": [
+    "tenant",
+    "audit",
+    "security",
+    "product",
+    "purchase",
+    "sales",
+    "inventory",
+    "handbook",
+    "permissions"
+  ],
+  "approvals": {
+    "requirements": {
+      "generated": true,
+      "approved": true
+    },
+    "design": {
+      "generated": true,
+      "approved": true
+    },
+    "tasks": {
+      "generated": true,
+      "approved": true
+    }
+  },
+  "scope_lock": {
+    "source": "Tenant business audit coverage for product, purchase, sales, stock adjustment, handbook, and permission denial; Auto to Tasks with Hold scope.",
+    "in_scope": [
+      "Stable tenant AuditAction vocabulary and additive migration",
+      "Verified tenant audit context and transactional AuditLogger boundary",
+      "Product create/update/soft-delete/business-group audit",
+      "Purchase create/update/complete/cancel audit",
+      "Sales order/quick-sale success and bounded denial audit",
+      "Stock-adjustment and Handbook create/update audit",
+      "Tenant permission-denial audit",
+      "Focused tests, build, Prisma validation, migration and reachability verification"
+    ],
+    "out_of_scope": [
+      "Frontend audit UI",
+      "Reports/dashboard",
+      "Audit retention/export/tamper-evidence/external SIEM",
+      "Global interceptor or async audit queue",
+      "Sales/purchase returns",
+      "Livestock rules",
+      "Aquaculture events"
+    ],
+    "expansion_policy": "requires-user-approval"
+  },
+  "dependencies": {
+    "blockedBy": [],
+    "blocks": []
+  },
+  "task_files": [
+    "tasks/task-R0-01-audit-vocabulary-and-contract.md",
+    "tasks/task-R0-02-audit-context-boundary.md",
+    "tasks/task-R1-01-product-audit-wiring.md",
+    "tasks/task-R1-02-purchase-audit-wiring.md",
+    "tasks/task-R1-03-sales-audit-wiring.md",
+    "tasks/task-R1-04-stock-and-handbook-audit-wiring.md",
+    "tasks/task-R2-01-permission-denial-audit.md",
+    "tasks/task-R2-02-cross-domain-verification.md"
+  ],
+  "task_registry": {
+    "tasks/task-R0-01-audit-vocabulary-and-contract.md": {
+      "id": "R0-01",
+      "title": "Audit vocabulary and contract",
+      "status": "done",
+      "dependencies": [],
+      "blocker": null,
+      "started_at": "2026-07-24T02:52:29.404Z",
+      "completed_at": "2026-07-24T02:52:29.404Z",
+      "last_updated_at": "2026-07-24T02:52:29.404Z"
+    },
+    "tasks/task-R0-02-audit-context-boundary.md": {
+      "id": "R0-02",
+      "title": "Audit context boundary",
+      "status": "done",
+      "dependencies": [
+        "tasks/task-R0-01-audit-vocabulary-and-contract.md"
+      ],
+      "blocker": null,
+      "started_at": "2026-07-24T02:56:55.253Z",
+      "completed_at": "2026-07-24T02:56:55.253Z",
+      "last_updated_at": "2026-07-24T02:56:55.253Z"
+    },
+    "tasks/task-R1-01-product-audit-wiring.md": {
+      "id": "R1-01",
+      "title": "Product audit wiring",
+      "status": "done",
+      "dependencies": [
+        "tasks/task-R0-01-audit-vocabulary-and-contract.md",
+        "tasks/task-R0-02-audit-context-boundary.md"
+      ],
+      "blocker": null,
+      "started_at": "2026-07-24T03:06:04.975Z",
+      "completed_at": "2026-07-24T03:06:04.975Z",
+      "last_updated_at": "2026-07-24T03:06:04.975Z"
+    },
+    "tasks/task-R1-02-purchase-audit-wiring.md": {
+      "id": "R1-02",
+      "title": "Purchase audit wiring",
+      "status": "done",
+      "dependencies": [
+        "tasks/task-R0-01-audit-vocabulary-and-contract.md",
+        "tasks/task-R0-02-audit-context-boundary.md"
+      ],
+      "blocker": null,
+      "started_at": "2026-07-24T03:12:00.796Z",
+      "completed_at": "2026-07-24T03:12:00.796Z",
+      "last_updated_at": "2026-07-24T03:12:00.796Z"
+    },
+    "tasks/task-R1-03-sales-audit-wiring.md": {
+      "id": "R1-03",
+      "title": "Sales audit wiring",
+      "status": "done",
+      "dependencies": [
+        "tasks/task-R0-01-audit-vocabulary-and-contract.md",
+        "tasks/task-R0-02-audit-context-boundary.md"
+      ],
+      "blocker": null,
+      "started_at": "2026-07-24T03:44:20.936Z",
+      "completed_at": "2026-07-24T03:44:20.936Z",
+      "last_updated_at": "2026-07-24T03:44:20.936Z"
+    },
+    "tasks/task-R1-04-stock-and-handbook-audit-wiring.md": {
+      "id": "R1-04",
+      "title": "Stock and handbook audit wiring",
+      "status": "done",
+      "dependencies": [
+        "tasks/task-R0-01-audit-vocabulary-and-contract.md",
+        "tasks/task-R0-02-audit-context-boundary.md"
+      ],
+      "blocker": null,
+      "started_at": "2026-07-24T04:00:00+07:00",
+      "completed_at": "2026-07-24T04:20:00+07:00",
+      "last_updated_at": "2026-07-24T04:20:00+07:00"
+    },
+    "tasks/task-R2-01-permission-denial-audit.md": {
+      "id": "R2-01",
+      "title": "Permission denial audit",
+      "status": "done",
+      "dependencies": [
+        "tasks/task-R0-01-audit-vocabulary-and-contract.md",
+        "tasks/task-R0-02-audit-context-boundary.md"
+      ],
+      "blocker": null,
+      "started_at": "2026-07-24T04:25:00+07:00",
+      "completed_at": "2026-07-24T04:40:00+07:00",
+      "last_updated_at": "2026-07-24T04:40:00+07:00"
+    },
+    "tasks/task-R2-02-cross-domain-verification.md": {
+      "id": "R2-02",
+      "title": "Cross domain verification",
+      "status": "done",
+      "dependencies": [
+        "tasks/task-R1-01-product-audit-wiring.md",
+        "tasks/task-R1-02-purchase-audit-wiring.md",
+        "tasks/task-R1-03-sales-audit-wiring.md",
+        "tasks/task-R1-04-stock-and-handbook-audit-wiring.md",
+        "tasks/task-R2-01-permission-denial-audit.md"
+      ],
+      "blocker": null,
+      "started_at": "2026-07-24T04:42:00+07:00",
+      "completed_at": "2026-07-24T04:50:00+07:00",
+      "last_updated_at": "2026-07-24T04:50:00+07:00"
+    }
+  },
+  "blocker": null,
+  "progress": {
+    "init": "done",
+    "requirements": "done",
+    "research": "done",
+    "design": "done",
+    "tasks": "done",
+    "code": "done",
+    "test": "done",
+    "review": "done"
+  },
+  "timestamps": {
+    "init": "2026-07-24T08:59:43+07:00",
+    "requirements_done": "2026-07-24T02:19:22.680Z",
+    "research_done": "2026-07-24T02:19:22.680Z",
+    "design_done": "2026-07-24T02:19:22.680Z",
+    "tasks_done": "2026-07-24T02:19:22.680Z",
+    "code_done": "2026-07-24T04:50:00+07:00",
+    "test_done": "2026-07-24T04:50:00+07:00",
+    "review_done": "2026-07-24T02:43:26.477Z",
+    "validation_done": "2026-07-24T02:43:26.477Z"
+  },
+  "design_context": {
+    "discovery_mode": "full",
+    "discovery_reason": "Critical-path cross-module security/compliance integration with schema enum migration and permission guard behavior.",
+    "execution_tier": "deep",
+    "validation_recommended": true
+  },
+  "validation": {
+    "status": "completed",
+    "session_count": 1,
+    "questions_asked": 0,
+    "last_validated_at": "2026-07-24T02:43:26.477Z",
+    "mode": "red-team-then-validate"
+  },
+  "translation": {
+    "enabled": false,
+    "language": null,
+    "language_code": null,
+    "dir": null,
+    "sync": "always",
+    "last_synced_at": null
+  },
+  "ready_for_implementation": true
+}

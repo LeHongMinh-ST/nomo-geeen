@@ -48,7 +48,9 @@ Batch logic is a cross-module invariant. This task records proof across purchase
 ```bash
 pnpm --dir backend test --runInBand --runTestsByPath \
   src/platform/purchases/purchases.service.spec.ts \
-  src/platform/sales/sales.service.spec.ts
+  src/platform/sales/sales.service.spec.ts \
+  src/platform/inventory/batch-policy.spec.ts \
+  src/platform/inventory/fefo-allocator.spec.ts
 pnpm --dir backend build
 pnpm --dir backend exec prisma validate
 ```
@@ -57,10 +59,10 @@ Expected: all exit 0, or explicit blocker recorded (DB fixtures, env).
 
 ```text
 # RESULT
-# tests exit / summary: 0 — 4 suites 86 passed
+# tests exit / summary: 0 — 4 suites 99 passed
 # build exit: 0
 # prisma validate exit: 0
-# date: 2026-07-23
+# date: 2026-07-24
 ```
 
 ### Artifact verification
@@ -74,7 +76,7 @@ Expected: all exit 0, or explicit blocker recorded (DB fixtures, env).
 # PASS
 ```
 
-### Runtime reachability
+### Runtime reachability verification
 
 - Covered: purchase complete, quick sale, order completion.
 - Tenant isolation assertions present on batch queries/updates.

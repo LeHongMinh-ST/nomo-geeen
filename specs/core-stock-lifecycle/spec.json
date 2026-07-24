@@ -3,7 +3,7 @@
   "created_at": "2026-07-23T00:30:00+07:00",
   "updated_at": "2026-07-23T09:45:00+07:00",
   "language": "en",
-  "status": "approved",
+  "status": "completed",
   "phase": "code",
   "current_phase": "code",
   "priority": "P1",
@@ -82,7 +82,7 @@
     "tasks": "done",
     "code": "done",
     "test": "done",
-    "review": "pending"
+    "review": "done"
   },
   "timestamps": {
     "init": "2026-07-23T00:30:00+07:00",
@@ -91,7 +91,7 @@
     "tasks_done": "2026-07-23T00:33:00+07:00",
     "code_done": "2026-07-23T09:45:00+07:00",
     "test_done": "2026-07-23T09:45:00+07:00",
-    "review_done": null,
+    "review_done": "2026-07-24T00:00:00+07:00",
     "validation_done": "2026-07-23T02:00:00+07:00"
   },
   "design_context": {

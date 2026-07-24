@@ -49,13 +49,16 @@
 ### Automated verification
 
 ```bash
-pnpm --dir backend test --runInBand --runTestsByPath src/platform/stock-adjustments
+pnpm --dir backend test --runInBand --runTestsByPath \
+  src/platform/stock-adjustments/adjustment-reason-policy.spec.ts \
+  src/platform/stock-adjustments/stock-adjustments.service.spec.ts \
+  src/platform/stock-adjustments/stock-adjustments.controller.spec.ts
 pnpm --dir backend build
 pnpm --dir backend exec prisma validate
 ```
 
-**Result (2026-07-23):**
-- stock-adjustments tests: PASS 21/21
+**Result (2026-07-24):**
+- stock-adjustments tests: PASS 3 suites, 21/21
 - build: EXIT 0
 - prisma validate: PASS
 - Receipt: `specs/stock-adjustment-core-reasons/reports/verification-receipt.md`

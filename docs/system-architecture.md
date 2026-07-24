@@ -97,3 +97,22 @@ The repository contains local runtime/package configuration and migrations, but 
 
 - Six BA crop-input types map to `CROP_INPUTS`: `PESTICIDE`, `FERTILIZER`, `BIOLOGICAL_PRODUCT`, `GROWTH_REGULATOR`, `SOIL_AMENDMENT`, `AGRI_MATERIAL`.
 - `category` is store-only label; specialized fields live in `attrs` / product contract validation.
+
+## ProductKind-aware product UI
+
+- `frontend/components/app/product/product-form.tsx` loads tenant-enabled business groups and
+  renders the compatible `ProductKind` contract before showing specialist attributes.
+- `frontend/lib/product-kind-form.ts` is the shared frontend contract for kind/group compatibility,
+  required-attribute validation, payload normalization, and edit hydration. The backend remains the
+  authoritative validator for `businessGroup`, `productKind`, and `attrs`.
+- Product kind changes in edit mode require explicit confirmation when specialist attributes would
+  be discarded; the mobile sticky save action remains part of the same form boundary.
+
+## Stock batch lifecycle
+
+- Purchase completion creates or reuses tenant/product/warehouse batches, increments `qtyOnHand`,
+  and records the inbound movement with its batch reference.
+- Sale allocation uses backend FEFO logic from
+  `backend/src/platform/inventory/fefo-allocator.ts`, skips expired/recalled batches, and writes
+  `SaleLineBatch` allocation before stock mutation.
+- The lifecycle is verified across purchase complete, quick sale, and order completion. Returns,
