@@ -1,4 +1,5 @@
-import { IsISO8601, IsOptional } from 'class-validator';
+import { BusinessGroup } from '@prisma/client';
+import { IsEnum, IsISO8601, IsOptional } from 'class-validator';
 
 export class ReportDateQueryDto {
 	@IsOptional()
@@ -8,4 +9,8 @@ export class ReportDateQueryDto {
 	@IsOptional()
 	@IsISO8601()
 	to?: string;
+
+	@IsOptional()
+	@IsEnum(BusinessGroup)
+	businessGroup?: BusinessGroup;
 }

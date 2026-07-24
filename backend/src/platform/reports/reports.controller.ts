@@ -7,9 +7,12 @@ import type { TenantIdentity } from '../auth/token.service';
 import { RequireFeature } from '../entitlements/entitlement.constants';
 import { EntitlementsGuard } from '../entitlements/entitlements.guard';
 import { ReportDateQueryDto } from './dto/report-date-query.dto';
+import { ReportStockQueryDto } from './dto/report-stock-query.dto';
 import { ReportsService } from './reports.service';
 
-interface TenantRequest extends Request { user: TenantIdentity }
+interface TenantRequest extends Request {
+	user: TenantIdentity;
+}
 
 @Controller('tenant/reports')
 @UseGuards(TenantAccessTokenGuard, TenantPermissionGuard, EntitlementsGuard)
@@ -19,10 +22,14 @@ export class ReportsController {
 	@Get('stock-summary')
 	@RequireTenantPermission('inventory:view')
 	@RequireFeature('inventory')
-	stock(@Req() req: TenantRequest) { return this.reports.stockSummary(req.user.tenantId); }
+	stock(@Req() req: TenantRequest, @Query() query: ReportStockQueryDto) {
+		return this.reports.stockSummary(req.user.tenantId, query);
+	}
 
 	@Get('sales-summary')
 	@RequireTenantPermission('sales:view')
 	@RequireFeature('advanced_mode')
-	sales(@Req() req: TenantRequest, @Query() query: ReportDateQueryDto) { return this.reports.salesSummary(req.user.tenantId, query); }
+	sales(@Req() req: TenantRequest, @Query() query: ReportDateQueryDto) {
+		return this.reports.salesSummary(req.user.tenantId, query);
+	}
 }

@@ -12,10 +12,10 @@ describe('ReportsController', () => {
 		} as never;
 		const controller = new ReportsController(reports);
 		const request = { user: { tenantId: 'tenant-1' } } as never;
-		expect(controller.stock(request)).toEqual({ items: [] });
+		expect(controller.stock(request, {})).toEqual({ items: [] });
 		expect(
 			(reports as { stockSummary: jest.Mock }).stockSummary,
-		).toHaveBeenCalledWith('tenant-1');
+		).toHaveBeenCalledWith('tenant-1', {});
 		expect(
 			Reflect.getMetadata(
 				TENANT_PERMISSIONS_KEY,
@@ -28,6 +28,23 @@ describe('ReportsController', () => {
 				ReportsController.prototype.stock,
 			),
 		).toBe('inventory');
+	});
+
+	it('forwards sales query including businessGroup', () => {
+		const reports = {
+			salesSummary: jest.fn().mockReturnValue({ orders: 0 }),
+		} as never;
+		const controller = new ReportsController(reports);
+		const request = { user: { tenantId: 'tenant-1' } } as never;
+		const query = {
+			from: '2026-01-01',
+			to: '2026-01-31',
+			businessGroup: 'CROP_INPUTS' as never,
+		};
+		expect(controller.sales(request, query)).toEqual({ orders: 0 });
+		expect(
+			(reports as { salesSummary: jest.Mock }).salesSummary,
+		).toHaveBeenCalledWith('tenant-1', query);
 	});
 
 	it('imports the audit module required by the tenant permission guard', () => {
