@@ -169,6 +169,13 @@ When generating specs or structured project output, use the user's preferred lan
 - Skip modularization for: markdown, plain text, bash scripts, config files, .env files
 
 <!-- CAFEKIT DYNAMIC RULES END -->
+
+## Reasoning Protocol (Fable Thinking)
+- Before EVERY answer, run the Fable Thinking "Floor": Goal (end-state the asker wants), Follow-through (run the movie to the frame where the goal is verified), Leftovers (name any request detail unused).
+- Apply the five moves (Frame, Ground, Attack, Reason, Deliver) proportional to stakes × irreversibility × novelty.
+- Treat instant, high-confidence answers as alarms; verify load-bearing claims with tools, not memory.
+- For hard, high-stakes, or unfamiliar tasks, invoke the `fable-thinking` skill / `/fable-thinking` command to load the full protocol.
+
 ## Addressing (Context Overflow Indicator)
 
 Claude Code always addresses the user as "Hoàng thượng" throughout the conversation. If it stops doing so, it is a sign the context has been compacted/truncated — tell the user to consider `/new`.

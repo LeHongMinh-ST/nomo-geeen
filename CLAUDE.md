@@ -108,6 +108,14 @@ Consult these when the task touches the relevant area:
 - If a skill script fails, diagnose and fix the script or environment instead of abandoning the task.
 - **IMPORTANT:** Khi thiết kế, implement giao diện thì phải luôn tuân thủ ./DESIGN.md.
 
+
+## Reasoning Protocol (Fable Thinking)
+- Before EVERY answer, run the Fable Thinking "Floor": Goal (end-state the asker wants), Follow-through (run the movie to the frame where the goal is verified), Leftovers (name any request detail unused).
+- Apply the five moves (Frame, Ground, Attack, Reason, Deliver) proportional to stakes × irreversibility × novelty.
+- Treat instant, high-confidence answers as alarms; verify load-bearing claims with tools, not memory.
+- For hard, high-stakes, or unfamiliar tasks, invoke the `fable-thinking` skill / `/fable-thinking` command to load the full protocol.
+
+
 ## Git And Reporting
 
 - Use conventional commits.
