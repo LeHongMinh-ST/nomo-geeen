@@ -25,6 +25,7 @@ import {
 	type PurchaseStatus,
 	purchaseLineTotal,
 } from "@/lib/purchases";
+import { mapTenantApiError } from "@/lib/sales-api-error";
 import { createTenantPurchase } from "@/lib/tenant-purchases-api";
 
 /**
@@ -139,11 +140,9 @@ export function PurchaseForm() {
 				})),
 			});
 			router.push("/nhap-hang");
-		} catch (reason) {
+		} catch (cause) {
 			setError(
-				reason instanceof Error
-					? reason.message
-					: "Không thể lưu phiếu nhập. Vui lòng thử lại.",
+				mapTenantApiError(cause, "Không thể lưu phiếu nhập. Vui lòng thử lại."),
 			);
 		} finally {
 			setPending(false);

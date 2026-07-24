@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { mapSalesApiError } from "./sales-api-error";
+import { mapSalesApiError, mapTenantApiError } from "./sales-api-error";
 
 const FALLBACK = "Không thể hoàn tất đơn. Giỏ hàng vẫn được giữ để thử lại.";
 
@@ -29,6 +29,10 @@ const MAPPED_REASONS = [
 		"Không còn lô hàng hợp lệ đủ tồn để bán. Vui lòng kiểm tra lại lô hàng.",
 	],
 	[
+		"INSUFFICIENT_BATCH",
+		"Lô hàng không đủ số lượng. Vui lòng kiểm tra lại lô và số lượng.",
+	],
+	[
 		"INVALID_CUSTOMER",
 		"Khách hàng chưa có trong dữ liệu thật. Vui lòng chọn khách hợp lệ hoặc bán khách lẻ.",
 	],
@@ -52,6 +56,7 @@ const MAPPED_REASONS = [
 		"INVALID_QUANTITY",
 		"Số lượng sản phẩm không hợp lệ. Vui lòng kiểm tra lại.",
 	],
+	["INVALID_QTY", "Số lượng không hợp lệ. Vui lòng kiểm tra lại."],
 	[
 		"INVALID_HANDBOOK_ENTRY",
 		"Thông tin bệnh không hợp lệ. Vui lòng chọn lại thông tin phù hợp.",
@@ -61,13 +66,62 @@ const MAPPED_REASONS = [
 		"Đơn vị bán không hợp lệ. Vui lòng chọn lại đơn vị sản phẩm.",
 	],
 	["INVALID_DISCOUNT", "Mức giảm giá không hợp lệ. Vui lòng kiểm tra lại."],
+	["INVALID_STATE", "Trạng thái đã thay đổi. Vui lòng tải lại rồi thử lại."],
+	["INVALID_PRODUCT", "Sản phẩm không hợp lệ. Vui lòng chọn lại sản phẩm."],
 	[
-		"INVALID_STATE",
-		"Trạng thái đơn hàng đã thay đổi. Vui lòng tải lại đơn hàng rồi thử lại.",
+		"INVALID_SUPPLIER",
+		"Nhà cung cấp không hợp lệ. Vui lòng chọn lại nhà cung cấp.",
+	],
+	[
+		"INVALID_CONVERSION",
+		"Quy đổi đơn vị không hợp lệ. Vui lòng kiểm tra đơn vị sản phẩm.",
+	],
+	["INVALID_WAREHOUSE", "Kho không hợp lệ. Vui lòng chọn lại kho."],
+	[
+		"INVALID_REASON",
+		"Lý do không hợp lệ với loại sản phẩm. Vui lòng chọn lại.",
+	],
+	[
+		"INVALID_TRANSITION",
+		"Không thể chuyển trạng thái vật nuôi theo hướng này. Vui lòng kiểm tra lại.",
+	],
+	[
+		"INVALID_REPORT_RANGE",
+		"Khoảng thời gian báo cáo không hợp lệ. Vui lòng chọn lại ngày.",
+	],
+	[
+		"REPORT_RANGE_TOO_LARGE",
+		"Khoảng thời gian báo cáo quá dài. Vui lòng thu hẹp khoảng ngày.",
+	],
+	[
+		"BATCH_REQUIRED",
+		"Cần chọn hoặc nhập lô hàng. Vui lòng bổ sung thông tin lô.",
+	],
+	[
+		"BATCH_EXPIRY_REQUIRED",
+		"Lô hàng bắt buộc có hạn sử dụng. Vui lòng nhập hạn sử dụng.",
+	],
+	[
+		"BATCH_EXPIRED_INBOUND",
+		"Không thể nhập lô đã hết hạn. Vui lòng kiểm tra hạn sử dụng.",
+	],
+	[
+		"BATCH_RECALLED_INBOUND",
+		"Không thể nhập lô đã thu hồi. Vui lòng chọn lô khác.",
+	],
+	["BATCH_NOT_FOUND", "Không tìm thấy lô hàng. Vui lòng tải lại và thử lại."],
+	[
+		"NOT_LIVESTOCK",
+		"Sản phẩm không phải vật nuôi. Không thể đổi trạng thái sức khỏe.",
+	],
+	["SAME_STATE", "Trạng thái vật nuôi không thay đổi. Không cần cập nhật."],
+	[
+		"STALE_VERSION",
+		"Dữ liệu vừa được cập nhật bởi người khác. Vui lòng tải lại rồi thử lại.",
 	],
 	[
 		"CONCURRENT_MODIFICATION",
-		"Đơn hàng vừa được thay đổi. Vui lòng tải lại đơn hàng rồi thử lại.",
+		"Dữ liệu vừa được thay đổi. Vui lòng tải lại rồi thử lại.",
 	],
 	[
 		"SERIALIZATION_CONFLICT",
@@ -75,10 +129,17 @@ const MAPPED_REASONS = [
 	],
 	["SALE_ALREADY_RETURNED", "Đơn hàng này đã được hoàn trả trước đó."],
 	["SALE_NOT_RETURNABLE", "Chỉ đơn hàng đã hoàn thành mới có thể hoàn trả."],
+	["PURCHASE_ALREADY_RETURNED", "Phiếu nhập này đã được trả hàng trước đó."],
 	[
-		"VALIDATION_ERROR",
-		"Thông tin bán hàng chưa hợp lệ. Vui lòng kiểm tra lại.",
+		"PURCHASE_NOT_RETURNABLE",
+		"Chỉ phiếu nhập đã hoàn thành mới có thể trả hàng.",
 	],
+	["VALIDATION_ERROR", "Thông tin chưa hợp lệ. Vui lòng kiểm tra lại."],
+	[
+		"NETWORK_ERROR",
+		"Không thể kết nối máy chủ. Vui lòng kiểm tra mạng và thử lại.",
+	],
+	["ALREADY_COMPLETED", "Phiếu đã được hoàn tất trước đó. Vui lòng tải lại."],
 ] as const;
 
 function err(
@@ -96,16 +157,16 @@ function err(
 	return e;
 }
 
-describe("mapSalesApiError", () => {
+describe("mapTenantApiError / mapSalesApiError", () => {
 	it.each(MAPPED_REASONS)("maps %s to safe VI copy", (reason, message) => {
-		expect(mapSalesApiError(err(reason))).toBe(message);
+		expect(mapTenantApiError(err(reason))).toBe(message);
 		expect(mapSalesApiError({ reason })).toBe(message);
 		expect(mapSalesApiError(reason)).toBe(message);
 	});
 
 	it("maps every reason to a non-empty, distinct-safe copy", () => {
 		const messages = MAPPED_REASONS.map(([reason]) =>
-			mapSalesApiError({ reason }),
+			mapTenantApiError({ reason }),
 		);
 		expect(messages).toHaveLength(MAPPED_REASONS.length);
 		for (const message of messages) {
@@ -144,5 +205,11 @@ describe("mapSalesApiError", () => {
 	it("custom fallback overrides default", () => {
 		expect(mapSalesApiError(err("UNKNOWN"), "Tuỳ chỉnh")).toBe("Tuỳ chỉnh");
 		expect(mapSalesApiError(null, "Tuỳ chỉnh")).toBe("Tuỳ chỉnh");
+	});
+
+	it("mapSalesApiError aliases mapTenantApiError", () => {
+		expect(mapSalesApiError({ reason: "BATCH_REQUIRED" })).toBe(
+			mapTenantApiError({ reason: "BATCH_REQUIRED" }),
+		);
 	});
 });

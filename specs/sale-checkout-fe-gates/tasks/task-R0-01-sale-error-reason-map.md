@@ -96,3 +96,15 @@ pnpm --dir frontend test sales-api-error
 - Input without reason → default fallback VI.
 - Orphan map OK for R0-01 (wire R1-01).
 - Mode: full-spec develop.
+
+
+### Verification receipt — 2026-07-24 Luồng A expand
+
+Scope expand: full user-actionable structured reasons (batch/FEFO, livestock/CAS, stock-adjust, purchase/return, report range) + `mapTenantApiError` alias; wire purchase + stock-adjust UI.
+
+```bash
+pnpm --dir frontend test sales-api-error
+pnpm --dir frontend test adjust-sheet
+```
+
+Internal codes still fallback (UNSAFE_PERSISTED_MONEY, *_RETURN_CONFLICT, WAREHOUSE_CONFIGURATION_ERROR).

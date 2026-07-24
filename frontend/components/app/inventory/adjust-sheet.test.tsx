@@ -177,7 +177,7 @@ describe("AdjustSheet", () => {
 		expect(
 			alerts.some((alert) =>
 				alert.textContent?.includes(
-					"Phiếu đã được hoàn tất (ALREADY_COMPLETED)",
+					"Phiếu đã được hoàn tất trước đó. Vui lòng tải lại.",
 				),
 			),
 		).toBe(true);

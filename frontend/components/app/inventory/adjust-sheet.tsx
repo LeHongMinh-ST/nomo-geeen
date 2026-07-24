@@ -4,6 +4,7 @@ import { ClipboardCheck, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { AdjustmentConfirmation } from "@/components/app/inventory/adjustment-confirmation";
 import type { Product } from "@/lib/products";
+import { mapTenantApiError } from "@/lib/sales-api-error";
 import {
 	STOCK_ADJUSTMENT_REASONS,
 	type StockAdjustmentReasonCode,
@@ -301,15 +302,8 @@ export function AdjustSheet({
 	);
 }
 
-function formatAdjustmentError(reason: unknown, fallback: string): string {
-	if (!reason || typeof reason !== "object") return fallback;
-	const error = reason as {
-		reason?: string;
-		serverMessage?: string;
-		message?: string;
-	};
-	const message = error.serverMessage ?? error.message ?? fallback;
-	return error.reason ? `${message} (${error.reason})` : message;
+function formatAdjustmentError(error: unknown, fallback: string): string {
+	return mapTenantApiError(error, fallback);
 }
 
 function subtractDecimal(left: string, right: string): string {

@@ -26,6 +26,7 @@ import {
 	purchaseTotal,
 	supplierLabel,
 } from "@/lib/purchases";
+import { mapTenantApiError } from "@/lib/sales-api-error";
 import {
 	cancelTenantPurchase,
 	listTenantPurchases,
@@ -84,12 +85,10 @@ export function PurchaseList() {
 					setError(null);
 				}
 			})
-			.catch((reason: unknown) => {
+			.catch((cause: unknown) => {
 				if (active)
 					setError(
-						reason instanceof Error
-							? reason.message
-							: "Không thể tải danh sách phiếu nhập",
+						mapTenantApiError(cause, "Không thể tải danh sách phiếu nhập"),
 					);
 			})
 			.finally(() => {
@@ -138,10 +137,8 @@ export function PurchaseList() {
 				),
 			);
 			setError(null);
-		} catch (reason) {
-			setError(
-				reason instanceof Error ? reason.message : "Không thể hủy phiếu nhập",
-			);
+		} catch (cause) {
+			setError(mapTenantApiError(cause, "Không thể hủy phiếu nhập"));
 		} finally {
 			setPendingId(null);
 			setConfirmId(null);
