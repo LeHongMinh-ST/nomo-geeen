@@ -45,6 +45,8 @@ export class InventoryService {
 									expiresAt: true,
 									qtyOnHand: true,
 									warehouseId: true,
+									healthState: true,
+									version: true,
 								},
 							},
 						},
@@ -77,6 +79,8 @@ export class InventoryService {
 								expiresAt: true,
 								qtyOnHand: true,
 								warehouseId: true,
+								healthState: true,
+								version: true,
 							},
 						},
 					},
@@ -122,6 +126,8 @@ export class InventoryService {
 				expiresAt: Date | null;
 				qtyOnHand: Prisma.Decimal;
 				warehouseId: string;
+				healthState: string;
+				version: number;
 			}>;
 		};
 	}) {
@@ -151,6 +157,8 @@ export class InventoryService {
 				batchCode: batch.batchCode,
 				expiresAt: batch.expiresAt,
 				qtyOnHand: batch.qtyOnHand.toString(),
+				healthState: batch.healthState,
+				version: batch.version,
 			})),
 		};
 	}

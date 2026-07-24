@@ -1,4 +1,4 @@
-import { Prisma, ProductKind } from '@prisma/client';
+import { LivestockHealthState, Prisma, ProductKind } from '@prisma/client';
 import { allocateFefo, resolveSaleAllocations } from './fefo-allocator';
 
 describe('allocateFefo', () => {
@@ -24,20 +24,26 @@ describe('allocateFefo', () => {
 		};
 	}
 
+	const healthy = (partial: Record<string, unknown>) => ({
+		version: 0,
+		healthState: LivestockHealthState.HEALTHY,
+		...partial,
+	});
+
 	it('allocates earliest expiry first across batches', async () => {
 		const batches = [
-			{
+			healthy({
 				id: 'b-late',
 				expiresAt: new Date('2099-12-01'),
 				createdAt: new Date('2020-01-01'),
 				qtyOnHand: new Prisma.Decimal(5),
-			},
-			{
+			}),
+			healthy({
 				id: 'b-early',
 				expiresAt: new Date('2099-01-01'),
 				createdAt: new Date('2020-02-01'),
 				qtyOnHand: new Prisma.Decimal(3),
-			},
+			}),
 		];
 		const tx = makeTx(batches);
 		const result = await allocateFefo(tx as never, {
@@ -72,6 +78,7 @@ describe('allocateFefo', () => {
 					warehouseId: 'w1',
 					productId: 'p1',
 					isRecalled: false,
+					healthState: LivestockHealthState.HEALTHY,
 				}),
 			}),
 		);
@@ -79,12 +86,12 @@ describe('allocateFefo', () => {
 
 	it('throws when qty insufficient after partial attempt', async () => {
 		const batches = [
-			{
+			healthy({
 				id: 'b1',
 				expiresAt: new Date('2099-01-01'),
 				createdAt: new Date('2020-01-01'),
 				qtyOnHand: new Prisma.Decimal(1),
-			},
+			}),
 		];
 		const tx = makeTx(batches);
 		await expect(
@@ -102,18 +109,18 @@ describe('allocateFefo', () => {
 
 	it('puts null expiry last', async () => {
 		const batches = [
-			{
+			healthy({
 				id: 'b-null',
 				expiresAt: null,
 				createdAt: new Date('2019-01-01'),
 				qtyOnHand: new Prisma.Decimal(10),
-			},
-			{
+			}),
+			healthy({
 				id: 'b-exp',
 				expiresAt: new Date('2099-05-01'),
 				createdAt: new Date('2021-01-01'),
 				qtyOnHand: new Prisma.Decimal(2),
-			},
+			}),
 		];
 		const tx = makeTx(batches);
 		const result = await allocateFefo(tx as never, {
@@ -123,6 +130,98 @@ describe('allocateFefo', () => {
 			qtyBase: new Prisma.Decimal(3),
 		});
 		expect(result.map((r) => r.batchId)).toEqual(['b-exp', 'b-null']);
+	});
+
+	it.each([
+		LivestockHealthState.QUARANTINED,
+		LivestockHealthState.SICK,
+		LivestockHealthState.DEAD,
+		LivestockHealthState.REJECTED,
+	])(
+		'does not allocate or decrement when only %s stock remains',
+		async (blocked) => {
+			// findMany already filters HEALTHY — empty list simulates only-blocked inventory
+			const tx = makeTx([]);
+			await expect(
+				allocateFefo(tx as never, {
+					tenantId: 't1',
+					warehouseId: 'w1',
+					productId: 'p1',
+					qtyBase: new Prisma.Decimal(2),
+				}),
+			).rejects.toMatchObject({
+				response: { reason: 'INSUFFICIENT_ELIGIBLE_BATCH' },
+			});
+			expect(tx.productBatch.findMany).toHaveBeenCalledWith(
+				expect.objectContaining({
+					where: expect.objectContaining({
+						healthState: LivestockHealthState.HEALTHY,
+					}),
+				}),
+			);
+			expect(tx.productBatch.updateMany).not.toHaveBeenCalled();
+			void blocked;
+		},
+	);
+
+	it('allocates only HEALTHY when mixed inventory returned by query', async () => {
+		// Query contract returns only HEALTHY; mock that shape
+		const batches = [
+			healthy({
+				id: 'b-healthy',
+				expiresAt: new Date('2099-06-01'),
+				createdAt: new Date('2020-01-01'),
+				qtyOnHand: new Prisma.Decimal(2),
+				version: 3,
+			}),
+		];
+		const tx = makeTx(batches);
+		const result = await allocateFefo(tx as never, {
+			tenantId: 't1',
+			warehouseId: 'w1',
+			productId: 'p1',
+			qtyBase: new Prisma.Decimal(2),
+		});
+		expect(result).toEqual([
+			{ batchId: 'b-healthy', qtyBase: new Prisma.Decimal(2) },
+		]);
+		expect(tx.productBatch.updateMany).toHaveBeenCalledWith(
+			expect.objectContaining({
+				where: expect.objectContaining({
+					id: 'b-healthy',
+					healthState: LivestockHealthState.HEALTHY,
+					version: 3,
+					isRecalled: false,
+					qtyOnHand: { gte: new Prisma.Decimal(2) },
+				}),
+				data: {
+					qtyOnHand: { decrement: new Prisma.Decimal(2) },
+					version: { increment: 1 },
+				},
+			}),
+		);
+	});
+
+	it('throws P2034 when concurrent qty/health/version update loses CAS', async () => {
+		const batches = [
+			healthy({
+				id: 'b1',
+				expiresAt: new Date('2099-01-01'),
+				createdAt: new Date('2020-01-01'),
+				qtyOnHand: new Prisma.Decimal(5),
+				version: 1,
+			}),
+		];
+		const tx = makeTx(batches);
+		tx.productBatch.updateMany = jest.fn(async () => ({ count: 0 }));
+		await expect(
+			allocateFefo(tx as never, {
+				tenantId: 't1',
+				warehouseId: 'w1',
+				productId: 'p1',
+				qtyBase: new Prisma.Decimal(1),
+			}),
+		).rejects.toMatchObject({ code: 'P2034' });
 	});
 });
 
@@ -136,6 +235,8 @@ describe('resolveSaleAllocations', () => {
 						expiresAt: new Date('2099-01-01'),
 						createdAt: new Date(),
 						qtyOnHand: new Prisma.Decimal(2),
+						version: 0,
+						healthState: LivestockHealthState.HEALTHY,
 					},
 				]),
 				updateMany: jest.fn(async () => ({ count: 1 })),
@@ -162,6 +263,8 @@ describe('resolveSaleAllocations', () => {
 						expiresAt: null,
 						createdAt: new Date(),
 						qtyOnHand: new Prisma.Decimal(5),
+						version: 0,
+						healthState: LivestockHealthState.HEALTHY,
 					},
 				]),
 				updateMany: jest.fn(async () => ({ count: 1 })),
@@ -218,5 +321,34 @@ describe('resolveSaleAllocations', () => {
 			productKind: ProductKind.OTHER,
 		});
 		expect(result).toEqual([]);
+	});
+
+	it('LIVESTOCK_SEED only-blocked path surfaces INSUFFICIENT_ELIGIBLE_BATCH', async () => {
+		const tx = {
+			productBatch: {
+				findMany: jest.fn(async () => []),
+				updateMany: jest.fn(),
+				aggregate: jest.fn(),
+			},
+		};
+		await expect(
+			resolveSaleAllocations(tx as never, {
+				tenantId: 't1',
+				warehouseId: 'w1',
+				productId: 'p1',
+				qtyBase: new Prisma.Decimal(1),
+				productKind: ProductKind.LIVESTOCK_SEED,
+			}),
+		).rejects.toMatchObject({
+			response: { reason: 'INSUFFICIENT_ELIGIBLE_BATCH' },
+		});
+		expect(tx.productBatch.findMany).toHaveBeenCalledWith(
+			expect.objectContaining({
+				where: expect.objectContaining({
+					healthState: LivestockHealthState.HEALTHY,
+				}),
+			}),
+		);
+		expect(tx.productBatch.updateMany).not.toHaveBeenCalled();
 	});
 });

@@ -200,6 +200,7 @@ describe('StockAdjustmentsService', () => {
 		tx.productBatch.findFirst.mockResolvedValue({
 			id: 'b-1',
 			qtyOnHand: new Prisma.Decimal(5),
+			healthState: 'SICK',
 		});
 		tx.productBatch.updateMany.mockResolvedValue({ count: 1 });
 		tx.stock.updateMany.mockResolvedValue({ count: 1 });
@@ -233,6 +234,9 @@ describe('StockAdjustmentsService', () => {
 			}),
 		);
 		expect(tx.productBatch.updateMany).toHaveBeenCalled();
+		expect(tx.productBatch.updateMany.mock.calls[0][0].data).toEqual({
+			qtyOnHand: { decrement: new Prisma.Decimal(2) },
+		});
 		expect(tx.stockMovement.create).toHaveBeenCalledWith(
 			expect.objectContaining({
 				data: expect.objectContaining({

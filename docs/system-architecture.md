@@ -78,7 +78,9 @@ The admin permission catalog is exposed at `/admin/settings/permissions` and gat
 - The admin navigation contains the permission-gated `/admin/audit-log` route, and dashboard recent activity reads a bounded newest-audit query.
 - Tenant user auth (`specs/user-registration-authentication`) is implementation-complete including idle-logout and login throttle; formal status is `ready_for_review` pending optional re-run of e2e with full JWT env.
 - Product conversions, price tiers, and dashboard aggregation remain separate follow-up slices; the product API exposes core catalog fields and read-only stock quantity. The advanced sales-order lifecycle is now available under `/tenant/sales/orders`; `POST /tenant/sales/quick` remains the separate inventory-only quick-sale shortcut and does not provide order list/detail or cancellation semantics.
-- Inventory reads are available; stock writes currently flow through purchase complete / quick sale, not a dedicated adjust API.
+- Inventory reads are available; batch responses expose `healthState` and optimistic `version`.
+  Livestock transitions use `PATCH /tenant/inventory/batches/:batchId/health-state` with
+  transactional audit; stock writes otherwise flow through purchase complete / quick sale.
 
 - The frontend tenant sales client and customer picker are available. R5 migrates `/don-ban-hang` and `/don-ban-hang/:id` to canonical list/detail/cancel operations with debounced server queries, desktop replacement paging, mobile deduplicated incremental loading, conflict refetch, inline retry, and responsive loading/error states. Order creation/complete orchestration remains R6; no new seed fallback is part of this slice.
 

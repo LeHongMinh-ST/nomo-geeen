@@ -1,5 +1,5 @@
 import { UnprocessableEntityException } from '@nestjs/common';
-import { Prisma, ProductKind } from '@prisma/client';
+import { LivestockHealthState, Prisma, ProductKind } from '@prisma/client';
 import { isBatchCodeRequired, isBatchControlled } from './batch-policy';
 
 type Tx = Prisma.TransactionClient;
@@ -13,9 +13,14 @@ const prismaClientVersion =
 	(Prisma as unknown as { prismaVersion?: { client?: string } }).prismaVersion
 		?.client ?? '0.0.0';
 
+/** Sellable batch health for FEFO (blocked states never allocate/decrement). */
+const FEFO_ELIGIBLE_HEALTH = LivestockHealthState.HEALTHY;
+
 /**
  * FEFO allocate + conditional batch decrement inside caller's transaction.
  * Throws INSUFFICIENT_ELIGIBLE_BATCH when remaining qty cannot be covered.
+ * Eligible: not recalled, not expired, qty>0, healthState HEALTHY.
+ * CAS: qtyOnHand + healthState + version (blocks concurrent health transition).
  */
 export async function allocateFefo(
 	tx: Tx,
@@ -42,6 +47,7 @@ export async function allocateFefo(
 			warehouseId: params.warehouseId,
 			productId: params.productId,
 			isRecalled: false,
+			healthState: FEFO_ELIGIBLE_HEALTH,
 			qtyOnHand: { gt: 0 },
 			OR: [{ expiresAt: null }, { expiresAt: { gte: today } }],
 		},
@@ -50,6 +56,8 @@ export async function allocateFefo(
 			expiresAt: true,
 			createdAt: true,
 			qtyOnHand: true,
+			version: true,
+			healthState: true,
 		},
 	});
 
@@ -75,9 +83,14 @@ export async function allocateFefo(
 				warehouseId: params.warehouseId,
 				productId: params.productId,
 				isRecalled: false,
+				healthState: FEFO_ELIGIBLE_HEALTH,
+				version: batch.version,
 				qtyOnHand: { gte: qty },
 			},
-			data: { qtyOnHand: { decrement: qty } },
+			data: {
+				qtyOnHand: { decrement: qty },
+				version: { increment: 1 },
+			},
 		});
 		if (updated.count !== 1) {
 			throw new Prisma.PrismaClientKnownRequestError(

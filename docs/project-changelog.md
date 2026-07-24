@@ -8,6 +8,7 @@ Format theo [Keep a Changelog](https://keepachangelog.com/), tuân thủ [Semant
 ## [Unreleased]
 
 ### Added
+- **Livestock batch state machine (first slice)** — added tenant-scoped `ProductBatch.healthState`/`version`, HEALTHY-to-blocked transition API with transactional `LIVESTOCK_STATE_CHANGE` audit, FEFO health filtering/version CAS, and inventory batch state/version exposure. Recovery, adjustment/return CAS, and management UI remain follow-up work.
 - **Reports HTTP contract hardening** — stock/sales summaries now serialize BigInt and Decimal values as JSON-safe strings while preserving tenant and date-range behavior.
 - **Frontend sales error mapping** — added safe Vietnamese copy for user-actionable structured sales reasons, including livestock/regulatory gates and return/order lifecycle errors; internal conflict details continue using generic fallback.
 - **Business catalog audit re-sync** — cập nhật lại trạng thái Reports, StockAdjustment, PHI/withdrawal, returns, SALE_DENY và livestock safety theo source commit `64c4918`; ghi rõ các phần partial và thứ tự ưu tiên tiếp theo.

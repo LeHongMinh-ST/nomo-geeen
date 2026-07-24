@@ -224,8 +224,10 @@ AVAILABLE → QUARANTINED → HEALTHY/SELLABLE
           ↘ SICK / DEAD / REJECTED
 ```
 
-Trạng thái trên là hợp đồng nghiệp vụ mục tiêu. Batch hiện tại mới có sale safety gate dựa trên
-`Product.attrs`, chưa có entity/transition API bền vững; state machine là ưu tiên kế tiếp.
+Trạng thái persisted hiện dùng `ProductBatch.healthState` với optimistic `version`. Slice đầu
+cho phép `HEALTHY → QUARANTINED/SICK/DEAD/REJECTED`, ghi audit transition và FEFO chỉ bán
+batch `HEALTHY`; chưa có recovery approval, CAS riêng cho stock-adjustment/return hoặc UI quản lý.
+`Product.attrs` vẫn là legacy fallback trong sale eligibility.
 
 Kho phải theo dõi số con thực tế và số con được phép bán. Chết, bệnh, loại, cách ly và trả
 nguồn giống là reason riêng. Không dùng HSD thuốc; thay bằng tuổi, giai đoạn, sức khỏe và

@@ -253,6 +253,9 @@ describe('PurchasesService', () => {
 				}),
 			}),
 		);
+		expect(tx.productBatch.upsert.mock.calls[0][0].update).not.toHaveProperty(
+			'healthState',
+		);
 		expect(tx.purchaseLine.update).toHaveBeenCalledWith({
 			where: { id: 'line-1' },
 			data: { batchId: 'batch-1' },
@@ -305,6 +308,9 @@ describe('PurchasesService', () => {
 					qtyOnHand: { increment: purchase.lines[0].qtyBase },
 				}),
 			}),
+		);
+		expect(tx.productBatch.upsert.mock.calls[0][0].update).not.toHaveProperty(
+			'healthState',
 		);
 	});
 

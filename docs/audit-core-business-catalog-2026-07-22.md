@@ -180,7 +180,7 @@
 - Chua co report/dashboard aggregation theo top sau benh, cay trong, hoat chat, thuoc va phan bon.
 - Chua co day du lich su tu van AI trong sale/customer.
 - Cac gap kho, FEFO, audit nghiep vu va StockAdjustment van can danh gia theo code hien tai/spec rieng; khong xoa ket luan baseline neu chua co bang chung moi.
-- Checkout: **chua** 7 nhanh hard-rule rieng theo kind (PESTICIDE/FERTILIZER/SEED/…), **chua** PHI/REI/withdrawal hard theo harvest/event date, **chua** livestock state machine, **chua** FE hien PHI, **chua** audit log deny sale (xem §8.4).
+- Checkout: **chua** 7 nhanh hard-rule rieng theo kind (PESTICIDE/FERTILIZER/SEED/…), **chua** PHI/REI/withdrawal hard theo harvest/event date, livestock state machine da co first slice nhung **chua** recovery/adjustment-return CAS, **chua** FE hien PHI, **chua** audit log deny sale (xem §8.4).
 
 ### 8.3 Verification (catalog foundation)
 
@@ -249,7 +249,7 @@ pnpm --dir backend build
 | PHI/withdrawal | ⚠️ partial | `assertSaleRegulatoryDates` chặn khi request có harvest/withdrawal date; frontend đã map lỗi PHI/withdrawal, nhưng chưa có master-data đầy đủ, advisory fields và calendar workflow |
 | Full returns | ✅ slice hiện tại | Full sales/purchase return route, stock/batch/debt compensation, duplicate guard và audit đã có; partial returns/refunds còn mở |
 | SALE_DENY audit | ✅ backend + FE mapping | Sales order/quick-sale ghi `AuditAction.SALE_DENY`; frontend đã map các reason user-actionable, giữ fallback an toàn cho lỗi nội bộ |
-| Livestock state machine | ❌ | Hiện chỉ đọc `Product.attrs` và chặn 4 trạng thái trong sale policy; chưa có transition API/persistence, audit transition, stock adjustment integration |
+| Livestock state machine | ⚠️ partial | `ProductBatch.healthState` + `version`, transition API `PATCH /tenant/inventory/batches/:batchId/health-state`, audit `LIVESTOCK_STATE_CHANGE` và FEFO chỉ bán `HEALTHY` đã có; attrs gate vẫn là legacy fallback, stock-adjustment/return CAS và recovery workflow còn mở |
 
 #### Verification receipt
 
@@ -259,7 +259,7 @@ pnpm --dir backend build
 
 #### Trình tự tiếp theo đã chốt
 
-1. Livestock state machine: `HEALTHY → QUARANTINED/SICK/DEAD/REJECTED`, transition policy, audit và deny ở stock/sale.
-2. Hoàn chỉnh frontend error map theo toàn bộ structured reason codes.
+1. Hoàn chỉnh frontend error map theo toàn bộ structured reason codes.
+2. Bổ sung recovery approval và CAS nhất quán cho stock-adjustment/return trong livestock flow.
 3. Partial returns/refunds.
 4. UI reports trên hai summary endpoint hiện có, sau đó mở rộng báo cáo theo catalog.
