@@ -263,3 +263,29 @@ pnpm --dir backend build
 2. Bổ sung recovery approval và CAS nhất quán cho stock-adjustment/return trong livestock flow.
 3. Partial returns/refunds.
 4. UI reports trên hai summary endpoint hiện có, sau đó mở rộng báo cáo theo catalog.
+
+### 8.6 Re-audit sau batch A/B/C/D — 2026-07-25
+
+| Hạng mục | Trạng thái mới | Bằng chứng chính |
+|---|---|---|
+| Frontend structured error map | ✅ | `frontend/lib/sales-api-error.ts`; Reports, inventory adjustment và purchase UI dùng `mapTenantApiError`; frontend full test pass |
+| Livestock state machine + recovery/CAS | ✅ slice | Policy HEALTHY → QUARANTINED/SICK/DEAD/REJECTED, recovery approval, audit, tenant scope; CAS trên livestock adjustment và full/partial return paths |
+| Stock adjustment error semantics | ✅ | `INSUFFICIENT_BATCH` tách khỏi `STALE_VERSION`, có regression tests |
+| Partial sales/purchase returns | ✅ slice | Partial routes, remaining-qty guard, idempotency, batch CAS, stock movements, audit, debt pro-rata; cash refund fail-closed |
+| Reports UI | ✅ | `/bao-cao`, loading/error/empty/retry, date validation, tenant API và structured error mapping |
+| Reports theo business group | ✅ Phase 1 | 5 nhóm catalog, filter + breakdown ở stock/sales API và UI; chart/export/profit chưa thuộc scope |
+
+#### Verification receipt
+
+- Prisma validate/generate: **PASS**.
+- Backend focused: **9 suites / 63 tests PASS**; full backend: **53 suites / 458 tests PASS**, 1 skipped.
+- Frontend full: **29 files / 169 tests PASS**; Webpack production build: **PASS**, route `/bao-cao` được generate.
+- Biome touched-file checks và `git diff --check`: **PASS**.
+- Partial returns spec validation: **PASS**; task `R1-01` done, review vẫn cần closeout độc lập.
+
+#### Còn mở sau batch này
+
+1. Cash refund/payment voucher thực tế — hiện fail-closed, chưa tự tạo payout.
+2. Reports chart/export/accounting và taxonomy tenant-enabled — chưa thuộc Phase 1.
+3. PHI/REI/withdrawal calendar hard gates và per-kind rules sâu.
+4. Cần review cuối, loại generated log, rồi commit mốc ổn định.
