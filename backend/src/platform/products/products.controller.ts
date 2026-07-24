@@ -60,6 +60,7 @@ export class ProductsController {
 		return this.products.updateBusinessGroups(
 			request.user.tenantId,
 			dto.enabledGroups,
+			request.user,
 		);
 	}
 
@@ -74,7 +75,7 @@ export class ProductsController {
 	@RequireFeature('inventory')
 	@RequireQuota('maxProducts')
 	create(@Req() request: TenantRequest, @Body() dto: CreateProductDto) {
-		return this.products.create(request.user.tenantId, dto);
+		return this.products.create(request.user.tenantId, dto, request.user);
 	}
 
 	@Patch(':id')
@@ -85,13 +86,13 @@ export class ProductsController {
 		@Param('id') id: string,
 		@Body() dto: UpdateProductDto,
 	) {
-		return this.products.update(request.user.tenantId, id, dto);
+		return this.products.update(request.user.tenantId, id, dto, request.user);
 	}
 
 	@Delete(':id')
 	@RequireTenantPermission('product:delete')
 	@RequireFeature('inventory')
 	remove(@Req() request: TenantRequest, @Param('id') id: string) {
-		return this.products.remove(request.user.tenantId, id);
+		return this.products.remove(request.user.tenantId, id, request.user);
 	}
 }

@@ -3,7 +3,14 @@ import {
 	Injectable,
 	NotFoundException,
 } from '@nestjs/common';
-import { DiseaseType, HandbookCategory, Prisma } from '@prisma/client';
+import {
+	AuditAction,
+	AuditActorType,
+	DiseaseType,
+	HandbookCategory,
+	Prisma,
+} from '@prisma/client';
+import { AuditLogger } from '../audit/audit-logger.service';
 import { PrismaService } from '../prisma/prisma.service';
 import {
 	CreateHandbookEntryDto,
@@ -44,7 +51,10 @@ type DiseaseRow = {
 
 @Injectable()
 export class HandbookService {
-	constructor(private readonly prisma: PrismaService) {}
+	constructor(
+		private readonly prisma: PrismaService,
+		private readonly audit: AuditLogger,
+	) {}
 
 	catalog() {
 		return {
@@ -131,7 +141,7 @@ export class HandbookService {
 		return this.toResponse(row);
 	}
 
-	async create(tenantId: string, dto: CreateHandbookEntryDto) {
+	async create(tenantId: string, userId: string, dto: CreateHandbookEntryDto) {
 		const category = this.requireSelectableCategory(dto.category);
 		const name = dto.name.trim();
 		if (!name) throw this.invalidCategory('name', 'Name is required');
@@ -165,7 +175,7 @@ export class HandbookService {
 					})),
 				});
 			}
-			return tx.disease.findFirstOrThrow({
+			const created = await tx.disease.findFirstOrThrow({
 				where: { id: disease.id, tenantId },
 				include: {
 					ingredients: {
@@ -182,11 +192,31 @@ export class HandbookService {
 					},
 				},
 			});
+			await this.audit.writeInTx(tx, {
+				tenantId,
+				actorId: userId,
+				actorType: AuditActorType.USER,
+				actorRoleCode: null,
+				action: AuditAction.HANDBOOK_CREATE,
+				resource: 'handbook',
+				resourceId: created.id,
+				after: {
+					category: created.handbookCategory,
+					type: created.type,
+					ingredientCount: ingredients.length,
+				},
+			});
+			return created;
 		});
 		return this.toResponse(row);
 	}
 
-	async update(tenantId: string, id: string, dto: UpdateHandbookEntryDto) {
+	async update(
+		tenantId: string,
+		userId: string,
+		id: string,
+		dto: UpdateHandbookEntryDto,
+	) {
 		const current = await this.prisma.disease.findFirst({
 			where: { id, tenantId, deletedAt: null },
 		});
@@ -233,7 +263,7 @@ export class HandbookService {
 					});
 				}
 			}
-			return tx.disease.findFirstOrThrow({
+			const updated = await tx.disease.findFirstOrThrow({
 				where: { id, tenantId, deletedAt: null },
 				include: {
 					ingredients: {
@@ -250,6 +280,21 @@ export class HandbookService {
 					},
 				},
 			});
+			await this.audit.writeInTx(tx, {
+				tenantId,
+				actorId: userId,
+				actorType: AuditActorType.USER,
+				actorRoleCode: null,
+				action: AuditAction.HANDBOOK_UPDATE,
+				resource: 'handbook',
+				resourceId: updated.id,
+				after: {
+					category: updated.handbookCategory,
+					type: updated.type,
+					updatedFields: Object.keys(data),
+				},
+			});
+			return updated;
 		});
 		return this.toResponse(row);
 	}

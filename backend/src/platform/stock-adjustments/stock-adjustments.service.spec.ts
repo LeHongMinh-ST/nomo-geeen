@@ -31,10 +31,12 @@ describe('StockAdjustmentsService', () => {
 				callback(tx),
 			),
 		};
+		const audit = { writeInTx: jest.fn() };
 		return {
-			service: new StockAdjustmentsService(prisma as never),
+			service: new StockAdjustmentsService(prisma as never, audit as never),
 			tx,
 			prisma,
+			audit,
 		};
 	}
 
@@ -52,7 +54,7 @@ describe('StockAdjustmentsService', () => {
 	};
 
 	it('creates DRAFT explicitly and validates reason', async () => {
-		const { service, tx } = makeService();
+		const { service, tx, audit } = makeService();
 		tx.warehouse.findFirst.mockResolvedValue({ id: 'wh-1' });
 		tx.product.findMany.mockResolvedValue([
 			{ id: 'p-1', productKind: ProductKind.PESTICIDE },
@@ -88,6 +90,43 @@ describe('StockAdjustmentsService', () => {
 			}),
 		);
 		expect(tx.stockMovement.create).not.toHaveBeenCalled();
+		expect(audit.writeInTx).toHaveBeenCalledWith(
+			tx,
+			expect.objectContaining({ action: 'STOCK_ADJUSTMENT_CREATE' }),
+		);
+		const auditInput = audit.writeInTx.mock.calls[0][1];
+		expect(auditInput.after).not.toHaveProperty('note');
+		expect(auditInput.after.lines[0]).toEqual(
+			expect.objectContaining({ reasonCode: 'MOISTURE_DAMAGE', delta: '-2' }),
+		);
+	});
+
+	it('does not return a success when audit write fails', async () => {
+		const { service, tx, audit } = makeService();
+		tx.warehouse.findFirst.mockResolvedValue({ id: 'wh-1' });
+		tx.product.findMany.mockResolvedValue([
+			{ id: 'p-1', productKind: ProductKind.OTHER },
+		]);
+		tx.stockAdjustment.create.mockResolvedValue({
+			id: 'adj-1',
+			tenantId: 't-1',
+			docNo: 'ADJ-1',
+			warehouseId: 'wh-1',
+			status: 'DRAFT',
+			note: null,
+			createdBy: 'u-1',
+			createdAt: new Date(),
+			lines: [],
+		});
+		audit.writeInTx.mockRejectedValue(new Error('audit unavailable'));
+		await expect(
+			service.createDraft('t-1', 'u-1', {
+				warehouseId: 'wh-1',
+				lines: [
+					{ productId: 'p-1', delta: '1', reasonCode: 'COUNT_CORRECTION' },
+				],
+			}),
+		).rejects.toThrow('audit unavailable');
 	});
 
 	it('rejects invalid reason on create', async () => {
@@ -132,7 +171,7 @@ describe('StockAdjustmentsService', () => {
 	});
 
 	it('completes happy path: stock decrease + batch + ADJUSTMENT movement', async () => {
-		const { service, tx } = makeService();
+		const { service, tx, audit } = makeService();
 		const lines = [
 			{
 				id: 'line-1',
@@ -204,6 +243,10 @@ describe('StockAdjustmentsService', () => {
 					refLineId: 'line-1',
 				}),
 			}),
+		);
+		expect(audit.writeInTx).toHaveBeenCalledWith(
+			tx,
+			expect.objectContaining({ action: 'STOCK_ADJUSTMENT_COMPLETE' }),
 		);
 	});
 

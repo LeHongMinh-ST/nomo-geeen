@@ -6,12 +6,15 @@ import {
 	UnprocessableEntityException,
 } from '@nestjs/common';
 import {
+	AuditAction,
+	AuditActorType,
 	Prisma,
 	ProductKind,
 	PurchaseStatus,
 	StockDirection,
 	StockReason,
 } from '@prisma/client';
+import { AuditLogger } from '../audit/audit-logger.service';
 import {
 	assertBatchNotRecalled,
 	assertInboundBatch,
@@ -78,7 +81,10 @@ type PreparedLine = {
 
 @Injectable()
 export class PurchasesService {
-	constructor(private readonly prisma: PrismaService) {}
+	constructor(
+		private readonly prisma: PrismaService,
+		private readonly audit: AuditLogger,
+	) {}
 
 	async list(tenantId: string, query: PurchaseQueryDto) {
 		const page = query.page ?? 1;
@@ -178,6 +184,20 @@ export class PurchasesService {
 					},
 					include: this.includePurchase(),
 				});
+				await this.audit.writeInTx(tx, {
+					tenantId,
+					actorId: userId,
+					actorType: AuditActorType.USER,
+					actorRoleCode: null,
+					action: AuditAction.PURCHASE_CREATE,
+					resource: 'purchase',
+					resourceId: purchase.id,
+					after: {
+						status: purchase.status,
+						total: purchase.total.toString(),
+						lineCount: purchase.lines.length,
+					},
+				});
 				if (dto.status === PurchaseCreateStatus.COMPLETED)
 					return this.toResponse(
 						await this.completeInTransaction(
@@ -247,6 +267,20 @@ export class PurchasesService {
 					},
 					include: this.includePurchase(),
 				});
+				await this.audit.writeInTx(tx, {
+					tenantId,
+					actorId: _userId,
+					actorType: AuditActorType.USER,
+					actorRoleCode: null,
+					action: AuditAction.PURCHASE_UPDATE,
+					resource: 'purchase',
+					resourceId: updated.id,
+					after: {
+						status: updated.status,
+						total: updated.total.toString(),
+						lineCount: updated.lines.length,
+					},
+				});
 				return this.toResponse(updated);
 			},
 			{ isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
@@ -281,19 +315,30 @@ export class PurchasesService {
 		throw new ConflictException('Purchase completion could not be serialized');
 	}
 
-	async cancel(tenantId: string, id: string) {
-		const purchase = await this.prisma.purchase.findFirst({
-			where: { id, tenantId, deletedAt: null },
-		});
-		if (!purchase) throw new NotFoundException('Purchase not found');
-		if (purchase.status !== PurchaseStatus.DRAFT) throw this.invalidState();
-		return this.toResponse(
-			await this.prisma.purchase.update({
+	async cancel(tenantId: string, userId: string, id: string) {
+		return this.prisma.$transaction(async (tx) => {
+			const purchase = await tx.purchase.findFirst({
+				where: { id, tenantId, deletedAt: null },
+			});
+			if (!purchase) throw new NotFoundException('Purchase not found');
+			if (purchase.status !== PurchaseStatus.DRAFT) throw this.invalidState();
+			const cancelled = await tx.purchase.update({
 				where: { id },
 				data: { status: PurchaseStatus.CANCELLED },
 				include: this.includePurchase(),
-			}),
-		);
+			});
+			await this.audit.writeInTx(tx, {
+				tenantId,
+				actorId: userId,
+				actorType: AuditActorType.USER,
+				actorRoleCode: null,
+				action: AuditAction.PURCHASE_CANCEL,
+				resource: 'purchase',
+				resourceId: id,
+				after: { status: cancelled.status },
+			});
+			return this.toResponse(cancelled);
+		});
 	}
 
 	private async completeInTransaction(
@@ -462,7 +507,7 @@ export class PurchasesService {
 				},
 			});
 		}
-		return tx.purchase.update({
+		const completed = await tx.purchase.update({
 			where: { id: purchase.id },
 			data: {
 				status: PurchaseStatus.COMPLETED,
@@ -471,6 +516,21 @@ export class PurchasesService {
 			},
 			include: this.includePurchase(),
 		});
+		await this.audit.writeInTx(tx, {
+			tenantId,
+			actorId: userId,
+			actorType: AuditActorType.USER,
+			actorRoleCode: null,
+			action: AuditAction.PURCHASE_COMPLETE,
+			resource: 'purchase',
+			resourceId: completed.id,
+			after: {
+				status: completed.status,
+				total: completed.total.toString(),
+				lineCount: completed.lines.length,
+			},
+		});
+		return completed;
 	}
 
 	private async prepareLines(

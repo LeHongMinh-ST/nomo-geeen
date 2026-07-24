@@ -1,12 +1,14 @@
 import { randomUUID } from 'node:crypto';
 import {
 	ConflictException,
+	HttpException,
 	Injectable,
 	InternalServerErrorException,
 	NotFoundException,
 	UnprocessableEntityException,
 } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { AuditAction, AuditActorType, Prisma } from '@prisma/client';
+import { AuditLogger } from '../audit/audit-logger.service';
 import { EntitlementService } from '../entitlements/entitlement.service';
 import { resolveSaleAllocations } from '../inventory/fefo-allocator';
 import { PrismaService } from '../prisma/prisma.service';
@@ -69,7 +71,39 @@ export class SalesService {
 	constructor(
 		private readonly prisma: PrismaService,
 		private readonly entitlements: EntitlementService,
+		private readonly audit: AuditLogger,
 	) {}
+
+	private async recordSaleDenial(
+		tenantId: string,
+		userId: string,
+		channel: 'ORDER' | 'QUICK_SALE',
+		error: unknown,
+	): Promise<void> {
+		if (!(error instanceof HttpException) || error.getStatus() >= 500) return;
+		const response = error.getResponse();
+		const reason =
+			typeof response === 'string'
+				? response
+				: typeof response === 'object' &&
+						response !== null &&
+						'reason' in response
+					? String(response.reason)
+					: 'SALE_DENIED';
+		try {
+			await this.audit.log({
+				tenantId,
+				actorId: userId,
+				actorType: AuditActorType.USER,
+				actorRoleCode: null,
+				action: AuditAction.SALE_DENY,
+				resource: 'sale',
+				after: { channel, reason, outcome: 'denied' },
+			});
+		} catch {
+			// Preserve the original denial when audit storage is unavailable.
+		}
+	}
 
 	async listOrders(tenantId: string, query: SalesOrderQueryDto) {
 		const page = query.page ?? 1;
@@ -344,161 +378,196 @@ export class SalesService {
 		userId: string,
 		dto: CreateSalesOrderDto,
 	) {
-		return this.withSerializableRetry(
-			async (tx) => {
-				const existing = await tx.sale.findFirst({
-					where: { tenantId, idempotencyKey: dto.idempotencyKey },
-					include: {
-						lines: {
-							include: { unit: { select: { id: true, name: true } } },
+		try {
+			return await this.withSerializableRetry(
+				async (tx) => {
+					const existing = await tx.sale.findFirst({
+						where: { tenantId, idempotencyKey: dto.idempotencyKey },
+						include: {
+							lines: {
+								include: { unit: { select: { id: true, name: true } } },
+							},
 						},
-					},
-				});
-				if (existing) {
+					});
+					if (existing) {
+						const settlement = this.normalizeOrderSettlement(
+							dto.status,
+							dto.paymentMethod,
+							dto.amountPaid,
+							existing.total,
+						);
+						if (
+							existing.channel !== 'ORDER' ||
+							!this.matchesOrderRequest(existing, dto, settlement)
+						)
+							throw new ConflictException({ reason: 'IDEMPOTENCY_CONFLICT' });
+						return this.findOrderInTransaction(tx, tenantId, existing.id);
+					}
+					const warehouse = await tx.warehouse.findMany({
+						where: { tenantId, isDefault: true, deletedAt: null },
+						select: { id: true },
+					});
+					if (warehouse.length !== 1)
+						throw new UnprocessableEntityException({
+							reason: 'WAREHOUSE_CONFIGURATION_ERROR',
+						});
+					const products = await tx.product.findMany({
+						where: {
+							tenantId,
+							id: { in: [...new Set(dto.lines.map((line) => line.productId))] },
+							deletedAt: null,
+						},
+						include: {
+							conversions: {
+								where: { kind: { in: ['SALE', 'BOTH'] } },
+								select: { unitId: true, factorToBase: true },
+							},
+						},
+					});
+					const byId = new Map(
+						products.map((product) => [product.id, product]),
+					);
+					const customer = dto.customerId
+						? await tx.customer.findFirst({
+								where: { id: dto.customerId, tenantId, deletedAt: null },
+							})
+						: null;
+					if (dto.customerId && !customer)
+						throw new UnprocessableEntityException({
+							reason: 'INVALID_CUSTOMER',
+						});
+					const lines = dto.lines.map((line) => {
+						const product = byId.get(line.productId);
+						assertProductSaleEligible(product);
+						const factor =
+							line.unitId === product.baseUnitId
+								? new Prisma.Decimal(1)
+								: product.conversions.find(
+										(item) => item.unitId === line.unitId,
+									)?.factorToBase;
+						if (!factor)
+							throw new UnprocessableEntityException({
+								reason: 'INVALID_UNIT',
+							});
+						const qty = this.positiveStorageQuantity(
+							new Prisma.Decimal(line.qty),
+							'qty',
+						);
+						const qtyBase = this.positiveStorageQuantity(
+							qty.mul(factor),
+							'qtyBase',
+						);
+						return {
+							line,
+							product,
+							qty,
+							qtyBase,
+							lineTotal: this.inputMoney(qty.mul(line.unitPrice), 'lineTotal'),
+						};
+					});
+					const subtotal = lines.reduce(
+						(sum, item) => sum + item.lineTotal,
+						0n,
+					);
+					if (subtotal > BigInt(Number.MAX_SAFE_INTEGER))
+						throw new UnprocessableEntityException({
+							reason: 'MONEY_OUT_OF_RANGE',
+							field: 'subtotal',
+						});
+					const discount = BigInt(dto.discountAmount);
+					if (discount > subtotal)
+						throw new UnprocessableEntityException({
+							reason: 'INVALID_DISCOUNT',
+						});
+					const total = subtotal - discount;
 					const settlement = this.normalizeOrderSettlement(
 						dto.status,
 						dto.paymentMethod,
 						dto.amountPaid,
-						existing.total,
-					);
-					if (
-						existing.channel !== 'ORDER' ||
-						!this.matchesOrderRequest(existing, dto, settlement)
-					)
-						throw new ConflictException({ reason: 'IDEMPOTENCY_CONFLICT' });
-					return this.findOrderInTransaction(tx, tenantId, existing.id);
-				}
-				const warehouse = await tx.warehouse.findMany({
-					where: { tenantId, isDefault: true, deletedAt: null },
-					select: { id: true },
-				});
-				if (warehouse.length !== 1)
-					throw new UnprocessableEntityException({
-						reason: 'WAREHOUSE_CONFIGURATION_ERROR',
-					});
-				const products = await tx.product.findMany({
-					where: {
-						tenantId,
-						id: { in: [...new Set(dto.lines.map((line) => line.productId))] },
-						deletedAt: null,
-					},
-					include: {
-						conversions: {
-							where: { kind: { in: ['SALE', 'BOTH'] } },
-							select: { unitId: true, factorToBase: true },
-						},
-					},
-				});
-				const byId = new Map(products.map((product) => [product.id, product]));
-				const customer = dto.customerId
-					? await tx.customer.findFirst({
-							where: { id: dto.customerId, tenantId, deletedAt: null },
-						})
-					: null;
-				if (dto.customerId && !customer)
-					throw new UnprocessableEntityException({
-						reason: 'INVALID_CUSTOMER',
-					});
-				const lines = dto.lines.map((line) => {
-					const product = byId.get(line.productId);
-					assertProductSaleEligible(product);
-					const factor =
-						line.unitId === product.baseUnitId
-							? new Prisma.Decimal(1)
-							: product.conversions.find((item) => item.unitId === line.unitId)
-									?.factorToBase;
-					if (!factor)
-						throw new UnprocessableEntityException({ reason: 'INVALID_UNIT' });
-					const qty = this.positiveStorageQuantity(
-						new Prisma.Decimal(line.qty),
-						'qty',
-					);
-					const qtyBase = this.positiveStorageQuantity(
-						qty.mul(factor),
-						'qtyBase',
-					);
-					return {
-						line,
-						product,
-						qty,
-						qtyBase,
-						lineTotal: this.inputMoney(qty.mul(line.unitPrice), 'lineTotal'),
-					};
-				});
-				const subtotal = lines.reduce((sum, item) => sum + item.lineTotal, 0n);
-				if (subtotal > BigInt(Number.MAX_SAFE_INTEGER))
-					throw new UnprocessableEntityException({
-						reason: 'MONEY_OUT_OF_RANGE',
-						field: 'subtotal',
-					});
-				const discount = BigInt(dto.discountAmount);
-				if (discount > subtotal)
-					throw new UnprocessableEntityException({
-						reason: 'INVALID_DISCOUNT',
-					});
-				const total = subtotal - discount;
-				const settlement = this.normalizeOrderSettlement(
-					dto.status,
-					dto.paymentMethod,
-					dto.amountPaid,
-					total,
-				);
-				if (settlement.debtAmount > 0n && !customer)
-					throw new UnprocessableEntityException({
-						reason: 'INVALID_CUSTOMER',
-					});
-				const sale = await tx.sale.create({
-					data: {
-						tenantId,
-						docNo: `BH-${randomUUID().slice(0, 8).toUpperCase()}`,
-						channel: 'ORDER',
-						status: 'DRAFT',
-						customerId: customer?.id,
-						customerNameSnapshot: customer?.name,
-						customerPhoneSnapshot: customer?.phone,
-						warehouseId: warehouse[0].id,
-						subtotal,
-						discountAmount: discount,
 						total,
-						amountPaid: 0n,
-						debtAmount: 0n,
-						note: dto.note,
-						idempotencyKey: dto.idempotencyKey,
-						createdBy: userId,
-						lines: {
-							create: lines.map((item) => ({
-								tenantId,
-								productId: item.line.productId,
-								productNameSnapshot: item.product.name,
-								unitId: item.line.unitId,
-								qty: item.qty,
-								qtyBase: item.qtyBase,
-								unitPrice: item.line.unitPrice,
-								lineTotal: item.lineTotal,
-								unitCost: item.product.costPrice,
-							})),
-						},
-					},
-					include: {
-						lines: {
-							include: { unit: { select: { id: true, name: true } } },
-						},
-					},
-				});
-				if (dto.status === SalesOrderCreateStatus.COMPLETED)
-					return this.completeInTransaction(
-						tx,
-						tenantId,
-						userId,
-						sale.id,
-						dto.paymentMethod!,
-						Number(dto.amountPaid ?? 0),
-						settlement,
 					);
-				return this.toOrderDetail(sale);
-			},
-			(error) => this.isSaleIdempotencyCollision(error),
-		);
+					if (settlement.debtAmount > 0n && !customer)
+						throw new UnprocessableEntityException({
+							reason: 'INVALID_CUSTOMER',
+						});
+					const sale = await tx.sale.create({
+						data: {
+							tenantId,
+							docNo: `BH-${randomUUID().slice(0, 8).toUpperCase()}`,
+							channel: 'ORDER',
+							status: 'DRAFT',
+							customerId: customer?.id,
+							customerNameSnapshot: customer?.name,
+							customerPhoneSnapshot: customer?.phone,
+							warehouseId: warehouse[0].id,
+							subtotal,
+							discountAmount: discount,
+							total,
+							amountPaid: 0n,
+							debtAmount: 0n,
+							note: dto.note,
+							idempotencyKey: dto.idempotencyKey,
+							createdBy: userId,
+							lines: {
+								create: lines.map((item) => ({
+									tenantId,
+									productId: item.line.productId,
+									productNameSnapshot: item.product.name,
+									unitId: item.line.unitId,
+									qty: item.qty,
+									qtyBase: item.qtyBase,
+									unitPrice: item.line.unitPrice,
+									lineTotal: item.lineTotal,
+									unitCost: item.product.costPrice,
+								})),
+							},
+						},
+						include: {
+							lines: {
+								include: { unit: { select: { id: true, name: true } } },
+							},
+						},
+					});
+					if (dto.status === SalesOrderCreateStatus.COMPLETED)
+						return this.completeInTransaction(
+							tx,
+							tenantId,
+							userId,
+							sale.id,
+							dto.paymentMethod!,
+							Number(dto.amountPaid ?? 0),
+							settlement,
+						);
+					await this.audit.writeInTx(tx, {
+						tenantId,
+						actorId: userId,
+						actorType: AuditActorType.USER,
+						actorRoleCode: null,
+						action: AuditAction.SALE_CREATE,
+						resource: 'sale',
+						resourceId: sale.id,
+						after: {
+							status: sale.status,
+							channel: sale.channel,
+							total: sale.total.toString(),
+							lineCount: sale.lines.length,
+							settlement: {
+								amountPaid: sale.amountPaid.toString(),
+								debtAmount: sale.debtAmount.toString(),
+								paymentMethod: sale.paymentMethod,
+							},
+							stockEffect: 'DEFERRED',
+							debtEffect: 'DEFERRED',
+						},
+					});
+					return this.toOrderDetail(sale);
+				},
+				(error) => this.isSaleIdempotencyCollision(error),
+			);
+		} catch (error) {
+			await this.recordSaleDenial(tenantId, userId, 'ORDER', error);
+			throw error;
+		}
 	}
 
 	async completeOrder(
@@ -507,19 +576,24 @@ export class SalesService {
 		id: string,
 		dto: CompleteSalesOrderDto,
 	) {
-		return this.withSerializableRetry(
-			(tx) =>
-				this.completeInTransaction(
-					tx,
-					tenantId,
-					userId,
-					id,
-					dto.paymentMethod,
-					dto.amountPaid,
-				),
-			undefined,
-			'SERIALIZATION_CONFLICT',
-		);
+		try {
+			return await this.withSerializableRetry(
+				(tx) =>
+					this.completeInTransaction(
+						tx,
+						tenantId,
+						userId,
+						id,
+						dto.paymentMethod,
+						dto.amountPaid,
+					),
+				undefined,
+				'SERIALIZATION_CONFLICT',
+			);
+		} catch (error) {
+			await this.recordSaleDenial(tenantId, userId, 'ORDER', error);
+			throw error;
+		}
 	}
 
 	private async completeInTransaction(
@@ -671,26 +745,51 @@ export class SalesService {
 		});
 		if (terminal.count !== 1)
 			throw new ConflictException({ reason: 'CONCURRENT_MODIFICATION' });
+		await this.audit.writeInTx(tx, {
+			tenantId,
+			actorId: userId,
+			actorType: AuditActorType.USER,
+			actorRoleCode: null,
+			action: AuditAction.SALE_COMPLETE,
+			resource: 'sale',
+			resourceId: id,
+			after: {
+				status: 'COMPLETED',
+				settlement: {
+					amountPaid: settlement.amountPaid.toString(),
+					changeAmount: settlement.changeAmount.toString(),
+					debtAmount: settlement.debtAmount.toString(),
+					paymentMethod: settlement.paymentMethod,
+				},
+				stockEffect: 'OUT',
+				debtEffect: settlement.debtAmount > 0n ? 'INCREASE' : 'NONE',
+			},
+		});
 		return this.findOrderInTransaction(tx, tenantId, id);
 	}
 
 	async cancelOrder(tenantId: string, userId: string, id: string) {
 		let sourceStatus: 'DRAFT' | 'COMPLETED' | undefined;
-		return this.withSerializableRetry(
-			(tx) =>
-				this.cancelInTransaction(
-					tx,
-					tenantId,
-					userId,
-					id,
-					sourceStatus,
-					(status) => {
-						sourceStatus ??= status;
-					},
-				),
-			undefined,
-			'SERIALIZATION_CONFLICT',
-		);
+		try {
+			return await this.withSerializableRetry(
+				(tx) =>
+					this.cancelInTransaction(
+						tx,
+						tenantId,
+						userId,
+						id,
+						sourceStatus,
+						(status) => {
+							sourceStatus ??= status;
+						},
+					),
+				undefined,
+				'SERIALIZATION_CONFLICT',
+			);
+		} catch (error) {
+			await this.recordSaleDenial(tenantId, userId, 'ORDER', error);
+			throw error;
+		}
 	}
 
 	private async cancelInTransaction(
@@ -822,6 +921,20 @@ export class SalesService {
 		});
 		if (terminal.count !== 1)
 			throw new ConflictException({ reason: 'CONCURRENT_MODIFICATION' });
+		await this.audit.writeInTx(tx, {
+			tenantId,
+			actorId: userId,
+			actorType: AuditActorType.USER,
+			actorRoleCode: null,
+			action: AuditAction.SALE_CANCEL,
+			resource: 'sale',
+			resourceId: id,
+			after: {
+				status: 'CANCELLED',
+				stockEffect: 'REVERSED',
+				debtEffect: sale.debtAmount > 0n ? 'DECREASE' : 'NONE',
+			},
+		});
 		return this.findOrderInTransaction(tx, tenantId, id);
 	}
 
@@ -830,264 +943,294 @@ export class SalesService {
 		userId: string,
 		dto: CreateQuickSaleDto,
 	): Promise<QuickSaleResponse> {
-		return this.withSerializableRetry(
-			async (tx) => {
-				const normalized = this.normalize(dto);
-				const existing = await tx.sale.findFirst({
-					where: { tenantId, idempotencyKey: dto.idempotencyKey },
-					include: { lines: true },
-				});
-				if (existing) {
-					if (!this.matchesExisting(existing, dto, normalized)) {
-						throw new ConflictException({
-							reason: 'IDEMPOTENCY_CONFLICT',
-							message: 'Idempotency key was already used for another sale',
+		try {
+			return await this.withSerializableRetry(
+				async (tx) => {
+					const normalized = this.normalize(dto);
+					const existing = await tx.sale.findFirst({
+						where: { tenantId, idempotencyKey: dto.idempotencyKey },
+						include: { lines: true },
+					});
+					if (existing) {
+						if (!this.matchesExisting(existing, dto, normalized)) {
+							throw new ConflictException({
+								reason: 'IDEMPOTENCY_CONFLICT',
+								message: 'Idempotency key was already used for another sale',
+							});
+						}
+						return this.toResponse(existing, dto.paymentMethod);
+					}
+
+					const warehouse = await tx.warehouse.findMany({
+						where: { tenantId, isDefault: true, deletedAt: null },
+						select: { id: true },
+					});
+					if (warehouse.length !== 1) {
+						throw new UnprocessableEntityException({
+							reason: 'WAREHOUSE_CONFIGURATION_ERROR',
+							message: 'Exactly one default warehouse is required',
 						});
 					}
-					return this.toResponse(existing, dto.paymentMethod);
-				}
 
-				const warehouse = await tx.warehouse.findMany({
-					where: { tenantId, isDefault: true, deletedAt: null },
-					select: { id: true },
-				});
-				if (warehouse.length !== 1) {
-					throw new UnprocessableEntityException({
-						reason: 'WAREHOUSE_CONFIGURATION_ERROR',
-						message: 'Exactly one default warehouse is required',
-					});
-				}
-
-				const products = await tx.product.findMany({
-					where: {
-						tenantId,
-						id: { in: [...new Set(normalized.map((line) => line.productId))] },
-						deletedAt: null,
-					},
-					include: {
-						baseUnit: { select: { id: true } },
-						conversions: {
-							where: { kind: { in: ['SALE', 'BOTH'] } },
-							select: { unitId: true, factorToBase: true },
+					const products = await tx.product.findMany({
+						where: {
+							tenantId,
+							id: {
+								in: [...new Set(normalized.map((line) => line.productId))],
+							},
+							deletedAt: null,
 						},
-					},
-				});
-				const productById = new Map(
-					products.map((product) => [product.id, product]),
-				);
-				const customer = dto.customerId
-					? await tx.customer.findFirst({
-							where: { id: dto.customerId, tenantId, deletedAt: null },
-						})
-					: null;
-				if (dto.customerId && !customer) {
-					throw new UnprocessableEntityException({
-						reason: 'INVALID_CUSTOMER',
-						message: 'Customer does not belong to this tenant',
+						include: {
+							baseUnit: { select: { id: true } },
+							conversions: {
+								where: { kind: { in: ['SALE', 'BOTH'] } },
+								select: { unitId: true, factorToBase: true },
+							},
+						},
 					});
-				}
+					const productById = new Map(
+						products.map((product) => [product.id, product]),
+					);
+					const customer = dto.customerId
+						? await tx.customer.findFirst({
+								where: { id: dto.customerId, tenantId, deletedAt: null },
+							})
+						: null;
+					if (dto.customerId && !customer) {
+						throw new UnprocessableEntityException({
+							reason: 'INVALID_CUSTOMER',
+							message: 'Customer does not belong to this tenant',
+						});
+					}
 
-				const prepared = normalized.map((line) => {
-					const product = productById.get(line.productId);
-					assertProductSaleEligible(product);
-					const factor =
-						line.unitId === product.baseUnitId
-							? new Prisma.Decimal(1)
-							: product.conversions.find(
-									(conversion) => conversion.unitId === line.unitId,
-								)?.factorToBase;
-					if (!factor) {
+					const prepared = normalized.map((line) => {
+						const product = productById.get(line.productId);
+						assertProductSaleEligible(product);
+						const factor =
+							line.unitId === product.baseUnitId
+								? new Prisma.Decimal(1)
+								: product.conversions.find(
+										(conversion) => conversion.unitId === line.unitId,
+									)?.factorToBase;
+						if (!factor) {
+							throw new UnprocessableEntityException({
+								reason: 'VALIDATION_ERROR',
+								message: 'Unit is not valid for this product',
+							});
+						}
+						const qtyBase = this.positiveStorageQuantity(
+							new Prisma.Decimal(line.qty).mul(factor),
+							'qtyBase',
+						);
+						return {
+							...line,
+							product,
+							qtyBase,
+							lineTotal: this.inputMoney(
+								new Prisma.Decimal(line.unitPrice.toString()).mul(line.qty),
+								'lineTotal',
+							),
+						};
+					});
+
+					const subtotal = prepared.reduce(
+						(sum, line) => sum + line.lineTotal,
+						0n,
+					);
+					if (subtotal > BigInt(Number.MAX_SAFE_INTEGER))
+						throw new UnprocessableEntityException({
+							reason: 'MONEY_OUT_OF_RANGE',
+							field: 'subtotal',
+						});
+					const discountAmount = BigInt(dto.discountAmount);
+					if (discountAmount > subtotal) {
 						throw new UnprocessableEntityException({
 							reason: 'VALIDATION_ERROR',
-							message: 'Unit is not valid for this product',
+							message: 'Discount cannot exceed subtotal',
 						});
 					}
-					const qtyBase = this.positiveStorageQuantity(
-						new Prisma.Decimal(line.qty).mul(factor),
-						'qtyBase',
-					);
-					return {
-						...line,
-						product,
-						qtyBase,
-						lineTotal: this.inputMoney(
-							new Prisma.Decimal(line.unitPrice.toString()).mul(line.qty),
-							'lineTotal',
-						),
-					};
-				});
+					const total = subtotal - discountAmount;
+					const amountPaid = BigInt(dto.amountPaid);
+					if (
+						dto.paymentMethod === QuickSalePaymentMethod.DEBT &&
+						amountPaid !== 0n
+					) {
+						throw new UnprocessableEntityException({
+							reason: 'VALIDATION_ERROR',
+							message: 'Debt payment must have zero amount paid',
+						});
+					}
+					if (
+						amountPaid > total &&
+						dto.paymentMethod !== QuickSalePaymentMethod.CASH
+					) {
+						throw new UnprocessableEntityException({
+							reason: 'VALIDATION_ERROR',
+							message: 'Only cash payment can include change',
+						});
+					}
+					const debtAmount = amountPaid < total ? total - amountPaid : 0n;
+					if (debtAmount > 0n && !customer) {
+						throw new UnprocessableEntityException({
+							reason: 'INVALID_CUSTOMER',
+							message: 'A customer is required for unpaid sales',
+						});
+					}
 
-				const subtotal = prepared.reduce(
-					(sum, line) => sum + line.lineTotal,
-					0n,
-				);
-				if (subtotal > BigInt(Number.MAX_SAFE_INTEGER))
-					throw new UnprocessableEntityException({
-						reason: 'MONEY_OUT_OF_RANGE',
-						field: 'subtotal',
-					});
-				const discountAmount = BigInt(dto.discountAmount);
-				if (discountAmount > subtotal) {
-					throw new UnprocessableEntityException({
-						reason: 'VALIDATION_ERROR',
-						message: 'Discount cannot exceed subtotal',
-					});
-				}
-				const total = subtotal - discountAmount;
-				const amountPaid = BigInt(dto.amountPaid);
-				if (
-					dto.paymentMethod === QuickSalePaymentMethod.DEBT &&
-					amountPaid !== 0n
-				) {
-					throw new UnprocessableEntityException({
-						reason: 'VALIDATION_ERROR',
-						message: 'Debt payment must have zero amount paid',
-					});
-				}
-				if (
-					amountPaid > total &&
-					dto.paymentMethod !== QuickSalePaymentMethod.CASH
-				) {
-					throw new UnprocessableEntityException({
-						reason: 'VALIDATION_ERROR',
-						message: 'Only cash payment can include change',
-					});
-				}
-				const debtAmount = amountPaid < total ? total - amountPaid : 0n;
-				if (debtAmount > 0n && !customer) {
-					throw new UnprocessableEntityException({
-						reason: 'INVALID_CUSTOMER',
-						message: 'A customer is required for unpaid sales',
-					});
-				}
-
-				const allocationsByLine = new Map<
-					(typeof prepared)[number],
-					Awaited<ReturnType<typeof resolveSaleAllocations>>
-				>();
-				for (const line of prepared) {
-					const allocations = await resolveSaleAllocations(tx, {
-						tenantId,
-						warehouseId: warehouse[0].id,
-						productId: line.productId,
-						qtyBase: line.qtyBase,
-						productKind: line.product.productKind,
-					});
-					allocationsByLine.set(line, allocations);
-					const stock = await tx.stock.findFirst({
-						where: {
+					const allocationsByLine = new Map<
+						(typeof prepared)[number],
+						Awaited<ReturnType<typeof resolveSaleAllocations>>
+					>();
+					for (const line of prepared) {
+						const allocations = await resolveSaleAllocations(tx, {
 							tenantId,
 							warehouseId: warehouse[0].id,
 							productId: line.productId,
-						},
-						select: { id: true },
-					});
-					if (!stock) throw this.insufficientStock();
-					const updated = await tx.stock.updateMany({
-						where: {
-							id: stock.id,
-							tenantId,
-							qty: { gte: line.qtyBase },
-						},
-						data: { qty: { decrement: line.qtyBase } },
-					});
-					if (updated.count !== 1) throw this.insufficientStock();
-				}
-
-				const sale = await tx.sale.create({
-					data: {
-						tenantId,
-						docNo: `BH-${randomUUID().slice(0, 8).toUpperCase()}`,
-						channel: 'QUICK_SALE',
-						status: 'COMPLETED',
-						customerId: customer?.id,
-						customerNameSnapshot: customer?.name,
-						customerPhoneSnapshot: customer?.phone,
-						warehouseId: warehouse[0].id,
-						subtotal,
-						discountAmount,
-						total,
-						amountPaid: amountPaid > total ? total : amountPaid,
-						changeAmount: amountPaid > total ? amountPaid - total : 0n,
-						debtAmount,
-						paymentMethod: this.toPrismaPayment(dto.paymentMethod),
-						idempotencyKey: dto.idempotencyKey,
-						createdBy: userId,
-						completedAt: new Date(),
-						lines: {
-							create: prepared.map((line) => ({
-								tenantId,
-								productId: line.productId,
-								productNameSnapshot: line.product.name,
-								unitId: line.unitId,
-								qty: line.qty,
-								qtyBase: line.qtyBase,
-								unitPrice: line.unitPrice,
-								priceSource: 'MANUAL',
-								lineTotal: line.lineTotal,
-								unitCost: line.product.costPrice,
-							})),
-						},
-					},
-					include: { lines: true },
-				});
-
-				for (const [index, line] of prepared.entries()) {
-					const allocations = allocationsByLine.get(line) ?? [];
-					if (allocations.length > 0) {
-						await tx.saleLineBatch.createMany({
-							data: allocations.map((allocation) => ({
-								saleLineId: sale.lines[index].id,
-								batchId: allocation.batchId,
-								qtyBase: allocation.qtyBase,
-							})),
+							qtyBase: line.qtyBase,
+							productKind: line.product.productKind,
 						});
-					}
-					for (const allocation of allocations.length > 0
-						? allocations
-						: [{ batchId: undefined, qtyBase: line.qtyBase }]) {
-						await tx.stockMovement.create({
-							data: {
+						allocationsByLine.set(line, allocations);
+						const stock = await tx.stock.findFirst({
+							where: {
 								tenantId,
 								warehouseId: warehouse[0].id,
 								productId: line.productId,
-								batchId: allocation.batchId,
-								direction: 'OUT',
-								qty: allocation.qtyBase,
-								reason: 'SALE',
+							},
+							select: { id: true },
+						});
+						if (!stock) throw this.insufficientStock();
+						const updated = await tx.stock.updateMany({
+							where: {
+								id: stock.id,
+								tenantId,
+								qty: { gte: line.qtyBase },
+							},
+							data: { qty: { decrement: line.qtyBase } },
+						});
+						if (updated.count !== 1) throw this.insufficientStock();
+					}
+
+					const sale = await tx.sale.create({
+						data: {
+							tenantId,
+							docNo: `BH-${randomUUID().slice(0, 8).toUpperCase()}`,
+							channel: 'QUICK_SALE',
+							status: 'COMPLETED',
+							customerId: customer?.id,
+							customerNameSnapshot: customer?.name,
+							customerPhoneSnapshot: customer?.phone,
+							warehouseId: warehouse[0].id,
+							subtotal,
+							discountAmount,
+							total,
+							amountPaid: amountPaid > total ? total : amountPaid,
+							changeAmount: amountPaid > total ? amountPaid - total : 0n,
+							debtAmount,
+							paymentMethod: this.toPrismaPayment(dto.paymentMethod),
+							idempotencyKey: dto.idempotencyKey,
+							createdBy: userId,
+							completedAt: new Date(),
+							lines: {
+								create: prepared.map((line) => ({
+									tenantId,
+									productId: line.productId,
+									productNameSnapshot: line.product.name,
+									unitId: line.unitId,
+									qty: line.qty,
+									qtyBase: line.qtyBase,
+									unitPrice: line.unitPrice,
+									priceSource: 'MANUAL',
+									lineTotal: line.lineTotal,
+									unitCost: line.product.costPrice,
+								})),
+							},
+						},
+						include: { lines: true },
+					});
+
+					for (const [index, line] of prepared.entries()) {
+						const allocations = allocationsByLine.get(line) ?? [];
+						if (allocations.length > 0) {
+							await tx.saleLineBatch.createMany({
+								data: allocations.map((allocation) => ({
+									saleLineId: sale.lines[index].id,
+									batchId: allocation.batchId,
+									qtyBase: allocation.qtyBase,
+								})),
+							});
+						}
+						for (const allocation of allocations.length > 0
+							? allocations
+							: [{ batchId: undefined, qtyBase: line.qtyBase }]) {
+							await tx.stockMovement.create({
+								data: {
+									tenantId,
+									warehouseId: warehouse[0].id,
+									productId: line.productId,
+									batchId: allocation.batchId,
+									direction: 'OUT',
+									qty: allocation.qtyBase,
+									reason: 'SALE',
+									refType: 'SALE',
+									refId: sale.id,
+									createdBy: userId,
+								},
+							});
+						}
+					}
+
+					if (customer && debtAmount > 0n) {
+						const updatedCustomer = await tx.customer.update({
+							where: { id: customer.id },
+							data: { balance: { increment: debtAmount } },
+							select: { balance: true },
+						});
+						await tx.debtLedger.create({
+							data: {
+								tenantId,
+								partyType: 'CUSTOMER',
+								partyId: customer.id,
+								entryType: 'SALE',
+								direction: 'INCREASE',
+								amount: debtAmount,
+								balanceAfter: updatedCustomer.balance,
 								refType: 'SALE',
 								refId: sale.id,
 								createdBy: userId,
 							},
 						});
 					}
-				}
-
-				if (customer && debtAmount > 0n) {
-					const updatedCustomer = await tx.customer.update({
-						where: { id: customer.id },
-						data: { balance: { increment: debtAmount } },
-						select: { balance: true },
-					});
-					await tx.debtLedger.create({
-						data: {
-							tenantId,
-							partyType: 'CUSTOMER',
-							partyId: customer.id,
-							entryType: 'SALE',
-							direction: 'INCREASE',
-							amount: debtAmount,
-							balanceAfter: updatedCustomer.balance,
-							refType: 'SALE',
-							refId: sale.id,
-							createdBy: userId,
+					await this.audit.writeInTx(tx, {
+						tenantId,
+						actorId: userId,
+						actorType: AuditActorType.USER,
+						actorRoleCode: null,
+						action: AuditAction.SALE_QUICK,
+						resource: 'sale',
+						resourceId: sale.id,
+						after: {
+							status: sale.status,
+							channel: sale.channel,
+							total: sale.total.toString(),
+							lineCount: sale.lines.length,
+							settlement: {
+								amountPaid: sale.amountPaid.toString(),
+								changeAmount: sale.changeAmount.toString(),
+								debtAmount: sale.debtAmount.toString(),
+								paymentMethod: sale.paymentMethod,
+							},
+							stockEffect: 'OUT',
+							debtEffect: sale.debtAmount > 0n ? 'INCREASE' : 'NONE',
 						},
 					});
-				}
-				return this.toResponse(sale, dto.paymentMethod);
-			},
-			(error) => this.isSaleIdempotencyCollision(error),
-		);
+					return this.toResponse(sale, dto.paymentMethod);
+				},
+				(error) => this.isSaleIdempotencyCollision(error),
+			);
+		} catch (error) {
+			await this.recordSaleDenial(tenantId, userId, 'QUICK_SALE', error);
+			throw error;
+		}
 	}
 
 	private normalize(dto: CreateQuickSaleDto): NormalizedLine[] {

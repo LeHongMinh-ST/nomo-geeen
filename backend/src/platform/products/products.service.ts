@@ -4,11 +4,15 @@ import {
 	NotFoundException,
 } from '@nestjs/common';
 import {
+	AuditAction,
+	AuditActorType,
 	BusinessGroup,
 	ConversionKind,
 	Prisma,
 	ProductKind,
 } from '@prisma/client';
+import { AuditLogger } from '../audit/audit-logger.service';
+import type { TenantIdentity } from '../auth/token.service';
 import { EntitlementService } from '../entitlements/entitlement.service';
 import { TenantQuotaCounterService } from '../entitlements/tenant-quota-counter.service';
 import { PrismaService } from '../prisma/prisma.service';
@@ -56,6 +60,7 @@ export class ProductsService {
 		private readonly prisma: PrismaService,
 		private readonly entitlements: EntitlementService,
 		private readonly counters: TenantQuotaCounterService,
+		private readonly audit: AuditLogger,
 	) {}
 
 	async list(tenantId: string) {
@@ -183,7 +188,11 @@ export class ProductsService {
 		return { configured: configured.length > 0, groups: configured };
 	}
 
-	async updateBusinessGroups(tenantId: string, enabledGroups: BusinessGroup[]) {
+	async updateBusinessGroups(
+		tenantId: string,
+		enabledGroups: BusinessGroup[],
+		actor?: Pick<TenantIdentity, 'id' | 'tenantId' | 'roleCode'>,
+	) {
 		const enabled = new Set(enabledGroups);
 		return this.prisma.$transaction(async (tx) => {
 			for (const businessGroup of Object.values(BusinessGroup)) {
@@ -202,11 +211,25 @@ export class ProductsService {
 				select: { businessGroup: true, enabled: true },
 				orderBy: { businessGroup: 'asc' },
 			});
+			if (actor)
+				await this.audit.writeInTx(tx, {
+					tenantId,
+					actorId: actor.id,
+					actorType: AuditActorType.USER,
+					actorRoleCode: actor.roleCode,
+					action: AuditAction.PRODUCT_GROUP_UPDATE,
+					resource: 'product_business_group',
+					after: { groups },
+				});
 			return { configured: groups.length > 0, groups };
 		});
 	}
 
-	async create(tenantId: string, dto: CreateProductDto) {
+	async create(
+		tenantId: string,
+		dto: CreateProductDto,
+		actor?: Pick<TenantIdentity, 'id' | 'tenantId' | 'roleCode'>,
+	) {
 		const sku = dto.sku.trim();
 		const name = dto.name.trim();
 		if (!sku || !name)
@@ -237,7 +260,7 @@ export class ProductsService {
 			}
 
 			try {
-				return await tx.product.create({
+				const created = await tx.product.create({
 					data: {
 						tenantId,
 						sku,
@@ -267,6 +290,24 @@ export class ProductsService {
 					},
 					select: { id: true, sku: true, name: true, baseUnitId: true },
 				});
+				if (actor)
+					await this.audit.writeInTx(tx, {
+						tenantId,
+						actorId: actor.id,
+						actorType: AuditActorType.USER,
+						actorRoleCode: actor.roleCode,
+						action: AuditAction.PRODUCT_CREATE,
+						resource: 'product',
+						resourceId: created.id,
+						after: {
+							sku: created.sku,
+							name: created.name,
+							productKind: dto.productKind,
+							businessGroup: dto.businessGroup,
+							attrs: dto.attrs,
+						},
+					});
+				return created;
 			} catch (error) {
 				if (this.isSkuConflict(error)) {
 					throw new BadRequestException('SKU already exists');
@@ -276,7 +317,12 @@ export class ProductsService {
 		});
 	}
 
-	async update(tenantId: string, id: string, dto: UpdateProductDto) {
+	async update(
+		tenantId: string,
+		id: string,
+		dto: UpdateProductDto,
+		actor?: Pick<TenantIdentity, 'id' | 'tenantId' | 'roleCode'>,
+	) {
 		if (dto.sku !== undefined && !dto.sku.trim())
 			throw new BadRequestException('sku is required');
 		if (dto.name !== undefined && !dto.name.trim())
@@ -374,6 +420,23 @@ export class ProductsService {
 					where: { tenantId, productId: product.id },
 					_sum: { qty: true },
 				});
+				if (actor)
+					await this.audit.writeInTx(tx, {
+						tenantId,
+						actorId: actor.id,
+						actorType: AuditActorType.USER,
+						actorRoleCode: actor.roleCode,
+						action: AuditAction.PRODUCT_UPDATE,
+						resource: 'product',
+						resourceId: product.id,
+						after: {
+							sku: product.sku,
+							name: product.name,
+							productKind: product.productKind,
+							businessGroup: product.businessGroup,
+							attrs: product.attrs,
+						},
+					});
 				return this.toPublicProduct(product, stock._sum.qty);
 			} catch (error) {
 				if (this.isSkuConflict(error))
@@ -383,13 +446,30 @@ export class ProductsService {
 		});
 	}
 
-	async remove(tenantId: string, id: string) {
-		const result = await this.prisma.product.updateMany({
-			where: { id, tenantId, deletedAt: null },
-			data: { deletedAt: new Date() },
+	async remove(
+		tenantId: string,
+		id: string,
+		actor?: Pick<TenantIdentity, 'id' | 'tenantId' | 'roleCode'>,
+	) {
+		return this.prisma.$transaction(async (tx) => {
+			const result = await tx.product.updateMany({
+				where: { id, tenantId, deletedAt: null },
+				data: { deletedAt: new Date() },
+			});
+			if (result.count === 0) throw new NotFoundException('Product not found');
+			if (actor)
+				await this.audit.writeInTx(tx, {
+					tenantId,
+					actorId: actor.id,
+					actorType: AuditActorType.USER,
+					actorRoleCode: actor.roleCode,
+					action: AuditAction.PRODUCT_DELETE,
+					resource: 'product',
+					resourceId: id,
+					after: { deleted: true },
+				});
+			return { id, deleted: true };
 		});
-		if (result.count === 0) throw new NotFoundException('Product not found');
-		return { id, deleted: true };
 	}
 
 	private productSelect() {

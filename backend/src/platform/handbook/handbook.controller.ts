@@ -57,7 +57,7 @@ export class HandbookController {
 	@Post()
 	@RequireTenantPermission('handbook:create')
 	create(@Req() request: TenantRequest, @Body() dto: CreateHandbookEntryDto) {
-		return this.handbook.create(request.user.tenantId, dto);
+		return this.handbook.create(request.user.tenantId, request.user.id, dto);
 	}
 
 	@Patch(':id')
@@ -67,6 +67,11 @@ export class HandbookController {
 		@Param('id') id: string,
 		@Body() dto: UpdateHandbookEntryDto,
 	) {
-		return this.handbook.update(request.user.tenantId, id, dto);
+		return this.handbook.update(
+			request.user.tenantId,
+			request.user.id,
+			id,
+			dto,
+		);
 	}
 }

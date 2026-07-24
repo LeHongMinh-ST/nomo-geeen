@@ -77,6 +77,6 @@ export class PurchasesController {
 	@RequireTenantPermission('purchase:edit')
 	@RequireFeature('inventory')
 	cancel(@Req() req: TenantRequest, @Param('id') id: string) {
-		return this.purchases.cancel(req.user.tenantId, id);
+		return this.purchases.cancel(req.user.tenantId, req.user.id, id);
 	}
 }

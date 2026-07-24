@@ -29,7 +29,14 @@ describe('PurchasesService', () => {
 				callback(tx),
 			),
 		};
-		return { service: new PurchasesService(prisma as never), tx, prisma };
+		return {
+			service: new PurchasesService(
+				prisma as never,
+				{ writeInTx: jest.fn() } as never,
+			),
+			tx,
+			prisma,
+		};
 	}
 	function dto(overrides: Record<string, unknown> = {}) {
 		return {

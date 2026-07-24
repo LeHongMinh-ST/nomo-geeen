@@ -5,7 +5,14 @@ import {
 	NotFoundException,
 	UnprocessableEntityException,
 } from '@nestjs/common';
-import { Prisma, StockDirection, StockReason } from '@prisma/client';
+import {
+	AuditAction,
+	AuditActorType,
+	Prisma,
+	StockDirection,
+	StockReason,
+} from '@prisma/client';
+import { AuditLogger } from '../audit/audit-logger.service';
 import { isBatchControlled } from '../inventory/batch-policy';
 import { PrismaService } from '../prisma/prisma.service';
 import { assertReasonAllowed } from './adjustment-reason-policy';
@@ -30,7 +37,10 @@ const STATUS_COMPLETED = 'COMPLETED';
 
 @Injectable()
 export class StockAdjustmentsService {
-	constructor(private readonly prisma: PrismaService) {}
+	constructor(
+		private readonly prisma: PrismaService,
+		private readonly audit: AuditLogger,
+	) {}
 
 	async list(
 		tenantId: string,
@@ -112,6 +122,28 @@ export class StockAdjustmentsService {
 					},
 				},
 				include: { lines: true },
+			});
+			await this.audit.writeInTx(tx, {
+				tenantId,
+				actorId: userId,
+				actorType: AuditActorType.USER,
+				actorRoleCode: null,
+				action: AuditAction.STOCK_ADJUSTMENT_CREATE,
+				resource: 'stock_adjustment',
+				resourceId: adjustment.id,
+				after: {
+					status: adjustment.status,
+					lineCount: adjustment.lines.length,
+					lines: prepared.slice(0, 100).map((line) => ({
+						productId: line.productId,
+						batchId: line.batchId,
+						delta: line.delta.toString(),
+						reasonCode: line.reasonCode,
+					})),
+					...(prepared.length > 100
+						? { truncated: true, count: prepared.length }
+						: {}),
+				},
 			});
 			return this.toResponse(adjustment);
 		});
@@ -349,6 +381,30 @@ export class StockAdjustmentsService {
 			const completed = await tx.stockAdjustment.findFirstOrThrow({
 				where: { id: adjustment.id, tenantId },
 				include: { lines: true },
+			});
+			await this.audit.writeInTx(tx, {
+				tenantId,
+				actorId: userId,
+				actorType: AuditActorType.USER,
+				actorRoleCode: null,
+				action: AuditAction.STOCK_ADJUSTMENT_COMPLETE,
+				resource: 'stock_adjustment',
+				resourceId: completed.id,
+				after: {
+					status: completed.status,
+					lineCount: completed.lines.length,
+					lines: completed.lines.slice(0, 100).map((line) => ({
+						productId: line.productId,
+						batchId: line.batchId,
+						delta: line.delta.toString(),
+						qtyBefore: line.qtyBefore.toString(),
+						qtyAfter: line.qtyAfter.toString(),
+						reasonCode: line.reasonCode,
+					})),
+					...(completed.lines.length > 100
+						? { truncated: true, count: completed.lines.length }
+						: {}),
+				},
 			});
 			return this.toResponse(completed);
 		});

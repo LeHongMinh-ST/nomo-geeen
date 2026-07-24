@@ -5,6 +5,9 @@ import { ProductsService } from './products.service';
 describe('ProductsService', () => {
 	function makeService() {
 		const prisma = {
+			$transaction: jest.fn(async (callback: (client: unknown) => unknown) =>
+				callback(prisma),
+			),
 			product: {
 				findMany: jest.fn(),
 				findFirst: jest.fn(),
@@ -16,6 +19,7 @@ describe('ProductsService', () => {
 			prisma as never,
 			{ assertFeature: jest.fn() } as never,
 			{ reserve: jest.fn() } as never,
+			{ writeInTx: jest.fn() } as never,
 		);
 		return { prisma, service };
 	}

@@ -26,26 +26,29 @@ describe('HandbookService', () => {
 				cb(tx),
 			),
 		};
+		const audit = { writeInTx: jest.fn() };
 		return {
-			service: new HandbookService(prisma as never),
+			service: new HandbookService(prisma as never, audit as never),
 			prisma,
 			tx,
+			audit,
 		};
 	}
 
 	it('rejects non-selectable category on create', async () => {
-		const { service, prisma } = makeService();
+		const { service, prisma, audit } = makeService();
 		await expect(
-			service.create('tenant-1', {
+			service.create('tenant-1', 'user-1', {
 				name: 'X',
 				category: 'UNCATEGORIZED' as never,
 			}),
 		).rejects.toBeInstanceOf(BadRequestException);
 		expect(prisma.$transaction).not.toHaveBeenCalled();
+		expect(audit.writeInTx).not.toHaveBeenCalled();
 	});
 
 	it('creates entry with selectable category and returns label', async () => {
-		const { service, tx } = makeService();
+		const { service, tx, audit } = makeService();
 		tx.disease.create.mockResolvedValue({ id: 'd1' });
 		tx.diseaseIngredient.createMany.mockResolvedValue({ count: 1 });
 		tx.disease.findFirstOrThrow.mockResolvedValue({
@@ -67,7 +70,7 @@ describe('HandbookService', () => {
 			ingredients: [{ activeIngredient: 'Tricyclazole', sortOrder: 0 }],
 			pins: [],
 		});
-		const result = await service.create('tenant-1', {
+		const result = await service.create('tenant-1', 'user-1', {
 			name: 'Đạo ôn',
 			category: 'CROP_PROTECTION_AND_FERTILIZER' as never,
 			subject: 'Lúa',
@@ -87,6 +90,59 @@ describe('HandbookService', () => {
 				}),
 			}),
 		);
+		expect(audit.writeInTx).toHaveBeenCalledWith(
+			tx,
+			expect.objectContaining({
+				action: 'HANDBOOK_CREATE',
+				after: expect.objectContaining({
+					category: HandbookCategory.CROP_PROTECTION_AND_FERTILIZER,
+				}),
+			}),
+		);
+	});
+
+	it('audits Handbook update with category metadata only', async () => {
+		const { service, prisma, tx, audit } = makeService();
+		prisma.disease.findFirst.mockResolvedValue({
+			id: 'd1',
+			tenantId: 'tenant-1',
+			deletedAt: null,
+		});
+		tx.disease.update.mockResolvedValue({});
+		tx.disease.findFirstOrThrow.mockResolvedValue({
+			id: 'd1',
+			tenantId: 'tenant-1',
+			name: 'X',
+			aliases: null,
+			domain: 'GENERAL',
+			handbookCategory: HandbookCategory.ANIMAL_FEED,
+			target: null,
+			type: 'OTHER',
+			symptom: null,
+			note: null,
+			isPinned: false,
+			sortOrder: 0,
+			isActive: true,
+			createdAt: new Date(),
+			updatedAt: new Date(),
+			ingredients: [],
+			pins: [],
+		});
+		await service.update('tenant-1', 'user-1', 'd1', {
+			category: 'ANIMAL_FEED' as never,
+			note: 'secret note',
+		});
+		expect(audit.writeInTx).toHaveBeenCalledWith(
+			tx,
+			expect.objectContaining({
+				action: 'HANDBOOK_UPDATE',
+				after: expect.objectContaining({
+					category: HandbookCategory.ANIMAL_FEED,
+				}),
+			}),
+		);
+		const auditInput = audit.writeInTx.mock.calls[0][1];
+		expect(auditInput.after).not.toHaveProperty('note');
 	});
 
 	it('lists only tenant-scoped rows with category filter', async () => {
@@ -155,7 +211,7 @@ describe('HandbookService', () => {
 			ingredients: [],
 			pins: [],
 		});
-		await service.create('tenant-1', {
+		await service.create('tenant-1', 'user-1', {
 			name: 'X',
 			category: 'ANIMAL_FEED' as never,
 			type: 'OTHER' as never,

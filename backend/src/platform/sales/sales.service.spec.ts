@@ -42,11 +42,17 @@ describe('SalesService', () => {
 		const entitlements = {
 			assertFeature: jest.fn().mockResolvedValue(undefined),
 		};
+		const audit = { log: jest.fn(), writeInTx: jest.fn() };
 		return {
-			service: new SalesService(prisma as never, entitlements as never),
+			service: new SalesService(
+				prisma as never,
+				entitlements as never,
+				audit as never,
+			),
 			tx,
 			prisma,
 			entitlements,
+			audit,
 		};
 	}
 
@@ -138,6 +144,41 @@ describe('SalesService', () => {
 			...overrides,
 		};
 	}
+
+	it('emits SALE_DENY after a rejected sale transaction', async () => {
+		const { service, tx, audit } = makeService();
+		seedTx(tx);
+		tx.product.findMany.mockResolvedValue([
+			{
+				id: 'product-1',
+				name: 'Locked product',
+				baseUnitId: 'unit-1',
+				baseUnit: { id: 'unit-1' },
+				conversions: [],
+				isLocked: true,
+				isRecalled: false,
+				status: 'ACTIVE',
+				costPrice: 400n,
+			},
+		]);
+
+		await expect(
+			service.createQuickSale('tenant-1', 'user-1', dto()),
+		).rejects.toMatchObject({
+			response: { reason: 'PRODUCT_LOCKED' },
+		});
+		expect(audit.log).toHaveBeenCalledWith(
+			expect.objectContaining({
+				action: 'SALE_DENY',
+				resource: 'sale',
+				after: {
+					channel: 'QUICK_SALE',
+					reason: 'PRODUCT_LOCKED',
+					outcome: 'denied',
+				},
+			}),
+		);
+	});
 
 	it('creates a paid sale with stock movement in the transaction', async () => {
 		const { service, tx } = makeService();

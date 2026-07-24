@@ -215,4 +215,59 @@ describe('AuditLogger.run', () => {
 			}),
 		});
 	});
+	it('redacts sensitive snapshot keys and bounds arrays', async () => {
+		const txAuditCreate = jest.fn().mockResolvedValue({});
+		prisma.$transaction = jest.fn(async (fnOrOps: unknown) =>
+			typeof fnOrOps === 'function'
+				? fnOrOps({ auditLog: { create: txAuditCreate } })
+				: [],
+		);
+		await logger.run(
+			{
+				...baseInput,
+				action: AuditAction.PRODUCT_CREATE,
+				after: {
+					password: 'secret',
+					items: Array.from({ length: 101 }, (_, i) => i),
+				},
+			},
+			async () => undefined,
+		);
+		const after = txAuditCreate.mock.calls[0][0].data.after;
+		expect(after).not.toHaveProperty('password');
+		expect(after).toMatchObject({ items: { count: 101, truncated: true } });
+	});
+
+	it('does not sanitize array items beyond the bounded prefix', async () => {
+		const tail = {};
+		Object.defineProperty(tail, 'secret', {
+			enumerable: true,
+			get: () => {
+				throw new Error('out-of-bound item evaluated');
+			},
+		});
+		const items = Array.from({ length: 101 }, (_, index) => index);
+		items[100] = tail as never;
+
+		await expect(
+			logger.run(
+				{ ...baseInput, action: AuditAction.PRODUCT_CREATE, after: { items } },
+				async () => undefined,
+			),
+		).resolves.toBeUndefined();
+	});
+
+	it('requires tenant context for USER actors', async () => {
+		await expect(
+			logger.run(
+				{
+					...baseInput,
+					actorType: AuditActorType.USER,
+					actorId: null,
+					action: AuditAction.PRODUCT_CREATE,
+				},
+				async () => undefined,
+			),
+		).rejects.toBeInstanceOf(BadRequestException);
+	});
 });
