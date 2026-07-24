@@ -1,0 +1,29 @@
+{
+  "feature_name": "sales-return-core",
+  "title": "Atomic full sales return",
+  "created_at": "2026-07-24T18:00:00+07:00",
+  "updated_at": "2026-07-24T18:22:00+07:00",
+  "language": "en",
+  "status": "completed",
+  "phase": "tasks",
+  "current_phase": "code",
+  "priority": "P1",
+  "effort": "1-2 implementation days",
+  "tags": ["sales", "returns", "inventory", "audit"],
+  "approvals": {"requirements": {"generated": true, "approved": true}, "design": {"generated": true, "approved": true}, "tasks": {"generated": true, "approved": true}},
+  "scope_lock": {
+    "source": "Phase C sales return gap in audit-core-business-catalog.",
+    "in_scope": ["Tenant-scoped full return of one completed sale", "Atomic stock and ProductBatch restoration using SaleLineBatch allocations", "Customer debt compensation when the original sale had debt", "Duplicate-return protection, audit event, controller reachability, and focused tests"],
+    "out_of_scope": ["Partial line returns", "Purchase returns", "Cash refund ledger", "Frontend return UI", "Exchange workflow"],
+    "expansion_policy": "requires-user-approval"
+  },
+  "dependencies": {"blockedBy": ["specs/core-stock-lifecycle/", "specs/tenant-sales-order-management/"], "blocks": []},
+  "task_files": ["tasks/task-R1-01-full-sales-return.md"],
+  "task_registry": {"tasks/task-R1-01-full-sales-return.md": {"id": "R1-01", "title": "Atomic full sales return", "status": "done", "dependencies": [], "blocker": null, "started_at": "2026-07-24T18:05:00+07:00", "completed_at": "2026-07-24T18:22:00+07:00", "last_updated_at": "2026-07-24T18:22:00+07:00"}},
+  "blocker": null,
+  "progress": {"init": "done", "requirements": "done", "research": "done", "design": "done", "tasks": "done", "code": "done", "test": "done", "review": "done"},
+  "design_context": {"discovery_mode": "targeted", "discovery_reason": "SalesReturn schema and SaleLineBatch allocation already exist; add a bounded service/controller boundary.", "execution_tier": "standard", "validation_recommended": true},
+  "validation": {"status": "completed", "session_count": 1, "questions_asked": 0, "last_validated_at": "2026-07-24T18:00:00+07:00"},
+  "timestamps": {"init": "2026-07-24T18:00:00+07:00", "requirements_done": "2026-07-24T18:01:00+07:00", "research_done": "2026-07-24T18:02:00+07:00", "design_done": "2026-07-24T18:03:00+07:00", "tasks_done": "2026-07-24T18:04:00+07:00", "code_done": "2026-07-24T18:22:00+07:00", "test_done": "2026-07-24T18:22:00+07:00", "review_done": "2026-07-24T18:22:00+07:00", "validation_done": "2026-07-24T18:23:00+07:00"},
+  "ready_for_implementation": true
+}

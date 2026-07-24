@@ -1,0 +1,10 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>catalog-specialized-sale-safety implementation notes</title>
+<h1>catalog-specialized-sale-safety</h1>
+<p><strong>R1-01 done</strong> — Livestock sale safety is enforced by the existing pure sale eligibility policy.</p>
+<ul>
+  <li>Blocked states: QUARANTINED, SICK, DEAD, REJECTED.</li>
+  <li>Scope deliberately uses existing <code>Product.attrs</code>; persistent livestock state machine remains a later spec.</li>
+  <li>Verification: 91 focused tests passed, backend build passed, Prisma validation passed.</li>
+</ul>

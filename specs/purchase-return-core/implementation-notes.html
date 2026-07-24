@@ -1,0 +1,11 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>purchase-return-core implementation notes</title>
+<h1>purchase-return-core</h1>
+<p><strong>R1-01 done</strong> — Full purchase return is reachable from the tenant purchase controller.</p>
+<ul>
+  <li>Decrements Stock and original ProductBatch quantities atomically.</li>
+  <li>Compensates supplier debt; original Purchase remains unchanged.</li>
+  <li>Partial returns, payment refunds, and frontend UI remain separate scope.</li>
+  <li>Verification: 3 focused tests, backend build, Prisma validation, and diff check pass.</li>
+</ul>

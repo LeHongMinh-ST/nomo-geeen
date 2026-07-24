@@ -1,0 +1,58 @@
+{
+  "feature_name": "catalog-specialized-sale-safety",
+  "title": "Specialized catalog sale safety gates",
+  "created_at": "2026-07-24T17:10:00+07:00",
+  "updated_at": "2026-07-24T17:24:00+07:00",
+  "language": "en",
+  "status": "completed",
+  "phase": "tasks",
+  "current_phase": "code",
+  "priority": "P1",
+  "effort": "1 implementation day",
+  "tags": ["catalog", "sales", "livestock", "compliance"],
+  "approvals": {
+    "requirements": {"generated": true, "approved": true},
+    "design": {"generated": true, "approved": true},
+    "tasks": {"generated": true, "approved": true}
+  },
+  "scope_lock": {
+    "source": "Open Phase C gaps from audit-core-business-catalog §8.4.",
+    "in_scope": [
+      "Pure policy for blocking livestock products whose attrs state is QUARANTINED, SICK, DEAD, or REJECTED",
+      "Wire the policy into order create, order complete, and quick sale after the existing product flag gate",
+      "Stable structured 422 reason PRODUCT_LIVESTOCK_UNSELLABLE and productKind",
+      "Unit and sales service regression tests"
+    ],
+    "out_of_scope": [
+      "Livestock individual/batch persistence model",
+      "Harvest-date PHI/REI hard blocks",
+      "Withdrawal calendar hard blocks",
+      "Returns, reports, and Handbook snapshots",
+      "Aquaculture"
+    ],
+    "expansion_policy": "requires-user-approval"
+  },
+  "dependencies": {
+    "blockedBy": ["specs/sale-checkout-kind-gates/"],
+    "blocks": []
+  },
+  "task_files": ["tasks/task-R1-01-livestock-sale-safety.md"],
+  "task_registry": {
+    "tasks/task-R1-01-livestock-sale-safety.md": {
+      "id": "R1-01",
+      "title": "Livestock sale safety gate",
+      "status": "done",
+      "dependencies": [],
+      "blocker": null,
+      "started_at": "2026-07-24T17:14:00+07:00",
+      "completed_at": "2026-07-24T17:24:00+07:00",
+      "last_updated_at": "2026-07-24T17:24:00+07:00"
+    }
+  },
+  "blocker": null,
+  "progress": {"init": "done", "requirements": "done", "research": "done", "design": "done", "tasks": "done", "code": "done", "test": "done", "review": "done"},
+  "design_context": {"discovery_mode": "targeted", "discovery_reason": "Extends the existing pure sale eligibility policy without schema changes.", "execution_tier": "standard", "validation_recommended": true},
+  "timestamps": {"init": "2026-07-24T17:10:00+07:00", "requirements_done": "2026-07-24T17:11:00+07:00", "research_done": "2026-07-24T17:12:00+07:00", "design_done": "2026-07-24T17:13:00+07:00", "tasks_done": "2026-07-24T17:13:00+07:00", "code_done": "2026-07-24T17:24:00+07:00", "test_done": "2026-07-24T17:24:00+07:00", "review_done": "2026-07-24T17:24:00+07:00", "validation_done": "2026-07-24T17:25:00+07:00"},
+  "validation": {"status": "completed", "session_count": 1, "questions_asked": 0, "last_validated_at": "2026-07-24T17:25:00+07:00"},
+  "ready_for_implementation": true
+}

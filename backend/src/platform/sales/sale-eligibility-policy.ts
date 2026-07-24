@@ -3,14 +3,23 @@ import { ProductKind, ProductStatus } from '@prisma/client';
 
 /**
  * Pure sale eligibility (catalog hard flags). No Prisma I/O.
- * PHI/REI/withdrawal keys are advisory only — never hard-block without harvest date.
+ * PHI/REI/withdrawal keys remain advisory unless the sale supplies the relevant date.
  */
 
 export type SaleEligibilityReason =
 	| 'PRODUCT_UNSELLABLE'
 	| 'PRODUCT_LOCKED'
 	| 'PRODUCT_RECALLED'
-	| 'PRODUCT_INACTIVE';
+	| 'PRODUCT_INACTIVE'
+	| 'PRODUCT_LIVESTOCK_UNSELLABLE'
+	| 'PRODUCT_PHI_ACTIVE'
+	| 'PRODUCT_WITHDRAWAL_ACTIVE';
+
+export type SaleRegulatoryDateContext = {
+	harvestDate?: Date | string | null;
+	withdrawalEndDate?: Date | string | null;
+	now?: Date;
+};
 
 /** Product slice needed for hard sale gates (service may pass full Prisma product). */
 export type SaleEligibleProduct = {
@@ -23,6 +32,21 @@ export type SaleEligibleProduct = {
 	productKind?: ProductKind | string | null;
 	attrs?: unknown;
 };
+
+const BLOCKED_LIVESTOCK_STATES = new Set([
+	'QUARANTINED',
+	'SICK',
+	'DEAD',
+	'REJECTED',
+]);
+
+function livestockState(attrs: unknown): string | undefined {
+	if (attrs == null || typeof attrs !== 'object' || Array.isArray(attrs))
+		return undefined;
+	const source = attrs as Record<string, unknown>;
+	const value = source.livestockStatus ?? source.livestock_status ?? source.status;
+	return typeof value === 'string' ? value.trim().toUpperCase() : undefined;
+}
 
 /** Documented advisory attr keys (camelCase + snake_case aliases). */
 export const SALE_ADVISORY_ATTR_KEYS = [
@@ -109,6 +133,19 @@ export function assertProductSaleEligible(
 			...(productKind ? { productKind } : {}),
 		});
 	}
+
+	if (
+		product.productKind === ProductKind.LIVESTOCK_SEED &&
+		livestockState(product.attrs) &&
+		BLOCKED_LIVESTOCK_STATES.has(livestockState(product.attrs) as string)
+	) {
+		throw new UnprocessableEntityException({
+			reason: 'PRODUCT_LIVESTOCK_UNSELLABLE' satisfies SaleEligibilityReason,
+			message: 'Livestock is not in a sellable health state',
+			field: 'productId',
+			productKind: ProductKind.LIVESTOCK_SEED,
+		});
+	}
 }
 
 /**
@@ -132,4 +169,52 @@ export function extractSaleAdvisories(attrs: unknown): SaleAdvisories {
 	}
 
 	return out;
+}
+
+function positiveDays(value: number | string | undefined): number | undefined {
+	const days = typeof value === 'number' ? value : Number(value);
+	return Number.isFinite(days) && days > 0 ? days : undefined;
+}
+
+function day(value: Date | string): Date {
+	const parsed = value instanceof Date ? new Date(value) : new Date(value);
+	parsed.setUTCHours(0, 0, 0, 0);
+	return parsed;
+}
+
+/** Hard regulatory date gates; missing event dates remain backward compatible. */
+export function assertSaleRegulatoryDates(
+	product: SaleEligibleProduct,
+	context: SaleRegulatoryDateContext,
+): void {
+	const advisories = extractSaleAdvisories(product.attrs);
+	const now = day(context.now ?? new Date());
+	const harvestDate = context.harvestDate ? day(context.harvestDate) : undefined;
+	const withdrawalEndDate = context.withdrawalEndDate
+		? day(context.withdrawalEndDate)
+		: undefined;
+	const phiDays = positiveDays(advisories.phiDays);
+	if (phiDays !== undefined && harvestDate) {
+		const clearanceDate = new Date(now);
+		clearanceDate.setUTCDate(clearanceDate.getUTCDate() + Math.ceil(phiDays));
+		if (harvestDate < clearanceDate) {
+			throw new UnprocessableEntityException({
+				reason: 'PRODUCT_PHI_ACTIVE' as const,
+				message: 'Product remains within the pre-harvest interval',
+				field: 'harvestDate',
+			});
+		}
+	}
+	const withdrawalDays = [
+		advisories.withdrawalMeatDays,
+		advisories.withdrawalMilkDays,
+		advisories.withdrawalEggDays,
+	].map(positiveDays).find((value): value is number => value !== undefined);
+	if (withdrawalDays !== undefined && withdrawalEndDate && withdrawalEndDate >= now) {
+		throw new UnprocessableEntityException({
+			reason: 'PRODUCT_WITHDRAWAL_ACTIVE' as const,
+			message: 'Product remains within the veterinary withdrawal period',
+			field: 'withdrawalEndDate',
+		});
+	}
 }

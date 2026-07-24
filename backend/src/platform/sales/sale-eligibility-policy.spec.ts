@@ -1,6 +1,7 @@
 import { ProductKind, ProductStatus } from '@prisma/client';
 import {
 	assertProductSaleEligible,
+	assertSaleRegulatoryDates,
 	extractSaleAdvisories,
 	type SaleEligibleProduct,
 } from './sale-eligibility-policy';
@@ -123,6 +124,43 @@ describe('sale-eligibility-policy', () => {
 				}),
 			);
 		});
+
+		it.each(['QUARANTINED', 'SICK', 'DEAD', 'REJECTED'])(
+			'rejects livestock state %s',
+			(state) => {
+				expect(() =>
+					assertProductSaleEligible(
+						baseProduct({
+							productKind: ProductKind.LIVESTOCK_SEED,
+							attrs: { livestockStatus: state },
+						}),
+					),
+				).toThrow(
+					expect.objectContaining({
+						response: expect.objectContaining({
+							reason: 'PRODUCT_LIVESTOCK_UNSELLABLE',
+							productKind: ProductKind.LIVESTOCK_SEED,
+						}),
+					}),
+				);
+			},
+		);
+
+		it('allows healthy livestock and ignores state on other product kinds', () => {
+			expect(() =>
+				assertProductSaleEligible(
+					baseProduct({
+						productKind: ProductKind.LIVESTOCK_SEED,
+						attrs: { livestockStatus: 'HEALTHY' },
+					}),
+				),
+			).not.toThrow();
+			expect(() =>
+				assertProductSaleEligible(
+					baseProduct({ attrs: { status: 'SICK' } }),
+				),
+			).not.toThrow();
+		});
 	});
 
 	describe('extractSaleAdvisories', () => {
@@ -165,6 +203,57 @@ describe('sale-eligibility-policy', () => {
 				withdrawalMilkDays: 5,
 				withdrawalEggDays: 2,
 			});
+		});
+	});
+
+	describe('assertSaleRegulatoryDates', () => {
+		const now = new Date('2026-07-24T12:00:00.000Z');
+
+		it('rejects harvest before the PHI clearance date', () => {
+			expect(() =>
+				assertSaleRegulatoryDates(
+					baseProduct({ attrs: { phiDays: 7 } }),
+					{ now, harvestDate: '2026-07-30' },
+				),
+			).toThrow(
+				expect.objectContaining({
+					response: expect.objectContaining({ reason: 'PRODUCT_PHI_ACTIVE' }),
+				}),
+			);
+		});
+
+		it('allows harvest on the PHI clearance date', () => {
+			expect(() =>
+				assertSaleRegulatoryDates(
+					baseProduct({ attrs: { phi_days: '7' } }),
+					{ now, harvestDate: '2026-07-31' },
+				),
+			).not.toThrow();
+		});
+
+		it('rejects an active veterinary withdrawal period', () => {
+			expect(() =>
+				assertSaleRegulatoryDates(
+					baseProduct({ attrs: { withdrawalMeatDays: 14 } }),
+					{ now, withdrawalEndDate: '2026-07-25' },
+				),
+			).toThrow(
+				expect.objectContaining({
+					response: expect.objectContaining({ reason: 'PRODUCT_WITHDRAWAL_ACTIVE' }),
+				}),
+			);
+		});
+
+		it('allows missing dates and an expired withdrawal period', () => {
+			expect(() =>
+			assertSaleRegulatoryDates(
+				baseProduct({ attrs: { phiDays: 7, withdrawalEggDays: 5 } }),
+				{ now, withdrawalEndDate: '2026-07-23' },
+			),
+		).not.toThrow();
+			expect(() =>
+			assertSaleRegulatoryDates(baseProduct({ attrs: { phiDays: 7 } }), { now }),
+		).not.toThrow();
 		});
 	});
 });

@@ -1,0 +1,10 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>handbook-order-snapshot implementation notes</title>
+<h1>handbook-order-snapshot</h1>
+<p><strong>R1-01 done</strong> — Order creation now snapshots tenant Handbook context.</p>
+<ul>
+  <li>Optional disease reference is tenant-scoped.</li>
+  <li>Disease name, consultation context, and suggested quantity metadata are stored on Sale.</li>
+  <li>Verification: 75 sales tests, build, Prisma validation, and diff check pass.</li>
+</ul>

@@ -1,0 +1,38 @@
+import 'reflect-metadata';
+import { AuditModule } from '../audit/audit.module';
+import { TENANT_PERMISSIONS_KEY } from '../auth/decorators/require-tenant-permission.decorator';
+import { ENTITLEMENT_FEATURE_KEY } from '../entitlements/entitlement.constants';
+import { ReportsController } from './reports.controller';
+import { ReportsModule } from './reports.module';
+
+describe('ReportsController', () => {
+	it('forwards tenant stock report and keeps guards', () => {
+		const reports = {
+			stockSummary: jest.fn().mockReturnValue({ items: [] }),
+		} as never;
+		const controller = new ReportsController(reports);
+		const request = { user: { tenantId: 'tenant-1' } } as never;
+		expect(controller.stock(request)).toEqual({ items: [] });
+		expect(
+			(reports as { stockSummary: jest.Mock }).stockSummary,
+		).toHaveBeenCalledWith('tenant-1');
+		expect(
+			Reflect.getMetadata(
+				TENANT_PERMISSIONS_KEY,
+				ReportsController.prototype.stock,
+			),
+		).toEqual(['inventory:view']);
+		expect(
+			Reflect.getMetadata(
+				ENTITLEMENT_FEATURE_KEY,
+				ReportsController.prototype.stock,
+			),
+		).toBe('inventory');
+	});
+
+	it('imports the audit module required by the tenant permission guard', () => {
+		expect(Reflect.getMetadata('imports', ReportsModule)).toContain(
+			AuditModule,
+		);
+	});
+});

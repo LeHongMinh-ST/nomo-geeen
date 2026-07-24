@@ -174,6 +174,8 @@ enum AuditAction {
   SALE_CREATE
   SALE_COMPLETE
   SALE_CANCEL
+  SALE_RETURN
+  PURCHASE_RETURN
   SALE_QUICK
   SALE_DENY
   STOCK_ADJUSTMENT_CREATE
@@ -240,6 +242,7 @@ model Tenant {
   customers          Customer[]
   suppliers          Supplier[]
   purchases          Purchase[]
+  purchaseReturns    PurchaseReturn[]
   sales              Sale[]
   salesReturns       SalesReturn[]
   stockAdjustments   StockAdjustment[]
@@ -831,6 +834,7 @@ model Warehouse {
   batches          ProductBatch[]
   movements        StockMovement[]
   purchases        Purchase[]
+  purchaseReturns  PurchaseReturn[]
   sales            Sale[]
   salesReturns     SalesReturn[]
   stockAdjustments StockAdjustment[]
@@ -971,6 +975,7 @@ model Product {
   batches         ProductBatch[]
   stocks          Stock[]
   movements       StockMovement[]
+  purchaseReturnLines PurchaseReturnLine[]
   purchaseLines   PurchaseLine[]
   saleLines       SaleLine[]
   diseasePins     DiseaseProductPin[]
@@ -1084,6 +1089,7 @@ model ProductBatch {
   warehouse     Warehouse        @relation(fields: [warehouseId], references: [id])
   movements     StockMovement[]
   purchaseLines PurchaseLine[]
+  purchaseReturnLines PurchaseReturnLine[]
   saleLines     SaleLine[]
   saleLineBatches SaleLineBatch[]
 
@@ -1202,6 +1208,7 @@ model Purchase {
   supplier  Supplier       @relation(fields: [supplierId], references: [id])
   warehouse Warehouse      @relation(fields: [warehouseId], references: [id])
   lines     PurchaseLine[]
+  returns   PurchaseReturn[]
   vouchers  PaymentVoucher[]
 
   @@unique([tenantId, docNo])
@@ -1233,6 +1240,49 @@ model PurchaseLine {
   @@index([purchaseId])
   @@index([tenantId])
   @@map("purchase_line")
+}
+
+model PurchaseReturn {
+  id                  String         @id @default(uuid())
+  tenantId            String
+  docNo               String
+  originalPurchaseId  String?
+  supplierId          String
+  warehouseId         String
+  status              PurchaseStatus @default(COMPLETED)
+  total               BigInt         @default(0)
+  debtAdjust          BigInt         @default(0)
+  note                String?
+  createdBy           String?
+  completedAt         DateTime?
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+
+  tenant          Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  originalPurchase Purchase? @relation(fields: [originalPurchaseId], references: [id], onDelete: SetNull)
+  supplier        Supplier  @relation(fields: [supplierId], references: [id])
+  warehouse       Warehouse @relation(fields: [warehouseId], references: [id])
+  lines           PurchaseReturnLine[]
+
+  @@unique([tenantId, docNo])
+  @@index([tenantId, originalPurchaseId])
+  @@map("purchase_return")
+}
+
+model PurchaseReturnLine {
+  id               String   @id @default(uuid())
+  purchaseReturnId String
+  productId        String
+  batchId          String?
+  qtyBase          Decimal  @db.Decimal(18, 6)
+  lineTotal        BigInt   @default(0)
+
+  purchaseReturn PurchaseReturn @relation(fields: [purchaseReturnId], references: [id], onDelete: Cascade)
+  product        Product        @relation(fields: [productId], references: [id])
+  batch          ProductBatch?  @relation(fields: [batchId], references: [id], onDelete: SetNull)
+
+  @@index([purchaseReturnId])
+  @@map("purchase_return_line")
 }
 
 // --- Sales ---
@@ -1299,6 +1349,8 @@ model SaleLine {
   lineTotal            BigInt
   unitCost             BigInt       @default(0)
   batchId              String?
+  harvestDate          DateTime?    @db.Date
+  withdrawalEndDate    DateTime?    @db.Date
 
   sale    Sale            @relation(fields: [saleId], references: [id], onDelete: Cascade)
   product Product         @relation(fields: [productId], references: [id])
@@ -1418,6 +1470,7 @@ model Supplier {
 
   tenant          Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   purchases       Purchase[]
+  purchaseReturns PurchaseReturn[]
   productsDefault Product[]
   vouchers        PaymentVoucher[]
 

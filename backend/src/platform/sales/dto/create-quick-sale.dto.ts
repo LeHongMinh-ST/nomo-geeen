@@ -4,6 +4,7 @@ import {
 	IsArray,
 	IsEnum,
 	IsInt,
+	IsISO8601,
 	IsOptional,
 	IsUUID,
 	Max,
@@ -36,6 +37,11 @@ export class CreateQuickSaleLineDto {
 	@Min(0)
 	@Max(Number.MAX_SAFE_INTEGER)
 	unitPrice!: number;
+
+	@IsOptional() @IsISO8601({ strict: true }, { message: 'harvestDate must be an ISO date' })
+	harvestDate?: string;
+	@IsOptional() @IsISO8601({ strict: true }, { message: 'withdrawalEndDate must be an ISO date' })
+	withdrawalEndDate?: string;
 }
 
 export class CreateQuickSaleDto {

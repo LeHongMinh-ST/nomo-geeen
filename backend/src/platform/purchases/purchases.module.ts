@@ -5,10 +5,11 @@ import { EntitlementsModule } from '../entitlements/entitlements.module';
 import { PrismaModule } from '../prisma/prisma.module';
 import { PurchasesController } from './purchases.controller';
 import { PurchasesService } from './purchases.service';
+import { PurchaseReturnsService } from './purchase-return.service';
 @Module({
 	imports: [AuthModule, AuditModule, EntitlementsModule, PrismaModule],
 	controllers: [PurchasesController],
-	providers: [PurchasesService],
-	exports: [PurchasesService],
+	providers: [PurchasesService, PurchaseReturnsService],
+	exports: [PurchasesService, PurchaseReturnsService],
 })
 export class PurchasesModule {}

@@ -115,4 +115,27 @@ The repository contains local runtime/package configuration and migrations, but 
 - Sale allocation uses backend FEFO logic from
   `backend/src/platform/inventory/fefo-allocator.ts`, skips expired/recalled batches, and writes
   `SaleLineBatch` allocation before stock mutation.
+- Sales also apply the shared `sale-eligibility-policy` on order create, order complete, and quick
+  sale. `LIVESTOCK_SEED` products with `attrs.livestockStatus`/`status` of `QUARANTINED`, `SICK`,
+  `DEAD`, or `REJECTED` are rejected before FEFO or stock mutation; persistent livestock lifecycle
+  entities remain a future slice.
+- Regulatory attributes are enforced when the sale supplies dates: `phiDays`/`phi_days` blocks a
+  harvest date before clearance, and positive meat/milk/egg withdrawal attributes block an active
+  `withdrawalEndDate`. Dates are snapshotted on `SaleLine`, so draft completion re-checks the same
+  context; missing dates remain backward compatible.
 - The lifecycle is verified across purchase complete, quick sale, and order completion. Returns,
+- Full sales returns are exposed at `POST /tenant/sales/orders/:id/return` for completed sales;
+    the return keeps the original sale immutable, restores Stock and SaleLineBatch allocations,
+    compensates customer debt atomically, and writes `SALE_RETURN` movements/audit. Partial returns,
+    payment refunds, and purchase returns remain separate slices.
+- Full purchase returns are exposed at `POST /tenant/purchases/:id/return` for completed purchases;
+  the return keeps the original purchase immutable, decrements Stock/ProductBatch quantities,
+  compensates supplier debt atomically, and writes `PURCHASE_RETURN` movements/audit. Partial returns,
+  payment refunds, and frontend return UI remain separate slices.
+- Read-only operational reports are exposed at `/tenant/reports/stock-summary` and
+  `/tenant/reports/sales-summary`; both are tenant-scoped and guarded by existing inventory/sales
+  permissions and entitlements. The first slice returns stock/batch expiry data and bounded completed
+  sales totals/top products; charts, exports, and financial accounting remain separate.
+- Sales order creation can optionally resolve a tenant Handbook `diseaseId` and persist
+  `diseaseNameSnapshot`, `consultContext`, and `suggestedQtyMeta` on the Sale. These fields are
+  historical snapshots; completed orders do not depend on later Handbook edits.

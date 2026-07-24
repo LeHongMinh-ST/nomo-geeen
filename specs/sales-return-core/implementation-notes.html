@@ -1,0 +1,11 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>sales-return-core implementation notes</title>
+<h1>sales-return-core</h1>
+<p><strong>R1-01 done</strong> — Full sales return is reachable from the tenant sales controller.</p>
+<ul>
+  <li>Restores Stock and original SaleLineBatch allocations atomically.</li>
+  <li>Compensates customer debt; original Sale remains unchanged.</li>
+  <li>Partial returns, payment refunds, and purchase returns remain separate scope.</li>
+  <li>Verification: 6 focused tests, backend build, Prisma validation, and diff check pass.</li>
+</ul>

@@ -15,6 +15,7 @@ import { PrismaModule } from './platform/prisma/prisma.module';
 import { ProductsModule } from './platform/products/products.module';
 import { PurchasesModule } from './platform/purchases/purchases.module';
 import { RedisModule } from './platform/redis/redis.module';
+import { ReportsModule } from './platform/reports/reports.module';
 import { RolesModule } from './platform/roles/roles.module';
 import { SalesModule } from './platform/sales/sales.module';
 import { StockAdjustmentsModule } from './platform/stock-adjustments/stock-adjustments.module';
@@ -27,6 +28,7 @@ import { TenantsModule } from './platform/tenants/tenants.module';
 		ConfigModule.forRoot({ isGlobal: true }),
 		PrismaModule,
 		RedisModule,
+		ReportsModule,
 		AuthModule,
 		BillingModule,
 		AuditModule,

@@ -21,7 +21,10 @@ import {
 	SalesOrderPaymentMethod,
 } from './dto/create-sales-order.dto';
 import type { SalesOrderQueryDto } from './dto/sales-order-query.dto';
-import { assertProductSaleEligible } from './sale-eligibility-policy';
+import {
+	assertProductSaleEligible,
+	assertSaleRegulatoryDates,
+} from './sale-eligibility-policy';
 
 type QuickSaleResponse = {
 	id: string;
@@ -48,6 +51,8 @@ type NormalizedLine = {
 	unitId: string;
 	qty: number;
 	unitPrice: bigint;
+	harvestDate?: string;
+	withdrawalEndDate?: string;
 };
 
 type OrderWithLines = Prisma.SaleGetPayload<{ include: { lines: true } }>;
@@ -218,6 +223,8 @@ export class SalesService {
 					line.unitId,
 					new Prisma.Decimal(line.qty).toString(),
 					BigInt(line.unitPrice).toString(),
+					line.harvestDate ?? '',
+					line.withdrawalEndDate ?? '',
 				].join(':'),
 			)
 			.sort();
@@ -228,6 +235,8 @@ export class SalesService {
 					line.unitId,
 					line.qty.toString(),
 					line.unitPrice.toString(),
+					line.harvestDate?.toISOString().slice(0, 10) ?? '',
+					line.withdrawalEndDate?.toISOString().slice(0, 10) ?? '',
 				].join(':'),
 			)
 			.sort();
@@ -436,9 +445,18 @@ export class SalesService {
 						throw new UnprocessableEntityException({
 							reason: 'INVALID_CUSTOMER',
 						});
+					const disease = dto.diseaseId
+						? await tx.disease.findFirst({
+								where: { id: dto.diseaseId, tenantId, deletedAt: null },
+								select: { id: true, name: true },
+							})
+						: null;
+					if (dto.diseaseId && !disease)
+						throw new UnprocessableEntityException({ reason: 'INVALID_HANDBOOK_ENTRY' });
 					const lines = dto.lines.map((line) => {
 						const product = byId.get(line.productId);
 						assertProductSaleEligible(product);
+						assertSaleRegulatoryDates(product, line);
 						const factor =
 							line.unitId === product.baseUnitId
 								? new Prisma.Decimal(1)
@@ -499,6 +517,10 @@ export class SalesService {
 							customerId: customer?.id,
 							customerNameSnapshot: customer?.name,
 							customerPhoneSnapshot: customer?.phone,
+							diseaseId: disease?.id,
+							diseaseNameSnapshot: disease?.name,
+							consultContext: dto.consultContext as Prisma.InputJsonValue | undefined,
+							suggestedQtyMeta: dto.suggestedQtyMeta as Prisma.InputJsonValue | undefined,
 							warehouseId: warehouse[0].id,
 							subtotal,
 							discountAmount: discount,
@@ -519,6 +541,12 @@ export class SalesService {
 									unitPrice: item.line.unitPrice,
 									lineTotal: item.lineTotal,
 									unitCost: item.product.costPrice,
+									harvestDate: item.line.harvestDate
+										? new Date(item.line.harvestDate)
+										: undefined,
+									withdrawalEndDate: item.line.withdrawalEndDate
+										? new Date(item.line.withdrawalEndDate)
+										: undefined,
 								})),
 							},
 						},
@@ -646,6 +674,7 @@ export class SalesService {
 			await this.entitlements.assertFeature(tenantId, 'debt', tx);
 		for (const line of sale.lines) {
 			assertProductSaleEligible(line.product, tenantId);
+			assertSaleRegulatoryDates(line.product, line);
 		}
 		for (const line of sale.lines) {
 			const qtyBase = this.positiveStorageQuantity(line.qtyBase, 'qtyBase');
@@ -1006,6 +1035,7 @@ export class SalesService {
 					const prepared = normalized.map((line) => {
 						const product = productById.get(line.productId);
 						assertProductSaleEligible(product);
+						assertSaleRegulatoryDates(product, line);
 						const factor =
 							line.unitId === product.baseUnitId
 								? new Prisma.Decimal(1)
@@ -1142,6 +1172,12 @@ export class SalesService {
 									priceSource: 'MANUAL',
 									lineTotal: line.lineTotal,
 									unitCost: line.product.costPrice,
+									harvestDate: line.harvestDate
+										? new Date(line.harvestDate)
+										: undefined,
+									withdrawalEndDate: line.withdrawalEndDate
+										? new Date(line.withdrawalEndDate)
+										: undefined,
 								})),
 							},
 						},
@@ -1245,6 +1281,8 @@ export class SalesService {
 				unitId: line.unitId,
 				qty: line.qty,
 				unitPrice: BigInt(line.unitPrice),
+				harvestDate: line.harvestDate,
+				withdrawalEndDate: line.withdrawalEndDate,
 			}));
 	}
 
@@ -1260,6 +1298,8 @@ export class SalesService {
 					line.unitId,
 					line.qty.toString(),
 					line.unitPrice.toString(),
+					line.harvestDate?.toISOString().slice(0, 10) ?? '',
+					line.withdrawalEndDate?.toISOString().slice(0, 10) ?? '',
 				].join(':'),
 			)
 			.sort();
@@ -1270,6 +1310,8 @@ export class SalesService {
 					line.unitId,
 					new Prisma.Decimal(line.qty).toString(),
 					line.unitPrice.toString(),
+					line.harvestDate ?? '',
+					line.withdrawalEndDate ?? '',
 				].join(':'),
 			)
 			.sort();

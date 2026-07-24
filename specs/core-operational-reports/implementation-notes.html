@@ -1,0 +1,10 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>core-operational-reports implementation notes</title>
+<h1>core-operational-reports</h1>
+<p><strong>R1-01 done</strong> — Tenant-scoped stock and sales summary endpoints are reachable from ReportsModule.</p>
+<ul>
+  <li>Routes: <code>/tenant/reports/stock-summary</code> and <code>/tenant/reports/sales-summary</code>.</li>
+  <li>Read-only; no schema migration or export job.</li>
+  <li>Verification: 3 focused tests, backend build, Prisma validation, and diff check pass.</li>
+</ul>

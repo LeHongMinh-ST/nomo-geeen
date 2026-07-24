@@ -8,6 +8,7 @@ import {
 	Query,
 	Req,
 	UseGuards,
+	Optional,
 } from '@nestjs/common';
 import type { Request } from 'express';
 import { RequireTenantPermission } from '../auth/decorators/require-tenant-permission.decorator';
@@ -17,11 +18,13 @@ import type { TenantIdentity } from '../auth/token.service';
 import { RequireFeature } from '../entitlements/entitlement.constants';
 import { EntitlementsGuard } from '../entitlements/entitlements.guard';
 import { CreatePurchaseDto } from './dto/create-purchase.dto';
+import { CreatePurchaseReturnDto } from './dto/create-purchase-return.dto';
 import {
 	CompletePurchaseDto,
 	PurchaseQueryDto,
 } from './dto/purchase-query.dto';
 import { PurchasesService } from './purchases.service';
+import { PurchaseReturnsService } from './purchase-return.service';
 
 interface TenantRequest extends Request {
 	user: TenantIdentity;
@@ -29,7 +32,10 @@ interface TenantRequest extends Request {
 @Controller('tenant/purchases')
 @UseGuards(TenantAccessTokenGuard, TenantPermissionGuard, EntitlementsGuard)
 export class PurchasesController {
-	constructor(private readonly purchases: PurchasesService) {}
+	constructor(
+		private readonly purchases: PurchasesService,
+		@Optional() private readonly purchaseReturns?: PurchaseReturnsService,
+	) {}
 	@Get()
 	@RequireTenantPermission('purchase:view')
 	@RequireFeature('inventory')
@@ -78,5 +84,12 @@ export class PurchasesController {
 	@RequireFeature('inventory')
 	cancel(@Req() req: TenantRequest, @Param('id') id: string) {
 		return this.purchases.cancel(req.user.tenantId, req.user.id, id);
+	}
+	@Post(':id/return')
+	@RequireTenantPermission('purchase:edit')
+	@RequireFeature('inventory')
+	returnPurchase(@Req() req: TenantRequest, @Param('id') id: string, @Body() dto: CreatePurchaseReturnDto) {
+		if (!this.purchaseReturns) throw new Error('Purchase return service is not configured');
+		return this.purchaseReturns.createFullReturn(req.user.tenantId, req.user.id, id, dto.note);
 	}
 }

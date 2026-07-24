@@ -5,7 +5,9 @@ import {
 	IsDecimal,
 	IsEnum,
 	IsInt,
+	IsISO8601,
 	IsOptional,
+	IsObject,
 	IsString,
 	IsUUID,
 	Max,
@@ -37,11 +39,18 @@ export class CreateSalesOrderLineDto {
 	@Min(0)
 	@Max(Number.MAX_SAFE_INTEGER)
 	unitPrice!: number;
+	@IsOptional() @IsISO8601({ strict: true }, { message: 'harvestDate must be an ISO date' })
+	harvestDate?: string;
+	@IsOptional() @IsISO8601({ strict: true }, { message: 'withdrawalEndDate must be an ISO date' })
+	withdrawalEndDate?: string;
 }
 
 export class CreateSalesOrderDto {
 	@IsUUID('4') idempotencyKey!: string;
 	@IsOptional() @IsUUID('4') customerId?: string;
+	@IsOptional() @IsUUID('4') diseaseId?: string;
+	@IsOptional() @IsObject() consultContext?: Record<string, unknown>;
+	@IsOptional() @IsObject() suggestedQtyMeta?: Record<string, unknown>;
 	@IsArray()
 	@ArrayMinSize(1)
 	@ValidateNested({ each: true })

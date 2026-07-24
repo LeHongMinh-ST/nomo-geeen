@@ -8,6 +8,7 @@ import {
 	Post,
 	Req,
 	UseGuards,
+	Optional,
 } from '@nestjs/common';
 import type { Request } from 'express';
 import { RequireTenantPermission } from '../auth/decorators/require-tenant-permission.decorator';
@@ -19,8 +20,10 @@ import { EntitlementsGuard } from '../entitlements/entitlements.guard';
 import { CreateQuickSaleDto } from './dto/create-quick-sale.dto';
 import { CompleteSalesOrderDto } from './dto/complete-sales-order.dto';
 import { CreateSalesOrderDto } from './dto/create-sales-order.dto';
+import { CreateSalesReturnDto } from './dto/create-sales-return.dto';
 import { SalesOrderQueryDto } from './dto/sales-order-query.dto';
 import { SalesService } from './sales.service';
+import { SalesReturnsService } from './sales-return.service';
 
 interface TenantRequest extends Request {
 	user: TenantIdentity;
@@ -29,7 +32,10 @@ interface TenantRequest extends Request {
 @Controller('tenant/sales')
 @UseGuards(TenantAccessTokenGuard, TenantPermissionGuard, EntitlementsGuard)
 export class SalesController {
-	constructor(private readonly sales: SalesService) {}
+	constructor(
+		private readonly sales: SalesService,
+		@Optional() private readonly salesReturns?: SalesReturnsService,
+	) {}
 
 	@Get('orders')
 	@RequireTenantPermission('sales:view')
@@ -80,6 +86,24 @@ export class SalesController {
 			request.user.tenantId,
 			request.user.id,
 			id,
+		);
+	}
+
+	@Post('orders/:id/return')
+	@RequireTenantPermission('sales:edit')
+	@RequireFeature('inventory')
+	returnOrder(
+		@Req() request: TenantRequest,
+		@Param('id') id: string,
+		@Body() dto: CreateSalesReturnDto,
+	) {
+		if (!this.salesReturns)
+			throw new Error('Sales return service is not configured');
+		return this.salesReturns.createFullReturn(
+			request.user.tenantId,
+			request.user.id,
+			id,
+			dto.note,
 		);
 	}
 

@@ -19,6 +19,7 @@ describe('SalesService', () => {
 				update: jest.fn(),
 				updateMany: jest.fn(),
 			},
+			disease: { findFirst: jest.fn() },
 			stock: {
 				findFirst: jest.fn(),
 				findUnique: jest.fn(),
@@ -573,6 +574,37 @@ describe('SalesService', () => {
 		expect(tx.stockMovement.create).not.toHaveBeenCalled();
 		expect(tx.customer.update).not.toHaveBeenCalled();
 		expect(tx.debtLedger.create).not.toHaveBeenCalled();
+	});
+
+	it('snapshots tenant handbook context on order creation', async () => {
+		const { service, tx } = makeService();
+		seedOrderCreation(tx);
+		tx.disease.findFirst.mockResolvedValue({ id: 'disease-1', name: 'Late blight' });
+
+		await service.createOrder(
+			'tenant-1',
+			'user-1',
+			orderDto({
+				diseaseId: 'disease-1',
+				consultContext: { crop: 'tomato', stage: 'flowering' },
+				suggestedQtyMeta: { unit: 'ml', recommended: 20 },
+			}),
+		);
+
+		expect(tx.disease.findFirst).toHaveBeenCalledWith({
+			where: { id: 'disease-1', tenantId: 'tenant-1', deletedAt: null },
+			select: { id: true, name: true },
+		});
+		expect(tx.sale.create).toHaveBeenCalledWith(
+			expect.objectContaining({
+				data: expect.objectContaining({
+					diseaseId: 'disease-1',
+					diseaseNameSnapshot: 'Late blight',
+					consultContext: { crop: 'tomato', stage: 'flowering' },
+					suggestedQtyMeta: { unit: 'ml', recommended: 20 },
+				}),
+			}),
+		);
 	});
 
 	it('creates a valid fractional-quantity draft with exact integer money', async () => {
