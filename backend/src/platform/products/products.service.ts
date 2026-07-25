@@ -234,7 +234,12 @@ export class ProductsService {
 		const name = dto.name.trim();
 		if (!sku || !name)
 			throw new BadRequestException('sku and name are required');
-		validateProductContract(dto.productKind, dto.businessGroup, dto.attrs);
+		validateProductContract(
+			dto.productKind,
+			dto.businessGroup,
+			dto.attrs,
+			true,
+		);
 
 		return this.prisma.$transaction(async (tx) => {
 			await this.entitlements.assertFeature(tenantId, 'inventory', tx);
@@ -345,6 +350,7 @@ export class ProductsService {
 				nextKind === ProductKind.OTHER ? null : nextKind,
 				nextGroup,
 				nextAttrs,
+				dto.attrs !== undefined,
 			);
 			if (nextGroup) {
 				const configuredGroups = await tx.tenantBusinessGroup.findMany({

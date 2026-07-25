@@ -156,9 +156,7 @@ describe('sale-eligibility-policy', () => {
 				),
 			).not.toThrow();
 			expect(() =>
-				assertProductSaleEligible(
-					baseProduct({ attrs: { status: 'SICK' } }),
-				),
+				assertProductSaleEligible(baseProduct({ attrs: { status: 'SICK' } })),
 			).not.toThrow();
 		});
 	});
@@ -211,10 +209,10 @@ describe('sale-eligibility-policy', () => {
 
 		it('rejects harvest before the PHI clearance date', () => {
 			expect(() =>
-				assertSaleRegulatoryDates(
-					baseProduct({ attrs: { phiDays: 7 } }),
-					{ now, harvestDate: '2026-07-30' },
-				),
+				assertSaleRegulatoryDates(baseProduct({ attrs: { phiDays: 7 } }), {
+					now,
+					harvestDate: '2026-07-30',
+				}),
 			).toThrow(
 				expect.objectContaining({
 					response: expect.objectContaining({ reason: 'PRODUCT_PHI_ACTIVE' }),
@@ -224,36 +222,130 @@ describe('sale-eligibility-policy', () => {
 
 		it('allows harvest on the PHI clearance date', () => {
 			expect(() =>
+				assertSaleRegulatoryDates(baseProduct({ attrs: { phi_days: '7' } }), {
+					now,
+					harvestDate: '2026-07-31',
+				}),
+			).not.toThrow();
+		});
+
+		it('rejects harvest before the REI clearance date even when PHI alone passes', () => {
+			expect(() =>
 				assertSaleRegulatoryDates(
-					baseProduct({ attrs: { phi_days: '7' } }),
+					baseProduct({ attrs: { phiDays: 7, reiDays: 21 } }),
 					{ now, harvestDate: '2026-07-31' },
+				),
+			).toThrow(
+				expect.objectContaining({
+					response: expect.objectContaining({
+						reason: 'PRODUCT_PHI_ACTIVE',
+						field: 'harvestDate',
+						productKind: ProductKind.PESTICIDE,
+					}),
+				}),
+			);
+		});
+
+		it('allows harvest on the REI clearance date', () => {
+			expect(() =>
+				assertSaleRegulatoryDates(baseProduct({ attrs: { rei_days: '7' } }), {
+					now,
+					harvestDate: '2026-07-31',
+				}),
+			).not.toThrow();
+		});
+
+		it('does not gate PHI or REI on a non-pesticide kind', () => {
+			expect(() =>
+				assertSaleRegulatoryDates(
+					baseProduct({
+						productKind: ProductKind.FERTILIZER,
+						attrs: { phiDays: 7, reiDays: 21 },
+					}),
+					{ now, harvestDate: '2026-07-25' },
 				),
 			).not.toThrow();
 		});
 
-		it('rejects an active veterinary withdrawal period', () => {
+		it.each([
+			['withdrawalMeatDays', 'meat'],
+			['withdrawalMilkDays', 'milk'],
+			['withdrawalEggDays', 'egg'],
+		])('rejects an active %s withdrawal period independently', (key, label) => {
+			expect(() =>
+				assertSaleRegulatoryDates(
+					baseProduct({
+						productKind: ProductKind.VET_DRUG,
+						attrs: { [key]: 14 },
+					}),
+					{ now, withdrawalEndDate: '2026-07-25' },
+				),
+			).toThrow(
+				expect.objectContaining({
+					response: expect.objectContaining({
+						reason: 'PRODUCT_WITHDRAWAL_ACTIVE',
+						field: 'withdrawalEndDate',
+						productKind: ProductKind.VET_DRUG,
+						message: `Product remains within the veterinary ${label} withdrawal period`,
+					}),
+				}),
+			);
+		});
+
+		it('rejects a withdrawal end date falling exactly on the sale date', () => {
+			expect(() =>
+				assertSaleRegulatoryDates(
+					baseProduct({
+						productKind: ProductKind.VET_DRUG,
+						attrs: { withdrawal_milk_days: '5' },
+					}),
+					{ now, withdrawalEndDate: '2026-07-24' },
+				),
+			).toThrow(
+				expect.objectContaining({
+					response: expect.objectContaining({
+						reason: 'PRODUCT_WITHDRAWAL_ACTIVE',
+					}),
+				}),
+			);
+		});
+
+		it('allows a withdrawal end date one day before the sale date', () => {
+			expect(() =>
+				assertSaleRegulatoryDates(
+					baseProduct({
+						productKind: ProductKind.VET_DRUG,
+						attrs: { withdrawalMeatDays: 14 },
+					}),
+					{ now, withdrawalEndDate: '2026-07-23' },
+				),
+			).not.toThrow();
+		});
+
+		it('does not gate withdrawal on a non-veterinary kind', () => {
 			expect(() =>
 				assertSaleRegulatoryDates(
 					baseProduct({ attrs: { withdrawalMeatDays: 14 } }),
 					{ now, withdrawalEndDate: '2026-07-25' },
 				),
-			).toThrow(
-				expect.objectContaining({
-					response: expect.objectContaining({ reason: 'PRODUCT_WITHDRAWAL_ACTIVE' }),
-				}),
-			);
+			).not.toThrow();
 		});
 
 		it('allows missing dates and an expired withdrawal period', () => {
 			expect(() =>
-			assertSaleRegulatoryDates(
-				baseProduct({ attrs: { phiDays: 7, withdrawalEggDays: 5 } }),
-				{ now, withdrawalEndDate: '2026-07-23' },
-			),
-		).not.toThrow();
+				assertSaleRegulatoryDates(
+					baseProduct({
+						productKind: ProductKind.VET_DRUG,
+						attrs: { withdrawalEggDays: 5 },
+					}),
+					{ now, withdrawalEndDate: '2026-07-23' },
+				),
+			).not.toThrow();
 			expect(() =>
-			assertSaleRegulatoryDates(baseProduct({ attrs: { phiDays: 7 } }), { now }),
-		).not.toThrow();
+				assertSaleRegulatoryDates(baseProduct({ attrs: { phiDays: 7 } }), {
+					now,
+				}),
+			).not.toThrow();
 		});
 	});
 });

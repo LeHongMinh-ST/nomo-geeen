@@ -44,7 +44,8 @@ function livestockState(attrs: unknown): string | undefined {
 	if (attrs == null || typeof attrs !== 'object' || Array.isArray(attrs))
 		return undefined;
 	const source = attrs as Record<string, unknown>;
-	const value = source.livestockStatus ?? source.livestock_status ?? source.status;
+	const value =
+		source.livestockStatus ?? source.livestock_status ?? source.status;
 	return typeof value === 'string' ? value.trim().toUpperCase() : undefined;
 }
 
@@ -182,6 +183,18 @@ function day(value: Date | string): Date {
 	return parsed;
 }
 
+function clearanceDate(now: Date, days: number): Date {
+	const clearance = new Date(now);
+	clearance.setUTCDate(clearance.getUTCDate() + Math.ceil(days));
+	return clearance;
+}
+
+const WITHDRAWAL_PERIODS = [
+	{ key: 'withdrawalMeatDays', label: 'meat' },
+	{ key: 'withdrawalMilkDays', label: 'milk' },
+	{ key: 'withdrawalEggDays', label: 'egg' },
+] as const;
+
 /** Hard regulatory date gates; missing event dates remain backward compatible. */
 export function assertSaleRegulatoryDates(
 	product: SaleEligibleProduct,
@@ -189,32 +202,49 @@ export function assertSaleRegulatoryDates(
 ): void {
 	const advisories = extractSaleAdvisories(product.attrs);
 	const now = day(context.now ?? new Date());
-	const harvestDate = context.harvestDate ? day(context.harvestDate) : undefined;
+	const harvestDate = context.harvestDate
+		? day(context.harvestDate)
+		: undefined;
 	const withdrawalEndDate = context.withdrawalEndDate
 		? day(context.withdrawalEndDate)
 		: undefined;
-	const phiDays = positiveDays(advisories.phiDays);
-	if (phiDays !== undefined && harvestDate) {
-		const clearanceDate = new Date(now);
-		clearanceDate.setUTCDate(clearanceDate.getUTCDate() + Math.ceil(phiDays));
-		if (harvestDate < clearanceDate) {
+	const productKind =
+		product.productKind != null ? String(product.productKind) : undefined;
+
+	if (product.productKind === ProductKind.PESTICIDE && harvestDate) {
+		const phiDays = positiveDays(advisories.phiDays);
+		if (phiDays !== undefined && harvestDate < clearanceDate(now, phiDays)) {
 			throw new UnprocessableEntityException({
-				reason: 'PRODUCT_PHI_ACTIVE' as const,
+				reason: 'PRODUCT_PHI_ACTIVE' satisfies SaleEligibilityReason,
 				message: 'Product remains within the pre-harvest interval',
 				field: 'harvestDate',
+				...(productKind ? { productKind } : {}),
+			});
+		}
+		const reiDays = positiveDays(advisories.reiDays);
+		if (reiDays !== undefined && harvestDate < clearanceDate(now, reiDays)) {
+			throw new UnprocessableEntityException({
+				reason: 'PRODUCT_PHI_ACTIVE' satisfies SaleEligibilityReason,
+				message: 'Product remains within the re-entry interval',
+				field: 'harvestDate',
+				...(productKind ? { productKind } : {}),
 			});
 		}
 	}
-	const withdrawalDays = [
-		advisories.withdrawalMeatDays,
-		advisories.withdrawalMilkDays,
-		advisories.withdrawalEggDays,
-	].map(positiveDays).find((value): value is number => value !== undefined);
-	if (withdrawalDays !== undefined && withdrawalEndDate && withdrawalEndDate >= now) {
-		throw new UnprocessableEntityException({
-			reason: 'PRODUCT_WITHDRAWAL_ACTIVE' as const,
-			message: 'Product remains within the veterinary withdrawal period',
-			field: 'withdrawalEndDate',
-		});
+
+	if (
+		product.productKind === ProductKind.VET_DRUG &&
+		withdrawalEndDate &&
+		withdrawalEndDate >= now
+	) {
+		for (const period of WITHDRAWAL_PERIODS) {
+			if (positiveDays(advisories[period.key]) === undefined) continue;
+			throw new UnprocessableEntityException({
+				reason: 'PRODUCT_WITHDRAWAL_ACTIVE' satisfies SaleEligibilityReason,
+				message: `Product remains within the veterinary ${period.label} withdrawal period`,
+				field: 'withdrawalEndDate',
+				...(productKind ? { productKind } : {}),
+			});
+		}
 	}
 }

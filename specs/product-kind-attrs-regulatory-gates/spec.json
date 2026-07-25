@@ -1,0 +1,121 @@
+{
+  "feature_name": "product-kind-attrs-regulatory-gates",
+  "title": "ProductKind decides specialized attrs and kind-scoped regulatory sale gates",
+  "created_at": "2026-07-25T09:00:00+07:00",
+  "updated_at": "2026-07-25T12:17:57+07:00",
+  "language": "en",
+  "status": "in_progress",
+  "phase": "tasks",
+  "current_phase": "code",
+  "priority": "P1",
+  "effort": "1 implementation day",
+  "tags": [
+    "catalog",
+    "products",
+    "sales",
+    "regulatory",
+    "phi",
+    "rei",
+    "withdrawal"
+  ],
+  "approvals": {
+    "requirements": {
+      "generated": true,
+      "approved": true
+    },
+    "design": {
+      "generated": true,
+      "approved": true
+    },
+    "tasks": {
+      "generated": true,
+      "approved": true
+    }
+  },
+  "scope_lock": {
+    "source": "Remaining per-kind attrs and regulatory gate gaps in docs/audit-core-business-catalog-2026-07-22.md (lines 128, 148, 290).",
+    "in_scope": [
+      "Server-authoritative specialized attrs per ProductKind: PESTICIDE phiDays/reiDays, VET_DRUG withdrawal_meat/milk/egg_days, FERTILIZER N/P2O5/K2O",
+      "Reject attrs that belong to a different ProductKind (no PHI/REI on FERTILIZER or VET_DRUG, no withdrawal on crop kinds)",
+      "Scope the PHI hard gate to PESTICIDE and add a REI hard gate on the same supplied harvest date",
+      "Scope the withdrawal hard gate to VET_DRUG and evaluate meat/milk/egg independently",
+      "Focused product-contract and sale-eligibility-policy tests"
+    ],
+    "out_of_scope": [
+      "Handbook, payment, and report files",
+      "Regulatory master data or prescription-driven date calculation",
+      "New Prisma columns or migrations",
+      "New structured reason codes beyond PRODUCT_PHI_ACTIVE and PRODUCT_WITHDRAWAL_ACTIVE",
+      "Frontend product forms and checkout UI",
+      "Retroactive backfill of attrs on products created before this slice"
+    ],
+    "expansion_policy": "requires-user-approval"
+  },
+  "dependencies": {
+    "blockedBy": [
+      "specs/sale-regulatory-date-gates/",
+      "specs/catalog-specialized-sale-safety/"
+    ],
+    "blocks": []
+  },
+  "task_files": [
+    "tasks/task-R1-01-kind-scoped-specialized-attrs.md",
+    "tasks/task-R2-01-kind-scoped-regulatory-gates.md"
+  ],
+  "task_registry": {
+    "tasks/task-R1-01-kind-scoped-specialized-attrs.md": {
+      "id": "R1-01",
+      "title": "Kind scoped specialized attrs",
+      "status": "pending",
+      "dependencies": [],
+      "blocker": null,
+      "started_at": null,
+      "completed_at": null,
+      "last_updated_at": null
+    },
+    "tasks/task-R2-01-kind-scoped-regulatory-gates.md": {
+      "id": "R2-01",
+      "title": "Kind scoped regulatory gates",
+      "status": "pending",
+      "dependencies": [
+        "tasks/task-R1-01-kind-scoped-specialized-attrs.md"
+      ],
+      "blocker": null,
+      "started_at": null,
+      "completed_at": null,
+      "last_updated_at": null
+    }
+  },
+  "blocker": null,
+  "progress": {
+    "init": "done",
+    "requirements": "done",
+    "research": "done",
+    "design": "done",
+    "tasks": "done",
+    "code": "pending",
+    "test": "pending",
+    "review": "pending"
+  },
+  "design_context": {
+    "discovery_mode": "targeted",
+    "discovery_reason": "Both integration points are single pure modules already shared by every write path: product-contract.ts for attrs and sale-eligibility-policy.ts for gates.",
+    "execution_tier": "standard",
+    "validation_recommended": true
+  },
+  "validation": {
+    "status": "completed",
+    "session_count": 1,
+    "questions_asked": 0,
+    "last_validated_at": "2026-07-25T09:00:00+07:00"
+  },
+  "timestamps": {
+    "init": "2026-07-25T09:00:00+07:00",
+    "requirements_done": "2026-07-25T09:01:00+07:00",
+    "research_done": "2026-07-25T09:02:00+07:00",
+    "design_done": "2026-07-25T09:03:00+07:00",
+    "tasks_done": "2026-07-25T09:04:00+07:00",
+    "validation_done": "2026-07-25T09:00:00+07:00"
+  },
+  "ready_for_implementation": true
+}

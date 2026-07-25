@@ -47,6 +47,101 @@ const REQUIRED_ATTRS: Partial<Record<ProductKind, string[]>> = {
 	[ProductKind.LIVESTOCK_SEED]: ['species', 'breed'],
 };
 
+/**
+ * Specialized numeric attrs decided by ProductKind (docs/core-business-catalog.md
+ * §5.1, §5.2, §8). Crop PHI/REI and veterinary withdrawal periods must never mix.
+ */
+const SPECIALIZED_NUMERIC_ATTRS: Partial<Record<ProductKind, string[]>> = {
+	[ProductKind.PESTICIDE]: ['phiDays', 'reiDays'],
+	[ProductKind.VET_DRUG]: [
+		'withdrawalMeatDays',
+		'withdrawalMilkDays',
+		'withdrawalEggDays',
+	],
+	[ProductKind.FERTILIZER]: [
+		'nitrogenPercent',
+		'phosphorusPercent',
+		'potassiumPercent',
+	],
+};
+
+/** camelCase + snake_case spellings, mirroring SALE_ADVISORY_ATTR_KEYS. */
+const SPECIALIZED_ATTR_ALIASES: Record<string, string[]> = {
+	phiDays: ['phiDays', 'phi_days'],
+	reiDays: ['reiDays', 'rei_days'],
+	withdrawalMeatDays: ['withdrawalMeatDays', 'withdrawal_meat_days'],
+	withdrawalMilkDays: ['withdrawalMilkDays', 'withdrawal_milk_days'],
+	withdrawalEggDays: ['withdrawalEggDays', 'withdrawal_egg_days'],
+	nitrogenPercent: ['nitrogenPercent', 'nitrogen_percent'],
+	phosphorusPercent: ['phosphorusPercent', 'phosphorus_percent'],
+	potassiumPercent: ['potassiumPercent', 'potassium_percent'],
+};
+
+function aliasesOf(canonicalKey: string): string[] {
+	return SPECIALIZED_ATTR_ALIASES[canonicalKey] ?? [canonicalKey];
+}
+
+function readSpecializedValue(
+	attrs: Record<string, unknown> | undefined,
+	canonicalKey: string,
+): unknown {
+	for (const alias of aliasesOf(canonicalKey)) {
+		const value = attrs?.[alias];
+		if (value !== undefined && value !== null && value !== '') return value;
+	}
+	return undefined;
+}
+
+/** Zero is valid data: a product with no waiting period is a real catalog entry. */
+function assertNonNegativeNumber(
+	value: unknown,
+	canonicalKey: string,
+	productKind: ProductKind,
+): void {
+	if (value === undefined) {
+		throw new BadRequestException(
+			`attrs.${canonicalKey} is required for ${productKind}`,
+		);
+	}
+	const parsed = typeof value === 'number' ? value : Number(value);
+	if (typeof value === 'boolean' || !Number.isFinite(parsed) || parsed < 0) {
+		throw new BadRequestException(
+			`attrs.${canonicalKey} must be a non-negative number for ${productKind}`,
+		);
+	}
+}
+
+function forbiddenAliasesFor(productKind: ProductKind): Set<string> {
+	const own = new Set(SPECIALIZED_NUMERIC_ATTRS[productKind] ?? []);
+	const forbidden = new Set<string>();
+	for (const keys of Object.values(SPECIALIZED_NUMERIC_ATTRS)) {
+		for (const key of keys) {
+			if (own.has(key)) continue;
+			for (const alias of aliasesOf(key)) forbidden.add(alias);
+		}
+	}
+	return forbidden;
+}
+
+function validateSpecializedAttrs(
+	productKind: ProductKind,
+	attrs: Record<string, unknown> | undefined,
+): void {
+	for (const key of SPECIALIZED_NUMERIC_ATTRS[productKind] ?? []) {
+		assertNonNegativeNumber(readSpecializedValue(attrs, key), key, productKind);
+	}
+	if (!attrs) return;
+	const forbidden = forbiddenAliasesFor(productKind);
+	for (const key of Object.keys(attrs)) {
+		if (attrs[key] === undefined || attrs[key] === null) continue;
+		if (forbidden.has(key)) {
+			throw new BadRequestException(
+				`attrs.${key} is not allowed for ${productKind}`,
+			);
+		}
+	}
+}
+
 export function resolveBusinessGroup(
 	productKind?: ProductKind | null,
 	legacyDomain?: string | null,
@@ -63,6 +158,7 @@ export function validateProductContract(
 	productKind?: ProductKind | null,
 	businessGroup?: BusinessGroup | null,
 	attrs?: unknown,
+	attrsSupplied = false,
 ) {
 	if (!productKind && !businessGroup) return;
 	if (!productKind || !businessGroup) {
@@ -82,13 +178,19 @@ export function validateProductContract(
 	) {
 		throw new BadRequestException('attrs must be an object');
 	}
+	const attrRecord = attrs as Record<string, unknown> | undefined;
 	for (const key of REQUIRED_ATTRS[productKind] ?? []) {
-		const value = (attrs as Record<string, unknown> | undefined)?.[key];
+		const value = attrRecord?.[key];
 		if (typeof value !== 'string' || !value.trim()) {
 			throw new BadRequestException(
 				`attrs.${key} is required for ${productKind}`,
 			);
 		}
+	}
+	// Specialized rules apply only to caller-supplied attrs so updates that omit
+	// attrs keep working for products created before these rules existed.
+	if (attrsSupplied) {
+		validateSpecializedAttrs(productKind, attrRecord);
 	}
 }
 
