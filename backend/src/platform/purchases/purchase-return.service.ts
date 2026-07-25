@@ -14,6 +14,14 @@ import {
 import { AuditLogger } from '../audit/audit-logger.service';
 import { PrismaService } from '../prisma/prisma.service';
 import {
+	parseRefundMethod,
+	type RefundVoucherResult,
+	resolveRefundAmount,
+	resolveRefundCap,
+	sumPriorRefunds,
+	writeRefundVoucher,
+} from '../sales/refund-settlement';
+import {
 	addQty,
 	decimalToNumber,
 	proRataDebt,
@@ -197,8 +205,13 @@ export class PurchaseReturnsService {
 			throw new ConflictException({ reason: 'PURCHASE_NOT_RETURNABLE' });
 
 		const mode = resolveSettlementMode(dto.settlementMode, purchase.debtAmount);
-		if (mode === 'REFUND_VOUCHER') {
-			throw new ConflictException({ reason: 'SETTLEMENT_NOT_SUPPORTED' });
+		if (
+			mode === 'REFUND_VOUCHER' &&
+			dto.debtAdjust !== undefined &&
+			dto.debtAdjust !== null &&
+			BigInt(dto.debtAdjust) > 0n
+		) {
+			throw new ConflictException({ reason: 'SETTLEMENT_REQUIRED' });
 		}
 
 		const priorReturns = await tx.purchaseReturn.findMany({
@@ -365,6 +378,33 @@ export class PurchaseReturnsService {
 			returnDoc.id,
 		);
 
+		let refund: RefundVoucherResult | null = null;
+		if (mode === 'REFUND_VOUCHER') {
+			const priorRefunded = await sumPriorRefunds(
+				tx,
+				tenantId,
+				'SUPPLIER',
+				purchase.id,
+			);
+			const cap = resolveRefundCap(
+				purchase.amountPaid,
+				priorRefunded,
+				returnedMoney,
+			);
+			const amount = resolveRefundAmount(dto.refundAmount, cap);
+			refund = await writeRefundVoucher(tx, {
+				tenantId,
+				userId,
+				partyType: 'SUPPLIER',
+				partyId: purchase.supplierId,
+				originalId: purchase.id,
+				returnId: returnDoc.id,
+				amount,
+				method: parseRefundMethod(dto.refundMethod),
+				note: dto.note,
+			});
+		}
+
 		const completed = await tx.purchaseReturn.update({
 			where: { id: returnDoc.id },
 			data: { debtAdjust },
@@ -385,6 +425,26 @@ export class PurchaseReturnsService {
 				debtAdjust: completed.debtAdjust.toString(),
 			},
 		});
+		if (refund) {
+			await this.audit.writeInTx(tx, {
+				tenantId,
+				actorId: userId,
+				actorType: AuditActorType.USER,
+				actorRoleCode: null,
+				action: AuditAction.PURCHASE_REFUND,
+				resource: 'payment_voucher',
+				resourceId: refund.voucherId,
+				after: {
+					returnId: completed.id,
+					voucherId: refund.voucherId,
+					docNo: refund.docNo,
+					amount: refund.amount.toString(),
+					method: refund.method,
+					partyType: refund.partyType,
+					partyId: refund.partyId,
+				},
+			});
+		}
 		return completed;
 	}
 

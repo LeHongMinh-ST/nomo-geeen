@@ -15,6 +15,7 @@ describe('PurchaseReturnsService', () => {
 			stockMovement: { create: jest.fn() },
 			supplier: { updateMany: jest.fn(), findFirstOrThrow: jest.fn() },
 			debtLedger: { create: jest.fn() },
+			paymentVoucher: { aggregate: jest.fn(), create: jest.fn() },
 		};
 		const prisma = {
 			$transaction: jest.fn(async (callback: (value: typeof tx) => unknown) =>
@@ -36,6 +37,7 @@ describe('PurchaseReturnsService', () => {
 		warehouseId: 'warehouse-1',
 		supplierId: 'supplier-1',
 		total: 900n,
+		amountPaid: 600n,
 		debtAmount: 300n,
 		lines: [
 			{
@@ -226,21 +228,109 @@ describe('PurchaseReturnsService', () => {
 		expect(tx.purchase.findFirst).not.toHaveBeenCalled();
 	});
 
-	it('fails closed for REFUND_VOUCHER on purchase', async () => {
-		const { service, tx } = setup();
+	it('collects a refund receipt from the supplier without touching the balance', async () => {
+		const { service, tx, audit } = setup();
 		tx.purchase.findFirst.mockResolvedValue({
 			...completedPurchase,
+			amountPaid: 900n,
 			debtAmount: 0n,
 		});
+		tx.purchaseReturn.findFirst.mockResolvedValue(null);
+		tx.purchaseReturn.findMany.mockResolvedValue([]);
+		tx.purchaseReturn.create.mockResolvedValue({ id: 'prt-r1' });
+		tx.purchaseReturn.update.mockResolvedValue({
+			id: 'prt-r1',
+			total: 300n,
+			debtAdjust: 0n,
+			lines: [],
+		});
+		tx.stock.updateMany.mockResolvedValue({ count: 1 });
+		tx.productBatch.findFirst.mockResolvedValue({ id: 'batch-1', version: 5 });
+		tx.productBatch.updateMany.mockResolvedValue({ count: 1 });
+		tx.paymentVoucher.aggregate.mockResolvedValue({ _sum: { amount: null } });
+		tx.paymentVoucher.create.mockResolvedValue({
+			id: 'voucher-p1',
+			docNo: 'RFP-0123456789ABCDEF',
+		});
+
+		await service.createPartialReturn('tenant-1', 'user-1', 'purchase-1', {
+			settlementMode: 'REFUND_VOUCHER',
+			refundMethod: 'BANK_TRANSFER',
+			lines: [{ purchaseLineId: 'pline-1', qtyBase: '1' }],
+		});
+
+		expect(tx.paymentVoucher.create).toHaveBeenCalledWith(
+			expect.objectContaining({
+				data: expect.objectContaining({
+					voucherType: 'RECEIPT',
+					partyType: 'SUPPLIER',
+					partyId: 'supplier-1',
+					refPurchaseId: 'purchase-1',
+					amount: 300n,
+					method: 'BANK_TRANSFER',
+					idempotencyKey: 'refund:prt-r1',
+				}),
+			}),
+		);
+		expect(tx.debtLedger.create).toHaveBeenCalledWith(
+			expect.objectContaining({
+				data: expect.objectContaining({
+					refType: 'PURCHASE_RETURN_REFUND',
+					direction: 'INCREASE',
+					balanceAfter: null,
+				}),
+			}),
+		);
+		expect(tx.supplier.updateMany).not.toHaveBeenCalled();
+		expect(audit.writeInTx).toHaveBeenCalledWith(
+			tx,
+			expect.objectContaining({
+				action: 'PURCHASE_REFUND',
+				resource: 'payment_voucher',
+				resourceId: 'voucher-p1',
+			}),
+		);
+	});
+
+	it('rejects combining a purchase refund with a debt adjustment', async () => {
+		const { service, tx } = setup();
+		tx.purchase.findFirst.mockResolvedValue(completedPurchase);
 		tx.purchaseReturn.findFirst.mockResolvedValue(null);
 
 		await expect(
 			service.createPartialReturn('tenant-1', 'user-1', 'purchase-1', {
 				settlementMode: 'REFUND_VOUCHER',
+				debtAdjust: '100',
 				lines: [{ purchaseLineId: 'pline-1', qtyBase: '1' }],
 			}),
-		).rejects.toMatchObject({
-			response: { reason: 'SETTLEMENT_NOT_SUPPORTED' },
+		).rejects.toMatchObject({ response: { reason: 'SETTLEMENT_REQUIRED' } });
+		expect(tx.stock.updateMany).not.toHaveBeenCalled();
+		expect(tx.paymentVoucher.create).not.toHaveBeenCalled();
+	});
+
+	it('rejects a purchase refund beyond the unrefunded paid amount', async () => {
+		const { service, tx } = setup();
+		tx.purchase.findFirst.mockResolvedValue({
+			...completedPurchase,
+			amountPaid: 900n,
+			debtAmount: 0n,
 		});
+		tx.purchaseReturn.findFirst.mockResolvedValue(null);
+		tx.purchaseReturn.findMany.mockResolvedValue([]);
+		tx.purchaseReturn.create.mockResolvedValue({ id: 'prt-r2' });
+		tx.stock.updateMany.mockResolvedValue({ count: 1 });
+		tx.productBatch.findFirst.mockResolvedValue({ id: 'batch-1', version: 5 });
+		tx.productBatch.updateMany.mockResolvedValue({ count: 1 });
+		tx.paymentVoucher.aggregate.mockResolvedValue({ _sum: { amount: 850n } });
+
+		await expect(
+			service.createPartialReturn('tenant-1', 'user-1', 'purchase-1', {
+				settlementMode: 'REFUND_VOUCHER',
+				refundAmount: '300',
+				lines: [{ purchaseLineId: 'pline-1', qtyBase: '1' }],
+			}),
+		).rejects.toMatchObject({ response: { reason: 'REFUND_EXCEEDS_PAID' } });
+		expect(tx.paymentVoucher.create).not.toHaveBeenCalled();
+		expect(tx.purchaseReturn.update).not.toHaveBeenCalled();
 	});
 });

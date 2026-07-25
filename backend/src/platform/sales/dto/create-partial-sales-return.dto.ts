@@ -44,6 +44,16 @@ export class CreatePartialSalesReturnDto {
 	@MaxLength(40)
 	debtAdjust?: string;
 
+	/** BigInt money as decimal string of integer minor units. */
+	@IsOptional()
+	@IsString()
+	@MaxLength(40)
+	refundAmount?: string;
+
+	@IsOptional()
+	@IsIn(['CASH', 'BANK_TRANSFER', 'QR'])
+	refundMethod?: 'CASH' | 'BANK_TRANSFER' | 'QR';
+
 	@IsArray()
 	@ArrayMinSize(1)
 	@ValidateNested({ each: true })

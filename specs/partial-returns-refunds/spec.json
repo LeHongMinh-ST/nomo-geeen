@@ -1,11 +1,11 @@
 {
   "feature_name": "partial-returns-refunds",
   "created_at": "2026-07-24T23:59:29+07:00",
-  "updated_at": "2026-07-25T13:05:00+07:00",
+  "updated_at": "2026-07-25T15:05:00+07:00",
   "language": "en",
   "status": "completed",
-  "phase": "code",
-  "current_phase": "complete",
+  "phase": "review",
+  "current_phase": "review",
   "priority": "P1",
   "effort": "3-5 implementation days after livestock-cas-recovery",
   "tags": [
@@ -68,7 +68,8 @@
     "blocks": []
   },
   "task_files": [
-    "tasks/task-R1-01-partial-returns.md"
+    "tasks/task-R1-01-partial-returns.md",
+    "tasks/task-R2-01-cash-refund-voucher.md"
   ],
   "task_registry": {
     "tasks/task-R1-01-partial-returns.md": {
@@ -80,6 +81,18 @@
       "started_at": "2026-07-25T10:00:00+07:00",
       "completed_at": "2026-07-25T12:00:00+07:00",
       "last_updated_at": "2026-07-25T12:00:00+07:00"
+    },
+    "tasks/task-R2-01-cash-refund-voucher.md": {
+      "id": "R2-01",
+      "title": "Cash refund voucher",
+      "status": "done",
+      "dependencies": [
+        "tasks/task-R1-01-partial-returns.md"
+      ],
+      "blocker": null,
+      "started_at": "2026-07-25T14:00:00+07:00",
+      "completed_at": "2026-07-25T15:05:00+07:00",
+      "last_updated_at": "2026-07-25T15:05:00+07:00"
     }
   },
   "blocker": null,
@@ -99,10 +112,10 @@
     "research_done": "2026-07-25T00:05:00+07:00",
     "design_done": "2026-07-25T00:05:00+07:00",
     "tasks_done": "2026-07-25T00:05:00+07:00",
-    "code_done": "2026-07-25T12:00:00+07:00",
-    "test_done": "2026-07-25T12:00:00+07:00",
-    "review_done": "2026-07-25T13:05:00+07:00",
-    "validation_done": "2026-07-25T12:00:00+07:00"
+    "code_done": "2026-07-25T15:00:00+07:00",
+    "test_done": "2026-07-25T15:00:00+07:00",
+    "review_done": "2026-07-25T15:05:00+07:00",
+    "validation_done": "2026-07-25T15:05:00+07:00"
   },
   "design_context": {
     "discovery_mode": "full",

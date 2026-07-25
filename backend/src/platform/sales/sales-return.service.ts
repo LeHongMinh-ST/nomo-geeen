@@ -15,6 +15,14 @@ import { AuditLogger } from '../audit/audit-logger.service';
 import { PrismaService } from '../prisma/prisma.service';
 import type { CreatePartialSalesReturnDto } from './dto/create-partial-sales-return.dto';
 import {
+	parseRefundMethod,
+	type RefundVoucherResult,
+	resolveRefundAmount,
+	resolveRefundCap,
+	sumPriorRefunds,
+	writeRefundVoucher,
+} from './refund-settlement';
+import {
 	addQty,
 	decimalToNumber,
 	proRataDebt,
@@ -189,8 +197,13 @@ export class SalesReturnsService {
 			throw new ConflictException({ reason: 'SALE_NOT_RETURNABLE' });
 
 		const mode = resolveSettlementMode(dto.settlementMode, sale.debtAmount);
-		if (mode === 'REFUND_VOUCHER') {
-			throw new ConflictException({ reason: 'SETTLEMENT_NOT_SUPPORTED' });
+		if (
+			mode === 'REFUND_VOUCHER' &&
+			dto.debtAdjust !== undefined &&
+			dto.debtAdjust !== null &&
+			BigInt(dto.debtAdjust) > 0n
+		) {
+			throw new ConflictException({ reason: 'SETTLEMENT_REQUIRED' });
 		}
 
 		const priorReturns = await tx.salesReturn.findMany({
@@ -402,6 +415,29 @@ export class SalesReturnsService {
 			returnDoc.id,
 		);
 
+		let refund: RefundVoucherResult | null = null;
+		if (mode === 'REFUND_VOUCHER') {
+			const priorRefunded = await sumPriorRefunds(
+				tx,
+				tenantId,
+				'CUSTOMER',
+				sale.id,
+			);
+			const cap = resolveRefundCap(sale.amountPaid, priorRefunded, returnTotal);
+			const amount = resolveRefundAmount(dto.refundAmount, cap);
+			refund = await writeRefundVoucher(tx, {
+				tenantId,
+				userId,
+				partyType: 'CUSTOMER',
+				partyId: sale.customerId,
+				originalId: sale.id,
+				returnId: returnDoc.id,
+				amount,
+				method: parseRefundMethod(dto.refundMethod),
+				note: dto.note,
+			});
+		}
+
 		const completed = await tx.salesReturn.update({
 			where: { id: returnDoc.id },
 			data: { debtAdjust },
@@ -422,6 +458,26 @@ export class SalesReturnsService {
 				debtAdjust: completed.debtAdjust.toString(),
 			},
 		});
+		if (refund) {
+			await this.audit.writeInTx(tx, {
+				tenantId,
+				actorId: userId,
+				actorType: AuditActorType.USER,
+				actorRoleCode: null,
+				action: AuditAction.SALE_REFUND,
+				resource: 'payment_voucher',
+				resourceId: refund.voucherId,
+				after: {
+					returnId: completed.id,
+					voucherId: refund.voucherId,
+					docNo: refund.docNo,
+					amount: refund.amount.toString(),
+					method: refund.method,
+					partyType: refund.partyType,
+					partyId: refund.partyId,
+				},
+			});
+		}
 		return completed;
 	}
 
