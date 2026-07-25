@@ -4,6 +4,9 @@ import { Prisma } from '@prisma/client';
 
 type Tx = Prisma.TransactionClient;
 
+/** Stable synthetic party required by the ledger schema for walk-in cash sales. */
+export const WALK_IN_PARTY_ID = 'SYSTEM_WALK_IN';
+
 export type RefundPartyType = 'CUSTOMER' | 'SUPPLIER';
 export type RefundMethod = 'CASH' | 'BANK_TRANSFER' | 'QR';
 
@@ -120,8 +123,7 @@ export async function writeRefundVoucher(
 	tx: Tx,
 	input: RefundVoucherInput,
 ): Promise<RefundVoucherResult> {
-	if (!input.partyId)
-		throw new ConflictException({ reason: 'REFUND_PARTY_MISSING' });
+	const partyId = input.partyId ?? WALK_IN_PARTY_ID;
 
 	const direction = REFUND_DIRECTION[input.partyType];
 	const docNo = `${direction.docPrefix}-${randomUUID()
@@ -138,13 +140,19 @@ export async function writeRefundVoucher(
 				idempotencyKey: `refund:${input.returnId}`,
 				voucherType: direction.voucherType,
 				partyType: input.partyType,
-				partyId: input.partyId,
+				partyId,
 				amount: input.amount,
 				method: input.method,
 				refSaleId: input.partyType === 'CUSTOMER' ? input.originalId : null,
 				refPurchaseId: input.partyType === 'SUPPLIER' ? input.originalId : null,
-				customerId: input.partyType === 'CUSTOMER' ? input.partyId : null,
-				supplierId: input.partyType === 'SUPPLIER' ? input.partyId : null,
+				customerId:
+					input.partyType === 'CUSTOMER' && input.partyId
+						? input.partyId
+						: null,
+				supplierId:
+					input.partyType === 'SUPPLIER' && input.partyId
+						? input.partyId
+						: null,
 				note: input.note?.trim() || null,
 				createdBy: input.userId,
 				status: 'COMPLETED',
@@ -166,7 +174,10 @@ export async function writeRefundVoucher(
 	} catch (error) {
 		if (
 			error instanceof Prisma.PrismaClientKnownRequestError &&
-			error.code === 'P2002'
+			error.code === 'P2002' &&
+			Array.isArray(error.meta?.target) &&
+			error.meta.target.includes('tenantId') &&
+			error.meta.target.includes('idempotencyKey')
 		) {
 			throw new ConflictException({ reason: 'REFUND_ALREADY_APPLIED' });
 		}
@@ -177,7 +188,7 @@ export async function writeRefundVoucher(
 		data: {
 			tenantId: input.tenantId,
 			partyType: input.partyType,
-			partyId: input.partyId,
+			partyId,
 			entryType: 'ADJUST',
 			direction: 'INCREASE',
 			amount: input.amount,
@@ -194,6 +205,6 @@ export async function writeRefundVoucher(
 		amount: input.amount,
 		method: input.method,
 		partyType: input.partyType,
-		partyId: input.partyId,
+		partyId,
 	};
 }

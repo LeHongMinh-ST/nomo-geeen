@@ -25,6 +25,7 @@ import {
 import {
 	addQty,
 	decimalToNumber,
+	parseDebtAdjust,
 	proRataDebt,
 	qtyKey,
 	remainingQty,
@@ -46,9 +47,8 @@ export class SalesReturnsService {
 		saleId: string,
 		note?: string,
 	) {
-		return this.prisma.$transaction(
-			(tx) => this.createFullInTransaction(tx, tenantId, userId, saleId, note),
-			{ isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+		return this.withSerializableRetry((tx) =>
+			this.createFullInTransaction(tx, tenantId, userId, saleId, note),
 		);
 	}
 
@@ -59,10 +59,8 @@ export class SalesReturnsService {
 		dto: CreatePartialSalesReturnDto,
 	) {
 		try {
-			return await this.prisma.$transaction(
-				(tx) =>
-					this.createPartialInTransaction(tx, tenantId, userId, saleId, dto),
-				{ isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+			return await this.withSerializableRetry((tx) =>
+				this.createPartialInTransaction(tx, tenantId, userId, saleId, dto),
 			);
 		} catch (error) {
 			if (
@@ -78,6 +76,30 @@ export class SalesReturnsService {
 			}
 			throw error;
 		}
+	}
+
+	private async withSerializableRetry<T>(operation: (tx: Tx) => Promise<T>) {
+		for (let attempt = 0; attempt < 3; attempt += 1) {
+			try {
+				return await this.prisma.$transaction(operation, {
+					isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+				});
+			} catch (error) {
+				if (
+					error instanceof ConflictException ||
+					error instanceof NotFoundException
+				) {
+					throw error;
+				}
+				const retryable =
+					error instanceof Prisma.PrismaClientKnownRequestError &&
+					error.code === 'P2034';
+				if (!retryable) throw error;
+				if (attempt === 2)
+					throw new ConflictException({ reason: 'SERIALIZATION_CONFLICT' });
+			}
+		}
+		throw new ConflictException({ reason: 'SERIALIZATION_CONFLICT' });
 	}
 
 	private async createFullInTransaction(
@@ -201,7 +223,7 @@ export class SalesReturnsService {
 			mode === 'REFUND_VOUCHER' &&
 			dto.debtAdjust !== undefined &&
 			dto.debtAdjust !== null &&
-			BigInt(dto.debtAdjust) > 0n
+			parseDebtAdjust(dto.debtAdjust) > 0n
 		) {
 			throw new ConflictException({ reason: 'SETTLEMENT_REQUIRED' });
 		}
@@ -390,7 +412,7 @@ export class SalesReturnsService {
 		if (mode === 'DEBT_ADJUST_ONLY' && sale.debtAmount > 0n) {
 			const share = proRataDebt(sale.debtAmount, returnTotal, sale.total);
 			if (dto.debtAdjust !== undefined && dto.debtAdjust !== null) {
-				const requested = BigInt(dto.debtAdjust);
+				const requested = parseDebtAdjust(dto.debtAdjust);
 				if (requested < 0n || requested > share) {
 					throw new ConflictException({ reason: 'DEBT_RETURN_CONFLICT' });
 				}
@@ -400,7 +422,7 @@ export class SalesReturnsService {
 			}
 		} else if (
 			dto.debtAdjust &&
-			BigInt(dto.debtAdjust) > 0n &&
+			parseDebtAdjust(dto.debtAdjust) > 0n &&
 			mode === 'NONE'
 		) {
 			throw new ConflictException({ reason: 'SETTLEMENT_REQUIRED' });

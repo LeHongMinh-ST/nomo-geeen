@@ -6,8 +6,24 @@ import {
 	sumPriorRefunds,
 	writeRefundVoucher,
 } from './refund-settlement';
+import { parseDebtAdjust } from './returnable-qty';
 
 describe('refund-settlement', () => {
+	describe('parseDebtAdjust', () => {
+		it('parses minor-unit integers and defaults missing values to zero', () => {
+			expect(parseDebtAdjust('120')).toBe(120n);
+			expect(parseDebtAdjust(undefined)).toBe(0n);
+		});
+
+		it('returns a structured client error for malformed values', () => {
+			expect(() => parseDebtAdjust('1.5')).toThrow(
+				expect.objectContaining({
+					response: { reason: 'DEBT_ADJUST_INVALID' },
+				}),
+			);
+		});
+	});
+
 	function txStub() {
 		return {
 			paymentVoucher: {
@@ -244,6 +260,7 @@ describe('refund-settlement', () => {
 				new Prisma.PrismaClientKnownRequestError('dup', {
 					code: 'P2002',
 					clientVersion: 'test',
+					meta: { target: ['tenantId', 'idempotencyKey'] },
 				}),
 			);
 
@@ -258,12 +275,23 @@ describe('refund-settlement', () => {
 		it('rejects a refund when the party is missing', async () => {
 			const tx = txStub();
 
-			await expect(
-				writeRefundVoucher(tx as never, { ...customerInput, partyId: null }),
-			).rejects.toMatchObject({
-				response: { reason: 'REFUND_PARTY_MISSING' },
+			tx.paymentVoucher.create.mockResolvedValue({
+				id: 'voucher-walk-in',
+				docNo: 'RFS-WALKIN',
 			});
-			expect(tx.paymentVoucher.create).not.toHaveBeenCalled();
+			await writeRefundVoucher(tx as never, {
+				...customerInput,
+				partyId: null,
+			});
+			expect(tx.paymentVoucher.create.mock.calls[0][0].data.partyId).toBe(
+				'SYSTEM_WALK_IN',
+			);
+			expect(
+				tx.paymentVoucher.create.mock.calls[0][0].data.customerId,
+			).toBeNull();
+			expect(tx.debtLedger.create.mock.calls[0][0].data.partyId).toBe(
+				'SYSTEM_WALK_IN',
+			);
 		});
 	});
 });

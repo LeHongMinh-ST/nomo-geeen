@@ -1,3 +1,4 @@
+import { ConflictException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 
 export type QtyKey = string;
@@ -49,4 +50,16 @@ export function resolveSettlementMode(
 		return requested;
 	}
 	return debtAmount > 0n ? 'DEBT_ADJUST_ONLY' : 'NONE';
+}
+
+/** Parse client-supplied minor-unit money without leaking BigInt SyntaxError as HTTP 500. */
+export function parseDebtAdjust(value: string | undefined | null): bigint {
+	if (value === undefined || value === null || value === '') return 0n;
+	try {
+		const parsed = BigInt(value);
+		if (parsed < 0n) throw new Error('negative');
+		return parsed;
+	} catch {
+		throw new ConflictException({ reason: 'DEBT_ADJUST_INVALID' });
+	}
 }

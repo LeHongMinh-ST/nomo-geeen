@@ -133,7 +133,13 @@ export class DebtsService {
 			balance: mapped.balance,
 			summary: {
 				charged: entries
-					.filter((e) => e.direction === DebtDirection.INCREASE)
+					.filter(
+						(e) =>
+							e.direction === DebtDirection.INCREASE &&
+							!['SALE_RETURN_REFUND', 'PURCHASE_RETURN_REFUND'].includes(
+								e.refType ?? '',
+							),
+					)
 					.reduce((s, e) => s + num(e.amount), 0),
 				decreased: entries
 					.filter((e) => e.direction === DebtDirection.DECREASE)
@@ -142,7 +148,7 @@ export class DebtsService {
 			entries: entries.map((e) => ({
 				...e,
 				amount: num(e.amount),
-				balanceAfter: num(e.balanceAfter),
+				balanceAfter: e.balanceAfter === null ? null : num(e.balanceAfter),
 			})),
 			vouchers: vouchers.map((v) => ({
 				...v,
