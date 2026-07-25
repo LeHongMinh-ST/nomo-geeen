@@ -8,6 +8,10 @@ Format theo [Keep a Changelog](https://keepachangelog.com/), tuân thủ [Semant
 ## [Unreleased]
 
 ### Added
+- **Release receipt cho mốc `d7e9aca`** — thêm `docs/release-receipts/2026-07-25-audit-release-receipt.md`
+  ghi ma trận verification (Prisma validate/generate, backend 458 tests, backend build, e2e 16/17
+  suites, frontend 169 tests, frontend build) cùng blocker: e2e `tenant-auth` FAIL pre-existing và
+  migration `20260725010000_partial_return_line_linkage` chưa apply trên DB dev dùng chung.
 - **Livestock CAS/recovery hardening** — added explicit recovery approval, terminal health
   states, version CAS across adjustments and returns, and distinct insufficient-stock versus
   stale-version errors with audit coverage.

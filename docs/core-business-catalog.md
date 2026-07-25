@@ -228,9 +228,12 @@ Trạng thái persisted hiện dùng `ProductBatch.healthState` với optimistic
 Cho phép `HEALTHY → QUARANTINED/SICK/DEAD/REJECTED` và recovery có chủ đích
 `QUARANTINED|SICK → HEALTHY` khi `approveRecovery=true` (permission `inventory:edit`, audit
 `LIVESTOCK_STATE_CHANGE`). `DEAD`/`REJECTED` terminal trong slice này. FEFO chỉ bán batch
-`HEALTHY`. Stock-adjustment complete và full sales/purchase return CAS `ProductBatch.version`
-khi đổi `qtyOnHand`. Chưa có UI quản lý health-state; `Product.attrs` vẫn là legacy fallback
-trong sale eligibility. Partial return/refund ngoài scope — xem `specs/livestock-cas-recovery/design.md`.
+`HEALTHY`. Stock-adjustment complete cùng full và partial sales/purchase return đều CAS
+`ProductBatch.version` khi đổi `qtyOnHand`. Chưa có UI quản lý health-state; `Product.attrs`
+vẫn là legacy fallback trong sale eligibility. Partial return đã có route và batch CAS
+(`POST /tenant/sales/orders/:id/return/partial`, `POST /tenant/purchases/:id/return/partial`);
+hoàn tiền mặt vẫn fail-closed, chưa tự sinh payout — xem `specs/livestock-cas-recovery/design.md`
+và `specs/partial-returns-refunds/`.
 
 Kho phải theo dõi số con thực tế và số con được phép bán. Chết, bệnh, loại, cách ly và trả
 nguồn giống là reason riêng. Không dùng HSD thuốc; thay bằng tuổi, giai đoạn, sức khỏe và
@@ -360,9 +363,12 @@ Báo cáo riêng:
 Mọi điều chỉnh theo nhóm phải có reason và Audit Log. Bộ lọc nhóm, profile cửa hàng và
 trạng thái bật/tắt không được vượt qua tenant isolation hoặc permission.
 
-Trạng thái triển khai hiện tại: backend đã có hai báo cáo summary tenant-scoped (stock và sales),
-full sales/purchase return có audit và StockAdjustment có reason policy. UI reports, partial
-returns/refunds và báo cáo đầy đủ theo nhóm vẫn là scope tiếp theo.
+Trạng thái triển khai hiện tại (theo re-audit §8.6 ngày 2026-07-25): backend có hai báo cáo
+summary tenant-scoped (stock và sales) đã hỗ trợ filter và breakdown theo 5 business group
+Phase 1; UI `/bao-cao` đã dùng hai endpoint này với structured error mapping; full và partial
+sales/purchase return đều có audit; StockAdjustment có reason policy. Chưa thuộc scope hiện tại:
+chart/export và báo cáo giá vốn/lãi, taxonomy tenant-enabled, báo cáo riêng theo từng product
+kind (PHI/REI/withdrawal, hoạt chất, nảy mầm...) và hoàn tiền mặt thực tế.
 
 ## 14. Phạm vi và điểm cần chốt
 

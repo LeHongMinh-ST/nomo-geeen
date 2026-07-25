@@ -289,3 +289,20 @@ pnpm --dir backend build
 2. Reports chart/export/accounting và taxonomy tenant-enabled — chưa thuộc Phase 1.
 3. PHI/REI/withdrawal calendar hard gates và per-kind rules sâu.
 4. Cần review cuối, loại generated log, rồi commit mốc ổn định.
+
+### 8.7 E2E closeout — 2026-07-25 (Luồng D)
+
+Bổ sung bằng chứng e2e mà §8.6 chưa có. Chi tiết đầy đủ:
+`docs/release-receipts/2026-07-25-audit-release-receipt.md`.
+
+| Kiểm tra | Kết quả |
+|---|---|
+| Backend e2e full | 16 suites PASS, 1 suite FAIL, 1 skipped — 84 tests PASS / 88 |
+| `tenant-auth.e2e-spec.ts` | FAIL `expected 201, got 400` tại `POST /tenant/users` — **pre-existing**, tái hiện identical trên worktree `main` cùng commit `d7e9aca` |
+| `tenant-users.e2e-spec.ts` | 10/10 PASS khi chạy riêng |
+| Prisma migrate status | `20260725010000_partial_return_line_linkage` chưa apply trên DB dev dùng chung — không tự apply |
+
+Doc reconcile: `docs/core-business-catalog.md` §9 và §13 đã sửa cho khớp §8.6 (partial return có
+route + batch CAS; UI `/bao-cao` và filter 5 nhóm Phase 1 đã có). `docs/.sync_hash` giữ nguyên.
+
+Mở thêm sau batch này: root-cause `400` ở `tenant-auth.e2e-spec.ts:157`.
