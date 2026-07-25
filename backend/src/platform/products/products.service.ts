@@ -21,6 +21,7 @@ import type { ProductLookupResponse } from './dto/product-lookup.dto';
 import type { UpdateProductDto } from './dto/update-product.dto';
 import {
 	assertSelectableBusinessGroup,
+	hasSpecializedAttrs,
 	resolveBusinessGroup,
 	validateProductContract,
 } from './product-contract';
@@ -346,11 +347,16 @@ export class ProductsService {
 			const nextKind = dto.productKind ?? current.productKind;
 			const nextGroup = dto.businessGroup ?? current.businessGroup;
 			const nextAttrs = dto.attrs ?? current.attrs;
+			const specializedAttrsPresent =
+				hasSpecializedAttrs(current.attrs) || hasSpecializedAttrs(dto.attrs);
 			validateProductContract(
 				nextKind === ProductKind.OTHER ? null : nextKind,
 				nextGroup,
 				nextAttrs,
-				dto.attrs !== undefined,
+				dto.attrs !== undefined &&
+					((dto.productKind !== undefined &&
+						dto.productKind !== current.productKind) ||
+						specializedAttrsPresent),
 			);
 			if (nextGroup) {
 				const configuredGroups = await tx.tenantBusinessGroup.findMany({

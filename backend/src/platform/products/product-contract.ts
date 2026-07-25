@@ -77,6 +77,13 @@ const SPECIALIZED_ATTR_ALIASES: Record<string, string[]> = {
 	potassiumPercent: ['potassiumPercent', 'potassium_percent'],
 };
 
+export function hasSpecializedAttrs(attrs: unknown): boolean {
+	if (attrs == null || typeof attrs !== 'object' || Array.isArray(attrs))
+		return false;
+	const known = new Set(Object.values(SPECIALIZED_ATTR_ALIASES).flat());
+	return Object.keys(attrs).some((key) => known.has(key));
+}
+
 function aliasesOf(canonicalKey: string): string[] {
 	return SPECIALIZED_ATTR_ALIASES[canonicalKey] ?? [canonicalKey];
 }
