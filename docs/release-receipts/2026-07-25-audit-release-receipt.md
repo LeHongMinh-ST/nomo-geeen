@@ -26,7 +26,7 @@ Receipt xác minh mốc `d7e9aca` sau batch A/B/C/D. Chạy read-only trên work
 | Prisma migrate status | `prisma migrate status` | **DRIFT** — 1 migration chưa apply trên DB dùng chung (chi tiết dưới) |
 | Backend unit/integration | `jest --runInBand` | **PASS** — 53 suites / 458 tests, 1 suite + 1 test skipped |
 | Backend build | `nest build` | **PASS** — exit 0 |
-| Backend e2e (full) | `jest --config test/jest-e2e.json --runInBand --forceExit` | **1 FAIL / 16 PASS** — fail là pre-existing (chi tiết dưới) |
+| Backend e2e (full) | `jest --config test/jest-e2e.json --runInBand --forceExit` | **16 PASS / 1 FAIL** (1 skipped) — fail `tenant-auth` là **BLOCKED/unresolved**, pre-existing (chi tiết dưới) |
 | Frontend unit | `vitest run` | **PASS** — 29 files / 169 tests |
 | Frontend build | `next build` | **PASS** — route `/bao-cao` được generate |
 
@@ -64,7 +64,10 @@ Receipt xác minh mốc `d7e9aca` sau batch A/B/C/D. Chạy read-only trên work
 
 ## Blocker và ghi nhận trung thực
 
-### 1. E2E `tenant-auth.e2e-spec.ts` FAIL — pre-existing, không do Luồng D
+### 1. E2E `tenant-auth.e2e-spec.ts` FAIL — BLOCKED / unresolved, pre-existing
+
+Trạng thái: **unresolved**. Không root-cause trong Luồng D (docs-only, không được sửa source).
+Kết quả full e2e: **16 suites PASS / 1 FAIL**, 1 skipped.
 
 ```text
 ● Tenant auth session lifecycle (e2e) › registers, refreshes, exposes current
@@ -81,9 +84,16 @@ Receipt xác minh mốc `d7e9aca` sau batch A/B/C/D. Chạy read-only trên work
 - `tenant-users.e2e-spec.ts` chạy riêng: **10/10 PASS** — nên không phải lỗi module tenant-users
   nói chung.
 
-Quota/seat denial trong code là `403` (`EntitlementDenialException extends ForbiddenException`)
-và `409` (`SEAT_LIMIT_REACHED`), nên `400` đến từ nhánh khác trong chuỗi auth/refresh của test này.
-Chưa root-cause vì Luồng D là docs-only; cần một luồng debug riêng.
+Đã loại các nhánh sau (nên `400` không đến từ đây):
+
+- Quota/entitlement denial là `403` (`EntitlementDenialException extends ForbiddenException`).
+- Seat limit là `409` (`SEAT_LIMIT_REACHED`).
+- `ROLE_NOT_FOUND` là `404`.
+- `NO_FIELDS` chỉ áp cho `update()`, không phải `create()`.
+
+Nhánh còn lại chưa loại: `PASSWORD_MODE_INVALID` (`400`, `tenant-users.service.ts:651`) và
+`ValidationPipe`. Lưu ý test dùng `whitelist: true` **không** kèm `forbidNonWhitelisted`, khác
+cấu hình production ở `src/main.ts:19-23` — cần luồng debug riêng xác nhận.
 
 ### 2. Migration chưa apply trên DB dev dùng chung
 
