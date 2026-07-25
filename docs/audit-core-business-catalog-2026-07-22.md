@@ -271,7 +271,7 @@ pnpm --dir backend build
 | Frontend structured error map | ✅ | `frontend/lib/sales-api-error.ts`; Reports, inventory adjustment và purchase UI dùng `mapTenantApiError`; frontend full test pass |
 | Livestock state machine + recovery/CAS | ✅ slice | Policy HEALTHY → QUARANTINED/SICK/DEAD/REJECTED, recovery approval, audit, tenant scope; CAS trên livestock adjustment và full/partial return paths |
 | Stock adjustment error semantics | ✅ | `INSUFFICIENT_BATCH` tách khỏi `STALE_VERSION`, có regression tests |
-| Partial sales/purchase returns | ✅ slice | Partial routes, remaining-qty guard, idempotency, batch CAS, stock movements, audit, debt pro-rata; cash refund fail-closed |
+| Partial sales/purchase returns | ✅ slice | Partial routes, remaining-qty guard, idempotency, batch CAS, stock movements, audit, debt pro-rata; cash refund đã chuyển sang PaymentVoucher |
 | Reports UI | ✅ | `/bao-cao`, loading/error/empty/retry, date validation, tenant API và structured error mapping |
 | Reports theo business group | ✅ Phase 1 | 5 nhóm catalog, filter + breakdown ở stock/sales API và UI; chart/export/profit chưa thuộc scope |
 
@@ -285,7 +285,7 @@ pnpm --dir backend build
 
 #### Còn mở sau batch này
 
-1. Cash refund/payment voucher thực tế — hiện fail-closed, chưa tự tạo payout.
+1. ~~Cash refund/payment voucher thực tế — hiện fail-closed~~ → **đã đóng trong Luồng B**; còn theo dõi e2e/migration ở release receipt.
 2. Reports chart/export/accounting và taxonomy tenant-enabled — chưa thuộc Phase 1.
 3. PHI/REI/withdrawal calendar hard gates và per-kind rules sâu.
 4. Cần review cuối, loại generated log, rồi commit mốc ổn định.
@@ -324,3 +324,37 @@ Mở thêm sau batch này: root-cause `400` ở `tenant-auth.e2e-spec.ts:157`.
 - E2E `tenant-auth` vẫn là blocker pre-existing đã ghi tại §8.7; migration partial-return chưa tự apply trên DB dùng chung.
 
 Trạng thái còn mở: reports chart/export/accounting, PHI/REI/withdrawal calendar workflow, UI quản lý livestock health-state và root-cause `tenant-auth` E2E 400.
+
+### 8.9 Current project status — 2026-07-25
+
+Section này là snapshot hiện hành; các bảng baseline ở §2–§8 vẫn giữ nguyên để truy vết lịch sử audit.
+
+| Nhóm công việc | Trạng thái | Đã thực hiện |
+|---|---|---|
+| Core catalog/ProductKind | ✅ | CRUD nhận `productKind/businessGroup/attrs`; validation theo kind; frontend form đồng bộ; legacy update không bị phá khi thiếu attrs chuyên ngành cũ |
+| PHI/REI/withdrawal/N-P-K | ✅ slice | PESTICIDE bắt buộc PHI/REI; VET_DRUG bắt buộc withdrawal meat/milk/egg; FERTILIZER bắt buộc nitrogen/phosphorus/potassium; sale date gates đã có |
+| Livestock state machine | ✅ slice | HEALTHY → QUARANTINED/SICK/DEAD/REJECTED; recovery có chủ đích; audit, tenant scope, FEFO sell gate, CAS trên adjustment/returns |
+| StockAdjustment | ✅ | Reason taxonomy theo ProductKind, CAS/version, structured `INSUFFICIENT_BATCH` và `STALE_VERSION` |
+| Partial returns | ✅ slice | Sales/purchase partial routes, remaining quantity, idempotency, tenant isolation, batch CAS, stock movement, audit, debt pro-rata |
+| Cash refund | ✅ slice | `REFUND_VOUCHER` tạo PaymentVoucher + ledger trail; hỗ trợ customer/supplier và walk-in; P2002 chỉ map đúng idempotency; P2034 retry |
+| SALE_DENY + frontend errors | ✅ | Backend audit `SALE_DENY`; frontend map structured errors, fallback an toàn cho mã nội bộ |
+| Reports | ✅ Phase 1 | UI `/bao-cao`, stock/sales summary, filter/breakdown theo 5 business groups, loading/error/empty/retry |
+| Audit/release receipt | ✅ | Receipt ghi rõ test/build/e2e evidence và các blocker môi trường; docs/catalog đã reconcile với source |
+
+#### Verification hiện hành
+
+- Backend full: **54 suites pass, 500 tests pass, 1 skipped** khi chạy với Redis test service.
+- Frontend full: **29 files, 169 tests pass**; production build pass.
+- ProductKind focused: backend 50/50, frontend 12/12 pass.
+- Refund/returns focused: 46/46 pass; Nest build và Biome pass.
+- Main đã merge các mốc ProductKind, refund hardening, audit receipt; `docs/.sync_hash` đã chốt.
+- Tài khoản test `chutam / Anh Tâm` tại tenant `nong-xanh` đã được reconcile role OWNER và full permission catalog để kiểm thử UI.
+
+#### Việc còn mở
+
+1. `tenant-auth.e2e-spec.ts` vẫn fail pre-existing (`POST /tenant/users` trả 400 thay vì 201); cần root-cause riêng.
+2. Migration partial-return chưa apply vào shared DB; không tự apply trong batch này.
+3. Reports chart/export/accounting và taxonomy tenant-enabled mở rộng.
+4. PHI/REI/withdrawal calendar workflow/master data đầy đủ.
+5. UI quản lý livestock health-state.
+6. Handbook discovery/spec và các nghiệp vụ chưa có contract ổn định.
