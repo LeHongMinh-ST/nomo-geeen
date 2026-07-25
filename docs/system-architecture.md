@@ -82,6 +82,21 @@ The admin permission catalog is exposed at `/admin/settings/permissions` and gat
   Livestock transitions use `PATCH /tenant/inventory/batches/:batchId/health-state` with
   transactional audit; stock writes otherwise flow through purchase complete / quick sale.
 
+- Livestock batch mutations use an explicit state policy: `HEALTHY` can move to
+  `QUARANTINED`, `SICK`, `DEAD`, or `REJECTED`; only `QUARANTINED`/`SICK` can recover to
+  `HEALTHY` with `approveRecovery=true`. Adjustment and return batch writes use
+  `ProductBatch.version` compare-and-set inside Serializable transactions; insufficient
+  stock is reported separately from stale-version conflicts.
+
+- Partial sales and purchase returns are tenant-scoped Serializable mutations with
+  line/batch returnability caps, idempotency keys, batch CAS, stock movements, audit rows,
+  and proportional debt adjustment. `REFUND_VOUCHER` currently fails closed until a
+  PaymentVoucher contract is approved. Original sale/purchase documents remain immutable.
+
+- Operational reports expose tenant-scoped stock and completed-sales summaries with
+  optional Phase-1 `BusinessGroup` filtering and breakdowns. The `/bao-cao` frontend uses
+  the shared tenant error mapper and keeps chart/export/profit accounting outside this slice.
+
 - The frontend tenant sales client and customer picker are available. R5 migrates `/don-ban-hang` and `/don-ban-hang/:id` to canonical list/detail/cancel operations with debounced server queries, desktop replacement paging, mobile deduplicated incremental loading, conflict refetch, inline retry, and responsive loading/error states. Order creation/complete orchestration remains R6; no new seed fallback is part of this slice.
 
 ## Deployment evidence gap

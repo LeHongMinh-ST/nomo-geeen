@@ -8,6 +8,15 @@ Format theo [Keep a Changelog](https://keepachangelog.com/), tuân thủ [Semant
 ## [Unreleased]
 
 ### Added
+- **Livestock CAS/recovery hardening** — added explicit recovery approval, terminal health
+  states, version CAS across adjustments and returns, and distinct insufficient-stock versus
+  stale-version errors with audit coverage.
+- **Partial returns foundation** — added line/batch returnability tracking, idempotent partial
+  sales/purchase return routes, Serializable stock/batch mutations, proportional debt adjustment,
+  and fail-closed cash-refund handling.
+- **Operational Reports Phase 1** — added `/bao-cao`, tenant-scoped stock/sales summaries,
+  five-group BusinessGroup filters/breakdowns, loading/error/empty/retry states, and shared
+  structured frontend error mapping.
 - **Livestock batch state machine (first slice)** — added tenant-scoped `ProductBatch.healthState`/`version`, HEALTHY-to-blocked transition API with transactional `LIVESTOCK_STATE_CHANGE` audit, FEFO health filtering/version CAS, and inventory batch state/version exposure. Recovery, adjustment/return CAS, and management UI remain follow-up work.
 - **Reports HTTP contract hardening** — stock/sales summaries now serialize BigInt and Decimal values as JSON-safe strings while preserving tenant and date-range behavior.
 - **Frontend sales error mapping** — added safe Vietnamese copy for user-actionable structured sales reasons, including livestock/regulatory gates and return/order lifecycle errors; internal conflict details continue using generic fallback.
