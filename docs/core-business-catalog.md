@@ -232,8 +232,8 @@ Cho phép `HEALTHY → QUARANTINED/SICK/DEAD/REJECTED` và recovery có chủ đ
 `ProductBatch.version` khi đổi `qtyOnHand`. Chưa có UI quản lý health-state; `Product.attrs`
 vẫn là legacy fallback trong sale eligibility. Partial return đã có route và batch CAS
 (`POST /tenant/sales/orders/:id/return/partial`, `POST /tenant/purchases/:id/return/partial`);
-hoàn tiền mặt vẫn fail-closed, chưa tự sinh payout — xem `specs/livestock-cas-recovery/design.md`
-và `specs/partial-returns-refunds/`.
+hoàn tiền mặt qua `settlementMode=REFUND_VOUCHER` đã tạo `PaymentVoucher` + `DebtLedger`
+với idempotency, walk-in party và structured refund errors — xem `specs/partial-returns-refunds/`.
 
 Kho phải theo dõi số con thực tế và số con được phép bán. Chết, bệnh, loại, cách ly và trả
 nguồn giống là reason riêng. Không dùng HSD thuốc; thay bằng tuổi, giai đoạn, sức khỏe và

@@ -306,3 +306,21 @@ Doc reconcile: `docs/core-business-catalog.md` §9 và §13 đã sửa cho khớ
 route + batch CAS; UI `/bao-cao` và filter 5 nhóm Phase 1 đã có). `docs/.sync_hash` giữ nguyên.
 
 Mở thêm sau batch này: root-cause `400` ở `tenant-auth.e2e-spec.ts:157`.
+
+### 8.8 Re-audit sau hardening ProductKind + cash refund — 2026-07-25
+
+| Hạng mục | Trạng thái mới | Bằng chứng chính |
+|---|---|---|
+| ProductKind attrs + PHI/REI/withdrawal gates | ✅ slice | Backend validate attrs theo kind; PESTICIDE PHI/REI, VET_DRUG withdrawal, FERTILIZER N/P/K; frontend form đồng bộ; legacy update tương thích |
+| Per-kind sale gates | ✅ slice | `sale-eligibility-policy` chặn PHI/REI theo harvest date, withdrawal theo event date và livestock state; unit tests |
+| Partial returns/refunds | ✅ slice | `PaymentVoucher` cash settlement, walk-in party, P2002 idempotency guard, structured `DEBT_ADJUST_INVALID`, Serializable P2034 retry; 46 focused tests + Nest build |
+| Tài liệu/spec state | ✅ | Specs A/B/C cập nhật; receipt giữ rõ giới hạn e2e/migration chưa chạy |
+
+#### Verification closeout
+
+- Luồng A: backend 50/50 focused tests, frontend 12/12 ProductKind tests, backend/frontend build PASS, Biome PASS.
+- Luồng B: 46/46 focused tests, Nest build PASS, Biome PASS.
+- Review adversarial: không còn Critical/High sau khi xử lý walk-in refund, DebtLedger summary/null timeline, BigInt 4xx, P2002 scope và P2034 retry.
+- E2E `tenant-auth` vẫn là blocker pre-existing đã ghi tại §8.7; migration partial-return chưa tự apply trên DB dùng chung.
+
+Trạng thái còn mở: reports chart/export/accounting, PHI/REI/withdrawal calendar workflow, UI quản lý livestock health-state và root-cause `tenant-auth` E2E 400.
