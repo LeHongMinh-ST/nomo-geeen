@@ -5,8 +5,11 @@ import { use, useEffect, useState } from "react";
 import { DiseaseForm } from "@/components/app/handbook/disease-form";
 import { SettingHeader } from "@/components/app/setting-header";
 import type { Disease } from "@/lib/handbook";
-import { getDisease } from "@/lib/handbook";
-import { getHandbookEntry, toDisease } from "@/lib/tenant-handbook-api";
+import {
+	getHandbookEntry,
+	type Protocol,
+	toDisease,
+} from "@/lib/tenant-handbook-api";
 
 export default function SuaSoTayPage({
 	params,
@@ -15,15 +18,18 @@ export default function SuaSoTayPage({
 }) {
 	const { id } = use(params);
 	const [disease, setDisease] = useState<Disease | null | undefined>(undefined);
+	const [protocols, setProtocols] = useState<Protocol[]>([]);
 
 	useEffect(() => {
 		let cancelled = false;
 		getHandbookEntry(id)
 			.then((entry) => {
-				if (!cancelled) setDisease(toDisease(entry));
+				if (cancelled) return;
+				setDisease(toDisease(entry));
+				setProtocols(entry.protocols ?? []);
 			})
 			.catch(() => {
-				if (!cancelled) setDisease(getDisease(id) ?? null);
+				if (!cancelled) setDisease(null);
 			});
 		return () => {
 			cancelled = true;
@@ -59,7 +65,11 @@ export default function SuaSoTayPage({
 				title="Sửa sổ tay"
 				description="Cập nhật bệnh và kinh nghiệm xử lý."
 			/>
-			<DiseaseForm mode="edit" disease={disease} />
+			<DiseaseForm
+				mode="edit"
+				disease={disease}
+				initialProtocols={protocols}
+			/>
 		</div>
 	);
 }

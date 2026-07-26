@@ -5,6 +5,7 @@ import {
 	Param,
 	Patch,
 	Post,
+	Put,
 	Query,
 	Req,
 	UseGuards,
@@ -19,6 +20,11 @@ import {
 	HandbookQueryDto,
 	UpdateHandbookEntryDto,
 } from './dto/handbook.dto';
+import {
+	QuickSuggestionsQueryDto,
+	ReplaceProtocolsDto,
+} from './dto/protocol.dto';
+import { HandbookProtocolService } from './handbook-protocol.service';
 import { HandbookService } from './handbook.service';
 
 interface TenantRequest extends Request {
@@ -28,7 +34,10 @@ interface TenantRequest extends Request {
 @Controller('tenant/handbook')
 @UseGuards(TenantAccessTokenGuard, TenantPermissionGuard)
 export class HandbookController {
-	constructor(private readonly handbook: HandbookService) {}
+	constructor(
+		private readonly handbook: HandbookService,
+		private readonly protocols: HandbookProtocolService,
+	) {}
 
 	@Get('categories')
 	@RequireTenantPermission('handbook:view')
@@ -52,6 +61,31 @@ export class HandbookController {
 	@RequireTenantPermission('handbook:view')
 	detail(@Req() request: TenantRequest, @Param('id') id: string) {
 		return this.handbook.findById(request.user.tenantId, id);
+	}
+
+	@Get(':id/quick-suggestions')
+	@RequireTenantPermission('handbook:view')
+	quickSuggestions(
+		@Req() request: TenantRequest,
+		@Param('id') id: string,
+		@Query() query: QuickSuggestionsQueryDto,
+	) {
+		return this.handbook.quickSuggestions(request.user.tenantId, id, query);
+	}
+
+	@Put(':id/protocols')
+	@RequireTenantPermission('handbook:edit')
+	replaceProtocols(
+		@Req() request: TenantRequest,
+		@Param('id') id: string,
+		@Body() dto: ReplaceProtocolsDto,
+	) {
+		return this.protocols.replaceAll(
+			request.user.tenantId,
+			request.user.id,
+			id,
+			dto,
+		);
 	}
 
 	@Post()

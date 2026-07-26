@@ -4,8 +4,11 @@ import Link from "next/link";
 import { use, useEffect, useState } from "react";
 import { DiseaseDetail } from "@/components/app/handbook/disease-detail";
 import type { Disease } from "@/lib/handbook";
-import { getDisease } from "@/lib/handbook";
-import { getHandbookEntry, toDisease } from "@/lib/tenant-handbook-api";
+import {
+	getHandbookEntry,
+	type Protocol,
+	toDisease,
+} from "@/lib/tenant-handbook-api";
 
 export default function ChiTietSoTayPage({
 	params,
@@ -14,15 +17,18 @@ export default function ChiTietSoTayPage({
 }) {
 	const { id } = use(params);
 	const [disease, setDisease] = useState<Disease | null | undefined>(undefined);
+	const [protocols, setProtocols] = useState<Protocol[]>([]);
 
 	useEffect(() => {
 		let cancelled = false;
 		getHandbookEntry(id)
 			.then((entry) => {
-				if (!cancelled) setDisease(toDisease(entry));
+				if (cancelled) return;
+				setDisease(toDisease(entry));
+				setProtocols(entry.protocols ?? []);
 			})
 			.catch(() => {
-				if (!cancelled) setDisease(getDisease(id) ?? null);
+				if (!cancelled) setDisease(null);
 			});
 		return () => {
 			cancelled = true;
@@ -52,5 +58,5 @@ export default function ChiTietSoTayPage({
 		);
 	}
 
-	return <DiseaseDetail disease={disease} />;
+	return <DiseaseDetail disease={disease} protocols={protocols} />;
 }

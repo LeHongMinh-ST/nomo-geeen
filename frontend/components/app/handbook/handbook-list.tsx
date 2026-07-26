@@ -7,18 +7,17 @@ import { DataPagination } from "@/components/app/shared/data-pagination";
 import { ListFilterBar } from "@/components/app/shared/list-filter-bar";
 import { LoadMoreSentinel } from "@/components/app/shared/load-more-sentinel";
 import {
-	availableSuggestionCount,
 	categoryBadgeClass,
 	categoryLabel,
 	type Disease,
 	HANDBOOK_CATEGORY_CATALOG,
 	type HandbookCategoryId,
 	handbookCategoryLabel,
-	handbookDiseases,
 	typeBadgeClass,
 	typeLabel,
 } from "@/lib/handbook";
 import { listHandbookEntries, toDisease } from "@/lib/tenant-handbook-api";
+import { matchesVietnamese } from "@/lib/vietnamese-search";
 import { DiseaseCard } from "./disease-card";
 
 /**
@@ -45,11 +44,13 @@ export function HandbookList() {
 	const [category, setCategory] = useState<CategoryFilter>("all");
 	const [page, setPage] = useState(1);
 	const [mobileCount, setMobileCount] = useState(MOBILE_BATCH);
-	const [entries, setEntries] = useState<Disease[]>(handbookDiseases);
+	const [entries, setEntries] = useState<Disease[]>([]);
 	const [loadError, setLoadError] = useState<string | null>(null);
 	const [loading, setLoading] = useState(true);
+	const [reloadKey, setReloadKey] = useState(0);
 
 	useEffect(() => {
+		void reloadKey;
 		let cancelled = false;
 		setLoading(true);
 		listHandbookEntries({ page: 1, pageSize: 50 })
@@ -66,9 +67,10 @@ export function HandbookList() {
 			})
 			.catch(() => {
 				if (cancelled) return;
-				// Offline / no perm: fall back to mock so counter still works.
-				setEntries(handbookDiseases);
-				setLoadError("API sổ tay chưa sẵn sàng — đang dùng dữ liệu mẫu.");
+				setEntries([]);
+				setLoadError(
+					"Không tải được Sổ tay. Kiểm tra quyền hoặc máy chủ rồi thử lại.",
+				);
 			})
 			.finally(() => {
 				if (!cancelled) setLoading(false);
@@ -76,19 +78,21 @@ export function HandbookList() {
 		return () => {
 			cancelled = true;
 		};
-	}, []);
+	}, [reloadKey]);
 
 	const filtered = useMemo(() => {
-		const q = query.trim().toLowerCase();
+		const q = query.trim();
 		return entries.filter((d) => {
 			if (category !== "all" && d.category !== category) return false;
 			if (!q) return true;
-			const catLabel = handbookCategoryLabel(d.category).toLowerCase();
-			return (
-				d.name.toLowerCase().includes(q) ||
-				d.subject.toLowerCase().includes(q) ||
-				catLabel.includes(q) ||
-				d.aliases.some((a) => a.toLowerCase().includes(q))
+			return matchesVietnamese(
+				[
+					d.name,
+					d.subject,
+					handbookCategoryLabel(d.category),
+					...d.aliases,
+				],
+				q,
 			);
 		});
 	}, [query, category, entries]);
@@ -137,9 +141,16 @@ export function HandbookList() {
 			</div>
 
 			{loadError ? (
-				<p className="rounded-[10px] border border-[#ffe0b2] bg-[#fff8e1] px-3 py-2 text-sm text-[#e65100]">
-					{loadError}
-				</p>
+				<div className="flex items-center justify-between gap-3 rounded-[10px] border border-[#ffcdd2] bg-[#ffebee] px-3 py-2 text-sm text-[#c62828]">
+					<span>{loadError}</span>
+					<button
+						type="button"
+						onClick={() => setReloadKey((key) => key + 1)}
+						className="min-h-10 rounded-lg bg-white px-3 font-semibold text-[#c62828]"
+					>
+						Thử lại
+					</button>
+				</div>
 			) : null}
 			{loading ? (
 				<p className="text-sm text-[#9e9e9e]">Đang tải sổ tay…</p>
@@ -256,8 +267,6 @@ export function HandbookList() {
 
 /** Một hàng bảng Sổ tay (desktop). */
 function DiseaseRow({ disease }: { disease: Disease }) {
-	const available = availableSuggestionCount(disease);
-
 	return (
 		<tr className="border-t border-border transition-colors hover:bg-accent">
 			<td className="px-4 py-3">
@@ -299,13 +308,9 @@ function DiseaseRow({ disease }: { disease: Disease }) {
 				</span>
 			</td>
 			<td className="whitespace-nowrap px-4 py-3 text-right">
-				<span
-					className={`inline-flex items-center gap-1.5 text-base font-semibold ${
-						available > 0 ? "text-[#2e7d32]" : "text-[#9e9e9e]"
-					}`}
-				>
+				<span className="inline-flex items-center gap-1.5 text-base font-semibold text-[#2e7d32]">
 					<Pill className="size-4.5" aria-hidden />
-					{available > 0 ? `${available} còn hàng` : "—"}
+					Xem gợi ý
 				</span>
 			</td>
 		</tr>

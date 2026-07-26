@@ -20,18 +20,26 @@ describe('HandbookService', () => {
 				findMany: jest.fn(),
 				count: jest.fn(),
 				findFirst: jest.fn(),
-				groupBy: jest.fn(),
+			groupBy: jest.fn(),
 			},
+			warehouse: { findFirst: jest.fn() },
+			product: { findMany: jest.fn() },
 			$transaction: jest.fn(async (cb: (client: typeof tx) => unknown) =>
 				cb(tx),
 			),
 		};
 		const audit = { writeInTx: jest.fn() };
+		const protocols = { listForDisease: jest.fn().mockResolvedValue([]) };
 		return {
-			service: new HandbookService(prisma as never, audit as never),
+			service: new HandbookService(
+				prisma as never,
+				audit as never,
+				protocols as never,
+			),
 			prisma,
 			tx,
 			audit,
+			protocols,
 		};
 	}
 
@@ -186,7 +194,10 @@ describe('HandbookService', () => {
 		expect(where.OR).toEqual(
 			expect.arrayContaining([
 				expect.objectContaining({
-					aliasesSearch: expect.objectContaining({ contains: 'cháy lá' }),
+					aliasesSearch: expect.objectContaining({ contains: 'chay la' }),
+				}),
+				expect.objectContaining({
+					nameSearch: expect.objectContaining({ contains: 'chay la' }),
 				}),
 			]),
 		);
@@ -221,5 +232,164 @@ describe('HandbookService', () => {
 				data: expect.objectContaining({ type: 'OTHER' }),
 			}),
 		);
+	});
+
+	it('returns tenant-scoped ranked quick-sale suggestions and consult fields', async () => {
+		const { service, prisma } = makeService();
+		prisma.disease.findFirst.mockResolvedValue({
+			id: 'd1', tenantId: 'tenant-1', name: 'Đạo ôn', aliases: ['cháy lá'], handbookCategory: HandbookCategory.CROP_PROTECTION_AND_FERTILIZER, symptom: 'vết thoi',
+			ingredients: [{ activeIngredient: 'Tricyclazole' }], pins: [{ productId: 'pinned', isExcluded: false }, { productId: 'excluded', isExcluded: true }], consultFields: [{ fieldKey: 'area', label: 'Diện tích', fieldType: 'NUMBER', unit: 'ha', required: false, options: null, sortOrder: 0 }],
+			protocols: [],
+		});
+		prisma.warehouse.findFirst.mockResolvedValue({ id: 'w1' });
+		prisma.product.findMany.mockResolvedValue([
+			{ id: 'pinned', name: 'Thuốc ghim', activeIngredient: null, pestTags: [], status: 'ACTIVE', isLocked: false, isRecalled: false, salePrice: 100n, baseUnit: { id: 'u1', name: 'Chai' }, stocks: [{ qty: 2 }] },
+			{ id: 'ingredient', name: 'Thuốc hoạt chất', activeIngredient: 'Tricyclazole 75%', pestTags: [], status: 'ACTIVE', isLocked: false, isRecalled: false, salePrice: 200n, baseUnit: { id: 'u1', name: 'Chai' }, stocks: [{ qty: 0 }] },
+		]);
+		const result = await service.quickSuggestions('tenant-1', 'd1');
+		expect(result.consultFields).toHaveLength(1);
+		expect(result.suggestions[0]).toMatchObject({ productId: 'pinned', reason: 'OWNER_PIN', available: true });
+		expect(prisma.product.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: expect.objectContaining({ tenantId: 'tenant-1' }) }));
+	});
+
+	describe('quickSuggestions protocols', () => {
+		function seedDisease(prisma: ReturnType<typeof makeService>['prisma']) {
+			prisma.disease.findFirst.mockResolvedValue({
+				id: 'd1',
+				tenantId: 'tenant-1',
+				name: 'Đạo ôn',
+				aliases: [],
+				handbookCategory: HandbookCategory.CROP_PROTECTION_AND_FERTILIZER,
+				symptom: null,
+				ingredients: [],
+				pins: [],
+				consultFields: [],
+				protocols: [
+					{
+						id: 'proto-1',
+						name: 'Phác đồ chính',
+						note: null,
+						isDefault: true,
+						sortOrder: 0,
+						items: [
+							{
+								id: 'item-1',
+								productId: 'p1',
+								activeIngredient: null,
+								doseAmount: 25,
+								doseUnit: 'ml',
+								perAreaAmount: 1000,
+								perAreaUnit: 'M2',
+								mixing: 'Pha 20 lít nước',
+								usage: 'Phun đều',
+								sortOrder: 0,
+								product: {
+									id: 'p1',
+									name: 'Thuốc A',
+									netContent: 100,
+									netContentUnit: 'ml',
+								},
+							},
+						],
+					},
+				],
+			});
+			prisma.warehouse.findFirst.mockResolvedValue({ id: 'w1' });
+			prisma.product.findMany.mockResolvedValue([
+				{
+					id: 'p1',
+					name: 'Thuốc A',
+					activeIngredient: null,
+					pestTags: [],
+					status: 'ACTIVE',
+					isLocked: false,
+					isRecalled: false,
+					salePrice: 50000n,
+					baseUnit: { id: 'u1', name: 'Chai' },
+					stocks: [{ qty: 10 }],
+				},
+			]);
+		}
+
+		it('computes needAmount and packs for the given area', async () => {
+			const { service, prisma } = makeService();
+			seedDisease(prisma);
+
+			const result = await service.quickSuggestions('tenant-1', 'd1', {
+				areaValue: 3,
+				areaUnit: 'CONG_NAM',
+			});
+
+			expect(result.area).toEqual({
+				value: 3,
+				unit: 'CONG_NAM',
+				squareMeters: 3000,
+			});
+			expect(result.protocols[0]).toMatchObject({
+				id: 'proto-1',
+				status: 'FULL',
+			});
+			expect(result.protocols[0].items[0]).toMatchObject({
+				needAmount: 75,
+				needUnit: 'ml',
+				packs: 1,
+				inStock: true,
+				mixing: 'Pha 20 lít nước',
+				usage: 'Phun đều',
+			});
+		});
+
+		it('omits quantities when no area is supplied', async () => {
+			const { service, prisma } = makeService();
+			seedDisease(prisma);
+
+			const result = await service.quickSuggestions('tenant-1', 'd1');
+
+			expect(result.area).toBeNull();
+			expect(result.protocols[0].items[0]).toMatchObject({
+				needAmount: null,
+				packs: null,
+				cannotComputePacksReason: 'NO_AREA',
+			});
+		});
+
+		it('marks the protocol OUT when the product is out of stock', async () => {
+			const { service, prisma } = makeService();
+			seedDisease(prisma);
+			prisma.product.findMany.mockResolvedValue([
+				{
+					id: 'p1',
+					name: 'Thuốc A',
+					activeIngredient: null,
+					pestTags: [],
+					status: 'ACTIVE',
+					isLocked: false,
+					isRecalled: false,
+					salePrice: 50000n,
+					baseUnit: { id: 'u1', name: 'Chai' },
+					stocks: [{ qty: 0 }],
+				},
+			]);
+
+			const result = await service.quickSuggestions('tenant-1', 'd1', {
+				areaValue: 1000,
+				areaUnit: 'M2',
+			});
+
+			expect(result.protocols[0].status).toBe('OUT');
+			expect(result.protocols[0].items[0].inStock).toBe(false);
+		});
+
+		it('rejects a non-positive area', async () => {
+			const { service, prisma } = makeService();
+			seedDisease(prisma);
+
+			await expect(
+				service.quickSuggestions('tenant-1', 'd1', {
+					areaValue: 0,
+					areaUnit: 'M2',
+				}),
+			).rejects.toBeInstanceOf(BadRequestException);
+		});
 	});
 });

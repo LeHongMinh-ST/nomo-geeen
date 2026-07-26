@@ -24,6 +24,14 @@ import {
 	isSelectableHandbookCategory,
 	mapLegacyAgriDomain,
 } from './handbook-category';
+import {
+	normalizeSearchList,
+	normalizeVietnameseSearch,
+} from './vietnamese-search';
+import { toSquareMeters } from './area-conversion';
+import { HandbookProtocolService } from './handbook-protocol.service';
+import { evaluateProtocol } from './protocol-availability';
+import type { QuickSuggestionsQueryDto } from './dto/protocol.dto';
 
 type DiseaseRow = {
 	id: string;
@@ -54,6 +62,7 @@ export class HandbookService {
 	constructor(
 		private readonly prisma: PrismaService,
 		private readonly audit: AuditLogger,
+		private readonly protocols: HandbookProtocolService,
 	) {}
 
 	catalog() {
@@ -76,11 +85,29 @@ export class HandbookService {
 		};
 		if (query.category) where.handbookCategory = query.category;
 		if (search) {
+			// Search columns hold diacritic-free text, so the query is folded the same way
+			// before matching. Raw contains is kept so accented input still works on rows
+			// written before the backfill.
+			const normalized = normalizeVietnameseSearch(search);
 			where.OR = [
 				{ name: { contains: search, mode: 'insensitive' } },
 				{ target: { contains: search, mode: 'insensitive' } },
-				{ nameSearch: { contains: search, mode: 'insensitive' } },
-				{ aliasesSearch: { contains: search, mode: 'insensitive' } },
+				...(normalized
+					? [
+							{
+								nameSearch: {
+									contains: normalized,
+									mode: 'insensitive' as const,
+								},
+							},
+							{
+								aliasesSearch: {
+									contains: normalized,
+									mode: 'insensitive' as const,
+								},
+							},
+						]
+					: []),
 			];
 		}
 		const [items, total] = await Promise.all([
@@ -138,7 +165,151 @@ export class HandbookService {
 			},
 		});
 		if (!row) throw new NotFoundException('Handbook entry not found');
-		return this.toResponse(row);
+		return {
+			...this.toResponse(row),
+			protocols: await this.protocols.listForDisease(tenantId, id),
+		};
+	}
+
+	async quickSuggestions(
+		tenantId: string,
+		id: string,
+		query: QuickSuggestionsQueryDto = {},
+	) {
+		const disease = await this.prisma.disease.findFirst({
+			where: { id, tenantId, deletedAt: null, isActive: true },
+			include: {
+				ingredients: { orderBy: { sortOrder: 'asc' }, select: { activeIngredient: true } },
+				pins: { orderBy: { sortOrder: 'asc' }, select: { productId: true, isExcluded: true } },
+				consultFields: { where: { tenantId, isEnabled: true }, orderBy: { sortOrder: 'asc' } },
+				protocols: {
+					orderBy: [
+						{ isDefault: 'desc' },
+						{ sortOrder: 'asc' },
+						{ createdAt: 'asc' },
+					],
+					where: { isActive: true },
+					include: {
+						items: {
+							orderBy: { sortOrder: 'asc' },
+							include: {
+								product: {
+									select: {
+										id: true,
+										name: true,
+										netContent: true,
+										netContentUnit: true,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		});
+		if (!disease) throw new NotFoundException('Handbook entry not found');
+		const warehouse = await this.prisma.warehouse.findFirst({
+			where: { tenantId, isDefault: true, deletedAt: null }, select: { id: true },
+		});
+		const products = await this.prisma.product.findMany({
+			where: { tenantId, deletedAt: null },
+			include: { baseUnit: { select: { id: true, name: true } }, stocks: warehouse ? { where: { warehouseId: warehouse.id }, select: { qty: true } } : false },
+		});
+		const excluded = new Set(disease.pins.filter((p) => p.isExcluded).map((p) => p.productId));
+		const pinned = new Map(disease.pins.filter((p) => !p.isExcluded).map((p, i) => [p.productId, i]));
+		const ingredients = disease.ingredients.map((i) => i.activeIngredient.toLowerCase());
+		const terms = [disease.name, ...(Array.isArray(disease.aliases) ? disease.aliases.filter((a): a is string => typeof a === 'string') : [])].map((v) => v.toLowerCase());
+		const suggestions = products.filter((p) => !excluded.has(p.id)).map((p) => {
+			const text = [p.name, p.activeIngredient ?? '', ...(Array.isArray(p.pestTags) ? p.pestTags.filter((v): v is string => typeof v === 'string') : [])].join(' ').toLowerCase();
+			const pinRank = pinned.get(p.id);
+			const ingredientMatch = !!p.activeIngredient && ingredients.some((i) => p.activeIngredient!.toLowerCase().includes(i));
+			const tagMatch = terms.some((term) => text.includes(term));
+			const availableQty = Number(p.stocks?.[0]?.qty ?? 0);
+			const available = p.status === 'ACTIVE' && !p.isLocked && !p.isRecalled && availableQty > 0;
+			return { productId: p.id, name: p.name, unitId: p.baseUnit.id, unit: p.baseUnit.name, unitPrice: Number(p.salePrice), availableQty, available, reason: pinRank !== undefined ? 'OWNER_PIN' : ingredientMatch ? 'ACTIVE_INGREDIENT' : 'TARGET_MATCH', warnings: [], matched: pinRank !== undefined || ingredientMatch || tagMatch, rank: pinRank !== undefined ? pinRank : ingredientMatch ? 100 : 200 };
+		}).filter((item) => item.matched).sort((a, b) => a.rank - b.rank || Number(b.available) - Number(a.available) || a.productId.localeCompare(b.productId)).map(({ rank: _rank, matched: _matched, ...item }) => item);
+		const productById = new Map(products.map((p) => [p.id, p]));
+		const area = this.resolveArea(query);
+		const protocols = disease.protocols.map((protocol) =>
+			evaluateProtocol(
+				{
+					id: protocol.id,
+					name: protocol.name,
+					note: protocol.note,
+					isDefault: protocol.isDefault,
+					sortOrder: protocol.sortOrder,
+					items: protocol.items.map((item) => {
+						const product = item.productId
+							? productById.get(item.productId)
+							: undefined;
+						const availableQty = Number(product?.stocks?.[0]?.qty ?? 0);
+						return {
+							id: item.id,
+							productId: item.productId,
+							productName: item.product?.name ?? null,
+							activeIngredient: item.activeIngredient,
+							doseAmount: Number(item.doseAmount),
+							doseUnit: item.doseUnit,
+							perAreaAmount: Number(item.perAreaAmount),
+							perAreaUnit: item.perAreaUnit,
+							mixing: item.mixing,
+							usage: item.usage,
+							sortOrder: item.sortOrder,
+							product: product
+								? {
+										id: product.id,
+										unitId: product.baseUnit.id,
+										unitName: product.baseUnit.name,
+										unitPrice: Number(product.salePrice),
+										availableQty,
+										sellable:
+											product.status === 'ACTIVE' &&
+											!product.isLocked &&
+											!product.isRecalled,
+										netContent:
+											item.product?.netContent === null ||
+											item.product?.netContent === undefined
+												? null
+												: Number(item.product.netContent),
+										netContentUnit: item.product?.netContentUnit ?? null,
+									}
+								: null,
+						};
+					}),
+				},
+				area.squareMeters,
+			),
+		);
+
+		return {
+			disease: { id: disease.id, name: disease.name, category: disease.handbookCategory, symptom: disease.symptom, aliases: disease.aliases, note: disease.note, formulaExpr: disease.formulaExpr },
+			consultFields: disease.consultFields,
+			suggestions,
+			area: area.echo,
+			protocols,
+		};
+	}
+
+	/** Resolve the optional area filter; an invalid pair simply yields no quantities. */
+	private resolveArea(query: QuickSuggestionsQueryDto) {
+		if (query.areaValue === undefined || query.areaUnit === undefined) {
+			return { squareMeters: null, echo: null };
+		}
+		const converted = toSquareMeters(query.areaValue, query.areaUnit);
+		if (!converted.ok) {
+			throw new BadRequestException({
+				message: 'Invalid area',
+				errors: [{ field: 'areaValue', message: converted.reason }],
+			});
+		}
+		return {
+			squareMeters: converted.squareMeters,
+			echo: {
+				value: query.areaValue,
+				unit: query.areaUnit,
+				squareMeters: converted.squareMeters,
+			},
+		};
 	}
 
 	async create(tenantId: string, userId: string, dto: CreateHandbookEntryDto) {
@@ -152,10 +323,10 @@ export class HandbookService {
 				data: {
 					tenantId,
 					name,
-					nameSearch: name.toLowerCase(),
+					nameSearch: normalizeVietnameseSearch(name),
 					aliases: aliases.length ? aliases : undefined,
 					aliasesSearch: aliases.length
-						? aliases.join(' ').toLowerCase()
+						? normalizeSearchList(aliases)
 						: undefined,
 					domain: 'GENERAL',
 					handbookCategory: category,
@@ -226,7 +397,7 @@ export class HandbookService {
 			const name = dto.name.trim();
 			if (!name) throw this.invalidCategory('name', 'Name is required');
 			data.name = name;
-			data.nameSearch = name.toLowerCase();
+			data.nameSearch = normalizeVietnameseSearch(name);
 		}
 		if (dto.category !== undefined) {
 			data.handbookCategory = this.requireSelectableCategory(dto.category);
@@ -238,9 +409,7 @@ export class HandbookService {
 		if (dto.aliases !== undefined) {
 			const aliases = this.normalizeStringList(dto.aliases);
 			data.aliases = aliases.length ? aliases : Prisma.JsonNull;
-			data.aliasesSearch = aliases.length
-				? aliases.join(' ').toLowerCase()
-				: null;
+			data.aliasesSearch = aliases.length ? normalizeSearchList(aliases) : null;
 		}
 		const ingredients =
 			dto.recommendedIngredients !== undefined

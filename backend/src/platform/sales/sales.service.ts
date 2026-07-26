@@ -116,7 +116,7 @@ export class SalesService {
 		const search = query.search?.trim();
 		const where: Prisma.SaleWhereInput = {
 			tenantId,
-			channel: 'ORDER',
+			channel: { in: ['ORDER', 'QUICK_SALE'] },
 			deletedAt: null,
 			...(query.status ? { status: query.status } : {}),
 			...(search
@@ -150,7 +150,12 @@ export class SalesService {
 
 	async findOrder(tenantId: string, id: string) {
 		const sale = await this.prisma.sale.findFirst({
-			where: { id, tenantId, channel: 'ORDER', deletedAt: null },
+			where: {
+				id,
+				tenantId,
+				channel: { in: ['ORDER', 'QUICK_SALE'] },
+				deletedAt: null,
+			},
 			include: {
 				lines: { include: { unit: { select: { id: true, name: true } } } },
 			},
@@ -165,7 +170,12 @@ export class SalesService {
 		id: string,
 	) {
 		const sale = await tx.sale.findFirst({
-			where: { id, tenantId, channel: 'ORDER', deletedAt: null },
+			where: {
+				id,
+				tenantId,
+				channel: { in: ['ORDER', 'QUICK_SALE'] },
+				deletedAt: null,
+			},
 			include: {
 				lines: { include: { unit: { select: { id: true, name: true } } } },
 			},
@@ -1031,6 +1041,58 @@ export class SalesService {
 							message: 'Customer does not belong to this tenant',
 						});
 					}
+					const disease = dto.diseaseId
+						? await tx.disease.findFirst({
+								where: { id: dto.diseaseId, tenantId, deletedAt: null, isActive: true },
+								select: { id: true, name: true, consultFields: { where: { tenantId, isEnabled: true }, select: { fieldKey: true, fieldType: true } } },
+							})
+						: null;
+					if (dto.diseaseId && !disease) {
+						throw new UnprocessableEntityException({
+							reason: 'VALIDATION_ERROR',
+							message: 'Disease does not belong to this tenant',
+						});
+					}
+					if (disease && dto.consultContext) {
+						const allowed = new Map(disease.consultFields.map((field) => [field.fieldKey, field.fieldType]));
+						for (const [key, value] of Object.entries(dto.consultContext)) {
+							if (!allowed.has(key) || (value !== null && typeof value !== 'string' && typeof value !== 'number' && typeof value !== 'boolean')) {
+								throw new UnprocessableEntityException({ reason: 'VALIDATION_ERROR', message: 'Consult context is invalid' });
+							}
+						}
+					}
+					const protocol = dto.protocolId
+						? await tx.diseaseProtocol.findFirst({
+								where: {
+									id: dto.protocolId,
+									tenantId,
+									...(dto.diseaseId ? { diseaseId: dto.diseaseId } : {}),
+								},
+								select: { id: true, name: true },
+							})
+						: null;
+					if (dto.protocolId && !protocol) {
+						throw new UnprocessableEntityException({
+							reason: 'VALIDATION_ERROR',
+							message: 'Protocol does not belong to this disease',
+						});
+					}
+					const handbookContext =
+						dto.consultContext || dto.suggestedProductsMeta
+							? {
+									...(dto.consultContext ?? {}),
+									__suggestedProductsMeta: dto.suggestedProductsMeta ?? [],
+								}
+							: undefined;
+					// Protocol identity rides along the existing qty metadata column so the
+					// receipt keeps an immutable record without a new Sale column.
+					const qtyMeta = protocol
+						? {
+								...(dto.suggestedQtyMeta ?? {}),
+								__protocolId: protocol.id,
+								__protocolNameSnapshot: protocol.name,
+							}
+						: dto.suggestedQtyMeta;
 
 					const prepared = normalized.map((line) => {
 						const product = productById.get(line.productId);
@@ -1159,6 +1221,10 @@ export class SalesService {
 							paymentMethod: this.toPrismaPayment(dto.paymentMethod),
 							idempotencyKey: dto.idempotencyKey,
 							createdBy: userId,
+							diseaseId: disease?.id,
+							diseaseNameSnapshot: disease?.name,
+							consultContext: handbookContext as Prisma.InputJsonValue | undefined,
+							suggestedQtyMeta: qtyMeta as Prisma.InputJsonValue | undefined,
 							completedAt: new Date(),
 							lines: {
 								create: prepared.map((line) => ({
@@ -1317,10 +1383,37 @@ export class SalesService {
 			.sort();
 		const payment = this.toPrismaPayment(dto.paymentMethod);
 		const requestedPaid = BigInt(dto.amountPaid);
+		const requestedContext = dto.consultContext || dto.suggestedProductsMeta
+			? { ...(dto.consultContext ?? {}), __suggestedProductsMeta: dto.suggestedProductsMeta ?? [] }
+			: undefined;
+		// The stored qty metadata carries server-added protocol keys, so compare the
+		// caller-supplied part and the protocol id separately.
+		const storedQtyMeta = (existing.suggestedQtyMeta ?? null) as Record<
+			string,
+			unknown
+		> | null;
+		const storedProtocolId = storedQtyMeta?.__protocolId ?? null;
+		const storedCallerQtyMeta = storedQtyMeta
+			? Object.fromEntries(
+					Object.entries(storedQtyMeta).filter(
+						([key]) =>
+							key !== '__protocolId' && key !== '__protocolNameSnapshot',
+					),
+				)
+			: null;
+		const requestedCallerQtyMeta = dto.suggestedQtyMeta ?? null;
 		return (
 			existing.channel === 'QUICK_SALE' &&
 			existing.status === 'COMPLETED' &&
 			existing.customerId === (dto.customerId ?? null) &&
+			(existing.diseaseId ?? null) === (dto.diseaseId ?? null) &&
+			storedProtocolId === (dto.protocolId ?? null) &&
+			JSON.stringify(existing.consultContext ?? null) === JSON.stringify(requestedContext ?? null) &&
+			JSON.stringify(
+				storedCallerQtyMeta && Object.keys(storedCallerQtyMeta).length
+					? storedCallerQtyMeta
+					: null,
+			) === JSON.stringify(requestedCallerQtyMeta) &&
 			existing.discountAmount === BigInt(dto.discountAmount) &&
 			existing.amountPaid ===
 				(requestedPaid > existing.total ? existing.total : requestedPaid) &&

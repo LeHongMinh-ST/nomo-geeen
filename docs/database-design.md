@@ -130,7 +130,9 @@ Unique `(tenant_id, dimension, period_key)`. Product create cập nhật counter
 
 ## 4.3 `feature` — Catalog capability (3.4, 3.9, 15)
 
-Danh mục **capability** bật/tắt (không nhét số hạn vào đây). Code ổn định — xem ma trận `base_spec.md` §3.4.
+Danh mục **capability** bật/tắt (không nhét số hạn vào đây). Mọi plan mặc định nhận toàn bộ
+catalog; plan không dùng `feature` để phân hạng chức năng. Khác biệt plan nằm ở các cột quota
+`max_*`. Code ổn định — xem ma trận `base_spec.md` §3.4.
 
 Nhóm gợi ý seed:
 
@@ -149,7 +151,8 @@ Nhóm gợi ý seed:
 
 ## 4.4 `plan_feature` — Gói ↔ Feature
 
-Bảng nối: một gói gồm những feature nào.
+Bảng nối: catalog feature được gắn vào gói để phục vụ entitlement; seed và billing service
+đảm bảo mọi gói nhận toàn bộ catalog, không dùng bảng này để giới hạn tính năng theo gói.
 
 | Cột | Kiểu | Ghi chú |
 |---|---|---|
@@ -434,10 +437,9 @@ Index: `(tenant_id, purpose)`.
 Script `backend/prisma/seed.ts` khởi tạo:
 
 - **Feature catalog** theo `base_spec` §3.4 (core / addon / advanced) — gồm `multi_user`, `roles_manager`.
-- **3 plan** + mapping feature + `max_users`:
-  - Starter: max_users=1 (chỉ Owner), core quầy; không `multi_user` / `roles_manager`.
-  - Professional: max_users=5, + debt/batch/handbook, `multi_user` + `roles_manager`.
-  - Enterprise: max_users cao, full + advanced_mode.
+- **3 plan** + full feature catalog; các quota (`max_users`, kho, sản phẩm, khách hàng,
+  đơn/tháng, storage) là yếu tố phân biệt. Starter/Professional/Enterprise đều được dùng
+  toàn bộ chức năng, chỉ khác giới hạn số lượng.
 - **Permission** `resource:action` (gồm `users:manage`, `report:profit`, …).
 - **3 system role**:
   - OWNER — toàn quyền tenant (trừ billing platform).
@@ -455,7 +457,7 @@ Script `backend/prisma/seed.ts` khởi tạo:
 | `tenant.seat_bonus` | Admin/Saler cấp thêm seat ngoài gói mà không đổi plan. |
 | `effective_max_users` | `plan.max_users + seat_bonus`; DISABLED không tính seat. |
 | Trial gộp vào `subscription` | YAGNI — `status = TRIALING` + `trial_ends_at` đủ dùng, không cần bảng riêng. |
-| Feature flag 2 tầng | `plan_feature` quyết định gói cho phép gì; `tenant_feature_flag` cho phép override thủ công từng tenant. |
+| Feature flag 2 tầng | Mọi plan có full catalog; `tenant_feature_flag` chỉ là override vận hành bật/tắt thủ công theo tenant. |
 | Tiền `BigInt` (VND) | Chính xác tuyệt đối, tránh sai số float. |
 | `stored_file.size_bytes` | Cộng dồn để enforce quota `plan.max_storage_bytes`. |
 | `audit_log.tenant_id` nullable | Ghi được cả hành động cấp platform (không thuộc tenant nào). |

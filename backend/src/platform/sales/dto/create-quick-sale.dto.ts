@@ -6,6 +6,7 @@ import {
 	IsInt,
 	IsISO8601,
 	IsOptional,
+	IsObject,
 	IsUUID,
 	Max,
 	Min,
@@ -51,6 +52,12 @@ export class CreateQuickSaleDto {
 	@IsOptional()
 	@IsUUID('4')
 	customerId?: string;
+
+	@IsOptional() @IsUUID('4') diseaseId?: string;
+	@IsOptional() @IsUUID('4') protocolId?: string;
+	@IsOptional() @IsObject() consultContext?: Record<string, unknown>;
+	@IsOptional() @IsArray() @IsObject({ each: true }) suggestedProductsMeta?: Array<Record<string, unknown>>;
+	@IsOptional() @IsObject() suggestedQtyMeta?: Record<string, unknown>;
 
 	@IsEnum(QuickSalePaymentMethod)
 	paymentMethod!: QuickSalePaymentMethod;

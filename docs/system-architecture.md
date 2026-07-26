@@ -21,6 +21,10 @@ flowchart LR
 
 - `AppModule` composes platform modules.
 - Auth guards authenticate the bearer token and enforce route permissions.
+- Plan entitlements expose the full feature catalog to every plan; plan differences are
+  enforced through numeric quotas (`maxUsers`, `maxWarehouses`, `maxProducts`,
+  `maxCustomers`, `maxOrdersPerMonth`, and storage), while tenant feature flags remain an
+  explicit operational override.
 - Domain services own mutations and call `AuditLogger` for mutation history.
 - `AuditModule` exports `AuditLogger` to consuming modules.
 - Prisma models and migrations define persistence contracts.

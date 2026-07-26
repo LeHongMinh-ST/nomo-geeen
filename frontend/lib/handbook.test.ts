@@ -4,11 +4,9 @@ import {
 	getHandbookCategory,
 	HANDBOOK_CATEGORY_CATALOG,
 	handbookCategoryLabel,
-	handbookDiseases,
 	mapLegacyAgriDomain,
 	mapLegacyHandbookField,
 	SELECTABLE_HANDBOOK_CATEGORY_IDS,
-	suggestProducts,
 } from "./handbook";
 
 describe("HandbookCategory contract", () => {
@@ -85,25 +83,6 @@ describe("HandbookCategory contract", () => {
 		expect(mapLegacyHandbookField("livestock")).toBe("VETERINARY_DRUGS");
 		expect(mapLegacyHandbookField("aquaculture")).toBe("UNCATEGORIZED");
 		expect(mapLegacyHandbookField("ANIMAL_FEED")).toBe("ANIMAL_FEED");
-	});
-
-	it("mock diseases use category field", () => {
-		for (const d of handbookDiseases) {
-			expect(d.category).toBeTruthy();
-			expect(getHandbookCategory(d.category).id).toBe(d.category);
-		}
-	});
-
-	it("does not change suggestProducts ranking contract", () => {
-		const disease = handbookDiseases.find((d) => d.id === "st-raynau");
-		expect(disease).toBeDefined();
-		const suggestions = suggestProducts(disease!);
-		// Pinned product p2 should rank first when present
-		if (suggestions.length > 0 && disease!.pinnedProductIds.includes("p2")) {
-			expect(suggestions[0].reason).toBe("pinned");
-		}
-		// Function still returns array (no throw)
-		expect(Array.isArray(suggestions)).toBe(true);
 	});
 });
 

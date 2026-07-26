@@ -2,7 +2,8 @@
 
 import { ChevronDown, FlaskConical, Leaf, X } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { ProtocolEditor } from "@/components/app/handbook/protocol-editor";
 import {
 	categoryLabel,
 	type Disease,
@@ -13,9 +14,13 @@ import {
 } from "@/lib/handbook";
 import {
 	createHandbookEntry,
+	type Protocol,
+	type ProtocolInput,
+	replaceHandbookProtocols,
 	toApiDiseaseType,
 	updateHandbookEntry,
 } from "@/lib/tenant-handbook-api";
+import { listTenantProducts } from "@/lib/tenant-products-api";
 
 /**
  * Form Thêm/Sửa mục Sổ tay (base_spec §21.2, DESIGN.md §8, §24 — trang riêng).
@@ -39,8 +44,6 @@ type FormState = {
 	symptom: string;
 	aliases: string[];
 	recommendedIngredients: string[];
-	dosage: string;
-	timing: string;
 	note: string;
 };
 
@@ -53,22 +56,73 @@ function toFormState(d?: Disease): FormState {
 		symptom: d?.symptom ?? "",
 		aliases: d?.aliases ?? [],
 		recommendedIngredients: d?.recommendedIngredients ?? [],
-		dosage: d?.dosage ?? "",
-		timing: d?.timing ?? "",
 		note: d?.note ?? "",
 	};
+}
+
+/** Server rejects a drug line with neither product nor ingredient; drop blanks first. */
+function toProtocolPayload(protocols: ProtocolInput[]): ProtocolInput[] {
+	return protocols
+		.map((protocol) => ({
+			...protocol,
+			name: protocol.name.trim(),
+			note: protocol.note?.trim() || undefined,
+			items: protocol.items
+				.filter(
+					(item) => item.productId || (item.activeIngredient ?? "").trim(),
+				)
+				.map((item) => ({
+					...item,
+					activeIngredient: item.activeIngredient?.trim() || undefined,
+					doseUnit: item.doseUnit.trim(),
+					mixing: item.mixing?.trim() || undefined,
+					usage: item.usage?.trim() || undefined,
+				})),
+		}))
+		.filter((protocol) => protocol.name && protocol.items.length > 0);
 }
 
 export function DiseaseForm({
 	mode,
 	disease,
+	initialProtocols = [],
 }: {
 	mode: FormMode;
 	disease?: Disease;
+	initialProtocols?: Protocol[];
 }) {
 	const router = useRouter();
 	const [form, setForm] = useState<FormState>(() => toFormState(disease));
+	const [protocols, setProtocols] = useState<ProtocolInput[]>(() =>
+		initialProtocols.map((protocol) => ({
+			name: protocol.name,
+			note: protocol.note ?? "",
+			isDefault: protocol.isDefault,
+			isActive: protocol.isActive,
+			items: protocol.items.map((item) => ({
+				productId: item.productId ?? undefined,
+				activeIngredient: item.activeIngredient ?? "",
+				doseAmount: item.doseAmount,
+				doseUnit: item.doseUnit,
+				perAreaAmount: item.perAreaAmount,
+				perAreaUnit: item.perAreaUnit,
+				mixing: item.mixing ?? "",
+				usage: item.usage ?? "",
+			})),
+		})),
+	);
+	const [products, setProducts] = useState<Array<{ id: string; name: string }>>(
+		[],
+	);
 	const [saving, setSaving] = useState(false);
+
+	useEffect(() => {
+		listTenantProducts()
+			.then((rows) =>
+				setProducts(rows.map((row) => ({ id: row.id, name: row.name }))),
+			)
+			.catch(() => setProducts([]));
+	}, []);
 
 	function set<K extends keyof FormState>(key: K, value: FormState[K]) {
 		setForm((f) => ({ ...f, [key]: value }));
@@ -97,13 +151,13 @@ export function DiseaseForm({
 			recommendedIngredients: form.recommendedIngredients,
 		};
 		try {
-			if (mode === "edit" && disease) {
-				const updated = await updateHandbookEntry(disease.id, payload);
-				router.push(`/so-tay/${updated.id}`);
-			} else {
-				const created = await createHandbookEntry(payload);
-				router.push(`/so-tay/${created.id}`);
-			}
+			const entryId =
+				mode === "edit" && disease
+					? (await updateHandbookEntry(disease.id, payload)).id
+					: (await createHandbookEntry(payload)).id;
+			// Protocols live on their own replace-all endpoint, so save them after the entry.
+			await replaceHandbookProtocols(entryId, toProtocolPayload(protocols));
+			router.push(`/so-tay/${entryId}`);
 		} catch (err) {
 			setError(
 				err instanceof Error
@@ -223,26 +277,6 @@ export function DiseaseForm({
 					hint="Sản phẩm có hoạt chất trùng sẽ tự động vào danh sách gợi ý."
 				/>
 
-				<Field label="Liều dùng">
-					<input
-						type="text"
-						value={form.dosage}
-						onChange={(e) => set("dosage", e.target.value)}
-						placeholder="VD: 1 gói/bình 16L, phun ướt đều tán lá."
-						className={inputClass}
-					/>
-				</Field>
-
-				<Field label="Thời điểm sử dụng">
-					<input
-						type="text"
-						value={form.timing}
-						onChange={(e) => set("timing", e.target.value)}
-						placeholder="VD: Phun khi bệnh mới chớm, sáng sớm hoặc chiều mát."
-						className={inputClass}
-					/>
-				</Field>
-
 				<Field label="Lưu ý">
 					<textarea
 						value={form.note}
@@ -252,6 +286,19 @@ export function DiseaseForm({
 						className={textareaClass}
 					/>
 				</Field>
+			</Section>
+
+			{/* Section 3: Bộ thuốc khuyến nghị */}
+			<Section icon={FlaskConical} tile="#5cad45" title="Bộ thuốc khuyến nghị">
+				<p className="text-sm text-[#616161]">
+					Mỗi bộ thuốc gồm nhiều thuốc với liều theo diện tích. Thêm bộ thuốc
+					thay thế để dùng khi thuốc chính hết hàng.
+				</p>
+				<ProtocolEditor
+					protocols={protocols}
+					onChange={setProtocols}
+					products={products}
+				/>
 			</Section>
 
 			{/* Hành động — desktop inline */}

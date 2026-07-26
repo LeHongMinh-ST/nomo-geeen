@@ -33,7 +33,7 @@ export type SalesOrderLine = {
 export type SalesOrderDetail = {
 	id: string;
 	docNo: string;
-	channel: "ORDER";
+	channel: "ORDER" | "QUICK_SALE";
 	status: SalesOrderStatus;
 	customer: { id: string; name: string; phone: string | null } | null;
 	warehouseId: string;
@@ -66,7 +66,12 @@ export type CreateSalesOrderInput = {
 	discountAmount: number;
 	note?: string;
 	settlement?: SalesOrderSettlement;
-	lines: Array<{ productId: string; unitId: string; qty: string; unitPrice: number }>;
+	lines: Array<{
+		productId: string;
+		unitId: string;
+		qty: string;
+		unitPrice: number;
+	}>;
 };
 
 export type SalesOrderSettlement = {
@@ -90,20 +95,26 @@ function queryString(params: {
 	return query.size ? `?${query.toString()}` : "";
 }
 
-export function listOrders(params: {
-	search?: string;
-	status?: SalesOrderStatus;
-	page?: number;
-	pageSize?: number;
-} = {}): Promise<SalesOrderListResponse> {
-	return userFetch<SalesOrderListResponse>(`${orderBase}${queryString(params)}`);
+export function listOrders(
+	params: {
+		search?: string;
+		status?: SalesOrderStatus;
+		page?: number;
+		pageSize?: number;
+	} = {},
+): Promise<SalesOrderListResponse> {
+	return userFetch<SalesOrderListResponse>(
+		`${orderBase}${queryString(params)}`,
+	);
 }
 
 export function getOrder(id: string): Promise<SalesOrderDetail> {
 	return userFetch<SalesOrderDetail>(`${orderBase}/${id}`);
 }
 
-export function createOrder(input: CreateSalesOrderInput): Promise<SalesOrderDetail> {
+export function createOrder(
+	input: CreateSalesOrderInput,
+): Promise<SalesOrderDetail> {
 	const { settlement, ...baseInput } = input;
 	const payload = settlement ? { ...baseInput, ...settlement } : baseInput;
 	return userFetch<SalesOrderDetail>(orderBase, {
@@ -112,7 +123,10 @@ export function createOrder(input: CreateSalesOrderInput): Promise<SalesOrderDet
 	});
 }
 
-export function completeOrder(id: string, settlement: SalesOrderSettlement): Promise<SalesOrderDetail> {
+export function completeOrder(
+	id: string,
+	settlement: SalesOrderSettlement,
+): Promise<SalesOrderDetail> {
 	return userFetch<SalesOrderDetail>(`${orderBase}/${id}/complete`, {
 		method: "POST",
 		body: JSON.stringify(settlement),
@@ -132,6 +146,11 @@ export type CreateQuickSaleInput = {
 	paymentMethod: QuickSalePaymentMethod;
 	amountPaid: number;
 	discountAmount: number;
+	diseaseId?: string;
+	protocolId?: string;
+	consultContext?: Record<string, unknown>;
+	suggestedProductsMeta?: Array<Record<string, unknown>>;
+	suggestedQtyMeta?: Record<string, unknown>;
 	lines: Array<{
 		productId: string;
 		unitId: string;

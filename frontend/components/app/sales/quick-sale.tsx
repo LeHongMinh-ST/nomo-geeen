@@ -10,9 +10,9 @@ import {
 	Wallet,
 } from "lucide-react";
 import { useState } from "react";
+import { CounterSearch } from "@/components/app/sales/counter-search";
 import { CustomerPicker } from "@/components/app/sales/customer-picker";
 import { PaymentSheet } from "@/components/app/sales/payment-sheet";
-import { ProductPicker } from "@/components/app/sales/product-picker";
 import { SaleAdvisoriesStrip } from "@/components/app/sales/sale-advisories-strip";
 import { formatVND } from "@/lib/format";
 import {
@@ -41,15 +41,22 @@ export function QuickSale() {
 	const [payOpen, setPayOpen] = useState(false);
 	const [needCustomer, setNeedCustomer] = useState(false);
 	const [toast, setToast] = useState<Toast>(null);
-	const [refreshKey, setRefreshKey] = useState(0);
 	const [submitting, setSubmitting] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	const [idempotencyKey, setIdempotencyKey] = useState<string | null>(null);
+	const [handbookMeta, setHandbookMeta] = useState<{
+		diseaseId?: string;
+		protocolId?: string;
+		consultContext?: Record<string, unknown>;
+		suggestedProductsMeta?: Array<Record<string, unknown>>;
+		suggestedQtyMeta?: Record<string, unknown>;
+	}>({});
 
 	const subtotal = lines.reduce((sum, l) => sum + lineTotal(l), 0);
 	const itemCount = lines.reduce((sum, l) => sum + l.qty, 0);
 
-	function addProduct(product: Product) {
+	function addProduct(product: Product, quantity = 1) {
+		const safeQuantity = Math.max(1, Math.round(quantity));
 		setLines((current) => {
 			const existing = current.find((l) => l.productId === product.id);
 			if (existing) {
@@ -57,8 +64,8 @@ export function QuickSale() {
 					l.productId === product.id
 						? {
 								...l,
-								qty: l.qty + 1,
-								price: resolveTierPrice(product, l.qty + 1),
+								qty: l.qty + safeQuantity,
+								price: resolveTierPrice(product, l.qty + safeQuantity),
 							}
 						: l,
 				);
@@ -70,8 +77,8 @@ export function QuickSale() {
 					unitId: product.baseUnitId,
 					name: product.name,
 					unit: product.baseUnit,
-					qty: 1,
-					price: resolveTierPrice(product, 1),
+					qty: safeQuantity,
+					price: resolveTierPrice(product, safeQuantity),
 					phiDays: product.agro?.phi,
 					reiHours: product.agro?.rei,
 				},
@@ -123,13 +130,14 @@ export function QuickSale() {
 					qty: line.qty,
 					unitPrice: line.price,
 				})),
+				...handbookMeta,
 			});
 			setToast({ method, total: result.total });
 			setLines([]);
 			setCustomerId(undefined);
 			setPayOpen(false);
 			setIdempotencyKey(null);
-			setRefreshKey((value) => value + 1);
+			setHandbookMeta({});
 			window.setTimeout(() => setToast(null), 3200);
 		} catch (cause) {
 			const status =
@@ -181,7 +189,12 @@ export function QuickSale() {
 			</div>
 
 			{/* Tìm sản phẩm */}
-			<ProductPicker onSelect={addProduct} refreshKey={refreshKey} />
+			<CounterSearch
+				onSelectProduct={addProduct}
+				onChangeMeta={(meta) =>
+					setHandbookMeta((current) => ({ ...current, ...meta }))
+				}
+			/>
 
 			{/* Giỏ hàng */}
 			{empty ? (
@@ -366,7 +379,7 @@ function CartLine({
 					</button>
 				</div>
 
-				{/* Đơn giá (sửa tay được) + thành tiền */}
+				{/* Đơn giá (sửa tay được) */}
 				<div className="flex flex-col items-end gap-0.5">
 					<div className="flex items-center gap-1">
 						<input
@@ -380,9 +393,6 @@ function CartLine({
 						/>
 						<span className="text-sm text-[#9e9e9e]">₫</span>
 					</div>
-					<span className="text-lg font-bold text-foreground">
-						{formatVND(lineTotal(line))}₫
-					</span>
 				</div>
 			</div>
 		</div>

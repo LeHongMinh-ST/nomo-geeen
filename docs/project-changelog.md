@@ -8,6 +8,9 @@ Format theo [Keep a Changelog](https://keepachangelog.com/), tuân thủ [Semant
 ## [Unreleased]
 
 ### Added
+- **Quota-only plan entitlements** — Starter, Professional và Enterprise đều nhận toàn bộ
+  feature catalog; các gói chỉ khác nhau bằng quota số lượng và dung lượng. Billing seed/API
+  quản trị plan tự động gắn full catalog, mở `advanced_mode` cho Starter.
 - **Release receipt cho mốc `d7e9aca`** — thêm `docs/release-receipts/2026-07-25-audit-release-receipt.md`
   ghi ma trận verification (Prisma validate/generate, backend 458 tests, backend build, e2e 16/17
   suites, frontend 169 tests, frontend build) cùng blocker: e2e `tenant-auth` FAIL pre-existing và

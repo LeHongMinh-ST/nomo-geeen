@@ -464,20 +464,14 @@ export class BillingService {
 	}
 
 	private async resolveFeatureIds(codes: string[]): Promise<string[]> {
+		// Plan khac nhau o quota, khong cat chuc nang. Giữ input de tuong thich
+		// voi API/UI hien tai nhung luon gan toan bo feature catalog.
+		void codes;
 		const features = await this.prisma.feature.findMany({
-			where: { code: { in: codes } },
+			orderBy: { code: 'asc' },
 			select: { id: true, code: true },
 		});
-		if (features.length !== codes.length) {
-			const found = new Set(features.map((feature) => feature.code));
-			throw new BadRequestException({
-				reason: 'UNKNOWN_FEATURE_CODE',
-				codes: codes.filter((code) => !found.has(code)),
-			});
-		}
-		return codes.map(
-			(code) => features.find((feature) => feature.code === code)?.id as string,
-		);
+		return features.map((feature) => feature.id);
 	}
 
 	private async requireTenant(id: string) {

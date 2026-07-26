@@ -1,0 +1,62 @@
+{
+  "feature_name": "quick-sale-handbook-flow",
+  "title": "Quick-sale Handbook flow",
+  "created_at": "2026-07-25T18:00:00+07:00",
+  "updated_at": "2026-07-25T18:00:00+07:00",
+  "language": "en",
+  "status": "completed",
+  "phase": "tasks",
+  "current_phase": "tasks",
+  "priority": "P1",
+  "effort": "2-4 implementation days",
+  "tags": ["handbook", "quick-sale", "sales", "consultation", "snapshot"],
+  "approvals": {
+    "requirements": {"generated": true, "approved": true},
+    "design": {"generated": true, "approved": true},
+    "tasks": {"generated": true, "approved": true}
+  },
+  "scope_lock": {
+    "source": "docs/core-business-catalog.md handbook contract and docs/handbook.md quick-sale consultation flow",
+    "in_scope": [
+      "Tenant-scoped disease search for the quick-sale counter by name, alias, target, and symptom",
+      "Tenant-scoped suggestion endpoint using pinned products, recommended ingredients, and matching product tags",
+      "Sellable/in-stock filtering and clear advisory metadata without auto-adding to cart",
+      "Optional consultation fields and simple transparent quantity metadata submitted by the counter",
+      "Immutable disease, consultation, selected suggestion, warning, and quantity snapshots on POST /tenant/sales/quick",
+      "Quick-sale frontend flow: search disease, optionally consult, review suggestions, manually add products, then checkout",
+      "Focused backend/frontend tests and runtime reachability evidence"
+    ],
+    "out_of_scope": [
+      "AI diagnosis, image recognition, external registries, or medical/agronomic validation",
+      "Automatic cart insertion or automatic quantity acceptance",
+      "Two-layer fallback by active ingredient, advanced formula engine, reminders, or customer-history ranking",
+      "New product-kind schemas, batch lifecycle changes, or redesign of existing handbook CRUD",
+      "Editing snapshots after a completed quick sale"
+    ],
+    "expansion_policy": "requires-user-approval"
+  },
+  "dependencies": {
+    "blockedBy": ["specs/handbook-core-catalog/", "specs/handbook-order-snapshot/", "specs/tenant-sales-management/"],
+    "blocks": []
+  },
+  "task_files": [
+    "tasks/task-R0-01-quick-handbook-contract.md",
+    "tasks/task-R1-01-handbook-search-suggest-api.md",
+    "tasks/task-R1-02-quick-sale-snapshot.md",
+    "tasks/task-R2-01-counter-handbook-ui.md",
+    "tasks/task-R3-01-flow-verification.md"
+  ],
+  "task_registry": {
+    "tasks/task-R0-01-quick-handbook-contract.md": {"id": "R0-01", "title": "Quick handbook API and snapshot contract", "status": "done", "dependencies": [], "blocker": null, "started_at": "2026-07-25T18:20:00+07:00", "completed_at": "2026-07-25T22:58:00+07:00", "last_updated_at": "2026-07-25T22:58:00+07:00"},
+    "tasks/task-R1-01-handbook-search-suggest-api.md": {"id": "R1-01", "title": "Disease search, consult fields, and stock-aware suggestions", "status": "done", "dependencies": ["tasks/task-R0-01-quick-handbook-contract.md"], "blocker": null, "started_at": "2026-07-25T18:20:00+07:00", "completed_at": "2026-07-25T22:58:00+07:00", "last_updated_at": "2026-07-25T22:58:00+07:00"},
+    "tasks/task-R1-02-quick-sale-snapshot.md": {"id": "R1-02", "title": "Snapshot handbook context on quick sale", "status": "done", "dependencies": ["tasks/task-R0-01-quick-handbook-contract.md"], "blocker": null, "started_at": "2026-07-25T18:20:00+07:00", "completed_at": "2026-07-25T22:58:00+07:00", "last_updated_at": "2026-07-25T22:58:00+07:00"},
+    "tasks/task-R2-01-counter-handbook-ui.md": {"id": "R2-01", "title": "Wire disease search, optional consult, and suggestion review into counter", "status": "done", "dependencies": ["tasks/task-R1-01-handbook-search-suggest-api.md", "tasks/task-R1-02-quick-sale-snapshot.md"], "blocker": null, "started_at": "2026-07-25T18:20:00+07:00", "completed_at": "2026-07-25T22:58:00+07:00", "last_updated_at": "2026-07-25T22:58:00+07:00"},
+    "tasks/task-R3-01-flow-verification.md": {"id": "R3-01", "title": "End-to-end reachability and regression verification", "status": "done", "dependencies": ["tasks/task-R2-01-counter-handbook-ui.md"], "blocker": null, "started_at": "2026-07-25T22:58:00+07:00", "completed_at": "2026-07-25T23:00:00+07:00", "last_updated_at": "2026-07-25T23:00:00+07:00"}
+  },
+  "blocker": null,
+  "progress": {"init": "done", "requirements": "done", "research": "done", "design": "done", "tasks": "done", "code": "done", "test": "done", "review": "done"},
+  "design_context": {"discovery_mode": "targeted", "discovery_reason": "Existing Handbook and quick-sale foundations cover persistence but not counter integration.", "execution_tier": "standard", "validation_recommended": true},
+  "validation": {"status": "completed", "session_count": 1, "questions_asked": 0, "last_validated_at": "2026-07-25T18:10:00+07:00"},
+  "timestamps": {"init": "2026-07-25T18:00:00+07:00", "requirements_done": "2026-07-25T18:02:00+07:00", "research_done": "2026-07-25T18:04:00+07:00", "design_done": "2026-07-25T18:06:00+07:00", "tasks_done": "2026-07-25T18:08:00+07:00", "validation_done": "2026-07-25T18:10:00+07:00", "review_done": "2026-07-25T18:10:00+07:00"},
+  "ready_for_implementation": true
+}

@@ -42,9 +42,10 @@ function makeService(current = plan()) {
 			count: jest.fn().mockResolvedValue(1),
 		},
 		feature: {
-			findMany: jest
-				.fn()
-				.mockResolvedValue([{ id: 'feature-1', code: 'sales' }]),
+			findMany: jest.fn().mockResolvedValue([
+				{ id: 'feature-1', code: 'inventory' },
+				{ id: 'feature-2', code: 'sales' },
+			]),
 		},
 	};
 	const audit = {
@@ -110,25 +111,34 @@ describe('BillingService plan catalog', () => {
 		expect(audit.run).not.toHaveBeenCalled();
 	});
 
-	it('rejects unknown feature codes without entering the audit transaction', async () => {
-		const { service, prisma, audit } = makeService();
-		prisma.feature.findMany.mockResolvedValue([]);
-		await expect(
-			service.create(
-				{
-					code: 'starter',
-					name: 'Starter',
-					price: 0,
-					billingCycle: BillingCycle.MONTHLY,
-					maxUsers: 1,
-					maxWarehouses: 1,
-					maxStorageBytes: 1000,
-					featureCodes: ['missing'],
-				},
-				context,
-			),
-		).rejects.toMatchObject({ response: { reason: 'UNKNOWN_FEATURE_CODE' } });
-		expect(audit.run).not.toHaveBeenCalled();
+	it('always assigns the full feature catalog regardless of submitted feature codes', async () => {
+		const { service, prisma, tx } = makeService();
+		await service.create(
+			{
+				code: 'starter',
+				name: 'Starter',
+				price: 0,
+				billingCycle: BillingCycle.MONTHLY,
+				maxUsers: 1,
+				maxWarehouses: 1,
+				maxStorageBytes: 1000,
+				featureCodes: ['missing'],
+			},
+			context,
+		);
+		expect(prisma.feature.findMany).toHaveBeenCalledWith({
+			orderBy: { code: 'asc' },
+			select: { id: true, code: true },
+		});
+		expect(tx.plan.create).toHaveBeenCalledWith(
+			expect.objectContaining({
+				data: expect.objectContaining({
+					features: {
+						create: [{ featureId: 'feature-1' }, { featureId: 'feature-2' }],
+					},
+				}),
+			}),
+		);
 	});
 
 	it('audits activation mutations', async () => {

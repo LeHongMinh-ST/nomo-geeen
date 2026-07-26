@@ -10,6 +10,7 @@ import {
 	stockStatusBadgeClass,
 	stockStatusLabel,
 } from "@/lib/products";
+import { matchesVietnamese } from "@/lib/vietnamese-search";
 import {
 	getProductLookups,
 	listTenantProducts,
@@ -214,7 +215,7 @@ export function ProductPicker({
 }
 
 export function filterSellableProducts(products: Product[], query: string) {
-	const q = query.trim().toLowerCase();
+	const q = query.trim();
 	const sellable = products.filter(
 		(product) =>
 			!product.locked &&
@@ -224,11 +225,16 @@ export function filterSellableProducts(products: Product[], query: string) {
 	);
 	if (!q) return sellable.slice(0, 6);
 	return sellable
-		.filter(
-			(product) =>
-				product.name.toLowerCase().includes(q) ||
-				product.sku.toLowerCase().includes(q) ||
-				(product.barcode?.toLowerCase().includes(q) ?? false),
+		.filter((product) =>
+			matchesVietnamese(
+				[
+					product.name,
+					product.sku,
+					product.barcode,
+					product.agro?.activeIngredient,
+				],
+				q,
+			),
 		)
 		.slice(0, 8);
 }

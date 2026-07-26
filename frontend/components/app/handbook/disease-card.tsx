@@ -3,7 +3,6 @@
 import { BookOpen, Leaf, Pill } from "lucide-react";
 import Link from "next/link";
 import {
-	availableSuggestionCount,
 	categoryBadgeClass,
 	categoryLabel,
 	type Disease,
@@ -18,8 +17,6 @@ import {
  * Đáy: số thuốc gợi ý đang còn hàng — thông tin bán được ngay.
  */
 export function DiseaseCard({ disease }: { disease: Disease }) {
-	const available = availableSuggestionCount(disease);
-
 	return (
 		<Link
 			href={`/so-tay/${disease.id}`}
@@ -56,11 +53,7 @@ export function DiseaseCard({ disease }: { disease: Disease }) {
 
 			<div className="flex items-center gap-1.5 border-t border-border pt-2.5 text-sm font-medium text-[#2e7d32]">
 				<Pill className="size-4" aria-hidden />
-				{available > 0 ? (
-					<span>{available} thuốc gợi ý còn hàng</span>
-				) : (
-					<span className="text-[#9e9e9e]">Chưa có thuốc gợi ý còn hàng</span>
-				)}
+				<span>Xem thuốc gợi ý từ tồn kho hiện tại</span>
 			</div>
 		</Link>
 	);

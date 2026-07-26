@@ -20,6 +20,7 @@ describe('SalesService', () => {
 				updateMany: jest.fn(),
 			},
 			disease: { findFirst: jest.fn() },
+			diseaseProtocol: { findFirst: jest.fn() },
 			stock: {
 				findFirst: jest.fn(),
 				findUnique: jest.fn(),
@@ -304,8 +305,123 @@ describe('SalesService', () => {
 		expect(tx.stock.updateMany).not.toHaveBeenCalled();
 	});
 
-	it('rejects an ORDER record reusing a quick-sale idempotency key', async () => {
+	it('snapshots the selected protocol into suggestedQtyMeta', async () => {
 		const { service, tx } = makeService();
+		seedTx(tx);
+		tx.disease.findFirst.mockResolvedValue({
+			id: 'disease-1',
+			name: 'Đạo ôn',
+			consultFields: [],
+		});
+		tx.diseaseProtocol.findFirst.mockResolvedValue({
+			id: 'proto-1',
+			name: 'Phác đồ chính',
+		});
+
+		await service.createQuickSale(
+			'tenant-1',
+			'user-1',
+			dto({
+				diseaseId: 'disease-1',
+				protocolId: 'proto-1',
+				suggestedQtyMeta: { areaValue: 3, areaUnit: 'CONG_NAM' },
+			}),
+		);
+
+		expect(tx.diseaseProtocol.findFirst).toHaveBeenCalledWith(
+			expect.objectContaining({
+				where: expect.objectContaining({
+					id: 'proto-1',
+					tenantId: 'tenant-1',
+					diseaseId: 'disease-1',
+				}),
+			}),
+		);
+		expect(tx.sale.create).toHaveBeenCalledWith(
+			expect.objectContaining({
+				data: expect.objectContaining({
+					diseaseNameSnapshot: 'Đạo ôn',
+					suggestedQtyMeta: {
+						areaValue: 3,
+						areaUnit: 'CONG_NAM',
+						__protocolId: 'proto-1',
+						__protocolNameSnapshot: 'Phác đồ chính',
+					},
+				}),
+			}),
+		);
+	});
+
+	it('rejects a protocol that does not belong to the disease', async () => {
+		const { service, tx } = makeService();
+		seedTx(tx);
+		tx.disease.findFirst.mockResolvedValue({
+			id: 'disease-1',
+			name: 'Đạo ôn',
+			consultFields: [],
+		});
+		tx.diseaseProtocol.findFirst.mockResolvedValue(null);
+
+		await expect(
+			service.createQuickSale(
+				'tenant-1',
+				'user-1',
+				dto({ diseaseId: 'disease-1', protocolId: 'proto-other' }),
+			),
+		).rejects.toMatchObject({ response: { reason: 'VALIDATION_ERROR' } });
+		expect(tx.sale.create).not.toHaveBeenCalled();
+	});
+
+	it('replays a protocol quick sale despite server-added snapshot keys', async () => {
+		const { service, tx } = makeService();
+		seedTx(tx);
+		tx.sale.findFirst.mockResolvedValue(
+			quickSaleRecord({
+				diseaseId: 'disease-1',
+				suggestedQtyMeta: {
+					areaValue: 3,
+					__protocolId: 'proto-1',
+					__protocolNameSnapshot: 'Phác đồ chính',
+				},
+			}),
+		);
+
+		await expect(
+			service.createQuickSale(
+				'tenant-1',
+				'user-1',
+				dto({
+					diseaseId: 'disease-1',
+					protocolId: 'proto-1',
+					suggestedQtyMeta: { areaValue: 3 },
+				}),
+			),
+		).resolves.toMatchObject({ id: 'sale-1' });
+		expect(tx.sale.create).not.toHaveBeenCalled();
+	});
+
+	it('rejects a replay that switched protocol', async () => {
+		const { service, tx } = makeService();
+		seedTx(tx);
+		tx.sale.findFirst.mockResolvedValue(
+			quickSaleRecord({
+				diseaseId: 'disease-1',
+				suggestedQtyMeta: { __protocolId: 'proto-1' },
+			}),
+		);
+
+		await expect(
+			service.createQuickSale(
+				'tenant-1',
+				'user-1',
+				dto({ diseaseId: 'disease-1', protocolId: 'proto-2' }),
+			),
+		).rejects.toMatchObject({
+			response: { reason: 'IDEMPOTENCY_CONFLICT' },
+		});
+	});
+
+	it('rejects an ORDER record reusing a quick-sale idempotency key', async () => {		const { service, tx } = makeService();
 		seedTx(tx);
 		tx.sale.findFirst.mockResolvedValue({
 			id: 'order-1',
@@ -847,6 +963,30 @@ describe('SalesService', () => {
 			response: { reason: 'PRODUCT_RECALLED', field: 'productId' },
 		});
 		expect(tx.stockMovement.create).not.toHaveBeenCalled();
+	});
+
+	it('keeps quick sales out of order completion despite the shared read filter', async () => {
+		const { service, tx } = makeService();
+		tx.sale.findFirst.mockResolvedValue(null);
+
+		await expect(
+			service.completeOrder('tenant-1', 'user-1', 'quick-1', {
+				paymentMethod: 'CASH',
+				amountPaid: 1000,
+			} as never),
+		).rejects.toMatchObject({ status: 404 });
+		expect(tx.sale.findFirst).toHaveBeenCalledWith(
+			expect.objectContaining({
+				where: {
+					id: 'quick-1',
+					tenantId: 'tenant-1',
+					channel: 'ORDER',
+					deletedAt: null,
+				},
+			}),
+		);
+		expect(tx.stockMovement.create).not.toHaveBeenCalled();
+		expect(tx.sale.updateMany).not.toHaveBeenCalled();
 	});
 
 	it('rejects complete when line product is missing', async () => {
@@ -1480,7 +1620,7 @@ describe('SalesService', () => {
 		expect(tx.sale.create).not.toHaveBeenCalled();
 	});
 
-	it('lists only ORDER sales with deterministic paging and search', async () => {
+	it('lists ORDER and QUICK_SALE sales with deterministic paging and search', async () => {
 		const { service, prisma } = makeService();
 		prisma.sale.findMany.mockResolvedValue([
 			{
@@ -1494,8 +1634,19 @@ describe('SalesService', () => {
 				soldAt: new Date('2026-01-02'),
 				createdAt: new Date('2026-01-01'),
 			},
+			{
+				id: 'quick-1',
+				docNo: 'BH-QUICK',
+				status: 'COMPLETED',
+				customerNameSnapshot: 'Bob',
+				customerPhoneSnapshot: '0901',
+				total: 500n,
+				paymentMethod: 'CASH',
+				soldAt: new Date('2026-01-03'),
+				createdAt: new Date('2026-01-03'),
+			},
 		]);
-		prisma.sale.count.mockResolvedValue(1);
+		prisma.sale.count.mockResolvedValue(2);
 
 		await expect(
 			service.listOrders('tenant-a', {
@@ -1504,16 +1655,19 @@ describe('SalesService', () => {
 				pageSize: 20,
 			} as never),
 		).resolves.toMatchObject({
-			total: 1,
+			total: 2,
 			page: 2,
 			pageSize: 20,
-			items: [{ id: 'order-1', itemCount: 0, total: 1200 }],
+			items: [
+				{ id: 'order-1', itemCount: 0, total: 1200 },
+				{ id: 'quick-1', itemCount: 0, total: 500 },
+			],
 		});
 		expect(prisma.sale.findMany).toHaveBeenCalledWith(
 			expect.objectContaining({
 				where: expect.objectContaining({
 					tenantId: 'tenant-a',
-					channel: 'ORDER',
+					channel: { in: ['ORDER', 'QUICK_SALE'] },
 					deletedAt: null,
 					OR: expect.any(Array),
 				}),
@@ -1524,18 +1678,65 @@ describe('SalesService', () => {
 		);
 	});
 
-	it('does not enumerate foreign or quick-sale records in detail lookup', async () => {
+	it('loads QUICK_SALE detail in the shared sales order lookup', async () => {
+		const { service, prisma } = makeService();
+		prisma.sale.findFirst.mockResolvedValue({
+			id: 'quick-1',
+			docNo: 'BH-QUICK',
+			channel: 'QUICK_SALE',
+			status: 'COMPLETED',
+			customerId: null,
+			customerNameSnapshot: null,
+			customerPhoneSnapshot: null,
+			warehouseId: 'wh-1',
+			subtotal: 500n,
+			discountAmount: 0n,
+			total: 500n,
+			amountPaid: 500n,
+			changeAmount: 0n,
+			debtAmount: 0n,
+			paymentMethod: 'CASH',
+			note: null,
+			soldAt: new Date('2026-01-03'),
+			completedAt: new Date('2026-01-03'),
+			createdAt: new Date('2026-01-03'),
+			updatedAt: new Date('2026-01-03'),
+			lines: [],
+		});
+
+		await expect(service.findOrder('tenant-a', 'quick-1')).resolves.toMatchObject(
+			{
+				id: 'quick-1',
+				docNo: 'BH-QUICK',
+				channel: 'QUICK_SALE',
+				status: 'COMPLETED',
+				total: 500,
+			},
+		);
+		expect(prisma.sale.findFirst).toHaveBeenCalledWith(
+			expect.objectContaining({
+				where: {
+					id: 'quick-1',
+					tenantId: 'tenant-a',
+					channel: { in: ['ORDER', 'QUICK_SALE'] },
+					deletedAt: null,
+				},
+			}),
+		);
+	});
+
+	it('does not enumerate foreign tenant records in detail lookup', async () => {
 		const { service, prisma } = makeService();
 		prisma.sale.findFirst.mockResolvedValue(null);
 		await expect(
-			service.findOrder('tenant-a', 'foreign-or-quick-sale'),
+			service.findOrder('tenant-a', 'foreign-sale'),
 		).rejects.toMatchObject({ status: 404 });
 		expect(prisma.sale.findFirst).toHaveBeenCalledWith(
 			expect.objectContaining({
 				where: {
-					id: 'foreign-or-quick-sale',
+					id: 'foreign-sale',
 					tenantId: 'tenant-a',
-					channel: 'ORDER',
+					channel: { in: ['ORDER', 'QUICK_SALE'] },
 					deletedAt: null,
 				},
 			}),
@@ -1753,6 +1954,26 @@ describe('SalesService', () => {
 				where: {
 					id: 'tenant-b-order',
 					tenantId: 'tenant-a',
+					channel: 'ORDER',
+					deletedAt: null,
+				},
+			}),
+		);
+		expect(tx.sale.updateMany).not.toHaveBeenCalled();
+	});
+
+	it('keeps quick sales out of order cancellation despite the shared read filter', async () => {
+		const { service, tx } = makeService();
+		tx.sale.findFirst.mockResolvedValue(null);
+
+		await expect(
+			service.cancelOrder('tenant-1', 'user-1', 'quick-1'),
+		).rejects.toMatchObject({ status: 404 });
+		expect(tx.sale.findFirst).toHaveBeenCalledWith(
+			expect.objectContaining({
+				where: {
+					id: 'quick-1',
+					tenantId: 'tenant-1',
 					channel: 'ORDER',
 					deletedAt: null,
 				},

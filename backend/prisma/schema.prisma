@@ -184,6 +184,7 @@ enum AuditAction {
   STOCK_ADJUSTMENT_COMPLETE
   HANDBOOK_CREATE
   HANDBOOK_UPDATE
+  HANDBOOK_PROTOCOL_UPDATE
   PERMISSION_DENIED
   LIVESTOCK_STATE_CHANGE
 }
@@ -815,6 +816,16 @@ enum ConsultFieldType {
   DATE
 }
 
+/// Explicit area units. Regional "sào" variants are spelled out so a dose is never
+/// computed against an ambiguous label.
+enum AreaUnit {
+  M2
+  HA
+  SAO_BAC
+  SAO_TRUNG
+  CONG_NAM
+}
+
 enum SupplierStatus {
   ACTIVE
   INACTIVE
@@ -984,6 +995,7 @@ model Product {
   diseasePins     DiseaseProductPin[]
   diseaseFallbacksAsPrimary DiseaseProductFallback[] @relation("FallbackPrimary")
   diseaseFallbacksAsAlt     DiseaseProductFallback[] @relation("FallbackAlt")
+  protocolItems   DiseaseProtocolItem[]    @relation("ProtocolItemProduct")
 
   @@unique([tenantId, sku])
   @@index([tenantId, nameSearch])
@@ -1611,6 +1623,7 @@ model Disease {
   pins        DiseaseProductPin[]
   consultFields DiseaseConsultField[]
   fallbacks   DiseaseProductFallback[]
+  protocols   DiseaseProtocol[]
   sales       Sale[]
 
   @@index([tenantId, isPinned])
@@ -1680,6 +1693,55 @@ model DiseaseProductFallback {
 
   @@index([diseaseId, primaryProductId])
   @@map("disease_product_fallback")
+}
+
+/// A complete treatment plan for a disease. A disease may hold several protocols;
+/// alternates are used when the default protocol has out-of-stock products.
+model DiseaseProtocol {
+  id        String  @id @default(uuid())
+  tenantId  String
+  diseaseId String
+  name      String
+  note      String?
+  isDefault Boolean @default(false)
+  isActive  Boolean @default(true)
+  sortOrder Int     @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  disease Disease               @relation(fields: [diseaseId], references: [id], onDelete: Cascade)
+  items   DiseaseProtocolItem[]
+
+  @@index([tenantId, diseaseId])
+  @@map("disease_protocol")
+}
+
+/// One drug line inside a protocol. Carries either a concrete product or a free-form
+/// active ingredient, plus a dose expressed per unit of area.
+model DiseaseProtocolItem {
+  id         String @id @default(uuid())
+  tenantId   String
+  protocolId String
+
+  productId        String?
+  activeIngredient String?
+
+  doseAmount    Decimal  @db.Decimal(18, 6)
+  doseUnit      String
+  perAreaAmount Decimal  @db.Decimal(18, 6)
+  perAreaUnit   AreaUnit @default(M2)
+
+  mixing    String?
+  usage     String?
+  sortOrder Int     @default(0)
+
+  protocol DiseaseProtocol @relation(fields: [protocolId], references: [id], onDelete: Cascade)
+  product  Product?        @relation("ProtocolItemProduct", fields: [productId], references: [id], onDelete: SetNull)
+
+  @@index([protocolId])
+  @@index([tenantId, productId])
+  @@map("disease_protocol_item")
 }
 
 // --- Settings ---
