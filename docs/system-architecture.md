@@ -129,6 +129,16 @@ The repository contains local runtime/package configuration and migrations, but 
 - Product kind changes in edit mode require explicit confirmation when specialist attributes would
   be discarded; the mobile sticky save action remains part of the same form boundary.
 
+- Tenant-enabled business groups are managed at `/tenant/settings/business-groups` and consumed by
+  ProductForm. The backend prevents disabling the final enabled group with `NO_ENABLED_BUSINESS_GROUP`.
+
+## Supplier and purchase batch metadata
+
+- Supplier records keep `province` separate from free-form `address`; `supplierType` uses the
+  `SupplierType` vocabulary (`CROP_PROTECTION`, `FERTILIZER`, `BOTH`) in the application contract.
+- Purchase completion carries `PurchaseLine.manufacturedAt` into `ProductBatch.manufacturedAt`; the
+  purchase form displays manufacture date beside expiry date.
+
 ## Stock batch lifecycle
 
 - Purchase completion creates or reuses tenant/product/warehouse batches, increments `qtyOnHand`,
@@ -158,6 +168,8 @@ The repository contains local runtime/package configuration and migrations, but 
   permissions and entitlements. The first slice returns stock/batch expiry data and bounded completed
   sales totals/top products; money and decimal quantities are serialized as JSON-safe strings.
   Charts, exports, and financial accounting remain separate.
+- Inventory expiry warnings are calculated server-side from the batch expiry date at 180, 90, and
+  30-day thresholds; the frontend renders the returned tier rather than deriving it from browser time.
 - Sales order creation can optionally resolve a tenant Handbook `diseaseId` and persist
   `diseaseNameSnapshot`, `consultContext`, and `suggestedQtyMeta` on the Sale. These fields are
   historical snapshots; completed orders do not depend on later Handbook edits.

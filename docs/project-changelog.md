@@ -8,6 +8,18 @@ Format theo [Keep a Changelog](https://keepachangelog.com/), tuân thủ [Semant
 ## [Unreleased]
 
 ### Added
+- **Cảnh báo hạn dùng theo tầng** (catalog §14.2) — backend tính tier 180/90/30 ngày từ ngày hết
+  hạn; inventory list/card/detail hiển thị kết quả server trả về, không tự tính theo đồng hồ trình duyệt.
+- **Màn hình bật/tắt nhóm kinh doanh** (catalog §3) — `/thiet-lap/nhom-kinh-doanh` cho chủ cửa
+  hàng tự bật/tắt 5 nhóm Phase 1, kèm số sản phẩm đang có mỗi nhóm. Backend chặn tắt sạch mọi
+  nhóm bằng `NO_ENABLED_BUSINESS_GROUP` (422) để cửa hàng không tự khoá khả năng tạo sản phẩm.
+  Nhãn nhóm ở `product-kind-form.ts` được đồng bộ với catalog §2.
+- **Nhà cung cấp: tỉnh/thành phố + loại chuẩn hoá** (catalog §14.1) — thêm `Supplier.province`
+  tách khỏi `address`; `supplierType` chuyển từ free text sang enum `SupplierType`
+  (`CROP_PROTECTION` / `FERTILIZER` / `BOTH`). Migration backfill best-effort theo token đã bỏ
+  dấu qua `nomo_fold_search()`; giá trị không nhận dạng được thành `NULL`, không xoá dòng nào.
+- **Nhập hàng: ngày sản xuất theo dòng** (catalog §14.1) — `PurchaseLine.manufacturedAt` chảy từ
+  DTO qua service vào `ProductBatch.manufacturedAt`, hiển thị cạnh hạn dùng trong form nhập.
 - **Quota-only plan entitlements** — Starter, Professional và Enterprise đều nhận toàn bộ
   feature catalog; các gói chỉ khác nhau bằng quota số lượng và dung lượng. Billing seed/API
   quản trị plan tự động gắn full catalog, mở `advanced_mode` cho Starter.
