@@ -4,6 +4,7 @@ import { Check, ChevronDown, Search, Truck, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import {
 	listTenantSuppliers,
+	supplierTypeLabel,
 	type TenantSupplier,
 } from "@/lib/tenant-suppliers-api";
 import { useScrollLock } from "@/lib/use-scroll-lock";
@@ -216,7 +217,7 @@ function SupplierRow({
 						{supplier.name}
 					</span>
 					<span className="shrink-0 rounded-full bg-[#f5f5f5] px-2 py-0.5 text-xs font-medium text-[#616161]">
-						{supplier.supplierType ?? "Nhà cung cấp"}
+						{supplierTypeLabel(supplier.supplierType)}
 					</span>
 				</span>
 				<span className="text-sm text-[#9e9e9e]">

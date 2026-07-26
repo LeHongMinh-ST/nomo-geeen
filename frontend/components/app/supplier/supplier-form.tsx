@@ -1,31 +1,36 @@
 "use client";
 
-import { ChevronDown, Hash, MapPin, Phone, Truck, User } from "lucide-react";
+import {
+	Building2,
+	ChevronDown,
+	Hash,
+	MapPin,
+	Phone,
+	Truck,
+	User,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import type { UserApiError } from "@/lib/user-auth-api";
 import {
 	createTenantSupplier,
-	updateTenantSupplier,
 	type SupplierInput,
+	supplierTypeOptions,
 	type TenantSupplier,
+	updateTenantSupplier,
 } from "@/lib/tenant-suppliers-api";
+import type { UserApiError } from "@/lib/user-auth-api";
 
-const typeOptions = [
-	{ value: "manufacturer", label: "Nhà sản xuất" },
-	{ value: "distributor", label: "Nhà phân phối" },
-	{ value: "agent", label: "Đại lý" },
-];
 type FormState = SupplierInput;
 function initial(s?: TenantSupplier): FormState {
 	return {
 		code: s?.code ?? "",
 		name: s?.name ?? "",
-		supplierType: s?.supplierType ?? "distributor",
+		supplierType: s?.supplierType ?? "",
 		contactName: s?.contactName ?? "",
 		phone: s?.phone ?? "",
 		email: s?.email ?? "",
 		address: s?.address ?? "",
+		province: s?.province ?? "",
 		taxCode: s?.taxCode ?? "",
 	};
 }
@@ -114,14 +119,20 @@ export function SupplierForm({
 							/>
 						</div>
 					</Field>
-					<Field label="Loại NCC">
+					<Field label="Loại nhà cung cấp">
 						<div className="relative">
 							<select
-								value={form.supplierType ?? "distributor"}
-								onChange={(e) => set("supplierType", e.target.value)}
+								value={form.supplierType ?? ""}
+								onChange={(e) =>
+									set(
+										"supplierType",
+										e.target.value as FormState["supplierType"],
+									)
+								}
 								className={`${inputClass} appearance-none pr-10`}
 							>
-								{typeOptions.map((option) => (
+								<option value="">Chưa phân loại</option>
+								{supplierTypeOptions.map((option) => (
 									<option key={option.value} value={option.value}>
 										{option.label}
 									</option>
@@ -173,6 +184,17 @@ export function SupplierForm({
 							value={form.address ?? ""}
 							onChange={(e) => set("address", e.target.value)}
 							placeholder="Địa chỉ nhà cung cấp"
+							className={`${inputClass} pl-10.5`}
+						/>
+					</div>
+				</Field>
+				<Field label="Tỉnh/Thành phố">
+					<div className="relative">
+						<Building2 className={iconClass} aria-hidden />
+						<input
+							value={form.province ?? ""}
+							onChange={(e) => set("province", e.target.value)}
+							placeholder="VD: Cần Thơ"
 							className={`${inputClass} pl-10.5`}
 						/>
 					</div>

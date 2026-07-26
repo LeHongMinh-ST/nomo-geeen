@@ -1,8 +1,15 @@
 import type {
 	PurchaseStatus as LegacyPurchaseStatus,
 	Purchase,
+	PurchaseLine,
 } from "@/lib/purchases";
 import { userFetch } from "@/lib/user-fetch";
+
+/** Dong nhap kem ngay san xuat (catalog §14.1) — mo rong PurchaseLine goc. */
+export type TenantPurchaseLineView = PurchaseLine & { manufacturedAt?: string };
+export type TenantPurchaseView = Omit<Purchase, "lines"> & {
+	lines: TenantPurchaseLineView[];
+};
 
 export type PurchaseStatus = "DRAFT" | "COMPLETED" | "CANCELLED";
 export type PurchasePaymentMethod = "CASH" | "BANK_TRANSFER" | "QR" | "DEBT";
@@ -13,6 +20,8 @@ export type PurchaseLineInput = {
 	unitPrice: number;
 	lineDiscount?: number;
 	batchCode?: string;
+	/** Ngay san xuat ISO (YYYY-MM-DD) — tuy chon (catalog §14.1). */
+	manufacturedAt?: string;
 	expiresAt?: string;
 };
 export type CreatePurchaseInput = {
@@ -114,7 +123,15 @@ export function cancelTenantPurchase(id: string): Promise<PurchaseResponse> {
 	});
 }
 
-export function mapTenantPurchase(item: PurchaseResponse): Purchase {
+/**
+ * API tra ve DateTime ISO ("2026-01-15T00:00:00.000Z") nhung PurchaseLine.expiry va
+ * input[type=date] deu yeu cau YYYY-MM-DD.
+ */
+function toDateInput(value?: string): string | undefined {
+	return value ? value.slice(0, 10) : undefined;
+}
+
+export function mapTenantPurchase(item: PurchaseResponse): TenantPurchaseView {
 	return {
 		id: item.id,
 		code: item.docNo,
@@ -129,7 +146,8 @@ export function mapTenantPurchase(item: PurchaseResponse): Purchase {
 			qty: Number(line.qty),
 			cost: line.unitPrice,
 			batch: line.batchCode,
-			expiry: line.expiresAt,
+			manufacturedAt: toDateInput(line.manufacturedAt),
+			expiry: toDateInput(line.expiresAt),
 		})),
 		discount: item.discountAmount,
 		shipping: item.shippingFee,

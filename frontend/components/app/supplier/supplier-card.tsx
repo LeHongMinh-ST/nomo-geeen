@@ -27,8 +27,12 @@ export function SupplierCard({ supplier }: { supplier: TenantSupplier }) {
 					</span>
 				</div>
 				<p className="truncate text-sm text-[#616161]">
-					{supplierTypeLabel(supplier.supplierType)}
-					{supplier.address ? ` · ${supplier.address}` : ""}
+					{[
+						supplierTypeLabel(supplier.supplierType),
+						supplier.province ?? supplier.address,
+					]
+						.filter(Boolean)
+						.join(" · ")}
 				</p>
 				<div className="mt-1 flex items-end justify-between gap-2">
 					<span className="flex items-center gap-1.5 text-sm text-[#9e9e9e]">

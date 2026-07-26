@@ -29,6 +29,7 @@ describe('SuppliersService', () => {
 				phone: '0901',
 				email: null,
 				address: null,
+				province: null,
 				taxCode: null,
 				balance: 0n,
 				status: 'ACTIVE',
@@ -89,6 +90,7 @@ describe('SuppliersService', () => {
 			phone: null,
 			email: null,
 			address: null,
+			province: null,
 			taxCode: null,
 			balance: 0n,
 			status: 'INACTIVE',
@@ -116,6 +118,7 @@ describe('SuppliersService', () => {
 			phone: null,
 			email: null,
 			address: null,
+			province: null,
 			taxCode: null,
 			balance: 123456n,
 			status: 'ACTIVE',
@@ -165,6 +168,90 @@ describe('SuppliersService', () => {
 			}),
 		);
 	});
+	it('normalizes supplierType into the closed vocabulary and trims province', async () => {
+		const { service, prisma } = makeService();
+		prisma.supplier.create.mockResolvedValue({
+			id: 's1',
+			code: 'SUP-01',
+			name: 'Main supplier',
+			supplierType: 'CROP_PROTECTION',
+			contactName: null,
+			phone: null,
+			email: null,
+			address: null,
+			province: 'Cần Thơ',
+			taxCode: null,
+			balance: 0n,
+			status: 'ACTIVE',
+			createdAt: new Date(),
+			updatedAt: new Date(),
+		});
+		await expect(
+			service.create('tenant-1', {
+				...input,
+				supplierType: 'Thuốc BVTV',
+				province: '  Cần Thơ  ',
+			} as never),
+		).resolves.toEqual(
+			expect.objectContaining({
+				supplierType: 'CROP_PROTECTION',
+				province: 'Cần Thơ',
+			}),
+		);
+		expect(prisma.supplier.create).toHaveBeenCalledWith(
+			expect.objectContaining({
+				data: expect.objectContaining({
+					supplierType: 'CROP_PROTECTION',
+					province: 'Cần Thơ',
+				}),
+			}),
+		);
+	});
+	it('rejects a supplierType outside the closed vocabulary instead of storing null', async () => {
+		const { service, prisma } = makeService();
+		prisma.supplier.findFirst.mockResolvedValue({ id: 's1' });
+		await expect(
+			service.create('tenant-1', { ...input, supplierType: 'agent' } as never),
+		).rejects.toMatchObject({
+			response: { reason: 'VALIDATION_ERROR', field: 'supplierType' },
+		});
+		await expect(
+			service.update('tenant-1', 's1', { supplierType: 'agent' } as never),
+		).rejects.toMatchObject({
+			response: { reason: 'VALIDATION_ERROR', field: 'supplierType' },
+		});
+		expect(prisma.supplier.create).not.toHaveBeenCalled();
+		expect(prisma.supplier.update).not.toHaveBeenCalled();
+	});
+	it('clears supplierType and province when an empty string is sent', async () => {
+		const { service, prisma } = makeService();
+		prisma.supplier.findFirst.mockResolvedValue({ id: 's1' });
+		prisma.supplier.update.mockResolvedValue({
+			id: 's1',
+			code: 'SUP-01',
+			name: 'Supplier',
+			supplierType: null,
+			contactName: null,
+			phone: null,
+			email: null,
+			address: null,
+			province: null,
+			taxCode: null,
+			balance: 0n,
+			status: 'ACTIVE',
+			createdAt: new Date(),
+			updatedAt: new Date(),
+		});
+		await service.update('tenant-1', 's1', {
+			supplierType: '',
+			province: '   ',
+		} as never);
+		expect(prisma.supplier.update).toHaveBeenCalledWith(
+			expect.objectContaining({
+				data: expect.objectContaining({ supplierType: null, province: null }),
+			}),
+		);
+	});
 	it('soft-deletes inside the verified tenant and preserves record history', async () => {
 		const { service, prisma } = makeService();
 		const current = { id: 's1', tenantId: 'tenant-1' };
@@ -178,6 +265,7 @@ describe('SuppliersService', () => {
 			phone: null,
 			email: null,
 			address: null,
+			province: null,
 			taxCode: null,
 			balance: 100n,
 			status: 'INACTIVE',

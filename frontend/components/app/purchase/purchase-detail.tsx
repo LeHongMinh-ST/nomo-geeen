@@ -4,6 +4,7 @@ import {
 	ArrowLeft,
 	CalendarClock,
 	CheckCircle2,
+	Factory,
 	Layers,
 	PackagePlus,
 	Truck,
@@ -14,7 +15,6 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { formatDate, formatVND } from "@/lib/format";
 import {
-	type Purchase,
 	type PurchaseStatus,
 	purchaseLineBaseQty,
 	purchaseLineTotal,
@@ -31,6 +31,7 @@ import {
 	completeTenantPurchase,
 	getTenantPurchase,
 	mapTenantPurchase,
+	type TenantPurchaseView,
 } from "@/lib/tenant-purchases-api";
 
 /**
@@ -40,7 +41,7 @@ import {
  * API-backed: actions refetch the authoritative purchase state.
  */
 export function PurchaseDetail({ purchaseId }: { purchaseId: string }) {
-	const [purchase, setPurchase] = useState<Purchase | null>(null);
+	const [purchase, setPurchase] = useState<TenantPurchaseView | null>(null);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
 	const [pending, setPending] = useState(false);
@@ -186,13 +187,19 @@ export function PurchaseDetail({ purchaseId }: { purchaseId: string }) {
 										)}{" "}
 										đơn vị gốc`
 									</span>
-									{/* Lô + HSD */}
-									{l.batch || l.expiry ? (
+									{/* Lô + NSX + HSD */}
+									{l.batch || l.manufacturedAt || l.expiry ? (
 										<div className="mt-0.5 flex flex-wrap gap-2">
 											{l.batch ? (
 												<span className="inline-flex items-center gap-1 rounded-full bg-[#f5f5f5] px-2.5 py-0.5 text-xs font-medium text-[#616161]">
 													<Layers className="size-3.5" aria-hidden />
 													Lô {l.batch}
+												</span>
+											) : null}
+											{l.manufacturedAt ? (
+												<span className="inline-flex items-center gap-1 rounded-full bg-[#f5f5f5] px-2.5 py-0.5 text-xs font-medium text-[#616161]">
+													<Factory className="size-3.5" aria-hidden />
+													NSX {formatDate(l.manufacturedAt)}
 												</span>
 											) : null}
 											{l.expiry ? (

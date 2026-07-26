@@ -145,6 +145,7 @@ export function SupplierList() {
 										<th className="px-4 py-3">Mã NCC</th>
 										<th className="px-4 py-3">Nhà cung cấp</th>
 										<th className="px-4 py-3">Loại</th>
+										<th className="px-4 py-3">Tỉnh/Thành phố</th>
 										<th className="px-4 py-3">Số điện thoại</th>
 										<th className="px-4 py-3 text-right">Phải trả</th>
 										<th className="w-20 px-2 py-3" />
@@ -180,6 +181,9 @@ export function SupplierList() {
 											</td>
 											<td className="px-4 py-3 text-[#616161]">
 												{supplierTypeLabel(s.supplierType)}
+											</td>
+											<td className="px-4 py-3 text-[#616161]">
+												{s.province ?? "—"}
 											</td>
 											<td className="px-4 py-3 text-[#616161]">
 												{s.phone ?? "—"}

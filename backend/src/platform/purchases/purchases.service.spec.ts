@@ -152,6 +152,7 @@ describe('PurchasesService', () => {
 			lineDiscount: 0n,
 			lineTotal: 2000n,
 			batchCode: 'LOT-A',
+			manufacturedAt: new Date('2026-01-15'),
 			expiresAt: new Date('2099-06-01'),
 			product: { productKind: ProductKind.PESTICIDE, name: 'P', sku: 'S' },
 			unit: { id: 'unit-1', code: 'U', name: 'Unit' },
@@ -272,6 +273,119 @@ describe('PurchasesService', () => {
 			}),
 		);
 		expect(result.status).toBe(PurchaseStatus.COMPLETED);
+	});
+
+	it('writes the line manufacture date onto the new ProductBatch', async () => {
+		const { service, tx } = makeService();
+		const purchase = draftPurchase();
+		tx.purchase.findFirst.mockResolvedValue(purchase);
+		tx.warehouse.findMany.mockResolvedValue([{ id: 'warehouse-1' }]);
+		tx.productBatch.upsert.mockResolvedValue({ id: 'batch-1' });
+		tx.purchaseLine.update.mockResolvedValue({});
+		tx.stock.findUnique.mockResolvedValue(null);
+		tx.stock.create.mockResolvedValue({});
+		tx.stockMovement.create.mockResolvedValue({});
+		tx.purchase.update.mockResolvedValue(
+			completedResponse({
+				...purchase,
+				lines: [{ ...purchase.lines[0], batchId: 'batch-1' }],
+			}),
+		);
+
+		await service.complete(
+			'tenant-1',
+			'user-1',
+			'purchase-1',
+			'2b6f99c0-bb7b-4df5-8b08-ef9ce38b8550',
+		);
+
+		expect(tx.productBatch.upsert.mock.calls[0][0].create).toEqual(
+			expect.objectContaining({
+				manufacturedAt: new Date('2026-01-15'),
+				expiresAt: new Date('2099-06-01'),
+			}),
+		);
+		// Reuse must never rewrite the recorded manufacture date (audit risk).
+		expect(tx.productBatch.upsert.mock.calls[0][0].update).not.toHaveProperty(
+			'manufacturedAt',
+		);
+	});
+
+	it('stores null manufacture date when the line does not carry one', async () => {
+		const { service, tx } = makeService();
+		const purchase = draftPurchase({
+			lines: [lineFields({ manufacturedAt: null })],
+		});
+		tx.purchase.findFirst.mockResolvedValue(purchase);
+		tx.warehouse.findMany.mockResolvedValue([{ id: 'warehouse-1' }]);
+		tx.productBatch.upsert.mockResolvedValue({ id: 'batch-1' });
+		tx.purchaseLine.update.mockResolvedValue({});
+		tx.stock.findUnique.mockResolvedValue(null);
+		tx.stock.create.mockResolvedValue({});
+		tx.stockMovement.create.mockResolvedValue({});
+		tx.purchase.update.mockResolvedValue(
+			completedResponse({
+				...purchase,
+				lines: [{ ...purchase.lines[0], batchId: 'batch-1' }],
+			}),
+		);
+
+		await service.complete(
+			'tenant-1',
+			'user-1',
+			'purchase-1',
+			'2b6f99c0-bb7b-4df5-8b08-ef9ce38b8550',
+		);
+
+		expect(tx.productBatch.upsert.mock.calls[0][0].create).toEqual(
+			expect.objectContaining({ manufacturedAt: null }),
+		);
+	});
+
+	it('persists the manufacture date on the created purchase line', async () => {
+		const { service, tx } = makeService();
+		tx.purchase.findFirst.mockResolvedValue(null);
+		tx.warehouse.findMany.mockResolvedValue([{ id: 'warehouse-1' }]);
+		tx.supplier.findFirst.mockResolvedValue({ id: 'supplier-1' });
+		tx.product.findMany.mockResolvedValue([
+			{
+				id: 'product-1',
+				baseUnitId: 'unit-1',
+				status: 'ACTIVE',
+				isLocked: false,
+				isRecalled: false,
+				conversions: [],
+			},
+		]);
+		tx.purchase.create.mockResolvedValue(
+			completedResponse({ ...draftPurchase(), status: PurchaseStatus.DRAFT }),
+		);
+
+		await service.create(
+			'tenant-1',
+			'user-1',
+			dto({
+				lines: [
+					{
+						productId: 'product-1',
+						unitId: 'unit-1',
+						qty: '2',
+						unitPrice: 1000,
+						lineDiscount: 0,
+						batchCode: 'LOT-A',
+						manufacturedAt: '2026-01-15',
+						expiresAt: '2099-06-01',
+					},
+				],
+			}),
+		);
+
+		expect(tx.purchase.create.mock.calls[0][0].data.lines.create[0]).toEqual(
+			expect.objectContaining({
+				manufacturedAt: new Date('2026-01-15'),
+				expiresAt: new Date('2099-06-01'),
+			}),
+		);
 	});
 
 	it('reuses batch by incrementing qtyOnHand on second receipt', async () => {
