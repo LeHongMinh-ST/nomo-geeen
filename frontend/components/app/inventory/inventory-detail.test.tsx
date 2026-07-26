@@ -41,6 +41,7 @@ const detail = {
 	avgCost: "100",
 	updatedAt: "2026-07-24",
 	nextExpiry: null,
+	expiryTier: "NONE" as const,
 	batches: [],
 	movements: [],
 };
