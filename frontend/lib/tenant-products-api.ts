@@ -121,11 +121,24 @@ export function getProductLookups(): Promise<ProductLookups> {
 	return userFetch<ProductLookups>(`${base}/lookups`);
 }
 
-export function getTenantBusinessGroups(): Promise<{
+export type BusinessGroupSettings = {
 	configured: boolean;
 	groups: TenantBusinessGroup[];
-}> {
+	/** Số sản phẩm ACTIVE theo từng nhóm, khóa là BusinessGroupId. */
+	productCounts?: Record<string, number>;
+};
+
+export function getTenantBusinessGroups(): Promise<BusinessGroupSettings> {
 	return userFetch(`${base}/business-groups`);
+}
+
+export function updateTenantBusinessGroups(
+	enabledGroups: BusinessGroupId[],
+): Promise<BusinessGroupSettings> {
+	return userFetch(`${base}/business-groups`, {
+		method: "PATCH",
+		body: JSON.stringify({ enabledGroups }),
+	});
 }
 
 export function createTenantProduct(
