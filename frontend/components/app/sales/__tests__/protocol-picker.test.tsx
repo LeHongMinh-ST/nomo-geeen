@@ -216,6 +216,6 @@ describe("ProtocolPicker", () => {
 			/>,
 		);
 
-		expect(screen.getByText(/chưa cấu hình phác đồ/)).toBeInTheDocument();
+		expect(screen.getByText(/chưa cấu hình bộ thuốc/)).toBeInTheDocument();
 	});
 });
