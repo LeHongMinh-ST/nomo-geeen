@@ -1,9 +1,11 @@
+/** Nhãn nhóm kinh doanh — bám đúng docs/core-business-catalog.md §2 và
+ * backend/src/platform/products/product-contract.ts. */
 export const BUSINESS_GROUP_CATALOG = [
-	{ id: "CROP_INPUTS", label: "Vật tư trồng trọt" },
-	{ id: "CROP_SEEDLINGS", label: "Giống cây trồng" },
+	{ id: "CROP_INPUTS", label: "Thuốc bảo vệ thực vật + Phân bón" },
+	{ id: "CROP_SEEDLINGS", label: "Cây giống" },
 	{ id: "ANIMAL_FEED", label: "Thức ăn chăn nuôi" },
 	{ id: "VETERINARY_DRUGS", label: "Thuốc thú y" },
-	{ id: "LIVESTOCK", label: "Giống vật nuôi" },
+	{ id: "LIVESTOCK", label: "Con giống" },
 ] as const;
 
 export type BusinessGroupId = (typeof BUSINESS_GROUP_CATALOG)[number]["id"];

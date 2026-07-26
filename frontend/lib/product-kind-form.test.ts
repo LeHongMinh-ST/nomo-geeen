@@ -20,6 +20,16 @@ describe("product kind contract", () => {
 		]);
 	});
 
+	it("uses the catalog §2 labels so the product form and settings agree", () => {
+		expect(BUSINESS_GROUP_CATALOG.map((group) => group.label)).toEqual([
+			"Thuốc bảo vệ thực vật + Phân bón",
+			"Cây giống",
+			"Thức ăn chăn nuôi",
+			"Thuốc thú y",
+			"Con giống",
+		]);
+	});
+
 	it("filters enabled groups while preserving catalog order", () => {
 		expect(
 			filterEnabledBusinessGroups([
@@ -28,8 +38,8 @@ describe("product kind contract", () => {
 				{ businessGroup: "ANIMAL_FEED", enabled: false },
 			]),
 		).toEqual([
-			{ id: "CROP_INPUTS", label: "Vật tư trồng trọt" },
-			{ id: "LIVESTOCK", label: "Giống vật nuôi" },
+			{ id: "CROP_INPUTS", label: "Thuốc bảo vệ thực vật + Phân bón" },
+			{ id: "LIVESTOCK", label: "Con giống" },
 		]);
 	});
 

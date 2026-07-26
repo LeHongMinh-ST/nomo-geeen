@@ -2,6 +2,7 @@ import {
 	BadRequestException,
 	Injectable,
 	NotFoundException,
+	UnprocessableEntityException,
 } from '@nestjs/common';
 import {
 	AuditAction,
@@ -10,6 +11,7 @@ import {
 	ConversionKind,
 	Prisma,
 	ProductKind,
+	ProductStatus,
 } from '@prisma/client';
 import { AuditLogger } from '../audit/audit-logger.service';
 import type { TenantIdentity } from '../auth/token.service';
@@ -181,12 +183,19 @@ export class ProductsService {
 	}
 
 	async businessGroups(tenantId: string) {
-		const configured = await this.prisma.tenantBusinessGroup.findMany({
-			where: { tenantId },
-			select: { businessGroup: true, enabled: true },
-			orderBy: { businessGroup: 'asc' },
-		});
-		return { configured: configured.length > 0, groups: configured };
+		const [configured, counts] = await Promise.all([
+			this.prisma.tenantBusinessGroup.findMany({
+				where: { tenantId },
+				select: { businessGroup: true, enabled: true },
+				orderBy: { businessGroup: 'asc' },
+			}),
+			this.countActiveProductsByGroup(this.prisma, tenantId),
+		]);
+		return {
+			configured: configured.length > 0,
+			groups: configured,
+			productCounts: counts,
+		};
 	}
 
 	async updateBusinessGroups(
@@ -195,6 +204,13 @@ export class ProductsService {
 		actor?: Pick<TenantIdentity, 'id' | 'tenantId' | 'roleCode'>,
 	) {
 		const enabled = new Set(enabledGroups);
+		// An empty set would lock the shop out of creating any product, because
+		// assertSelectableBusinessGroup rejects every group once rows exist.
+		if (enabled.size === 0)
+			throw new UnprocessableEntityException({
+				reason: 'NO_ENABLED_BUSINESS_GROUP',
+				message: 'At least one business group must stay enabled',
+			});
 		return this.prisma.$transaction(async (tx) => {
 			for (const businessGroup of Object.values(BusinessGroup)) {
 				await tx.tenantBusinessGroup.upsert({
@@ -212,6 +228,7 @@ export class ProductsService {
 				select: { businessGroup: true, enabled: true },
 				orderBy: { businessGroup: 'asc' },
 			});
+			const productCounts = await this.countActiveProductsByGroup(tx, tenantId);
 			if (actor)
 				await this.audit.writeInTx(tx, {
 					tenantId,
@@ -222,8 +239,35 @@ export class ProductsService {
 					resource: 'product_business_group',
 					after: { groups },
 				});
-			return { configured: groups.length > 0, groups };
+			return { configured: groups.length > 0, groups, productCounts };
 		});
+	}
+
+	/**
+	 * Active, non-deleted product count per business group. Counts the stored
+	 * `businessGroup` column only — that column is what the enable/disable flag
+	 * gates, so legacy rows with a null group are deliberately not inferred here.
+	 */
+	private async countActiveProductsByGroup(
+		client: Pick<PrismaService, 'product'> | Prisma.TransactionClient,
+		tenantId: string,
+	): Promise<Record<BusinessGroup, number>> {
+		const rows = await client.product.groupBy({
+			by: ['businessGroup'],
+			where: {
+				tenantId,
+				deletedAt: null,
+				status: ProductStatus.ACTIVE,
+				businessGroup: { not: null },
+			},
+			_count: { _all: true },
+		});
+		const counts = Object.fromEntries(
+			Object.values(BusinessGroup).map((group) => [group, 0]),
+		) as Record<BusinessGroup, number>;
+		for (const row of rows)
+			if (row.businessGroup) counts[row.businessGroup] = row._count._all;
+		return counts;
 	}
 
 	async create(
