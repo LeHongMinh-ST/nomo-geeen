@@ -44,6 +44,7 @@ type PurchaseLineRenderable = {
 	lineDiscount: bigint;
 	lineTotal: bigint;
 	batchCode: string | null;
+	manufacturedAt: Date | null;
 	expiresAt: Date | null;
 	unit?: { id: string; code: string; name: string };
 };
@@ -75,6 +76,7 @@ type PreparedLine = {
 	lineDiscount: bigint;
 	lineTotal: bigint;
 	batchCode?: string;
+	manufacturedAt?: Date;
 	expiresAt?: Date;
 	productKind?: ProductKind;
 };
@@ -178,6 +180,7 @@ export class PurchasesService {
 								lineDiscount: line.lineDiscount,
 								lineTotal: line.lineTotal,
 								batchCode: line.batchCode,
+								manufacturedAt: line.manufacturedAt,
 								expiresAt: line.expiresAt,
 							})),
 						},
@@ -261,6 +264,7 @@ export class PurchasesService {
 								lineDiscount: line.lineDiscount,
 								lineTotal: line.lineTotal,
 								batchCode: line.batchCode,
+								manufacturedAt: line.manufacturedAt,
 								expiresAt: line.expiresAt,
 							})),
 						},
@@ -422,10 +426,11 @@ export class PurchasesService {
 						productId: line.productId,
 						warehouseId: purchase.warehouseId,
 						batchCode,
+						manufacturedAt: line.manufacturedAt ?? null,
 						expiresAt: line.expiresAt ?? null,
 						qtyOnHand: line.qtyBase,
 					},
-					// Never silently extend expiry on reuse (audit risk).
+					// Never silently rewrite manufacture/expiry dates on reuse (audit risk).
 					update: { qtyOnHand: { increment: line.qtyBase } },
 					select: { id: true },
 				});
@@ -577,6 +582,9 @@ export class PurchasesService {
 				lineDiscount,
 				lineTotal,
 				batchCode: line.batchCode,
+				manufacturedAt: line.manufacturedAt
+					? new Date(line.manufacturedAt)
+					: undefined,
 				expiresAt: line.expiresAt ? new Date(line.expiresAt) : undefined,
 				productKind: product.productKind,
 			};
@@ -715,6 +723,7 @@ export class PurchasesService {
 				lineDiscount: Number(line.lineDiscount),
 				lineTotal: Number(line.lineTotal),
 				batchCode: line.batchCode,
+				manufacturedAt: line.manufacturedAt,
 				expiresAt: line.expiresAt,
 				unit: line.unit,
 			})),

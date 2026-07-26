@@ -1,13 +1,18 @@
 import { userFetch } from "@/lib/user-fetch";
+
+/** Tu vung dong theo catalog §14.1 — khop enum SupplierType phia backend. */
+export type SupplierType = "CROP_PROTECTION" | "FERTILIZER" | "BOTH";
+
 export type TenantSupplier = {
 	id: string;
 	code: string;
 	name: string;
-	supplierType: string | null;
+	supplierType: SupplierType | null;
 	contactName: string | null;
 	phone: string | null;
 	email: string | null;
 	address: string | null;
+	province: string | null;
 	taxCode: string | null;
 	balance: number;
 	status: "ACTIVE" | "INACTIVE";
@@ -21,22 +26,28 @@ export type SupplierListResponse = {
 export type SupplierInput = {
 	code: string;
 	name: string;
-	supplierType?: string;
+	/** Chuoi rong = xoa phan loai. */
+	supplierType?: SupplierType | "";
 	contactName?: string;
 	phone?: string;
 	email?: string;
 	address?: string;
+	province?: string;
 	taxCode?: string;
 };
 const base = "/tenant/suppliers";
-const supplierTypeLabels: Record<string, string> = {
-	manufacturer: "Nhà sản xuất",
-	distributor: "Nhà phân phối",
-	agent: "Đại lý",
+const supplierTypeLabels: Record<SupplierType, string> = {
+	CROP_PROTECTION: "Thuốc BVTV",
+	FERTILIZER: "Phân bón",
+	BOTH: "Cả hai",
 };
 
-export function supplierTypeLabel(value: string | null) {
-	return value ? (supplierTypeLabels[value] ?? value) : "Chưa phân loại";
+export const supplierTypeOptions = (
+	Object.keys(supplierTypeLabels) as SupplierType[]
+).map((value) => ({ value, label: supplierTypeLabels[value] }));
+
+export function supplierTypeLabel(value: SupplierType | null) {
+	return value ? supplierTypeLabels[value] : "Chưa phân loại";
 }
 export function listTenantSuppliers(
 	params: { page?: number; pageSize?: number; search?: string } = {},

@@ -831,6 +831,13 @@ enum SupplierStatus {
   INACTIVE
 }
 
+/// Loai nha cung cap (catalog §14.1): thuoc BVTV, phan bon, hoac ca hai.
+enum SupplierType {
+  CROP_PROTECTION
+  FERTILIZER
+  BOTH
+}
+
 // --- Master data ---
 
 model Warehouse {
@@ -1251,19 +1258,20 @@ model Purchase {
 }
 
 model PurchaseLine {
-  id           String   @id @default(uuid())
-  tenantId     String
-  purchaseId   String
-  productId    String
-  unitId       String
-  qty          Decimal  @db.Decimal(18, 6)
-  qtyBase      Decimal  @db.Decimal(18, 6)
-  unitPrice    BigInt
-  lineDiscount BigInt   @default(0)
-  lineTotal    BigInt
-  batchCode    String?
-  expiresAt    DateTime? @db.Date
-  batchId      String?
+  id             String    @id @default(uuid())
+  tenantId       String
+  purchaseId     String
+  productId      String
+  unitId         String
+  qty            Decimal   @db.Decimal(18, 6)
+  qtyBase        Decimal   @db.Decimal(18, 6)
+  unitPrice      BigInt
+  lineDiscount   BigInt    @default(0)
+  lineTotal      BigInt
+  batchCode      String?
+  manufacturedAt DateTime? @db.Date
+  expiresAt      DateTime? @db.Date
+  batchId        String?
 
   purchase Purchase     @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
   product  Product      @relation(fields: [productId], references: [id])
@@ -1495,12 +1503,13 @@ model Supplier {
   tenantId        String
   code            String
   name            String
-  supplierType    String?
+  supplierType    SupplierType?
   contactName     String?
   contactTitle    String?
   phone           String?
   email           String?
   address         String?
+  province        String?
   taxCode         String?
   discountPercent Decimal?       @db.Decimal(8, 4)
   debtLimit       BigInt?

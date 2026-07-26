@@ -37,6 +37,8 @@ export class CreatePurchaseLineDto {
 	@Max(Number.MAX_SAFE_INTEGER)
 	lineDiscount = 0;
 	@IsOptional() @IsString() batchCode?: string;
+	/** Ngay san xuat (catalog §14.1) — tuy chon voi moi product kind. */
+	@IsOptional() @IsString() manufacturedAt?: string;
 	@IsOptional() @IsString() expiresAt?: string;
 }
 export class CreatePurchaseDto {

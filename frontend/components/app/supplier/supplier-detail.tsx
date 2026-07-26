@@ -117,6 +117,13 @@ export function SupplierDetail({ id }: { id: string }) {
 						{supplier.address}
 					</div>
 				) : null}
+				{supplier.province ? (
+					<div className="flex items-center gap-3 text-base">
+						<Building2 className="size-5 text-[#9e9e9e]" aria-hidden />
+						Tỉnh/Thành phố:{" "}
+						<span className="font-medium">{supplier.province}</span>
+					</div>
+				) : null}
 				{supplier.email ? (
 					<div className="flex items-center gap-3 text-base">
 						<Building2 className="size-5 text-[#9e9e9e]" aria-hidden />

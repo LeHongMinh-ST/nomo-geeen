@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { userFetch } from "@/lib/user-fetch";
-import { createTenantSupplier, getTenantSupplier, listTenantSuppliers, updateTenantSupplier } from "./tenant-suppliers-api";
+import { createTenantSupplier, getTenantSupplier, listTenantSuppliers, supplierTypeLabel, supplierTypeOptions, updateTenantSupplier } from "./tenant-suppliers-api";
 
 vi.mock("@/lib/user-fetch", () => ({ userFetch: vi.fn() }));
 const mocked = vi.mocked(userFetch);
@@ -22,5 +22,17 @@ describe("tenant suppliers api", () => {
 		const error = new Error("duplicate")
 		mocked.mockRejectedValueOnce(error);
 		await expect(listTenantSuppliers()).rejects.toBe(error);
+	});
+	it("sends province and the closed supplierType vocabulary", () => {
+		const input = { code: "SUP-1", name: "Supplier", supplierType: "BOTH", province: "Cần Thơ" } as const;
+		createTenantSupplier(input);
+		expect(mocked).toHaveBeenCalledWith("/tenant/suppliers", { method: "POST", body: JSON.stringify(input) });
+	});
+	it("labels every closed supplierType value in Vietnamese", () => {
+		expect(supplierTypeOptions.map((option) => option.value)).toEqual(["CROP_PROTECTION", "FERTILIZER", "BOTH"]);
+		expect(supplierTypeLabel("CROP_PROTECTION")).toBe("Thuốc BVTV");
+		expect(supplierTypeLabel("FERTILIZER")).toBe("Phân bón");
+		expect(supplierTypeLabel("BOTH")).toBe("Cả hai");
+		expect(supplierTypeLabel(null)).toBe("Chưa phân loại");
 	});
 });

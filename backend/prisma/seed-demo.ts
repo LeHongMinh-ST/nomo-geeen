@@ -627,7 +627,7 @@ async function seedBvtvRelations(tenantId: string): Promise<void> {
 	const supplier = await prisma.supplier.upsert({
 		where: { tenantId_code: { tenantId, code: 'NPP-SYNGENTA' } },
 		update: { name: 'Nhà phân phối Vật tư Xanh', status: 'ACTIVE' },
-		create: { tenantId, code: 'NPP-SYNGENTA', name: 'Nhà phân phối Vật tư Xanh', supplierType: 'Nhà phân phối BVTV', contactName: 'Nguyễn Văn Nam', phone: '0905000001', address: 'Cần Thơ', status: 'ACTIVE', paymentTerms: '30 ngày' },
+		create: { tenantId, code: 'NPP-SYNGENTA', name: 'Nhà phân phối Vật tư Xanh', supplierType: 'CROP_PROTECTION', contactName: 'Nguyễn Văn Nam', phone: '0905000001', address: 'Khu công nghiệp Trà Nóc', province: 'Cần Thơ', status: 'ACTIVE', paymentTerms: '30 ngày' },
 		select: { id: true },
 	});
 	const purchaseLines = ['TBV-001', 'TBV-002', 'TBV-003'].flatMap((sku) => {
@@ -635,7 +635,7 @@ async function seedBvtvRelations(tenantId: string): Promise<void> {
 		const batch = batches.get(sku);
 		if (!product || !batch) return [];
 		const qty = Math.min(10, batch.qty);
-		return [{ tenantId, productId: product.id, unitId: product.baseUnitId, qty, qtyBase: qty, unitPrice: product.costPrice, lineTotal: product.costPrice * BigInt(qty), batchCode: `PUR-${batch.id.slice(0, 8)}`, expiresAt: null, batchId: batch.id }];
+		return [{ tenantId, productId: product.id, unitId: product.baseUnitId, qty, qtyBase: qty, unitPrice: product.costPrice, lineTotal: product.costPrice * BigInt(qty), batchCode: `PUR-${batch.id.slice(0, 8)}`, manufacturedAt: new Date('2026-01-15T00:00:00.000Z'), expiresAt: null, batchId: batch.id }];
 	});
 	const purchase = await prisma.purchase.upsert({
 		where: { tenantId_docNo: { tenantId, docNo: 'PN-BVTV-0001' } },

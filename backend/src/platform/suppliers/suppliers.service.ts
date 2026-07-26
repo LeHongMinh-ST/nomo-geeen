@@ -4,23 +4,25 @@ import {
 	NotFoundException,
 	UnprocessableEntityException,
 } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { Prisma, type SupplierType } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import {
 	CreateSupplierDto,
 	SupplierQueryDto,
 	UpdateSupplierDto,
 } from './dto/supplier.dto';
+import { mapSupplierType } from './supplier-type';
 
 type SupplierRow = {
 	id: string;
 	code: string;
 	name: string;
-	supplierType: string | null;
+	supplierType: SupplierType | null;
 	contactName: string | null;
 	phone: string | null;
 	email: string | null;
 	address: string | null;
+	province: string | null;
 	taxCode: string | null;
 	balance: bigint;
 	status: string;
@@ -134,7 +136,7 @@ export class SuppliersService {
 			...(dto.code !== undefined ? { code: dto.code.trim() } : {}),
 			...(dto.name !== undefined ? { name: dto.name.trim() } : {}),
 			...(dto.supplierType !== undefined
-				? { supplierType: dto.supplierType.trim() || null }
+				? { supplierType: this.normalizeSupplierType(dto.supplierType) }
 				: {}),
 			...(dto.contactName !== undefined
 				? { contactName: dto.contactName.trim() || null }
@@ -144,10 +146,21 @@ export class SuppliersService {
 			...(dto.address !== undefined
 				? { address: dto.address.trim() || null }
 				: {}),
+			...(dto.province !== undefined
+				? { province: dto.province.trim() || null }
+				: {}),
 			...(dto.taxCode !== undefined
 				? { taxCode: dto.taxCode.trim() || null }
 				: {}),
 		};
+	}
+
+	/** Chuoi rong => xoa phan loai; chuoi khong map duoc => tu choi thay vi am tham null. */
+	private normalizeSupplierType(raw: string): SupplierType | null {
+		if (!raw.trim()) return null;
+		const mapped = mapSupplierType(raw);
+		if (!mapped) throw this.invalidSupplierType();
+		return mapped;
 	}
 
 	private toResponse(supplier: SupplierRow) {
@@ -160,6 +173,7 @@ export class SuppliersService {
 			phone: supplier.phone,
 			email: supplier.email,
 			address: supplier.address,
+			province: supplier.province,
 			taxCode: supplier.taxCode,
 			balance: Number(supplier.balance),
 			status: supplier.status,
@@ -172,6 +186,13 @@ export class SuppliersService {
 		return new UnprocessableEntityException({
 			reason: 'VALIDATION_ERROR',
 			message: 'Supplier code and name are required',
+		});
+	}
+	private invalidSupplierType() {
+		return new UnprocessableEntityException({
+			reason: 'VALIDATION_ERROR',
+			field: 'supplierType',
+			message: 'Supplier type must be CROP_PROTECTION, FERTILIZER or BOTH',
 		});
 	}
 	private throwIfCodeConflict(error: unknown): void {

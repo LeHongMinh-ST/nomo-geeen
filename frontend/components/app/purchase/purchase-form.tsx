@@ -20,13 +20,15 @@ import { ProductPicker } from "@/components/app/sales/product-picker";
 import { formatVND } from "@/lib/format";
 import type { Product } from "@/lib/products";
 import {
-	type PurchaseLine,
 	type PurchasePayment,
 	type PurchaseStatus,
 	purchaseLineTotal,
 } from "@/lib/purchases";
 import { mapTenantApiError } from "@/lib/sales-api-error";
-import { createTenantPurchase } from "@/lib/tenant-purchases-api";
+import {
+	createTenantPurchase,
+	type TenantPurchaseLineView,
+} from "@/lib/tenant-purchases-api";
 
 /**
  * Form tạo phiếu nhập (DESIGN.md §24 — trang riêng, không modal).
@@ -45,7 +47,7 @@ const payments: { value: PurchasePayment; label: string; icon: LucideIcon }[] =
 export function PurchaseForm() {
 	const router = useRouter();
 	const [supplierId, setSupplierId] = useState<string | undefined>();
-	const [lines, setLines] = useState<PurchaseLine[]>([]);
+	const [lines, setLines] = useState<TenantPurchaseLineView[]>([]);
 	const [discount, setDiscount] = useState("");
 	const [shipping, setShipping] = useState("");
 	const [payment, setPayment] = useState<PurchasePayment>("cash");
@@ -89,7 +91,10 @@ export function PurchaseForm() {
 		});
 	}
 
-	function patchLine(productId: string, patch: Partial<PurchaseLine>) {
+	function patchLine(
+		productId: string,
+		patch: Partial<TenantPurchaseLineView>,
+	) {
 		setLines((current) =>
 			current.map((l) => (l.productId === productId ? { ...l, ...patch } : l)),
 		);
@@ -136,6 +141,7 @@ export function PurchaseForm() {
 					unitPrice: line.cost,
 					lineDiscount: 0,
 					batchCode: line.batch,
+					manufacturedAt: line.manufacturedAt,
 					expiresAt: line.expiry,
 				})),
 			});
@@ -370,10 +376,10 @@ function PurchaseLineRow({
 	onPatch,
 	onRemove,
 }: {
-	line: PurchaseLine;
+	line: TenantPurchaseLineView;
 	onInc: () => void;
 	onDec: () => void;
-	onPatch: (patch: Partial<PurchaseLine>) => void;
+	onPatch: (patch: Partial<TenantPurchaseLineView>) => void;
 	onRemove: () => void;
 }) {
 	return (
@@ -443,22 +449,52 @@ function PurchaseLineRow({
 				</div>
 			</div>
 
-			{/* Lô + HSD */}
-			<div className="grid grid-cols-2 gap-2">
+			{/* Lô + NSX + HSD (catalog §14.1) */}
+			<div className="flex flex-col gap-2">
 				<input
 					value={line.batch ?? ""}
 					onChange={(e) => onPatch({ batch: e.target.value })}
 					placeholder="Số lô (tùy chọn)"
-					className="h-11 rounded-[10px] border border-border bg-white px-3 text-base text-foreground placeholder:text-[#9e9e9e] focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/25"
+					className={lineInputClass}
 				/>
-				<input
-					type="date"
-					value={line.expiry ?? ""}
-					onChange={(e) => onPatch({ expiry: e.target.value })}
-					aria-label="Hạn sử dụng"
-					className="h-11 rounded-[10px] border border-border bg-white px-3 text-base text-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/25"
-				/>
+				<div className="grid grid-cols-2 gap-2">
+					<DateField
+						label="Ngày sản xuất"
+						value={line.manufacturedAt ?? ""}
+						onChange={(value) => onPatch({ manufacturedAt: value })}
+					/>
+					<DateField
+						label="Hạn sử dụng"
+						value={line.expiry ?? ""}
+						onChange={(value) => onPatch({ expiry: value })}
+					/>
+				</div>
 			</div>
 		</li>
 	);
 }
+
+function DateField({
+	label,
+	value,
+	onChange,
+}: {
+	label: string;
+	value: string;
+	onChange: (value: string) => void;
+}) {
+	return (
+		<label className="flex flex-col gap-1.5">
+			<span className="text-sm font-semibold text-[#616161]">{label}</span>
+			<input
+				type="date"
+				value={value}
+				onChange={(e) => onChange(e.target.value)}
+				className={lineInputClass}
+			/>
+		</label>
+	);
+}
+
+const lineInputClass =
+	"h-11 w-full rounded-[10px] border border-border bg-white px-3 text-base text-foreground placeholder:text-[#9e9e9e] focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/25";
