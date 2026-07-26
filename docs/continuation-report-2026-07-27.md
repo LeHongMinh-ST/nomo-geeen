@@ -21,7 +21,10 @@
 ## Kiểm chứng hiện có
 
 - Seed handbook/demo và API quick-suggestions đã được Claude kiểm tra pass.
-- Expiry branch đã có backend/frontend test trong hai commit; cần chạy lại khi tiếp tục trên máy khác.
+- Expiry frontend: chạy pass `34 files / 212 tests`.
+- Expiry backend: chưa có kết quả test hợp lệ trong phiên này. `pnpm` bị chặn bởi ignored build scripts
+  (`@prisma/engines`, `argon2`, `prisma`); gọi Jest trực tiếp lại dùng Babel parser không đọc được TypeScript,
+  nên dừng trước khi chạy assertion. Cần chạy lại bằng Jest/Nest config chuẩn trên máy khác.
 - Các Claude đã được dừng/idle; không tiếp tục mở feature mới.
 
 ## Việc tiếp tục ngày mai
