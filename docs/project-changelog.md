@@ -20,6 +20,11 @@ Format theo [Keep a Changelog](https://keepachangelog.com/), tuân thủ [Semant
   dấu qua `nomo_fold_search()`; giá trị không nhận dạng được thành `NULL`, không xoá dòng nào.
 - **Nhập hàng: ngày sản xuất theo dòng** (catalog §14.1) — `PurchaseLine.manufacturedAt` chảy từ
   DTO qua service vào `ProductBatch.manufacturedAt`, hiển thị cạnh hạn dùng trong form nhập.
+- **Expiry summary hotfix (`636375d`)** — bounds `expirySummary` in 500-record pages with minimal selects and tenant/live batch predicates; direct backend Jest 36/36, frontend inventory-list 7/7, Biome inventory files, direct Nest build, and independent review PASS 9.8/10.
+- **Tồn kho: tile cảnh báo HSD toàn tenant** — màn `Tồn kho` nối 2 tile "Còn dưới 30
+  ngày"/"Đã hết hạn" vào `GET /tenant/inventory/expiry-summary` (đã có sẵn từ nhánh
+  `feat/expiry-tiers`) thay vì đếm theo trang hiện tại; thêm trạng thái tải/lỗi/thử lại độc
+  lập với danh sách phân trang. Fresh verification: frontend targeted 7/7, full 34 files/214 tests, Biome lint, and Next build pass; backend unit 60 suites (607 passed, 1 skipped). Backend E2E remains an environment follow-up (17 failed, 4 passed, 1 skipped) because the isolated/shared databases have migration/schema drift; no migration or schema was changed. Spec `specs/inventory-expiry-tenant-summary-ui/`.
 - **Quota-only plan entitlements** — Starter, Professional và Enterprise đều nhận toàn bộ
   feature catalog; các gói chỉ khác nhau bằng quota số lượng và dung lượng. Billing seed/API
   quản trị plan tự động gắn full catalog, mở `advanced_mode` cho Starter.

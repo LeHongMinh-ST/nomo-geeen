@@ -1,57 +1,30 @@
 "use client";
 import { Search, Warehouse } from "lucide-react";
-import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { AdjustmentList } from "@/components/app/inventory/adjustment-list";
+import {
+	InventoryCard,
+	stockStatusOf,
+} from "@/components/app/inventory/inventory-card";
 import { DataPagination } from "@/components/app/shared/data-pagination";
 import { ListFilterBar } from "@/components/app/shared/list-filter-bar";
 import { ListSkeleton } from "@/components/app/shared/list-skeleton";
-import { formatVND } from "@/lib/format";
+import { Skeleton } from "@/components/ui/skeleton";
+import { type ExpiryFilter, expiryFilterOptions } from "@/lib/inventory";
 import {
+	getTenantInventoryExpirySummary,
+	type InventoryExpirySummary,
 	type InventoryListItem,
 	listTenantInventory,
 } from "@/lib/tenant-inventory-api";
 
 type StockFilter = "all" | "in-stock" | "low-stock" | "out-of-stock";
-type ExpiryFilter = "all" | "expiring" | "expired";
-function expiryStatus(item: InventoryListItem): "expiring" | "expired" | null {
-	if (!item.nextExpiry) return null;
-	const expiry = new Date(item.nextExpiry).getTime();
-	return expiry < Date.now()
-		? "expired"
-		: expiry <= Date.now() + 30 * 86400000
-			? "expiring"
-			: null;
-}
 const stockFilters = [
 	{ value: "all", label: "Tất cả" },
 	{ value: "in-stock", label: "Còn hàng" },
 	{ value: "low-stock", label: "Sắp hết" },
 	{ value: "out-of-stock", label: "Hết hàng" },
 ];
-const expiryFilters: Array<{ value: ExpiryFilter; label: string }> = [
-	{ value: "all", label: "Mọi HSD" },
-	{ value: "expiring", label: "Sắp hết hạn" },
-	{ value: "expired", label: "Đã hết hạn" },
-];
-function stockStatus(item: InventoryListItem): Exclude<StockFilter, "all"> {
-	const qty = Number(item.qty);
-	return qty <= 0 ? "out-of-stock" : qty <= 10 ? "low-stock" : "in-stock";
-}
-function badge(status: Exclude<StockFilter, "all">) {
-	return status === "out-of-stock"
-		? "bg-[#ffebee] text-[#c62828]"
-		: status === "low-stock"
-			? "bg-[#fff8e1] text-[#f57f17]"
-			: "bg-[#e8f5e9] text-[#2e7d32]";
-}
-function statusLabel(status: Exclude<StockFilter, "all">) {
-	return status === "out-of-stock"
-		? "Hết hàng"
-		: status === "low-stock"
-			? "Sắp hết"
-			: "Còn hàng";
-}
 export function InventoryList() {
 	const [items, setItems] = useState<InventoryListItem[]>([]);
 	const [query, setQuery] = useState("");
@@ -61,6 +34,10 @@ export function InventoryList() {
 	const [total, setTotal] = useState(0);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
+	const [summary, setSummary] = useState<InventoryExpirySummary | null>(null);
+	const [summaryLoading, setSummaryLoading] = useState(true);
+	const [summaryError, setSummaryError] = useState<string | null>(null);
+	const [summaryTick, setSummaryTick] = useState(0);
 	useEffect(() => {
 		let active = true;
 		setLoading(true);
@@ -83,23 +60,47 @@ export function InventoryList() {
 			active = false;
 		};
 	}, [page, query]);
+	// Tenant-wide (all pages) — tiles must count every batch/item, not just this page.
+	useEffect(() => {
+		let active = true;
+		void summaryTick;
+		setSummaryLoading(true);
+		setSummaryError(null);
+		getTenantInventoryExpirySummary()
+			.then((r) => {
+				if (active) {
+					setSummary(r);
+					setSummaryError(null);
+				}
+			})
+			.catch((e) => {
+				if (active)
+					setSummaryError(
+						e instanceof Error
+							? e.message
+							: "Không thể tải cảnh báo hạn sử dụng",
+					);
+			})
+			.finally(() => {
+				if (active) setSummaryLoading(false);
+			});
+		return () => {
+			active = false;
+		};
+	}, [summaryTick]);
 	const filtered = useMemo(
 		() =>
 			items
-				.filter((i) => stock === "all" || stockStatus(i) === stock)
-				.filter((i) => expiry === "all" || expiryStatus(i) === expiry),
+				.filter((i) => stock === "all" || stockStatusOf(i) === stock)
+				.filter((i) => expiry === "all" || i.expiryTier === expiry),
 		[items, stock, expiry],
 	);
-	const lowCount = items.filter((i) => stockStatus(i) === "low-stock").length;
+	const lowCount = items.filter((i) => stockStatusOf(i) === "low-stock").length;
 	const outCount = items.filter(
-		(i) => stockStatus(i) === "out-of-stock",
+		(i) => stockStatusOf(i) === "out-of-stock",
 	).length;
-	const expiringCount = items.filter(
-		(i) => expiryStatus(i) === "expiring",
-	).length;
-	const expiredCount = items.filter(
-		(i) => expiryStatus(i) === "expired",
-	).length;
+	const criticalCount = summary?.items.byTier.CRITICAL ?? 0;
+	const expiredCount = summary?.items.byTier.EXPIRED ?? 0;
 	if (loading) return <ListSkeleton withToolbar rows={6} />;
 	if (error)
 		return (
@@ -145,18 +146,32 @@ export function InventoryList() {
 					onClick={() => setStock("out-of-stock")}
 					tone="error"
 				/>
-				<AlertTile
-					label="Sắp hết hạn"
-					count={expiringCount}
-					onClick={() => setExpiry("expiring")}
-					tone="warning"
-				/>
-				<AlertTile
-					label="Đã hết hạn"
-					count={expiredCount}
-					onClick={() => setExpiry("expired")}
-					tone="error"
-				/>
+				{summaryLoading ? (
+					<>
+						<Skeleton className="h-[68px] rounded-[14px]" />
+						<Skeleton className="h-[68px] rounded-[14px]" />
+					</>
+				) : summaryError ? (
+					<ExpirySummaryError
+						message={summaryError}
+						onRetry={() => setSummaryTick((n) => n + 1)}
+					/>
+				) : (
+					<>
+						<AlertTile
+							label="Còn dưới 30 ngày"
+							count={criticalCount}
+							onClick={() => setExpiry("CRITICAL")}
+							tone="warning"
+						/>
+						<AlertTile
+							label="Đã hết hạn"
+							count={expiredCount}
+							onClick={() => setExpiry("EXPIRED")}
+							tone="error"
+						/>
+					</>
+				)}
 			</div>
 			<div className="relative">
 				<Search
@@ -187,7 +202,7 @@ export function InventoryList() {
 						key: "expiry",
 						label: "Hạn sử dụng",
 						value: expiry,
-						options: expiryFilters,
+						options: expiryFilterOptions,
 						onChange: (v) => setExpiry(v as ExpiryFilter),
 					},
 				]}
@@ -215,48 +230,6 @@ export function InventoryList() {
 		</div>
 	);
 }
-function InventoryCard({ item }: { item: InventoryListItem }) {
-	const status = stockStatus(item);
-	return (
-		<Link
-			href={`/ton-kho/${item.productId}`}
-			className="flex items-start gap-3 rounded-[16px] border border-border bg-card p-4 shadow-card"
-		>
-			<span className="flex size-12 shrink-0 items-center justify-center rounded-[12px] bg-[#5cad45]">
-				<Warehouse className="size-6 text-white" aria-hidden />
-			</span>
-			<div className="min-w-0 flex-1">
-				<div className="flex items-start justify-between gap-2">
-					<p className="font-semibold text-foreground">{item.productName}</p>
-					<span
-						className={
-							"rounded-full px-2.5 py-0.5 text-xs font-semibold " +
-							badge(status)
-						}
-					>
-						{statusLabel(status)}
-					</span>
-				</div>
-				<p className="text-sm text-[#616161]">{item.sku}</p>
-				{item.nextExpiry ? (
-					<p className="mt-1 text-xs text-[#616161]">
-						HSD gần nhất:{" "}
-						{new Date(item.nextExpiry).toLocaleDateString("vi-VN")}
-					</p>
-				) : null}
-				<div className="mt-2 flex justify-between text-sm">
-					<span>
-						Tồn:{" "}
-						<b>
-							{formatVND(Number(item.qty))} {item.baseUnit}
-						</b>
-					</span>
-					<b>{formatVND(Number(item.qty) * Number(item.avgCost))}₫</b>
-				</div>
-			</div>
-		</Link>
-	);
-}
 function AlertTile({
 	label,
 	count,
@@ -282,6 +255,29 @@ function AlertTile({
 			<span className="text-[26px] font-bold leading-none">{count}</span>
 			<span className="text-sm font-medium">{label}</span>
 		</button>
+	);
+}
+function ExpirySummaryError({
+	message,
+	onRetry,
+}: {
+	message: string;
+	onRetry: () => void;
+}) {
+	return (
+		<div
+			role="alert"
+			className="col-span-2 flex flex-col items-start gap-1 rounded-[14px] bg-[#ffebee] px-4 py-3 text-left text-[#c62828]"
+		>
+			<span className="text-sm font-medium">{message}</span>
+			<button
+				type="button"
+				onClick={onRetry}
+				className="text-sm font-semibold underline"
+			>
+				Thử lại
+			</button>
+		</div>
 	);
 }
 function EmptyState() {

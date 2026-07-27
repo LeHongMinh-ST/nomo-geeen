@@ -1,6 +1,14 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { Prisma, ProductStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import {
+	classifyExpiry,
+	daysToExpiry,
+	EXPIRY_TIER_DAYS,
+	EXPIRY_TIERS,
+	emptyTierCounts,
+	worstExpiryTier,
+} from './expiry-policy';
 
 @Injectable()
 export class InventoryService {
@@ -41,6 +49,7 @@ export class InventoryService {
 							batches: {
 								select: {
 									id: true,
+									tenantId: true,
 									batchCode: true,
 									expiresAt: true,
 									qtyOnHand: true,
@@ -55,8 +64,10 @@ export class InventoryService {
 			}),
 			this.prisma.stock.count({ where }),
 		]);
+		// One clock for the whole response so every row is classified consistently.
+		const now = new Date();
 		return {
-			items: rows.map((row) => this.toItem(row)),
+			items: rows.map((row) => this.toItem(row, now, tenantId)),
 			page,
 			pageSize,
 			total,
@@ -75,6 +86,7 @@ export class InventoryService {
 						batches: {
 							select: {
 								id: true,
+								tenantId: true,
 								batchCode: true,
 								expiresAt: true,
 								qtyOnHand: true,
@@ -94,7 +106,7 @@ export class InventoryService {
 			take: 100,
 		});
 		return {
-			...this.toItem(row),
+			...this.toItem(row, new Date(), tenantId),
 			movements: movements.map((movement) => ({
 				id: movement.id,
 				productId: movement.productId,
@@ -109,38 +121,136 @@ export class InventoryService {
 			})),
 		};
 	}
-	private toItem(row: {
-		productId: string;
-		warehouseId: string;
-		qty: Prisma.Decimal;
-		avgCost: bigint;
-		updatedAt: Date;
-		product: {
-			name: string;
-			sku: string;
-			baseUnitId: string;
-			baseUnit: { name: string };
-			batches: Array<{
-				id: string;
-				batchCode: string;
-				expiresAt: Date | null;
-				qtyOnHand: Prisma.Decimal;
-				warehouseId: string;
-				healthState: string;
-				version: number;
-			}>;
+	/**
+	 * Tenant-wide inventory warnings (catalog §14.1: sắp hết hạn, hết hạn,
+	 * thu hồi, ngừng lưu hành). Counted over the same batches the list surfaces
+	 * — in-warehouse and still holding stock — so tiles match the rows.
+	 */
+	async expirySummary(tenantId: string) {
+		const now = new Date();
+		const pageSize = 500;
+		const batchCounts = emptyTierCounts();
+		const itemCounts = emptyTierCounts();
+		let batchTotal = 0;
+		let recalledBatches = 0;
+		let recalledItems = 0;
+		let inactiveItems = 0;
+		let itemTotal = 0;
+		for (let skip = 0; ; skip += pageSize) {
+			const rows = await this.prisma.stock.findMany({
+				where: { tenantId },
+				take: pageSize,
+				skip,
+				select: {
+					warehouseId: true,
+					product: {
+						select: {
+							status: true,
+							isRecalled: true,
+							batches: {
+								where: { tenantId, qtyOnHand: { gt: 0 } },
+								select: {
+									tenantId: true,
+									expiresAt: true,
+									qtyOnHand: true,
+									warehouseId: true,
+									isRecalled: true,
+								},
+							},
+						},
+					},
+				},
+			});
+			itemTotal += rows.length;
+			for (const row of rows) {
+				const batches = this.liveBatches(
+					row.product.batches,
+					row.warehouseId,
+					tenantId,
+				);
+				const tiers = batches.map((batch) =>
+					classifyExpiry(batch.expiresAt, now),
+				);
+				for (const tier of tiers) {
+					batchCounts[tier] += 1;
+					batchTotal += 1;
+				}
+				for (const batch of batches) {
+					if (batch.isRecalled) recalledBatches += 1;
+				}
+				itemCounts[worstExpiryTier(tiers)] += 1;
+				if (row.product.isRecalled) recalledItems += 1;
+				if (row.product.status === ProductStatus.INACTIVE) inactiveItems += 1;
+			}
+			if (rows.length < pageSize) break;
+		}
+		return {
+			generatedAt: now,
+			tiers: [...EXPIRY_TIERS],
+			thresholdDays: {
+				critical: EXPIRY_TIER_DAYS.CRITICAL,
+				warning: EXPIRY_TIER_DAYS.WARNING,
+				notice: EXPIRY_TIER_DAYS.NOTICE,
+			},
+			batches: { total: batchTotal, byTier: batchCounts },
+			items: { total: itemTotal, byTier: itemCounts },
+			recalledBatches,
+			recalledItems,
+			inactiveItems,
 		};
-	}) {
-		const batches = row.product.batches
-			.filter(
-				(batch) =>
-					batch.warehouseId === row.warehouseId && Number(batch.qtyOnHand) > 0,
-			)
-			.sort(
-				(a, b) =>
-					(a.expiresAt?.getTime() ?? Number.MAX_SAFE_INTEGER) -
-					(b.expiresAt?.getTime() ?? Number.MAX_SAFE_INTEGER),
-			);
+	}
+	/** In-warehouse batches that still hold stock, earliest expiry first (FEFO). */
+	private liveBatches<
+		T extends {
+			tenantId: string;
+			warehouseId: string;
+			qtyOnHand: Prisma.Decimal;
+		},
+	>(batches: T[], warehouseId: string, tenantId: string): T[] {
+		return batches.filter(
+			(batch) =>
+				batch.tenantId === tenantId &&
+				batch.warehouseId === warehouseId &&
+				Number(batch.qtyOnHand) > 0,
+		);
+	}
+	private toItem(
+		row: {
+			productId: string;
+			warehouseId: string;
+			qty: Prisma.Decimal;
+			avgCost: bigint;
+			updatedAt: Date;
+			product: {
+				name: string;
+				sku: string;
+				baseUnitId: string;
+				baseUnit: { name: string };
+				batches: Array<{
+					id: string;
+					tenantId: string;
+					batchCode: string;
+					expiresAt: Date | null;
+					qtyOnHand: Prisma.Decimal;
+					warehouseId: string;
+					healthState: string;
+					version: number;
+				}>;
+			};
+		},
+		now: Date,
+		tenantId: string,
+	) {
+		const batches = this.liveBatches(
+			row.product.batches,
+			row.warehouseId,
+			tenantId,
+		).sort(
+			(a, b) =>
+				(a.expiresAt?.getTime() ?? Number.MAX_SAFE_INTEGER) -
+				(b.expiresAt?.getTime() ?? Number.MAX_SAFE_INTEGER),
+		);
+		const tiers = batches.map((batch) => classifyExpiry(batch.expiresAt, now));
 		return {
 			productId: row.productId,
 			productName: row.product.name,
@@ -152,10 +262,14 @@ export class InventoryService {
 			avgCost: row.avgCost.toString(),
 			updatedAt: row.updatedAt,
 			nextExpiry: batches[0]?.expiresAt ?? null,
-			batches: batches.map((batch) => ({
+			/** Worst tier across this product's live batches (catalog §5.1). */
+			expiryTier: worstExpiryTier(tiers),
+			batches: batches.map((batch, index) => ({
 				id: batch.id,
 				batchCode: batch.batchCode,
 				expiresAt: batch.expiresAt,
+				expiryTier: tiers[index],
+				daysToExpiry: daysToExpiry(batch.expiresAt, now),
 				qtyOnHand: batch.qtyOnHand.toString(),
 				healthState: batch.healthState,
 				version: batch.version,

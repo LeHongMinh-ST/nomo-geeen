@@ -24,6 +24,13 @@ export class InventoryController {
 	) {
 		return this.inventory.list(req.user.tenantId, query);
 	}
+	// Declared before ':productId' so the literal path is not captured as an id.
+	@Get('expiry-summary')
+	@RequireTenantPermission('inventory:view')
+	@RequireFeature('inventory')
+	expirySummary(@Req() req: TenantRequest) {
+		return this.inventory.expirySummary(req.user.tenantId);
+	}
 	@Get(':productId')
 	@RequireTenantPermission('inventory:view')
 	@RequireFeature('inventory')
