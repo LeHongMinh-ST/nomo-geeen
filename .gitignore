@@ -14,5 +14,6 @@ plans/
 # Node
 node_modules/
 .env.prod
+.playwright-cli/*.log
 .claude/
 .opencode/
