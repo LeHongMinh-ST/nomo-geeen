@@ -14,6 +14,16 @@ Scope: frontend-only expiry summary tile wiring; no product code, migration, sch
 
 The E2E failures are an environment limitation. The isolated database has 54 public tables and the supplier table, but no `_prisma_migrations` table and no `SupplierType` enum; the shared `nomogreen` database also has migration/schema drift. No migration or schema was changed. Backend E2E is not a merge gate for this frontend-only task, but remains an environment follow-up. It is not claimed as passed.
 
+## Post-hotfix evidence — 2026-07-27
+
+- Hotfix `636375d` bounds `expirySummary` in 500-record pages with minimal selects and tenant/live batch predicates.
+- Backend inventory/policy/controller direct Jest: **36/36 passed**.
+- Frontend inventory-list: **7/7 passed**.
+- Biome inventory files: **passed**.
+- Direct Nest build: **passed**.
+- Independent final review: **PASS 9.8/10**, no critical/high findings.
+- E2E limitation: **17 failed, 4 passed, 1 skipped on isolated DB; no schema/migration changes.**
+
 ## Independent review
 
 Result: **pass — no critical/high correctness or security findings**.

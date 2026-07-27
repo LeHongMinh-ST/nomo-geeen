@@ -8,6 +8,7 @@ Format theo [Keep a Changelog](https://keepachangelog.com/), tuân thủ [Semant
 ## [Unreleased]
 
 ### Added
+- **Expiry summary hotfix (`636375d`)** — bounds `expirySummary` in 500-record pages with minimal selects and tenant/live batch predicates; direct backend Jest 36/36, frontend inventory-list 7/7, Biome inventory files, direct Nest build, and independent review PASS 9.8/10.
 - **Tồn kho: tile cảnh báo HSD toàn tenant** — màn `Tồn kho` nối 2 tile "Còn dưới 30
   ngày"/"Đã hết hạn" vào `GET /tenant/inventory/expiry-summary` (đã có sẵn từ nhánh
   `feat/expiry-tiers`) thay vì đếm theo trang hiện tại; thêm trạng thái tải/lỗi/thử lại độc
