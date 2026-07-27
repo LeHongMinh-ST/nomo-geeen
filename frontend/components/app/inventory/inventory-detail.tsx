@@ -1,5 +1,5 @@
 "use client";
-import { ArrowLeft, History, Warehouse } from "lucide-react";
+import { ArrowLeft, History } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { AdjustSheet } from "@/components/app/inventory/adjust-sheet";
@@ -188,10 +188,6 @@ export function InventoryDetail({ productId }: { productId: string }) {
 					</ul>
 				)}
 			</section>
-			<div className="rounded-[10px] border border-dashed border-border bg-card px-4 py-3 text-sm text-[#616161]">
-				<Warehouse className="mr-2 inline size-4" aria-hidden />
-				Kiểm kê/điều chỉnh sẽ được triển khai ở scope riêng.
-			</div>
 			<AdjustSheet
 				product={
 					adjusting

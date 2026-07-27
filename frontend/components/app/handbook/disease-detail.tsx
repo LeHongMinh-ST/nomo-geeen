@@ -3,7 +3,6 @@
 import {
 	ArrowLeft,
 	CalendarClock,
-	Check,
 	FlaskConical,
 	Leaf,
 	Lightbulb,
@@ -39,18 +38,11 @@ export function DiseaseDetail({
 }: {
 	disease: Disease;
 	protocols?: Protocol[];
-}) {
+	}) {
 	const router = useRouter();
-	const [toast, setToast] = useState<string | null>(null);
 	const [suggestions, setSuggestions] = useState<QuickHandbookSuggestion[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
-
-	useEffect(() => {
-		if (!toast) return;
-		const timer = window.setTimeout(() => setToast(null), 2600);
-		return () => window.clearTimeout(timer);
-	}, [toast]);
 
 	useEffect(() => {
 		let cancelled = false;
@@ -253,14 +245,6 @@ export function DiseaseDetail({
 										<span>{suggestion.reason}</span>
 									</div>
 								</div>
-								<button
-									type="button"
-									disabled={!suggestion.available}
-									onClick={() => setToast(`Đã chọn · ${suggestion.name}`)}
-									className="min-h-10 shrink-0 rounded-[9px] bg-primary px-3 text-sm font-semibold text-white disabled:bg-[#bdbdbd]"
-								>
-									{suggestion.available ? "Chọn" : "Không bán"}
-								</button>
 							</li>
 						))}
 					</ul>
@@ -279,17 +263,6 @@ export function DiseaseDetail({
 				<Pencil className="size-5" aria-hidden />
 				Sửa sổ tay
 			</button>
-			{toast ? (
-				<div
-					role="status"
-					className="fixed inset-x-0 bottom-24 z-50 flex justify-center px-4 lg:bottom-6"
-				>
-					<span className="flex items-center gap-2 rounded-full bg-[#2e7d32] px-5 py-3 text-base font-semibold text-white">
-						<Check className="size-5" aria-hidden />
-						{toast}
-					</span>
-				</div>
-			) : null}
 		</div>
 	);
 }
