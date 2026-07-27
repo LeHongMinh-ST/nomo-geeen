@@ -21,6 +21,7 @@ describe('InventoryService expiry tiers', () => {
 	function batch(
 		overrides: Partial<{
 			id: string;
+			tenantId: string;
 			batchCode: string;
 			expiresAt: Date | null;
 			qtyOnHand: Prisma.Decimal;
@@ -30,6 +31,7 @@ describe('InventoryService expiry tiers', () => {
 	) {
 		return {
 			id: 'b-1',
+			tenantId: 't-1',
 			batchCode: 'L-001',
 			expiresAt: null as Date | null,
 			qtyOnHand: new Prisma.Decimal(10),
@@ -261,6 +263,42 @@ describe('InventoryService expiry tiers', () => {
 			expect(summary.items.byTier.NONE).toBe(1);
 		});
 
+		it('filters summary batches in Prisma with a bounded page', async () => {
+			const { service, prisma } = makeService([]);
+			await service.expirySummary('t-42');
+			expect(prisma.stock.findMany).toHaveBeenCalledWith(
+				expect.objectContaining({
+					take: 500,
+					skip: 0,
+					select: expect.objectContaining({
+						product: expect.objectContaining({
+							select: expect.objectContaining({
+								batches: {
+									where: { tenantId: 't-42', qtyOnHand: { gt: 0 } },
+									select: expect.any(Object),
+								},
+							}),
+						}),
+					}),
+				}),
+			);
+		});
+
+		it('does not count a live batch from another tenant', async () => {
+			const { service } = makeService([
+				stockRow([
+					batch({ expiresAt: expiryInDays(-1) }),
+					batch({
+						id: 'foreign',
+						tenantId: 't-2',
+						expiresAt: expiryInDays(-1),
+					}),
+				]),
+			]);
+			const result = await service.expirySummary('t-1');
+			expect(result.batches.total).toBe(1);
+			expect(result.batches.byTier.EXPIRED).toBe(1);
+		});
 		it('returns a fully zeroed shape for a tenant with no stock', async () => {
 			const { service } = makeService([]);
 
