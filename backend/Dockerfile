@@ -12,10 +12,6 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN touch .env && DATABASE_URL=postgresql://postgres:postgres@localhost:5432/nomogreen pnpm build
 
-FROM base AS prod-deps
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-RUN pnpm install --prod --frozen-lockfile
-
 FROM node:22-alpine AS runner
 WORKDIR /app
 
@@ -26,7 +22,7 @@ RUN apk add --no-cache libstdc++ openssl \
     && addgroup -S nodejs \
     && adduser -S nestjs -G nodejs
 
-COPY --from=prod-deps /app/node_modules ./node_modules
+COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/prisma.config.ts ./prisma.config.ts
