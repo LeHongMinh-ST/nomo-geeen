@@ -2,18 +2,13 @@
 
 import type { LucideIcon } from "lucide-react";
 import {
-	Bell,
-	Building2,
 	Camera,
 	ChevronRight,
-	KeyRound,
 	Layers,
 	LogOut,
 	Mail,
 	MapPin,
 	Phone,
-	Printer,
-	ShieldCheck,
 	UserRound,
 } from "lucide-react";
 import Link from "next/link";
@@ -100,52 +95,17 @@ const settingGroups: {
 				tile: "#1a6fa8",
 				href: "/thiet-lap/nhan-vien",
 			},
-			{
-				icon: KeyRound,
-				label: "Đổi mật khẩu",
-				desc: "Cập nhật mật khẩu đăng nhập",
-				tile: "#1a6fa8",
-				href: "/thiet-lap/doi-mat-khau",
-			},
-			{
-				icon: ShieldCheck,
-				label: "Bảo mật tài khoản",
-				desc: "Thiết bị đăng nhập, xác thực",
-				tile: "#1a6fa8",
-				href: "/thiet-lap/bao-mat",
-			},
 		],
 	},
 	{
 		heading: "Cửa hàng",
 		items: [
 			{
-				icon: Building2,
-				label: "Thông tin cửa hàng",
-				desc: "Tên, địa chỉ, giấy phép kinh doanh",
-				tile: "#1a6fa8",
-				href: "/thiet-lap/thong-tin-cua-hang",
-			},
-			{
 				icon: Layers,
 				label: "Nhóm kinh doanh",
 				desc: "Bật/tắt nhóm hàng cửa hàng đang bán",
 				tile: "#1a6fa8",
 				href: "/thiet-lap/nhom-kinh-doanh",
-			},
-			{
-				icon: Printer,
-				label: "Mẫu in biên lai",
-				desc: "Tùy chỉnh thông tin trên biên lai",
-				tile: "#5cad45",
-				href: "/thiet-lap/mau-in",
-			},
-			{
-				icon: Bell,
-				label: "Thông báo",
-				desc: "Nhắc nợ đến hạn, hàng sắp hết",
-				tile: "#1a6fa8",
-				href: "/thiet-lap/thong-bao",
 			},
 		],
 	},

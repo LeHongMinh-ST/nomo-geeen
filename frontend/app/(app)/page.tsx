@@ -368,12 +368,6 @@ export default function TrangChuPage() {
 							<h2 className="text-base font-semibold text-foreground">
 								Bán chạy trong tháng
 							</h2>
-							<Link
-								href="/bao-cao"
-								className="text-sm font-medium text-primary transition-opacity duration-150 hover:opacity-80"
-							>
-								Xem tất cả
-							</Link>
 						</div>
 						<ul className="flex flex-col">
 							{bestSellers.map((item, index) => (
