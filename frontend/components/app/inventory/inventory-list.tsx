@@ -9,8 +9,11 @@ import {
 import { DataPagination } from "@/components/app/shared/data-pagination";
 import { ListFilterBar } from "@/components/app/shared/list-filter-bar";
 import { ListSkeleton } from "@/components/app/shared/list-skeleton";
+import { Skeleton } from "@/components/ui/skeleton";
 import { type ExpiryFilter, expiryFilterOptions } from "@/lib/inventory";
 import {
+	getTenantInventoryExpirySummary,
+	type InventoryExpirySummary,
 	type InventoryListItem,
 	listTenantInventory,
 } from "@/lib/tenant-inventory-api";
@@ -31,6 +34,10 @@ export function InventoryList() {
 	const [total, setTotal] = useState(0);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
+	const [summary, setSummary] = useState<InventoryExpirySummary | null>(null);
+	const [summaryLoading, setSummaryLoading] = useState(true);
+	const [summaryError, setSummaryError] = useState<string | null>(null);
+	const [summaryTick, setSummaryTick] = useState(0);
 	useEffect(() => {
 		let active = true;
 		setLoading(true);
@@ -53,6 +60,34 @@ export function InventoryList() {
 			active = false;
 		};
 	}, [page, query]);
+	// Tenant-wide (all pages) — tiles must count every batch/item, not just this page.
+	useEffect(() => {
+		let active = true;
+		void summaryTick;
+		setSummaryLoading(true);
+		setSummaryError(null);
+		getTenantInventoryExpirySummary()
+			.then((r) => {
+				if (active) {
+					setSummary(r);
+					setSummaryError(null);
+				}
+			})
+			.catch((e) => {
+				if (active)
+					setSummaryError(
+						e instanceof Error
+							? e.message
+							: "Không thể tải cảnh báo hạn sử dụng",
+					);
+			})
+			.finally(() => {
+				if (active) setSummaryLoading(false);
+			});
+		return () => {
+			active = false;
+		};
+	}, [summaryTick]);
 	const filtered = useMemo(
 		() =>
 			items
@@ -64,8 +99,8 @@ export function InventoryList() {
 	const outCount = items.filter(
 		(i) => stockStatusOf(i) === "out-of-stock",
 	).length;
-	const criticalCount = items.filter((i) => i.expiryTier === "CRITICAL").length;
-	const expiredCount = items.filter((i) => i.expiryTier === "EXPIRED").length;
+	const criticalCount = summary?.items.byTier.CRITICAL ?? 0;
+	const expiredCount = summary?.items.byTier.EXPIRED ?? 0;
 	if (loading) return <ListSkeleton withToolbar rows={6} />;
 	if (error)
 		return (
@@ -111,18 +146,32 @@ export function InventoryList() {
 					onClick={() => setStock("out-of-stock")}
 					tone="error"
 				/>
-				<AlertTile
-					label="Còn dưới 30 ngày"
-					count={criticalCount}
-					onClick={() => setExpiry("CRITICAL")}
-					tone="warning"
-				/>
-				<AlertTile
-					label="Đã hết hạn"
-					count={expiredCount}
-					onClick={() => setExpiry("EXPIRED")}
-					tone="error"
-				/>
+				{summaryLoading ? (
+					<>
+						<Skeleton className="h-[68px] rounded-[14px]" />
+						<Skeleton className="h-[68px] rounded-[14px]" />
+					</>
+				) : summaryError ? (
+					<ExpirySummaryError
+						message={summaryError}
+						onRetry={() => setSummaryTick((n) => n + 1)}
+					/>
+				) : (
+					<>
+						<AlertTile
+							label="Còn dưới 30 ngày"
+							count={criticalCount}
+							onClick={() => setExpiry("CRITICAL")}
+							tone="warning"
+						/>
+						<AlertTile
+							label="Đã hết hạn"
+							count={expiredCount}
+							onClick={() => setExpiry("EXPIRED")}
+							tone="error"
+						/>
+					</>
+				)}
 			</div>
 			<div className="relative">
 				<Search
@@ -206,6 +255,29 @@ function AlertTile({
 			<span className="text-[26px] font-bold leading-none">{count}</span>
 			<span className="text-sm font-medium">{label}</span>
 		</button>
+	);
+}
+function ExpirySummaryError({
+	message,
+	onRetry,
+}: {
+	message: string;
+	onRetry: () => void;
+}) {
+	return (
+		<div
+			role="alert"
+			className="col-span-2 flex flex-col items-start gap-1 rounded-[14px] bg-[#ffebee] px-4 py-3 text-left text-[#c62828]"
+		>
+			<span className="text-sm font-medium">{message}</span>
+			<button
+				type="button"
+				onClick={onRetry}
+				className="text-sm font-semibold underline"
+			>
+				Thử lại
+			</button>
+		</div>
 	);
 }
 function EmptyState() {
