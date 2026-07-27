@@ -166,17 +166,17 @@ export function QuickSale() {
 	const empty = lines.length === 0;
 
 	return (
-		<div className="flex w-full flex-col gap-4">
+		<div className="grid w-full grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_380px]">
 			{error ? (
 				<div
-					className="rounded-[10px] bg-[#fff5f5] px-3 py-2 text-base text-destructive"
+					className="rounded-[10px] bg-[#fff5f5] px-3 py-2 text-base text-destructive lg:col-span-2"
 					role="alert"
 				>
 					{error}
 				</div>
 			) : null}
 			{/* Header + chọn khách */}
-			<div className="flex flex-wrap items-center justify-between gap-3">
+			<div className="grid gap-3 lg:col-span-2 lg:grid-cols-[minmax(0,1fr)_minmax(320px,420px)] lg:items-center">
 				<div className="flex flex-col gap-1">
 					<h1 className="text-2xl font-bold tracking-tight text-foreground">
 						Bán nhanh
@@ -185,16 +185,21 @@ export function QuickSale() {
 						Tìm hàng, chốt tiền — xong trong vài chạm.
 					</p>
 				</div>
+			</div>
+
+			<div className="order-first lg:col-start-2 lg:row-start-2 lg:row-span-2 lg:order-none">
 				<CustomerPicker value={customerId} onChange={setCustomerId} />
 			</div>
 
 			{/* Tìm sản phẩm */}
-			<CounterSearch
-				onSelectProduct={addProduct}
-				onChangeMeta={(meta) =>
-					setHandbookMeta((current) => ({ ...current, ...meta }))
-				}
-			/>
+			<div className="lg:col-start-1 lg:row-start-2">
+				<CounterSearch
+					onSelectProduct={addProduct}
+					onChangeMeta={(meta) =>
+						setHandbookMeta((current) => ({ ...current, ...meta }))
+					}
+				/>
+			</div>
 
 			{/* Giỏ hàng */}
 			{empty ? (
@@ -212,7 +217,7 @@ export function QuickSale() {
 					</div>
 				</div>
 			) : (
-				<div className="flex flex-col gap-3 pb-[calc(184px+env(safe-area-inset-bottom,0px))] lg:pb-0">
+				<div className="flex flex-col gap-3 pb-[calc(184px+env(safe-area-inset-bottom,0px))] lg:col-start-1 lg:row-start-3 lg:pb-0">
 					{/* Danh sách dòng hàng */}
 					<div className="flex flex-col gap-2.5">
 						{lines.map((l) => (
@@ -225,12 +230,6 @@ export function QuickSale() {
 								onRemove={() => removeLine(l.productId)}
 							/>
 						))}
-					</div>
-
-					{/* Tổng + hành động — desktop (inline) */}
-					<div className="hidden flex-col gap-3 rounded-[16px] border border-border bg-card p-5 shadow-card lg:flex">
-						<SummaryRow itemCount={itemCount} total={subtotal} />
-						<ActionButtons onDebt={onDebt} onPay={() => setPayOpen(true)} />
 					</div>
 				</div>
 			)}

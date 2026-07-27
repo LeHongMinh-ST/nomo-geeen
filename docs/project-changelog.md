@@ -8,6 +8,7 @@ Format theo [Keep a Changelog](https://keepachangelog.com/), tuân thủ [Semant
 ## [Unreleased]
 
 ### Added
+- **Quick-sale customer inline UX** — `/ban-nhanh` now exposes customer lookup directly in the counter form, supports debounced name/phone autocomplete, and creates a customer inline through the existing tenant customer API. Existing balance/note context is shown; customer order history remains pending a customerId-filtered sales-history contract.
 - **Cảnh báo hạn dùng theo tầng** (catalog §14.2) — backend tính tier 180/90/30 ngày từ ngày hết
   hạn; inventory list/card/detail hiển thị kết quả server trả về, không tự tính theo đồng hồ trình duyệt.
 - **Màn hình bật/tắt nhóm kinh doanh** (catalog §3) — `/thiet-lap/nhom-kinh-doanh` cho chủ cửa
