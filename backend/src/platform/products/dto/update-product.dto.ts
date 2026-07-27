@@ -3,6 +3,7 @@ import { Type } from 'class-transformer';
 import {
 	IsBoolean,
 	IsEnum,
+	IsArray,
 	IsInt,
 	IsNotEmpty,
 	IsObject,
@@ -11,7 +12,9 @@ import {
 	IsUUID,
 	Max,
 	Min,
+	ValidateNested,
 } from 'class-validator';
+import { ProductConversionDto } from './product-conversion.dto';
 
 export class UpdateProductDto {
 	@IsOptional()
@@ -43,6 +46,20 @@ export class UpdateProductDto {
 	@IsOptional()
 	@IsUUID('4')
 	manufacturerId?: string | null;
+
+	@IsOptional()
+	@IsString()
+	brandName?: string | null;
+
+	@IsOptional()
+	@IsString()
+	manufacturerName?: string | null;
+
+	@IsOptional()
+	@IsArray()
+	@ValidateNested({ each: true })
+	@Type(() => ProductConversionDto)
+	conversions?: ProductConversionDto[];
 
 	@IsOptional()
 	@Type(() => Number)

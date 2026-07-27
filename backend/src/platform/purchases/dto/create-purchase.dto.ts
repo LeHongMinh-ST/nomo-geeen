@@ -31,6 +31,13 @@ export class CreatePurchaseLineDto {
 	@Min(0)
 	@Max(Number.MAX_SAFE_INTEGER)
 	unitPrice!: number;
+	/** Giá bán áp dụng cho lô này; không dùng để tính giá nhập. */
+	@IsOptional()
+	@Type(() => Number)
+	@IsInt()
+	@Min(0)
+	@Max(Number.MAX_SAFE_INTEGER)
+	salePrice?: number;
 	@Type(() => Number)
 	@IsInt()
 	@Min(0)

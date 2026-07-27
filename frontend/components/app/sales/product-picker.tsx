@@ -26,10 +26,13 @@ export function ProductPicker({
 	onSelect,
 	placeholder = "Tìm sản phẩm, quét mã...",
 	refreshKey = 0,
+	allowOutOfStock = false,
 }: {
 	onSelect: (product: Product) => void;
 	placeholder?: string;
 	refreshKey?: number;
+	/** Nhập hàng được phép chọn sản phẩm mới có tồn kho bằng 0. */
+	allowOutOfStock?: boolean;
 }) {
 	const [query, setQuery] = useState("");
 	const [open, setOpen] = useState(false);
@@ -63,15 +66,15 @@ export function ProductPicker({
 	}, [refreshKey, retryKey]);
 
 	const results = useMemo(() => {
-		return filterSellableProducts(products, query);
-	}, [products, query]);
+		return filterSellableProducts(products, query, allowOutOfStock);
+	}, [products, query, allowOutOfStock]);
 
 	function pick(product: Product) {
 		if (
 			product.locked ||
 			product.recalled ||
 			product.status === "inactive" ||
-			getStockStatus(product) === "out-of-stock"
+			(!allowOutOfStock && getStockStatus(product) === "out-of-stock")
 		)
 			return;
 		onSelect(product);
@@ -214,14 +217,18 @@ export function ProductPicker({
 	);
 }
 
-export function filterSellableProducts(products: Product[], query: string) {
+export function filterSellableProducts(
+	products: Product[],
+	query: string,
+	allowOutOfStock = false,
+) {
 	const q = query.trim();
 	const sellable = products.filter(
 		(product) =>
 			!product.locked &&
 			!product.recalled &&
 			product.status !== "inactive" &&
-			getStockStatus(product) !== "out-of-stock",
+			(allowOutOfStock || getStockStatus(product) !== "out-of-stock"),
 	);
 	if (!q) return sellable.slice(0, 6);
 	return sellable

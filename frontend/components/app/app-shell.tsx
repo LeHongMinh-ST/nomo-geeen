@@ -1,7 +1,7 @@
 "use client";
 
 import type { LucideIcon } from "lucide-react";
-import { Bell, House, Plus, Search } from "lucide-react";
+import { Bell, House, Plus } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -115,19 +115,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 							<span className="text-xs text-[#9e9e9e]">{displayRole}</span>
 						</span>
 					</Link>
-
-					{/* Tìm kiếm — desktop */}
-					<div className="relative hidden max-w-sm flex-1 lg:block">
-						<Search
-							className="pointer-events-none absolute left-3 top-1/2 size-4.5 -translate-y-1/2 text-[#9e9e9e]"
-							aria-hidden
-						/>
-						<input
-							type="search"
-							placeholder="Tìm sản phẩm, khách hàng..."
-							className="h-11 w-full rounded-[10px] border border-border bg-white pl-10 pr-4 text-base text-foreground placeholder:text-[#9e9e9e] focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/25"
-						/>
-					</div>
 
 					<div className="ml-auto flex items-center gap-2 lg:gap-3">
 						{/* Chuông thông báo */}

@@ -32,7 +32,11 @@ describe('Tenant auth session lifecycle (e2e)', () => {
 		app = moduleRef.createNestApplication();
 		app.use(cookieParser());
 		app.useGlobalPipes(
-			new ValidationPipe({ whitelist: true, transform: true }),
+			new ValidationPipe({
+				whitelist: true,
+				forbidNonWhitelisted: true,
+				transform: true,
+			}),
 		);
 		await app.init();
 		prisma = app.get(PrismaService);
@@ -154,7 +158,20 @@ describe('Tenant auth session lifecycle (e2e)', () => {
 				roleCode: 'STAFF',
 				generatePassword: true,
 			})
-			.expect(201);
+			.expect(({ status, body }) => {
+				if (status !== 201) {
+					throw new Error(
+						`POST /tenant/users failed: ${status} ${JSON.stringify(body)}`,
+					);
+				}
+				expect(body.user).toEqual(
+					expect.objectContaining({
+						username: staffUsername,
+						roleCode: 'STAFF',
+					}),
+				);
+				expect(body.generatedPassword).toEqual(expect.any(String));
+			});
 		const staffId = createdStaff.body.user.id as string;
 		const generatedStaffPassword = createdStaff.body
 			.generatedPassword as string;

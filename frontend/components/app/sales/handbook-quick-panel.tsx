@@ -1,6 +1,6 @@
 "use client";
 
-import { BookOpen, Plus, Search, X } from "lucide-react";
+import { PackageOpen, Plus, Search, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { filterSellableProducts } from "@/components/app/sales/product-picker";
 import { ProtocolPicker } from "@/components/app/sales/protocol-picker";
@@ -14,6 +14,7 @@ import {
 	type QuickProtocol,
 	type QuickProtocolItem,
 } from "@/lib/tenant-handbook-api";
+import { formatVND } from "@/lib/format";
 import {
 	getProductLookups,
 	listTenantProducts,
@@ -228,11 +229,16 @@ export function HandbookQuickPanel({
 	const productResults = filterSellableProducts(products, query);
 
 	return (
-		<section className="flex flex-col gap-3 rounded-[16px] border border-[#c8e6c9] bg-[#f7fff7] p-4">
+		<section className="flex flex-col gap-4 rounded-[16px] border border-[#c8e6c9] bg-[#f7fff7] p-4 sm:p-5">
 			<div className="flex items-center justify-between gap-2">
 				<div className="flex items-center gap-2">
-					<BookOpen className="size-5 text-[#2e7d32]" aria-hidden />
-					<h2 className="font-semibold text-foreground">Sổ tay quầy</h2>
+					<PackageOpen className="size-5 text-[#2e7d32]" aria-hidden />
+					<div>
+						<h2 className="text-lg font-bold text-foreground">Tìm sản phẩm</h2>
+						<p className="text-sm text-[#6b716b]">
+							Gõ tên, mã hàng hoặc tra cứu theo cây bệnh
+						</p>
+					</div>
 				</div>
 				{selected ? (
 					<button
@@ -254,8 +260,8 @@ export function HandbookQuickPanel({
 					<input
 						value={query}
 						onChange={(event) => setQuery(event.target.value)}
-						placeholder="Tìm bệnh, cây, triệu chứng..."
-						className="h-11 w-full rounded-[10px] border border-border bg-white pl-9 pr-3 text-base focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+						placeholder="Tìm sản phẩm, mã hàng, bệnh hoặc cây..."
+						className="h-12 w-full rounded-[10px] border border-border bg-white pl-10 pr-3 text-base focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
 					/>
 					{query.trim() && (productResults.length > 0 || results.length > 0) ? (
 						<div className="absolute inset-x-0 top-[calc(100%+4px)] z-50 rounded-[10px] border border-border bg-white p-1 shadow-lg">
@@ -368,8 +374,48 @@ export function HandbookQuickPanel({
 										)}
 									</label>
 								))}
+					</div>
+					{!query.trim() ? (
+						<div className="space-y-2">
+							<div className="flex items-center justify-between">
+								<p className="text-sm font-semibold text-[#616161]">Chọn nhanh</p>
+								{products.length > 6 ? (
+									<span className="text-sm text-[#8a918a]">6 sản phẩm gần đây</span>
+								) : null}
 							</div>
+							{productsLoading ? (
+								<div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+									{[1, 2, 3].map((item) => (
+										<div key={item} className="h-[82px] animate-pulse rounded-[10px] bg-white/80" />
+									))}
+								</div>
+							) : (
+								<div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+									{products.slice(0, 6).map((product) => (
+										<button
+											key={product.id}
+											type="button"
+											onClick={() => onAddProduct(product)}
+											className="flex min-h-[82px] items-start gap-2 rounded-[10px] border border-[#dcebd7] bg-white p-3 text-left transition-colors hover:border-primary hover:bg-[#fbfffa] active:scale-[0.99]"
+										>
+											<span className="flex size-9 shrink-0 items-center justify-center rounded-[8px] bg-[#f3f8f1] text-primary">
+												<PackageOpen className="size-4.5" aria-hidden />
+											</span>
+											<span className="min-w-0">
+												<span className="line-clamp-2 block text-sm font-semibold text-foreground">
+													{product.name}
+												</span>
+												<span className="mt-1 block text-sm font-bold text-primary">
+													{formatVND(product.salePrice)}₫
+												</span>
+											</span>
+										</button>
+									))}
+								</div>
+							)}
 						</div>
+					) : null}
+				</div>
 					) : (
 						<p className="text-sm text-[#616161]">
 							Có thể bỏ qua tư vấn và chọn gợi ý bên dưới.

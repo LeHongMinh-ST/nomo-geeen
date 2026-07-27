@@ -110,6 +110,25 @@ export class SalesService {
 		}
 	}
 
+	private async findBatchSalePrice(
+		tx: Prisma.TransactionClient,
+		params: { tenantId: string; warehouseId: string; productId: string },
+	): Promise<bigint | undefined> {
+		if (typeof tx.productBatch?.findFirst !== 'function') return undefined;
+		const batch = await tx.productBatch.findFirst({
+			where: {
+				tenantId: params.tenantId,
+				warehouseId: params.warehouseId,
+				productId: params.productId,
+				qtyOnHand: { gt: 0 },
+				isRecalled: false,
+			},
+			orderBy: [{ expiresAt: 'asc' }, { createdAt: 'asc' }],
+			select: { salePrice: true },
+		});
+		return batch && batch.salePrice > 0n ? batch.salePrice : undefined;
+	}
+
 	async listOrders(tenantId: string, query: SalesOrderQueryDto) {
 		const page = query.page ?? 1;
 		const pageSize = query.pageSize ?? 20;
@@ -153,7 +172,7 @@ export class SalesService {
 			where: {
 				id,
 				tenantId,
-				channel: { in: ['ORDER', 'QUICK_SALE'] },
+				channel: 'ORDER',
 				deletedAt: null,
 			},
 			include: {
@@ -173,7 +192,7 @@ export class SalesService {
 			where: {
 				id,
 				tenantId,
-				channel: { in: ['ORDER', 'QUICK_SALE'] },
+				channel: 'ORDER',
 				deletedAt: null,
 			},
 			include: {
@@ -1124,6 +1143,24 @@ export class SalesService {
 							),
 						};
 					});
+
+					// A configured batch sale price takes precedence over the client
+					// fallback price for quick sales. Legacy products still use the
+					// submitted price when no priced batch exists.
+					for (const line of prepared) {
+						const batchPrice = await this.findBatchSalePrice(tx, {
+							tenantId,
+							warehouseId: warehouse[0].id,
+							productId: line.productId,
+						});
+						if (batchPrice !== undefined) {
+							line.unitPrice = batchPrice;
+							line.lineTotal = this.inputMoney(
+								new Prisma.Decimal(batchPrice.toString()).mul(line.qty),
+								'lineTotal',
+							);
+						}
+					}
 
 					const subtotal = prepared.reduce(
 						(sum, line) => sum + line.lineTotal,

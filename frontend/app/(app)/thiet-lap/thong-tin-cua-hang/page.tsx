@@ -81,8 +81,11 @@ export default function ThongTinCuaHangPage() {
 		<div className="mx-auto flex w-full max-w-2xl flex-col gap-6 lg:mx-0">
 			<SettingHeader
 				title="Thông tin cửa hàng"
-				description="Thông tin này hiển thị trên biên lai và báo cáo."
+				description="Tính năng chưa hỗ trợ trong Phase 1."
 			/>
+			<div className="rounded-[10px] border border-[#e6a817]/60 bg-[#fff8e1] px-4 py-3 text-sm text-[#765900]">
+				Chưa hỗ trợ cập nhật thông tin cửa hàng. Dữ liệu dưới đây chỉ là bản xem trước.
+			</div>
 
 			{/* Logo cửa hàng */}
 			<div className="flex items-center gap-4 rounded-[16px] border border-border bg-card p-5 shadow-card">
@@ -92,6 +95,8 @@ export default function ThongTinCuaHangPage() {
 					</span>
 					<button
 						type="button"
+						disabled
+						aria-disabled="true"
 						aria-label="Đổi logo cửa hàng"
 						className="absolute -bottom-1 -right-1 flex size-9 items-center justify-center rounded-full border-2 border-card bg-primary text-white transition-colors duration-200 ease-out hover:bg-[#5cad45]"
 					>
@@ -150,6 +155,8 @@ export default function ThongTinCuaHangPage() {
 
 				<button
 					type="submit"
+					disabled
+					aria-disabled="true"
 					className="mt-1 flex h-12 w-full items-center justify-center rounded-[10px] bg-primary text-base font-semibold text-white transition-all duration-200 ease-out hover:bg-[#5cad45] active:translate-y-px active:bg-[#3f8530] md:h-11"
 				>
 					Lưu thay đổi

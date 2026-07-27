@@ -13,6 +13,7 @@ import {
 	Trash2,
 	Wallet,
 } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 import { SupplierPicker } from "@/components/app/purchase/supplier-picker";
@@ -75,7 +76,9 @@ export function PurchaseForm() {
 				);
 			}
 			// Đơn vị nhập mặc định = đơn vị quy đổi lớn đầu tiên (nếu có), factor tương ứng.
+			// cost → unitPrice (giá vốn nhập tay); salePrice riêng theo lô — không trộn.
 			const conv = product.conversions[0];
+			const factor = conv?.factor ?? 1;
 			return [
 				...current,
 				{
@@ -83,9 +86,10 @@ export function PurchaseForm() {
 					name: product.name,
 					unitId: product.baseUnitId,
 					unit: conv?.unit ?? product.baseUnit,
-					factor: conv?.factor ?? 1,
+					factor,
 					qty: 1,
-					cost: product.costPrice * (conv?.factor ?? 1),
+					cost: product.costPrice * factor,
+					salePrice: product.salePrice * factor,
 				},
 			];
 		});
@@ -139,6 +143,7 @@ export function PurchaseForm() {
 					unitId: line.unitId as string,
 					qty: String(line.qty),
 					unitPrice: line.cost,
+					salePrice: line.salePrice,
 					lineDiscount: 0,
 					batchCode: line.batch,
 					manufacturedAt: line.manufacturedAt,
@@ -196,12 +201,21 @@ export function PurchaseForm() {
 
 			{/* Thêm hàng */}
 			<section className="flex flex-col gap-3 rounded-[16px] border border-border bg-card p-5 shadow-card">
-				<h2 className="text-sm font-semibold uppercase tracking-wide text-[#9e9e9e]">
-					Hàng nhập
-				</h2>
+				<div className="flex items-center justify-between gap-3">
+					<h2 className="text-sm font-semibold uppercase tracking-wide text-[#9e9e9e]">
+						Hàng nhập
+					</h2>
+					<Link
+						href="/san-pham/them"
+						className="text-sm font-semibold text-primary hover:underline"
+					>
+						+ Tạo sản phẩm trước
+					</Link>
+				</div>
 				<ProductPicker
 					onSelect={addProduct}
 					placeholder="Tìm sản phẩm, quét mã..."
+					allowOutOfStock
 				/>
 
 				{empty ? (
@@ -427,8 +441,8 @@ function PurchaseLineRow({
 					</button>
 				</div>
 
-				{/* Giá vốn / đơn vị nhập */}
-				<div className="flex flex-col items-end gap-0.5">
+				{/* Giá vốn nhập tay (unitPrice) + giá bán theo lô (salePrice) — không trộn. */}
+				<div className="flex flex-col items-end gap-1">
 					<div className="flex items-center gap-1">
 						<input
 							inputMode="numeric"
@@ -438,10 +452,24 @@ function PurchaseLineRow({
 									cost: Number(e.target.value.replace(/\D/g, "")) || 0,
 								})
 							}
-							aria-label="Giá vốn"
+							aria-label="Giá vốn nhập"
 							className="w-28 rounded-[8px] border border-border bg-white px-2 py-1 text-right text-base font-medium text-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/25"
 						/>
-						<span className="text-sm text-[#9e9e9e]">₫</span>
+						<span className="text-sm text-[#9e9e9e]">₫ vốn</span>
+					</div>
+					<div className="flex items-center gap-1">
+						<input
+							inputMode="numeric"
+							value={formatVND(line.salePrice ?? 0)}
+							onChange={(e) =>
+								onPatch({
+									salePrice: Number(e.target.value.replace(/\D/g, "")) || 0,
+								})
+							}
+							aria-label="Giá bán theo lô"
+							className="w-28 rounded-[8px] border border-border bg-white px-2 py-1 text-right text-base font-medium text-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/25"
+						/>
+						<span className="text-sm text-[#9e9e9e]">₫ bán</span>
 					</div>
 					<span className="text-base font-bold text-foreground">
 						{formatVND(purchaseLineTotal(line))}₫

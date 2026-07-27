@@ -18,6 +18,8 @@ export type PurchaseLineInput = {
 	unitId: string;
 	qty: string;
 	unitPrice: number;
+	/** Giá bán áp dụng cho lô nhận vào, độc lập với giá nhập unitPrice. */
+	salePrice?: number;
 	lineDiscount?: number;
 	batchCode?: string;
 	/** Ngay san xuat ISO (YYYY-MM-DD) — tuy chon (catalog §14.1). */
@@ -39,6 +41,7 @@ export type PurchaseLineResponse = PurchaseLineInput & {
 	id: string;
 	qtyBase: string;
 	lineTotal: number;
+	salePrice?: number;
 	productName?: string;
 	unit?: { id: string; code: string; name: string };
 };
@@ -145,6 +148,7 @@ export function mapTenantPurchase(item: PurchaseResponse): TenantPurchaseView {
 			factor: Number(line.qtyBase) / Math.max(Number(line.qty), 1),
 			qty: Number(line.qty),
 			cost: line.unitPrice,
+			salePrice: line.salePrice,
 			batch: line.batchCode,
 			manufacturedAt: toDateInput(line.manufacturedAt),
 			expiry: toDateInput(line.expiresAt),

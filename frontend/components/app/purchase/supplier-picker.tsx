@@ -3,6 +3,7 @@
 import { Check, ChevronDown, Search, Truck, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import {
+	createTenantSupplier,
 	listTenantSuppliers,
 	supplierTypeLabel,
 	type TenantSupplier,
@@ -12,6 +13,7 @@ import { useScrollLock } from "@/lib/use-scroll-lock";
 /**
  * Chọn nhà cung cấp — nút xổ mở Sheet trượt từ dưới có tìm kiếm (DESIGN.md §24).
  * NCC là bắt buộc cho phiếu nhập (khác khách hàng cho phép vãng lai).
+ * Có form tạo nhanh; nếu đã có NCC khớp mã/tên thì chọn lại, không tạo trùng.
  */
 export function SupplierPicker({
 	value,
@@ -66,6 +68,25 @@ export function SupplierPicker({
 	);
 }
 
+function normalizeKey(value: string) {
+	return value.trim().toLocaleLowerCase();
+}
+
+function findExistingSupplier(
+	results: TenantSupplier[],
+	draft: { code: string; name: string; phone: string },
+): TenantSupplier | undefined {
+	const code = normalizeKey(draft.code);
+	const name = normalizeKey(draft.name);
+	const phone = draft.phone.trim();
+	return results.find((supplier) => {
+		if (code && normalizeKey(supplier.code) === code) return true;
+		if (name && normalizeKey(supplier.name) === name) return true;
+		if (phone && supplier.phone?.trim() === phone) return true;
+		return false;
+	});
+}
+
 function SupplierSheet({
 	open,
 	value,
@@ -81,6 +102,13 @@ function SupplierSheet({
 	const [results, setResults] = useState<TenantSupplier[]>([]);
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
+	const [creating, setCreating] = useState(false);
+	const [saving, setSaving] = useState(false);
+	const [newSupplier, setNewSupplier] = useState({
+		code: "",
+		name: "",
+		phone: "",
+	});
 
 	useScrollLock(open);
 	useEffect(() => {
@@ -103,6 +131,41 @@ function SupplierSheet({
 		window.addEventListener("keydown", onKey);
 		return () => window.removeEventListener("keydown", onKey);
 	}, [open, onClose]);
+
+	async function submitNewSupplier(event: React.FormEvent) {
+		event.preventDefault();
+		const draft = {
+			code: newSupplier.code.trim(),
+			name: newSupplier.name.trim(),
+			phone: newSupplier.phone.trim(),
+		};
+		if (!draft.code || !draft.name || saving) return;
+
+		const existing = findExistingSupplier(results, draft);
+		if (existing) {
+			onPick(existing.id);
+			setCreating(false);
+			setNewSupplier({ code: "", name: "", phone: "" });
+			return;
+		}
+
+		setSaving(true);
+		setError(null);
+		try {
+			const created = await createTenantSupplier({
+				code: draft.code,
+				name: draft.name,
+				phone: draft.phone || undefined,
+			});
+			onPick(created.id);
+			setCreating(false);
+			setNewSupplier({ code: "", name: "", phone: "" });
+		} catch {
+			setError("Không thể tạo nhà cung cấp");
+		} finally {
+			setSaving(false);
+		}
+	}
 
 	return (
 		<div
@@ -151,6 +214,7 @@ function SupplierSheet({
 							type="search"
 							value={query}
 							onChange={(e) => setQuery(e.target.value)}
+							aria-label="Tìm nhà cung cấp"
 							placeholder="Tìm tên, SĐT, mã NCC..."
 							className="h-12 w-full rounded-[10px] border border-border bg-white pl-11 pr-4 text-base text-foreground placeholder:text-[#9e9e9e] focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/25"
 						/>
@@ -158,6 +222,79 @@ function SupplierSheet({
 				</div>
 
 				<div className="pb-safe flex-1 overflow-y-auto overscroll-contain px-3 pb-6">
+					{creating ? (
+						<form
+							className="mb-3 flex flex-col gap-2 rounded-[12px] border border-primary/30 bg-[#f8fbfd] p-3"
+							onSubmit={submitNewSupplier}
+						>
+							<p className="text-sm font-semibold text-foreground">
+								Thêm nhà cung cấp mới
+							</p>
+							<input
+								required
+								placeholder="Mã NCC"
+								aria-label="Mã NCC"
+								value={newSupplier.code}
+								onChange={(e) =>
+									setNewSupplier((v) => ({ ...v, code: e.target.value }))
+								}
+								className="h-10 rounded-[8px] border border-border bg-white px-3 text-sm"
+							/>
+							<input
+								required
+								placeholder="Tên nhà cung cấp"
+								aria-label="Tên nhà cung cấp"
+								value={newSupplier.name}
+								onChange={(e) =>
+									setNewSupplier((v) => ({ ...v, name: e.target.value }))
+								}
+								className="h-10 rounded-[8px] border border-border bg-white px-3 text-sm"
+							/>
+							<input
+								placeholder="Số điện thoại"
+								aria-label="Số điện thoại NCC"
+								value={newSupplier.phone}
+								onChange={(e) =>
+									setNewSupplier((v) => ({ ...v, phone: e.target.value }))
+								}
+								className="h-10 rounded-[8px] border border-border bg-white px-3 text-sm"
+							/>
+							<div className="flex gap-2">
+								<button
+									type="button"
+									onClick={() => {
+										setCreating(false);
+										setNewSupplier({ code: "", name: "", phone: "" });
+									}}
+									className="h-10 flex-1 rounded-[8px] border border-border text-sm font-semibold text-foreground"
+								>
+									Hủy
+								</button>
+								<button
+									type="submit"
+									disabled={saving}
+									className="h-10 flex-1 rounded-[8px] bg-primary text-sm font-semibold text-white disabled:opacity-60"
+								>
+									{saving ? "Đang lưu..." : "Lưu nhà cung cấp"}
+								</button>
+							</div>
+						</form>
+					) : (
+						<button
+							type="button"
+							onClick={() => {
+								setCreating(true);
+								setNewSupplier({
+									code: "",
+									name: query.trim(),
+									phone: "",
+								});
+							}}
+							className="mb-3 h-10 w-full rounded-[8px] border border-primary text-sm font-semibold text-primary"
+						>
+							+ Thêm nhà cung cấp mới
+						</button>
+					)}
 					{loading ? (
 						<p className="px-3 py-6 text-center text-base text-[#9e9e9e]">
 							Đang tải...
@@ -179,7 +316,7 @@ function SupplierSheet({
 							onPick={() => onPick(s.id)}
 						/>
 					))}
-					{results.length === 0 ? (
+					{!loading && results.length === 0 ? (
 						<p className="px-3 py-6 text-center text-base text-[#9e9e9e]">
 							Không tìm thấy nhà cung cấp
 						</p>

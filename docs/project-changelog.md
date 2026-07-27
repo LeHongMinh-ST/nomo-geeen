@@ -8,6 +8,7 @@ Format theo [Keep a Changelog](https://keepachangelog.com/), tuân thủ [Semant
 ## [Unreleased]
 
 ### Added
+- **Quick-sale POS workspace refresh** — `/ban-nhanh` now presents a focused two-column counter workspace on desktop: product search and quick-add tiles on the left, sticky customer/order summary and payment actions on the right. Mobile keeps the existing stacked flow and bottom-fixed actions.
 - **Quick-sale customer inline UX** — `/ban-nhanh` now exposes customer lookup directly in the counter form, supports debounced name/phone autocomplete, and creates a customer inline through the existing tenant customer API. Existing balance/note context is shown; customer order history remains pending a customerId-filtered sales-history contract.
 - **Cảnh báo hạn dùng theo tầng** (catalog §14.2) — backend tính tier 180/90/30 ngày từ ngày hết
   hạn; inventory list/card/detail hiển thị kết quả server trả về, không tự tính theo đồng hồ trình duyệt.
@@ -101,6 +102,14 @@ Format theo [Keep a Changelog](https://keepachangelog.com/), tuân thủ [Semant
 - **Tenant auth acceptance coverage** — added deterministic Postgres/Redis tenant lifecycle E2E and re-ran admin auth plus tenant product regressions: 5 suites / 19 tests passing.
 
 ### Fixed
+- **Quick-sale dual customer entry** — the new-customer name and optional phone fields now remain editable together; suggestions render inline instead of opening a modal that disabled the second field.
+- **Quick-sale populated-state spacing** — removed the remaining bottom-action padding from the product list so adding items does not create a large gap before the customer form.
+- **Quick-sale mobile footer overlap** — reserved bottom-navigation/action-bar space after the complete POS content so the phone field and customer form are not covered by the fixed checkout bar.
+- **Quick-sale empty-state spacing** — removed the mobile bottom-action reserve from the empty product column so the customer form no longer appears after a large blank gap.
+- **Quick-sale mobile checkout visibility** — restored the customer form on mobile and kept the total/payment bar fixed above bottom navigation; payment actions remain visible and disabled until an item is added.
+- **Quick-sale header cleanup** — removed the global search field and customer pill from `/ban-nhanh` so the POS workspace starts directly with the sales task; other app routes keep the global header search.
+- **Quick-sale customer creation fields** — customer lookup now separates required name entry from optional phone entry; no-match creation sends both values when provided and keeps the phone optional.
+- **Quick-sale mobile action visibility** — hid the desktop customer/order summary on small screens and raised the mobile payment action bar above the bottom navigation so `Ghi nợ` and `Thu tiền` remain visible.
 - **Demo inventory entitlement** — `seed-tenant` now repairs the demo store with a 30-day Starter trial when no active subscription exists, so `/ton-kho` is available for the seeded OWNER account.
 - **Tenant logout when access token idle-expired (H1)** — `logoutUser` accepts controller-decoded claims (including `decodeExpiredAccess`) instead of re-verifying strictly; blacklist + refresh-family revoke still run so `/auth/refresh` cannot revive a logged-out session.
 - **Tenant login/register rate limit (H2)** — wired Redis attempt counters into production `login`/`register` (`assertLoginNotThrottled`); over `USER_LOGIN_MAX_ATTEMPTS` returns 429; Redis errors fail-open per R5.4. Regression e2e cases added in `tenant-auth.e2e-spec.ts`.
@@ -113,6 +122,9 @@ Format theo [Keep a Changelog](https://keepachangelog.com/), tuân thủ [Semant
 - Plan cards now expose the full header as a clickable, keyboard-accessible expand/collapse control with visible pointer feedback.
 
 ### Changed
+- **Quick-sale customer search placement** — removed the duplicate inline customer search from the quick-sale surface; customer search remains available inside the legacy drawer.
+- **Quick-sale customer picker reset** — restored the legacy customer search + bottom drawer flow across the sales screen; removed the experimental two-field customer entry UI.
+- **Quick-sale responsive customer picker** — mobile keeps the original compact search + customer trigger layout; the two-field name/optional-phone form is desktop-only.
 - **Tenant password-change check removed** — users can access business routes even when `mustChangePassword=true`; the optional password-change API and account-management data remain available.
 - Tách tạo mới và chỉnh sửa plan thành các trang riêng: `/admin/plans/new` và `/admin/plans/[id]/edit`; catalog chỉ còn danh sách và thao tác trạng thái.
 

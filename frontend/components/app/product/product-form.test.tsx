@@ -30,7 +30,10 @@ const lookups = {
 	categories: [{ id: "category", name: "Phân bón" }],
 	brands: [],
 	manufacturers: [],
-	units: [{ id: "unit", code: "KG", name: "Kg" }],
+	units: [
+		{ id: "unit", code: "KG", name: "Kg" },
+		{ id: "box", code: "BOX", name: "Bao" },
+	],
 };
 
 const productFixture: Product = {
@@ -61,23 +64,33 @@ describe("ProductForm ProductKind flow", () => {
 			expect(
 				screen.getByRole("combobox", { name: "Nhóm ngành hàng" }),
 			).toBeInTheDocument(),
-		);
+			);
 		const group = screen.getByLabelText("Nhóm ngành hàng");
-		const kind = screen.getByLabelText("Loại sản phẩm");
 		expect(screen.queryByLabelText("Hoạt chất")).not.toBeInTheDocument();
 
-		fireEvent.change(group, { target: { value: "VETERINARY_DRUGS" } });
-		expect(kind).toHaveValue("");
+		fireEvent.change(group, { target: { value: "CROP_INPUTS" } });
+		const kind = screen.getByLabelText("Loại sản phẩm");
 		expect(
-			within(kind).getByRole("option", { name: "Thuốc thú y" }),
-		).toHaveValue("VET_DRUG");
+			within(kind).getByRole("option", { name: "Thuốc bảo vệ thực vật" }),
+		).toHaveValue("PESTICIDE");
 		expect(
-			within(kind).queryByRole("option", { name: "Thuốc bảo vệ thực vật" }),
+			within(kind).queryByRole("option", { name: "Thuốc thú y" }),
 		).not.toBeInTheDocument();
 
-		fireEvent.change(kind, { target: { value: "VET_DRUG" } });
+		fireEvent.change(kind, { target: { value: "PESTICIDE" } });
 		expect(screen.getByLabelText("Hoạt chất")).toBeInTheDocument();
-		expect(screen.getByLabelText("Dạng bào chế")).toBeInTheDocument();
+		expect(screen.getByLabelText("Nồng độ / hàm lượng")).toBeInTheDocument();
+	});
+
+	it("auto-selects the only kind and hides the kind selector", () => {
+		render(<ProductForm mode="create" lookups={lookups} />);
+
+		fireEvent.change(screen.getByLabelText("Nhóm ngành hàng"), {
+			target: { value: "ANIMAL_FEED" },
+		});
+
+		expect(screen.queryByLabelText("Loại sản phẩm")).not.toBeInTheDocument();
+		expect(screen.getAllByText("Thức ăn chăn nuôi")).toHaveLength(2);
 	});
 
 	it("blocks submit when selected kind required attrs are empty", async () => {
@@ -116,9 +129,9 @@ describe("ProductForm ProductKind flow", () => {
 			screen.getByPlaceholderText("VD: Phân bón NPK Đầu Trâu 20-20-15"),
 			{ target: { value: "Thuốc test" } },
 		);
-		fireEvent.change(screen.getByPlaceholderText("NPK-202015"), {
-			target: { value: "TEST-01" },
-		});
+		expect(screen.getByPlaceholderText("Tự sinh khi lưu sản phẩm")).toHaveAttribute(
+			"readonly",
+		);
 		fireEvent.change(screen.getByLabelText("Hoạt chất"), {
 			target: { value: " Fipronil " },
 		});
@@ -131,14 +144,23 @@ describe("ProductForm ProductKind flow", () => {
 		fireEvent.change(screen.getByLabelText("Thời gian tái nhập (ngày)"), {
 			target: { value: "1" },
 		});
-		fireEvent.change(
-			screen.getByText("Chọn danh mục").closest("select") as HTMLSelectElement,
-			{ target: { value: "category" } },
-		);
+		fireEvent.change(screen.getByPlaceholderText("Nhập thương hiệu"), {
+			target: { value: "Đầu Trâu" },
+		});
+		fireEvent.change(screen.getByPlaceholderText("Nhập nhà sản xuất"), {
+			target: { value: "Công ty ABC" },
+		});
 		fireEvent.change(
 			screen.getByText(/Chọn đơn vị/).closest("select") as HTMLSelectElement,
 			{ target: { value: "unit" } },
 		);
+		fireEvent.click(screen.getByRole("button", { name: "Thêm quy đổi" }));
+		fireEvent.change(screen.getByLabelText("Đơn vị quy đổi 1"), {
+			target: { value: "box" },
+		});
+		fireEvent.change(screen.getByLabelText("Hệ số quy đổi 1"), {
+			target: { value: "50" },
+		});
 		fireEvent.change(screen.getAllByPlaceholderText("0")[1], {
 			target: { value: "100" },
 		});
@@ -150,17 +172,21 @@ describe("ProductForm ProductKind flow", () => {
 		await waitFor(() =>
 			expect(createTenantProduct).toHaveBeenCalledWith(
 				expect.objectContaining({
+					brandName: "Đầu Trâu",
+					manufacturerName: "Công ty ABC",
+					conversions: [{ unitId: "box", factor: 50, kind: "BOTH" }],
 					businessGroup: "CROP_INPUTS",
 					productKind: "PESTICIDE",
 					attrs: {
 						activeIngredient: "Fipronil",
 						concentration: "800 g/kg",
 						phiDays: 7,
-						reiDays: 1,
+							reiDays: 1,
 					},
 				}),
 			),
 		);
+		expect(screen.queryByText("Danh mục")).not.toBeInTheDocument();
 	});
 
 	it("hydrates edit group, kind, and attrs", () => {
@@ -179,7 +205,7 @@ describe("ProductForm ProductKind flow", () => {
 		expect(screen.getByLabelText("Nhóm ngành hàng")).toHaveValue(
 			"VETERINARY_DRUGS",
 		);
-		expect(screen.getByLabelText("Loại sản phẩm")).toHaveValue("VET_DRUG");
+		expect(screen.queryByLabelText("Loại sản phẩm")).not.toBeInTheDocument();
 		expect(screen.getByLabelText("Hoạt chất")).toHaveValue("Amoxicillin");
 		expect(screen.getByLabelText("Dạng bào chế")).toHaveValue("Tiêm");
 	});

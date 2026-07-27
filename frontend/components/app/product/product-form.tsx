@@ -24,11 +24,7 @@ import {
 	type BusinessGroupId,
 	type ProductKindId,
 } from "@/lib/product-kind-form";
-import type {
-	PriceTier,
-	Product,
-	UnitConversion,
-} from "@/lib/products";
+import type { Product, UnitConversion } from "@/lib/products";
 import {
 	createTenantProduct,
 	getProductLookups,
@@ -50,15 +46,10 @@ type FormState = {
 	name: string;
 	sku: string;
 	barcode: string;
-	categoryId: string;
-	brandId: string;
-	manufacturerId: string;
+	brandName: string;
+	manufacturerName: string;
 	baseUnit: string;
 	conversions: UnitConversion[];
-	costPrice: string;
-	salePrice: string;
-	wholesalePrice: string;
-	priceTiers: PriceTier[];
 	stock: string;
 	lowStockThreshold: string;
 	activeIngredient: string;
@@ -124,15 +115,10 @@ function toFormState(p?: Product): FormState {
 		name: p?.name ?? "",
 		sku: p?.sku ?? "",
 		barcode: p?.barcode ?? "",
-		categoryId: p?.categoryId ?? "",
-		brandId: p?.brandId ?? "",
-		manufacturerId: p?.manufacturerId ?? "",
+		brandName: p?.brandLabel ?? "",
+		manufacturerName: p?.manufacturerLabel ?? "",
 		baseUnit: p?.baseUnitId ?? "",
 		conversions: p?.conversions ?? [],
-		costPrice: p ? String(p.costPrice) : "",
-		salePrice: p ? String(p.salePrice) : "",
-		wholesalePrice: p?.wholesalePrice ? String(p.wholesalePrice) : "",
-		priceTiers: p?.priceTiers ?? [],
 		stock: p ? String(p.stock) : "",
 		lowStockThreshold: p ? String(p.lowStockThreshold) : "",
 		activeIngredient: p?.agro?.activeIngredient ?? "",
@@ -206,15 +192,18 @@ export function ProductForm({
 			return;
 		}
 		setFieldErrors((current) => ({ ...current, businessGroup: "", productKind: "" }));
+		const kinds = value ? getProductKindsForGroup(value) : [];
 		setForm((current) => ({
 			...current,
 			businessGroup: value,
 			productKind:
-				value &&
-				current.productKind &&
-				getProductKindDefinition(current.productKind)?.businessGroup === value
-					? current.productKind
-					: "",
+				kinds.length === 1
+					? kinds[0].id
+					: value &&
+						  current.productKind &&
+						  getProductKindDefinition(current.productKind)?.businessGroup === value
+						? current.productKind
+						: "",
 			attrs: {},
 		}));
 	}
@@ -254,7 +243,7 @@ export function ProductForm({
 	}
 
 	function addConversion() {
-		set("conversions", [...form.conversions, { unit: "", factor: 1 }]);
+		set("conversions", [...form.conversions, { unit: "", unitId: "", factor: 1 }]);
 	}
 	function updateConversion(i: number, patch: Partial<UnitConversion>) {
 		set(
@@ -266,22 +255,6 @@ export function ProductForm({
 		set(
 			"conversions",
 			form.conversions.filter((_, idx) => idx !== i),
-		);
-	}
-
-	function addTier() {
-		set("priceTiers", [...form.priceTiers, { minQty: 1, price: 0 }]);
-	}
-	function updateTier(i: number, patch: Partial<PriceTier>) {
-		set(
-			"priceTiers",
-			form.priceTiers.map((t, idx) => (idx === i ? { ...t, ...patch } : t)),
-		);
-	}
-	function removeTier(i: number) {
-		set(
-			"priceTiers",
-			form.priceTiers.filter((_, idx) => idx !== i),
 		);
 	}
 
@@ -305,21 +278,31 @@ export function ProductForm({
 			);
 			return;
 		}
+		if (
+			form.conversions.some(
+				(conversion) =>
+					!conversion.unitId ||
+					!Number.isFinite(conversion.factor) ||
+					conversion.factor < 1,
+			)
+		) {
+			setError("Vui lòng chọn đơn vị quy đổi và nhập hệ số lớn hơn 0.");
+			return;
+		}
 		setSaving(true);
 		setError(null);
 		const input: ProductInput = {
-			sku: form.sku,
+			sku: form.sku || undefined,
 			name: form.name,
 			barcode: form.barcode || undefined,
 			baseUnitId: form.baseUnit,
-			categoryId: form.categoryId || undefined,
-			brandId: form.brandId || undefined,
-			manufacturerId: form.manufacturerId || undefined,
-			costPrice: Number(form.costPrice || 0),
-			salePrice: Number(form.salePrice || 0),
-			wholesalePrice: form.wholesalePrice
-				? Number(form.wholesalePrice)
-				: undefined,
+			brandName: form.brandName.trim() || undefined,
+			manufacturerName: form.manufacturerName.trim() || undefined,
+			conversions: form.conversions.map((conversion) => ({
+				unitId: conversion.unitId as string,
+				factor: conversion.factor,
+				kind: conversion.kind ?? "BOTH",
+			})),
 			isLocked: form.locked,
 			businessGroup: form.businessGroup,
 			productKind: form.productKind,
@@ -359,19 +342,21 @@ export function ProductForm({
 					/>
 					<InlineFieldError id="business-group-error" message={fieldErrors.businessGroup} />
 				</Field>
-				<Field label="Loại sản phẩm" required>
-					<Select
-						value={form.productKind}
-						onChange={(value) => setProductKind(value as ProductKindId)}
-						placeholder={form.businessGroup ? "Chọn loại sản phẩm" : "Chọn nhóm trước"}
-						ariaLabel="Loại sản phẩm"
-						ariaInvalid={Boolean(fieldErrors.productKind)}
-						ariaDescribedBy="product-kind-error"
-						options={availableKinds.map((kind) => ({ value: kind.id, label: kind.label }))}
-						required
-					/>
-					<InlineFieldError id="product-kind-error" message={fieldErrors.productKind} />
-				</Field>
+				{availableKinds.length > 1 ? (
+					<Field label="Loại sản phẩm" required>
+						<Select
+							value={form.productKind}
+							onChange={(value) => setProductKind(value as ProductKindId)}
+							placeholder="Chọn loại sản phẩm"
+							ariaLabel="Loại sản phẩm"
+							ariaInvalid={Boolean(fieldErrors.productKind)}
+							ariaDescribedBy="product-kind-error"
+							options={availableKinds.map((kind) => ({ value: kind.id, label: kind.label }))}
+							required
+						/>
+						<InlineFieldError id="product-kind-error" message={fieldErrors.productKind} />
+					</Field>
+				) : null}
 				{selectedKind ? (
 					<div className="rounded-[10px] bg-[#f4f8f1] px-3 py-2 text-base text-[#416b35]">
 						Thông tin bắt buộc cho: <strong>{selectedKind.label}</strong>
@@ -393,16 +378,16 @@ export function ProductForm({
 				</Field>
 
 				<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-					<Field label="Mã SKU" required>
+					<Field label="Mã SKU">
 						<div className="relative">
 							<Tag className={iconClass} aria-hidden />
 							<input
 								type="text"
-								required
 								value={form.sku}
-								onChange={(e) => set("sku", e.target.value)}
-								placeholder="NPK-202015"
-								className={`${inputClass} pl-10.5`}
+								placeholder="Tự sinh khi lưu sản phẩm"
+								readOnly
+								aria-readonly="true"
+								className={`${inputClass} bg-[#f8f9f8] pl-10.5 text-[#8a918a]`}
 							/>
 						</div>
 					</Field>
@@ -421,41 +406,23 @@ export function ProductForm({
 					</Field>
 				</div>
 
-				<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-					<Field label="Danh mục" required>
-						<Select
-							value={form.categoryId}
-							onChange={(v) => set("categoryId", v)}
-							placeholder="Chọn danh mục"
-							options={(lookups?.categories ?? []).map((c) => ({
-								value: c.id,
-								label: c.name,
-							}))}
-							required
-						/>
-					</Field>
-					<Field label="Thương hiệu">
-						<Select
-							value={form.brandId}
-							onChange={(v) => set("brandId", v)}
-							placeholder="Chọn thương hiệu"
-							options={(lookups?.brands ?? []).map((b) => ({
-								value: b.id,
-								label: b.name,
-							}))}
-						/>
-					</Field>
-				</div>
+				<Field label="Thương hiệu">
+					<input
+						type="text"
+						value={form.brandName}
+						onChange={(e) => set("brandName", e.target.value)}
+						placeholder="Nhập thương hiệu"
+						className={inputClass}
+					/>
+				</Field>
 
 				<Field label="Nhà sản xuất">
-					<Select
-						value={form.manufacturerId}
-						onChange={(v) => set("manufacturerId", v)}
-						placeholder="Chọn nhà sản xuất"
-						options={(lookups?.manufacturers ?? []).map((m) => ({
-							value: m.id,
-							label: m.name,
-						}))}
+					<input
+						type="text"
+						value={form.manufacturerName}
+						onChange={(e) => set("manufacturerName", e.target.value)}
+						placeholder="Nhập nhà sản xuất"
+						className={inputClass}
 					/>
 				</Field>
 
@@ -501,12 +468,29 @@ export function ProductForm({
 					{form.conversions.map((c, i) => (
 						// biome-ignore lint/suspicious/noArrayIndexKey: dòng nhập tạm, không có id ổn định
 						<div key={i} className="flex items-center gap-2">
-							<input
-								type="text"
-								value={c.unit}
-								onChange={(e) => updateConversion(i, { unit: e.target.value })}
-								placeholder="Bao"
-								className={`${inputClass} flex-1`}
+							<Select
+								value={c.unitId ?? ""}
+								onChange={(value) =>
+									updateConversion(i, {
+										unitId: value,
+										unit:
+											lookups?.units.find((unit) => unit.id === value)?.name ?? "",
+									})
+								}
+								placeholder="Chọn đơn vị"
+								options={(lookups?.units ?? [])
+									.filter(
+										(unit) =>
+											unit.id !== form.baseUnit &&
+											(form.conversions.every(
+												(other, otherIndex) =>
+													otherIndex === i || other.unitId !== unit.id,
+											) || unit.id === c.unitId),
+									)
+									.map((unit) => ({ value: unit.id, label: unit.name }))}
+								ariaLabel={`Đơn vị quy đổi ${i + 1}`}
+								ariaInvalid={!c.unitId}
+								className="flex-1"
 							/>
 							<span className="text-base text-[#616161]">=</span>
 							<input
@@ -514,6 +498,7 @@ export function ProductForm({
 								inputMode="numeric"
 								min={1}
 								value={c.factor}
+								aria-label={`Hệ số quy đổi ${i + 1}`}
 								onChange={(e) =>
 									updateConversion(i, { factor: Number(e.target.value) })
 								}
@@ -544,43 +529,11 @@ export function ProductForm({
 				</div>
 			</Section>
 
-			{/* Section 3: Giá & tồn kho */}
-			<Section icon={Tag} tile="#5cad45" title="Giá bán & tồn kho">
-				<div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-					<Field label="Giá vốn (₫)">
-						<input
-							type="number"
-							inputMode="numeric"
-							min={0}
-							value={form.costPrice}
-							onChange={(e) => set("costPrice", e.target.value)}
-							placeholder="0"
-							className={`${inputClass} text-right`}
-						/>
-					</Field>
-					<Field label="Giá lẻ (₫)" required>
-						<input
-							type="number"
-							inputMode="numeric"
-							min={0}
-							required
-							value={form.salePrice}
-							onChange={(e) => set("salePrice", e.target.value)}
-							placeholder="0"
-							className={`${inputClass} text-right`}
-						/>
-					</Field>
-					<Field label="Giá sỉ (₫)">
-						<input
-							type="number"
-							inputMode="numeric"
-							min={0}
-							value={form.wholesalePrice}
-							onChange={(e) => set("wholesalePrice", e.target.value)}
-							placeholder="0"
-							className={`${inputClass} text-right`}
-						/>
-					</Field>
+			{/* Section 3: Tồn kho */}
+			<Section icon={Tag} tile="#5cad45" title="Tồn kho">
+				<div className="rounded-[10px] bg-[#f4f8f1] px-3 py-3 text-base text-[#416b35]">
+					Giá vốn, giá bán lẻ và giá bán sỉ được nhập theo từng lô trong
+					phiếu nhập hàng.
 				</div>
 
 				<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -608,64 +561,6 @@ export function ProductForm({
 					</Field>
 				</div>
 
-				{/* Giá theo bậc số lượng */}
-				<div className="flex flex-col gap-2">
-					<span className="text-sm font-medium text-foreground">
-						Giá theo bậc số lượng
-					</span>
-					<p className="text-sm text-[#616161]">
-						Mua càng nhiều giá càng tốt. VD: từ 50{" "}
-						{selectedUnitName || "đơn vị"} → giá sỉ.
-					</p>
-
-					{form.priceTiers.map((t, i) => (
-						// biome-ignore lint/suspicious/noArrayIndexKey: dòng nhập tạm, không có id ổn định
-						<div key={i} className="flex items-center gap-2">
-							<span className="shrink-0 text-sm text-[#616161]">Từ</span>
-							<input
-								type="number"
-								inputMode="numeric"
-								min={1}
-								value={t.minQty}
-								onChange={(e) =>
-									updateTier(i, { minQty: Number(e.target.value) })
-								}
-								className={`${inputClass} w-20 text-right`}
-							/>
-							<span className="shrink-0 text-sm text-[#616161]">
-								{selectedUnitName || "đv"} →
-							</span>
-							<input
-								type="number"
-								inputMode="numeric"
-								min={0}
-								value={t.price}
-								onChange={(e) =>
-									updateTier(i, { price: Number(e.target.value) })
-								}
-								placeholder="Giá ₫"
-								className={`${inputClass} flex-1 text-right`}
-							/>
-							<button
-								type="button"
-								aria-label="Xóa bậc giá"
-								onClick={() => removeTier(i)}
-								className="flex size-11 shrink-0 items-center justify-center rounded-[10px] text-[#9e9e9e] hover:bg-[#fdecea] hover:text-destructive"
-							>
-								<Trash2 className="size-5" aria-hidden />
-							</button>
-						</div>
-					))}
-
-					<button
-						type="button"
-						onClick={addTier}
-						className="flex h-11 items-center justify-center gap-2 rounded-[10px] border border-dashed border-border text-base font-semibold text-primary hover:bg-accent"
-					>
-						<Plus className="size-5" aria-hidden />
-						Thêm bậc giá
-					</button>
-				</div>
 			</Section>
 
 			{/* Section 4: Trường chuyên ngành theo ProductKind */}
@@ -809,6 +704,7 @@ function Select({
 	ariaLabel,
 	ariaInvalid,
 	ariaDescribedBy,
+	className,
 }: {
 	value: string;
 	onChange: (v: string) => void;
@@ -818,6 +714,7 @@ function Select({
 	ariaLabel?: string;
 	ariaInvalid?: boolean;
 	ariaDescribedBy?: string;
+	className?: string;
 }) {
 	return (
 		<div className="relative">
@@ -825,7 +722,7 @@ function Select({
 				value={value}
 				required={required}
 				onChange={(e) => onChange(e.target.value)}
-				className={`${inputClass} appearance-none pr-10 ${
+				className={`${inputClass} appearance-none pr-10 ${className ?? ""} ${
 					value ? "text-foreground" : "text-[#9e9e9e]"
 				}`}
 				aria-label={ariaLabel}

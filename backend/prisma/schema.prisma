@@ -1113,6 +1113,10 @@ model ProductBatch {
   expiresAt      DateTime?            @db.Date
   isRecalled     Boolean              @default(false)
   qtyOnHand      Decimal              @default(0) @db.Decimal(18, 6)
+  /// Purchase cost captured when this lot is received.
+  purchaseCost   BigInt               @default(0)
+  /// Selling price captured for this lot; it may differ between lots.
+  salePrice      BigInt               @default(0)
   /// Optimistic concurrency token for livestock state transitions.
   version        Int                  @default(0)
   healthState    LivestockHealthState @default(HEALTHY)
@@ -1266,6 +1270,8 @@ model PurchaseLine {
   qty            Decimal   @db.Decimal(18, 6)
   qtyBase        Decimal   @db.Decimal(18, 6)
   unitPrice      BigInt
+  /// Selling price selected for the received batch; separate from unitPrice (purchase cost).
+  salePrice      BigInt?
   lineDiscount   BigInt    @default(0)
   lineTotal      BigInt
   batchCode      String?

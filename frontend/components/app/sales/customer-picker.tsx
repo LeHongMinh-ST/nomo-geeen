@@ -15,9 +15,11 @@ import { useScrollLock } from "@/lib/use-scroll-lock";
 export function CustomerPicker({
 	value,
 	onChange,
+	hideInlineSearch = false,
 }: {
 	value?: string;
 	onChange: (customerId?: string) => void;
+	hideInlineSearch?: boolean;
 }) {
 	const [open, setOpen] = useState(false);
 	const triggerRef = useRef<HTMLButtonElement>(null);
@@ -48,7 +50,7 @@ export function CustomerPicker({
 
 	return (
 		<>
-			<div className="flex w-full items-center gap-2 lg:max-w-[420px]">
+			<div className={`flex w-full items-center gap-2 lg:max-w-[420px] ${hideInlineSearch ? "hidden" : ""}`}>
 				<Search className="size-5 shrink-0 text-[#9e9e9e]" aria-hidden />
 				<input
 					value={inlineQuery}
@@ -134,6 +136,7 @@ function CustomerSheet({
 	onPick: (id?: string, customer?: Customer) => void;
 }) {
 	const [query, setQuery] = useState(initialQuery);
+	const [phone, setPhone] = useState("");
 	const [results, setResults] = useState<Customer[]>([]);
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState<string>();
@@ -205,12 +208,19 @@ function CustomerSheet({
 		{ id: undefined, name: "Khách lẻ (không ghi hồ sơ)" },
 		...results,
 	];
+	const hasExactMatch = results.some(
+		(customer) => customer.name.trim().toLocaleLowerCase() === query.trim().toLocaleLowerCase(),
+	);
 	const createInline = async () => {
 		if (!query.trim() || results.length > 0 || creating) return;
 		setCreating(true);
 		setError(undefined);
 		try {
-			onPick((await createCustomer({ name: query.trim() })).id);
+			const customer = await createCustomer({
+				name: query.trim(),
+				...(phone.trim() ? { phone: phone.trim() } : {}),
+			});
+			onPick(customer.id, customer);
 		} catch {
 			setError("Không thể tạo khách hàng. Thử lại.");
 		} finally {
@@ -355,17 +365,31 @@ function CustomerSheet({
 							),
 						)
 					)}
-					{!loading && !error && query.trim() && results.length === 0 ? (
-						<button
-							type="button"
-							disabled={creating}
-							onClick={() => void createInline()}
-							className="mb-2 flex min-h-12 w-full items-center gap-2 rounded-[10px] bg-accent px-3 text-left text-base font-semibold text-primary disabled:cursor-wait disabled:opacity-60"
-						>
-							{creating
-								? "Đang tạo khách..."
-								: "Không trùng khách hiện có · Tạo khách mới"}
-						</button>
+						{!loading && !error && query.trim() && !hasExactMatch ? (
+						<div className="mb-2 rounded-[12px] border border-[#dcebd7] bg-[#f3f8f1] p-3">
+							<p className="mb-2 text-base font-semibold text-foreground">
+								Chưa có khách phù hợp. Nhập số điện thoại nếu có.
+							</p>
+							<input
+								type="tel"
+								inputMode="tel"
+								value={phone}
+								onChange={(event) => setPhone(event.target.value)}
+								aria-label="Số điện thoại khách hàng mới"
+								placeholder="Số điện thoại (không bắt buộc)"
+								className="mb-2 h-12 w-full rounded-[10px] border border-border bg-white px-3 text-base text-foreground placeholder:text-[#9e9e9e] focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/25"
+							/>
+							<button
+								type="button"
+								disabled={creating}
+								onClick={() => void createInline()}
+								className="flex min-h-12 w-full items-center justify-center rounded-[10px] bg-primary px-3 text-base font-semibold text-white disabled:cursor-wait disabled:opacity-60"
+							>
+								{creating
+									? "Đang tạo khách..."
+									: "Không trùng khách hiện có · Tạo khách mới"}
+							</button>
+						</div>
 					) : null}
 					{!loading && !error && results.length === 0 ? (
 						<p className="px-3 py-6 text-center text-base text-[#9e918a]">

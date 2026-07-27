@@ -64,6 +64,29 @@ describe("tenant purchase api", () => {
 			lines: [{ manufacturedAt: "2026-01-15", expiresAt: "2027-01-15" }],
 		});
 	});
+	it("sends unitPrice as purchase cost and salePrice separately", () => {
+		createTenantPurchase({
+			idempotencyKey: "k",
+			supplierId: "s",
+			status: "COMPLETED",
+			discountAmount: 0,
+			shippingFee: 0,
+			amountPaid: 0,
+			paymentMethod: "CASH",
+			lines: [
+				{
+					productId: "p",
+					unitId: "u",
+					qty: "1",
+					unitPrice: 18_000,
+					salePrice: 25_000,
+				},
+			],
+		});
+		expect(JSON.parse(String(mocked.mock.calls[0][1]?.body))).toMatchObject({
+			lines: [{ unitPrice: 18_000, salePrice: 25_000 }],
+		});
+	});
 	it("maps ISO datetimes back to date-only fields for the line editor", () => {
 		const response = {
 			id: "pn1",
@@ -89,6 +112,7 @@ describe("tenant purchase api", () => {
 					qty: "2",
 					qtyBase: "2",
 					unitPrice: 1000,
+					salePrice: 1500,
 					lineTotal: 2000,
 					batchCode: "LOT-A",
 					manufacturedAt: "2026-01-15T00:00:00.000Z",
@@ -97,6 +121,8 @@ describe("tenant purchase api", () => {
 			],
 		} as unknown as PurchaseResponse;
 		expect(mapTenantPurchase(response).lines[0]).toMatchObject({
+			cost: 1000,
+			salePrice: 1500,
 			manufacturedAt: "2026-01-15",
 			expiry: "2027-01-15",
 		});

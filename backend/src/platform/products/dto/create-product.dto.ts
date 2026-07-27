@@ -2,6 +2,7 @@ import { BusinessGroup, ProductKind } from '@prisma/client';
 import { Type } from 'class-transformer';
 import {
 	IsEnum,
+	IsArray,
 	IsInt,
 	IsNotEmpty,
 	IsObject,
@@ -10,12 +11,14 @@ import {
 	IsUUID,
 	Max,
 	Min,
+	ValidateNested,
 } from 'class-validator';
+import { ProductConversionDto } from './product-conversion.dto';
 
 export class CreateProductDto {
+	@IsOptional()
 	@IsString()
-	@IsNotEmpty()
-	sku!: string;
+	sku?: string;
 
 	@IsString()
 	@IsNotEmpty()
@@ -51,6 +54,20 @@ export class CreateProductDto {
 	@IsOptional()
 	@IsUUID('4')
 	manufacturerId?: string;
+
+	@IsOptional()
+	@IsString()
+	brandName?: string;
+
+	@IsOptional()
+	@IsString()
+	manufacturerName?: string;
+
+	@IsOptional()
+	@IsArray()
+	@ValidateNested({ each: true })
+	@Type(() => ProductConversionDto)
+	conversions?: ProductConversionDto[];
 
 	@IsOptional()
 	@Type(() => Number)

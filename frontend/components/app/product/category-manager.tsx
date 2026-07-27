@@ -64,8 +64,11 @@ export function CategoryManager() {
 		<div className="mx-auto flex w-full max-w-2xl flex-col gap-5 lg:mx-0">
 			<SettingHeader
 				title="Quản lý danh mục"
-				description="Danh mục, thương hiệu, đơn vị và nhà sản xuất dùng chung cho sản phẩm."
+				description="Tính năng chưa hỗ trợ trong Phase 1."
 			/>
+			<div className="rounded-[10px] border border-[#e6a817]/60 bg-[#fff8e1] px-4 py-3 text-sm text-[#765900]">
+				Chưa hỗ trợ thêm hoặc xóa danh mục. Danh sách hiện tại chỉ để tham khảo.
+			</div>
 
 			{/* Tabs */}
 			<div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-0.5">
@@ -98,6 +101,8 @@ export function CategoryManager() {
 			<div className="flex items-center gap-2">
 				<input
 					type="text"
+					disabled
+					aria-disabled="true"
 					value={newName}
 					onChange={(e) => setNewName(e.target.value)}
 					onKeyDown={(e) => {
@@ -112,7 +117,8 @@ export function CategoryManager() {
 				<button
 					type="button"
 					onClick={addItem}
-					disabled={!newName.trim()}
+						disabled={!newName.trim()}
+						aria-disabled="true"
 					aria-label="Thêm"
 					className="flex size-12 shrink-0 items-center justify-center rounded-[10px] bg-primary text-white transition-colors duration-200 ease-out hover:bg-[#5cad45] active:bg-[#3f8530] disabled:opacity-50 md:h-11"
 				>
@@ -149,6 +155,8 @@ export function CategoryManager() {
 								<div className="flex items-center gap-1.5">
 									<button
 										type="button"
+										disabled
+										aria-disabled="true"
 										aria-label="Hủy xóa"
 										onClick={() => setConfirmId(null)}
 										className="flex size-10 items-center justify-center rounded-[8px] border border-border text-[#616161] hover:bg-[#f5f5f5]"
@@ -167,6 +175,8 @@ export function CategoryManager() {
 							) : (
 								<button
 									type="button"
+									disabled
+									aria-disabled="true"
 									aria-label={`Xóa ${item.name}`}
 									onClick={() => setConfirmId(item.id)}
 									className="flex size-10 shrink-0 items-center justify-center rounded-[8px] text-[#9e9e9e] transition-colors hover:bg-[#fdecea] hover:text-destructive"

@@ -120,11 +120,11 @@ describe("CustomerPicker", () => {
 		resolveCreate(customers[0]);
 	});
 
-	it("does not offer create when a matching customer exists", async () => {
+	it("does not offer create when the exact customer exists", async () => {
 		render(<CustomerPicker onChange={vi.fn()} />);
 		fireEvent.change(
 			screen.getByRole("combobox", { name: "Tìm khách hàng ngay trong form" }),
-			{ target: { value: "Anh" } },
+			{ target: { value: "Anh Ba" } },
 		);
 		await screen.findByText("Anh Ba");
 		expect(

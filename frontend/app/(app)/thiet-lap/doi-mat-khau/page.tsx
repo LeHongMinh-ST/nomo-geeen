@@ -49,8 +49,11 @@ export default function DoiMatKhauPage() {
 		<div className="mx-auto flex w-full max-w-2xl flex-col gap-6 lg:mx-0">
 			<SettingHeader
 				title="Đổi mật khẩu"
-				description="Đặt mật khẩu mới để bảo vệ tài khoản của bạn."
+				description="Tính năng chưa hỗ trợ trong Phase 1."
 			/>
+			<div className="rounded-[10px] border border-[#e6a817]/60 bg-[#fff8e1] px-4 py-3 text-sm text-[#765900]">
+				Chưa hỗ trợ đổi mật khẩu từ màn hình này. Không có thay đổi nào được lưu.
+			</div>
 
 			<form
 				onSubmit={handleSubmit}
@@ -105,6 +108,8 @@ export default function DoiMatKhauPage() {
 
 				<button
 					type="submit"
+					disabled
+					aria-disabled="true"
 					className="flex h-12 w-full items-center justify-center rounded-[10px] bg-primary text-base font-semibold text-white transition-all duration-200 ease-out hover:bg-[#5cad45] active:translate-y-px active:bg-[#3f8530] md:h-11"
 				>
 					Đổi mật khẩu

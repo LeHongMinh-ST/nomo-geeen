@@ -5,6 +5,11 @@ import type { NextConfig } from "next";
 // 'nomo_admin_rt' qua CORS credentials=true. Khong con Next rewrite
 // / catch-all proxy.
 
-const nextConfig: NextConfig = {};
+const nextConfig: NextConfig = {
+	output: "standalone",
+	turbopack: {
+		root: __dirname,
+	},
+};
 
 export default nextConfig;

@@ -214,6 +214,15 @@ describe('Tenant purchases (e2e)', () => {
 			.set('Authorization', `Bearer ${accessToken}`)
 			.send({ idempotencyKey: key })
 			.expect(201);
+		const listed = await request(app.getHttpServer())
+			.get('/tenant/purchases?page=1&pageSize=20')
+			.set('Authorization', `Bearer ${accessToken}`)
+			.expect(200);
+		expect(listed.body.items).toEqual(
+			expect.arrayContaining([
+				expect.objectContaining({ id: draft.body.id, status: 'COMPLETED' }),
+			]),
+		);
 		expect(completed.body).toEqual(
 			expect.objectContaining({ status: 'COMPLETED' }),
 		);

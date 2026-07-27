@@ -41,6 +41,7 @@ type PurchaseLineRenderable = {
 	qty: Prisma.Decimal;
 	qtyBase: Prisma.Decimal;
 	unitPrice: bigint;
+	salePrice: bigint | null;
 	lineDiscount: bigint;
 	lineTotal: bigint;
 	batchCode: string | null;
@@ -78,6 +79,7 @@ type PreparedLine = {
 	batchCode?: string;
 	manufacturedAt?: Date;
 	expiresAt?: Date;
+	salePrice?: bigint;
 	productKind?: ProductKind;
 };
 
@@ -177,6 +179,7 @@ export class PurchasesService {
 								qty: line.qty,
 								qtyBase: line.qtyBase,
 								unitPrice: line.unitPrice,
+								salePrice: line.salePrice,
 								lineDiscount: line.lineDiscount,
 								lineTotal: line.lineTotal,
 								batchCode: line.batchCode,
@@ -261,6 +264,7 @@ export class PurchasesService {
 								qty: line.qty,
 								qtyBase: line.qtyBase,
 								unitPrice: line.unitPrice,
+								salePrice: line.salePrice,
 								lineDiscount: line.lineDiscount,
 								lineTotal: line.lineTotal,
 								batchCode: line.batchCode,
@@ -421,17 +425,25 @@ export class PurchasesService {
 							batchCode,
 						},
 					},
-					create: {
+									create: {
 						tenantId,
 						productId: line.productId,
 						warehouseId: purchase.warehouseId,
 						batchCode,
 						manufacturedAt: line.manufacturedAt ?? null,
 						expiresAt: line.expiresAt ?? null,
-						qtyOnHand: line.qtyBase,
-					},
+										qtyOnHand: line.qtyBase,
+										purchaseCost: unitCost,
+										salePrice: line.salePrice ?? 0n,
+								},
 					// Never silently rewrite manufacture/expiry dates on reuse (audit risk).
-					update: { qtyOnHand: { increment: line.qtyBase } },
+									update: {
+										qtyOnHand: { increment: line.qtyBase },
+										purchaseCost: unitCost,
+										...(line.salePrice !== undefined && line.salePrice !== null
+											? { salePrice: line.salePrice }
+											: {}),
+									},
 					select: { id: true },
 				});
 				batchId = batch.id;
@@ -582,6 +594,8 @@ export class PurchasesService {
 				lineDiscount,
 				lineTotal,
 				batchCode: line.batchCode,
+				salePrice:
+					line.salePrice === undefined ? undefined : BigInt(line.salePrice),
 				manufacturedAt: line.manufacturedAt
 					? new Date(line.manufacturedAt)
 					: undefined,
@@ -722,6 +736,8 @@ export class PurchasesService {
 				unitPrice: Number(line.unitPrice),
 				lineDiscount: Number(line.lineDiscount),
 				lineTotal: Number(line.lineTotal),
+				salePrice:
+					line.salePrice === null ? undefined : Number(line.salePrice),
 				batchCode: line.batchCode,
 				manufacturedAt: line.manufacturedAt,
 				expiresAt: line.expiresAt,

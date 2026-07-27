@@ -178,6 +178,7 @@ export class TenantUsersService {
 					// USER_CREATE audit shares the create tx (writeInTx, not run()).
 					await this.audit.writeInTx(tx, {
 						actorId: ctx.actorId,
+						tenantId,
 						actorType: ctx.actorType ?? AuditActorType.PLATFORM_ADMIN,
 						actorRoleCode: ctx.actorRoleCode,
 						ipAddress: ctx.ipAddress,

@@ -26,6 +26,8 @@ export type PurchaseLine = {
 	qty: number;
 	/** Giá vốn (₫) trên 1 đơn vị nhập. */
 	cost: number;
+	/** Giá bán (₫) của đúng lô này. */
+	salePrice?: number;
 	/** Số lô (batch) — tùy chọn. */
 	batch?: string;
 	/** Hạn sử dụng ISO (YYYY-MM-DD) — tùy chọn. */

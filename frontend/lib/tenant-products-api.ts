@@ -44,13 +44,15 @@ export type ProductLookups = {
 };
 
 export type ProductInput = {
-	sku: string;
+	sku?: string;
 	name: string;
 	barcode?: string;
 	baseUnitId: string;
 	categoryId?: string;
 	brandId?: string;
 	manufacturerId?: string;
+	brandName?: string;
+	manufacturerName?: string;
 	costPrice?: number;
 	salePrice?: number;
 	wholesalePrice?: number;
@@ -58,6 +60,11 @@ export type ProductInput = {
 	businessGroup?: BusinessGroupId;
 	productKind?: ProductKindId;
 	attrs?: Record<string, unknown>;
+	conversions?: Array<{
+		unitId: string;
+		factor: number;
+		kind?: "PURCHASE" | "BOTH";
+	}>;
 };
 
 export function mapTenantProduct(

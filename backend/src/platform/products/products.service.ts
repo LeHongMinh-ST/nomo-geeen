@@ -13,6 +13,7 @@ import {
 	ProductKind,
 	ProductStatus,
 } from '@prisma/client';
+import { randomUUID } from 'node:crypto';
 import { AuditLogger } from '../audit/audit-logger.service';
 import type { TenantIdentity } from '../auth/token.service';
 import { EntitlementService } from '../entitlements/entitlement.service';
@@ -21,6 +22,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import type { CreateProductDto } from './dto/create-product.dto';
 import type { ProductLookupResponse } from './dto/product-lookup.dto';
 import type { UpdateProductDto } from './dto/update-product.dto';
+import type { ProductConversionDto } from './dto/product-conversion.dto';
 import {
 	assertSelectableBusinessGroup,
 	hasSpecializedAttrs,
@@ -275,10 +277,9 @@ export class ProductsService {
 		dto: CreateProductDto,
 		actor?: Pick<TenantIdentity, 'id' | 'tenantId' | 'roleCode'>,
 	) {
-		const sku = dto.sku.trim();
+		const sku = dto.sku?.trim() || this.generateSku();
 		const name = dto.name.trim();
-		if (!sku || !name)
-			throw new BadRequestException('sku and name are required');
+		if (!name) throw new BadRequestException('name is required');
 		validateProductContract(
 			dto.productKind,
 			dto.businessGroup,
@@ -318,17 +319,19 @@ export class ProductsService {
 						barcode: dto.barcode?.trim() || null,
 						baseUnitId: unit.id,
 						categoryId: dto.categoryId,
-						brandId: await this.validateReference(
+						brandId: await this.resolveNamedReference(
 							tx,
 							'brand',
 							tenantId,
 							dto.brandId,
+							dto.brandName,
 						),
-						manufacturerId: await this.validateReference(
+						manufacturerId: await this.resolveNamedReference(
 							tx,
 							'manufacturer',
 							tenantId,
 							dto.manufacturerId,
+							dto.manufacturerName,
 						),
 						productKind: dto.productKind,
 						businessGroup: dto.businessGroup,
@@ -340,6 +343,7 @@ export class ProductsService {
 					},
 					select: { id: true, sku: true, name: true, baseUnitId: true },
 				});
+				await this.syncConversions(tx, tenantId, created.id, unit.id, dto.conversions);
 				if (actor)
 					await this.audit.writeInTx(tx, {
 						tenantId,
@@ -441,6 +445,20 @@ export class ProductsService {
 					dto.manufacturerId,
 					'Manufacturer not found',
 				);
+			const nextBrandId =
+				dto.brandName !== undefined
+					? await this.resolveNamedReference(tx, 'brand', tenantId, undefined, dto.brandName)
+					: dto.brandId;
+			const nextManufacturerId =
+				dto.manufacturerName !== undefined
+					? await this.resolveNamedReference(
+							tx,
+							'manufacturer',
+							tenantId,
+							undefined,
+							dto.manufacturerName,
+						)
+					: dto.manufacturerId;
 			try {
 				const product = await tx.product.update({
 					where: { id },
@@ -453,8 +471,8 @@ export class ProductsService {
 								: dto.barcode.trim() || null,
 						baseUnitId: dto.baseUnitId,
 						categoryId: dto.categoryId,
-						brandId: dto.brandId,
-						manufacturerId: dto.manufacturerId,
+						brandId: nextBrandId,
+						manufacturerId: nextManufacturerId,
 						costPrice:
 							dto.costPrice === undefined ? undefined : BigInt(dto.costPrice),
 						salePrice:
@@ -472,6 +490,13 @@ export class ProductsService {
 					},
 					select: this.productSelect(),
 				});
+				await this.syncConversions(
+					tx,
+					tenantId,
+					product.id,
+					(dto.baseUnitId ?? product.baseUnitId),
+					dto.conversions,
+				);
 				const stock = await tx.stock.aggregate({
 					where: { tenantId, productId: product.id },
 					_sum: { qty: true },
@@ -589,6 +614,76 @@ export class ProductsService {
 	) {
 		if (!id) return null;
 		return this.requireReference(tx, model, tenantId, id, `${model} not found`);
+	}
+
+	private generateSku(): string {
+		return `SP-${randomUUID().replace(/-/g, '').slice(0, 10).toUpperCase()}`;
+	}
+
+	private async syncConversions(
+		tx: Prisma.TransactionClient,
+		tenantId: string,
+		productId: string,
+		baseUnitId: string,
+		conversions?: ProductConversionDto[],
+	) {
+		if (conversions === undefined) return;
+		const unitIds = [...new Set(conversions.map((conversion) => conversion.unitId))];
+		if (unitIds.includes(baseUnitId))
+			throw new BadRequestException('Conversion unit must differ from base unit');
+		const units = await tx.unit.findMany({
+			where: { id: { in: unitIds }, tenantId, deletedAt: null },
+			select: { id: true },
+		});
+		if (units.length !== unitIds.length)
+			throw new NotFoundException('Conversion unit not found');
+		await tx.productUnitConversion.deleteMany({ where: { tenantId, productId } });
+		if (conversions.length === 0) return;
+		await tx.productUnitConversion.createMany({
+			data: conversions.map((conversion) => ({
+				tenantId,
+				productId,
+				unitId: conversion.unitId,
+				factorToBase: conversion.factor,
+				kind: conversion.kind,
+			})),
+		});
+	}
+
+	private async resolveNamedReference(
+		tx: Prisma.TransactionClient,
+		model: 'brand' | 'manufacturer',
+		tenantId: string,
+		id?: string | null,
+		name?: string | null,
+	) {
+		if (name !== undefined) {
+			const normalized = name?.trim() ?? '';
+			if (!normalized) return null;
+			const existing =
+				model === 'brand'
+					? await tx.brand.findFirst({
+							where: { tenantId, deletedAt: null, name: normalized },
+							select: { id: true },
+						})
+					: await tx.manufacturer.findFirst({
+							where: { tenantId, deletedAt: null, name: normalized },
+							select: { id: true },
+						});
+			if (existing) return existing.id;
+			const created =
+				model === 'brand'
+					? await tx.brand.create({
+							data: { tenantId, name: normalized },
+							select: { id: true },
+						})
+					: await tx.manufacturer.create({
+							data: { tenantId, name: normalized },
+							select: { id: true },
+						});
+			return created.id;
+		}
+		return id ? this.validateReference(tx, model, tenantId, id) : null;
 	}
 
 	private async requireReference(

@@ -5,6 +5,7 @@ import {
 	HandCoins,
 	Minus,
 	Plus,
+	ReceiptText,
 	ShoppingCart,
 	Trash2,
 	Wallet,
@@ -134,7 +135,6 @@ export function QuickSale() {
 			});
 			setToast({ method, total: result.total });
 			setLines([]);
-			setCustomerId(undefined);
 			setPayOpen(false);
 			setIdempotencyKey(null);
 			setHandbookMeta({});
@@ -166,81 +166,95 @@ export function QuickSale() {
 	const empty = lines.length === 0;
 
 	return (
-		<div className="grid w-full grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_380px]">
+		<div className="w-full space-y-5">
 			{error ? (
 				<div
-					className="rounded-[10px] bg-[#fff5f5] px-3 py-2 text-base text-destructive lg:col-span-2"
+					className="rounded-[10px] border border-[#f2c8c6] bg-[#fff5f5] px-4 py-3 text-base text-destructive"
 					role="alert"
 				>
 					{error}
 				</div>
 			) : null}
-			{/* Header + chọn khách */}
-			<div className="grid gap-3 lg:col-span-2 lg:grid-cols-[minmax(0,1fr)_minmax(320px,420px)] lg:items-center">
-				<div className="flex flex-col gap-1">
-					<h1 className="text-2xl font-bold tracking-tight text-foreground">
-						Bán nhanh
-					</h1>
-					<p className="text-base text-[#616161]">
-						Tìm hàng, chốt tiền — xong trong vài chạm.
-					</p>
+			<div className="flex flex-col gap-1">
+				<p className="text-sm font-semibold uppercase tracking-[0.12em] text-primary">
+					Bán hàng tại quầy
+				</p>
+				<h1 className="text-[28px] font-bold leading-tight tracking-tight text-foreground">
+					Bán nhanh
+				</h1>
+				<p className="text-base text-[#616161]">
+					Chọn sản phẩm, kiểm tra đơn rồi thu tiền.
+				</p>
+			</div>
+
+			<div className="grid items-start gap-5 pb-[calc(184px+env(safe-area-inset-bottom,0px))] lg:grid-cols-[minmax(0,1fr)_360px] lg:pb-0">
+				<div className="min-w-0 space-y-4">
+					<CounterSearch
+						onSelectProduct={addProduct}
+						onChangeMeta={(meta) =>
+							setHandbookMeta((current) => ({ ...current, ...meta }))
+						}
+					/>
+					{empty ? (
+						<div className="flex min-h-[260px] flex-col items-center justify-center gap-4 rounded-[16px] border border-dashed border-border bg-card px-6 py-12 text-center">
+							<span className="flex size-16 items-center justify-center rounded-full bg-[#f4f7f3] text-primary">
+								<ShoppingCart className="size-8" aria-hidden />
+							</span>
+							<div className="flex flex-col gap-1">
+								<h2 className="text-lg font-semibold text-foreground">
+									Đơn hàng đang trống
+								</h2>
+								<p className="text-base text-[#616161]">
+									Chọn một sản phẩm ở phía trên để bắt đầu bán hàng.
+								</p>
+							</div>
+						</div>
+					) : (
+						<div className="space-y-2.5">
+							{lines.map((l) => (
+								<CartLine
+									key={l.productId}
+									line={l}
+									onInc={() => changeQty(l.productId, 1)}
+									onDec={() => changeQty(l.productId, -1)}
+									onPrice={(price) => setPrice(l.productId, price)}
+									onRemove={() => removeLine(l.productId)}
+								/>
+							))}
+						</div>
+					)}
 				</div>
-			</div>
 
-			<div className="order-first lg:col-start-2 lg:row-start-2 lg:row-span-2 lg:order-none">
-				<CustomerPicker value={customerId} onChange={setCustomerId} />
-			</div>
-
-			{/* Tìm sản phẩm */}
-			<div className="lg:col-start-1 lg:row-start-2">
-				<CounterSearch
-					onSelectProduct={addProduct}
-					onChangeMeta={(meta) =>
-						setHandbookMeta((current) => ({ ...current, ...meta }))
-					}
-				/>
-			</div>
-
-			{/* Giỏ hàng */}
-			{empty ? (
-				<div className="flex flex-col items-center gap-4 rounded-[16px] border border-dashed border-border bg-card px-6 py-14 text-center">
-					<span className="flex size-16 items-center justify-center rounded-full bg-[#f5f5f5]">
-						<ShoppingCart className="size-8 text-[#9e9e9e]" aria-hidden />
-					</span>
-					<div className="flex flex-col gap-1">
-						<h2 className="text-lg font-semibold text-foreground">
-							Chưa có hàng nào
-						</h2>
-						<p className="text-base text-[#616161]">
-							Tìm và chọn sản phẩm ở ô trên để thêm vào đơn.
-						</p>
+				<aside className="rounded-[16px] border border-border bg-card p-4 shadow-card lg:sticky lg:top-[88px]">
+					<div className="mb-4 hidden items-center gap-2 border-b border-border pb-4 lg:flex">
+						<span className="flex size-10 items-center justify-center rounded-[10px] bg-[#f3f8f1] text-primary">
+							<ReceiptText className="size-5" aria-hidden />
+						</span>
+						<div>
+							<h2 className="text-lg font-bold text-foreground">Đơn hàng mới</h2>
+							<p className="text-sm text-[#6b716b]">{itemCount} món trong đơn</p>
+						</div>
 					</div>
-				</div>
-			) : (
-				<div className="flex flex-col gap-3 pb-[calc(184px+env(safe-area-inset-bottom,0px))] lg:col-start-1 lg:row-start-3 lg:pb-0">
-					{/* Danh sách dòng hàng */}
-					<div className="flex flex-col gap-2.5">
-						{lines.map((l) => (
-							<CartLine
-								key={l.productId}
-								line={l}
-								onInc={() => changeQty(l.productId, 1)}
-								onDec={() => changeQty(l.productId, -1)}
-								onPrice={(price) => setPrice(l.productId, price)}
-								onRemove={() => removeLine(l.productId)}
-							/>
-						))}
+					<div className="mb-4 space-y-2">
+						<p className="text-sm font-semibold text-[#616161]">Khách hàng</p>
+						<CustomerPicker
+							value={customerId}
+							onChange={setCustomerId}
+							hideInlineSearch
+						/>
 					</div>
-				</div>
-			)}
+					<div className="hidden space-y-3 border-t border-border pt-4 lg:block">
+						<SummaryRow itemCount={itemCount} total={subtotal} />
+						<ActionButtons onDebt={onDebt} onPay={() => setPayOpen(true)} />
+					</div>
+				</aside>
+			</div>
 
 			{/* Thanh tổng + hành động dính đáy — mobile/tablet */}
-			{!empty ? (
-				<div className="fixed inset-x-0 bottom-nav-safe z-30 flex flex-col gap-2.5 border-t border-border bg-card px-4 pb-3 pt-3 shadow-[0_-4px_20px_rgba(0,0,0,0.06)] lg:hidden">
-					<SummaryRow itemCount={itemCount} total={subtotal} />
-					<ActionButtons onDebt={onDebt} onPay={() => setPayOpen(true)} />
-				</div>
-			) : null}
+			<div className="fixed inset-x-0 bottom-nav-safe z-50 flex flex-col gap-2.5 border-t border-border bg-card px-4 pb-3 pt-3 shadow-[0_-4px_20px_rgba(0,0,0,0.06)] lg:hidden">
+				<SummaryRow itemCount={itemCount} total={subtotal} />
+				<ActionButtons disabled={empty} onDebt={onDebt} onPay={() => setPayOpen(true)} />
+			</div>
 
 			<PaymentSheet
 				open={payOpen}
@@ -293,9 +307,11 @@ function SummaryRow({
 }
 
 function ActionButtons({
+	disabled = false,
 	onDebt,
 	onPay,
 }: {
+	disabled?: boolean;
 	onDebt: () => void;
 	onPay: () => void;
 }) {
@@ -304,7 +320,8 @@ function ActionButtons({
 			<button
 				type="button"
 				onClick={onDebt}
-				className="flex h-14 items-center justify-center gap-2 rounded-[10px] border-2 border-primary bg-white text-lg font-bold text-primary transition-colors duration-200 ease-out hover:bg-accent"
+				disabled={disabled}
+				className="flex h-14 items-center justify-center gap-2 rounded-[10px] border-2 border-primary bg-white text-lg font-bold text-primary transition-colors duration-200 ease-out hover:bg-accent disabled:cursor-not-allowed disabled:opacity-45"
 			>
 				<HandCoins className="size-6" aria-hidden />
 				Ghi nợ
@@ -312,7 +329,8 @@ function ActionButtons({
 			<button
 				type="button"
 				onClick={onPay}
-				className="flex h-14 items-center justify-center gap-2 rounded-[10px] bg-primary text-lg font-bold text-white transition-colors duration-200 ease-out hover:bg-[#5cad45] active:bg-[#3f8530]"
+				disabled={disabled}
+				className="flex h-14 items-center justify-center gap-2 rounded-[10px] bg-primary text-lg font-bold text-white transition-colors duration-200 ease-out hover:bg-[#5cad45] active:bg-[#3f8530] disabled:cursor-not-allowed disabled:opacity-45"
 			>
 				<Wallet className="size-6" aria-hidden />
 				Thu tiền

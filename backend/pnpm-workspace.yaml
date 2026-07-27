@@ -1,7 +1,7 @@
 allowBuilds:
-  '@prisma/engines': set this to true or false
-  argon2: set this to true or false
-  prisma: set this to true or false
+  '@prisma/engines': true
+  argon2: true
+  prisma: true
   unrs-resolver: true
 overrides:
   caniuse-lite: 1.0.30001805
