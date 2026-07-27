@@ -142,26 +142,18 @@ tenant-wide-vs-page-local divergence.
     unaffected. Covered by the "shows a retry action ... when the summary
     request fails" test.
 
-### Deferred / not run this session
+### Fresh verification update (2026-07-27)
 
-- `pnpm --dir frontend build` was not re-run after the final edit — the user
-  stopped further test/build/lint execution before this receipt was written.
-  No build regression is claimed for the two touched files beyond what
-  `biome lint` and the component test run already confirm (both are pure
-  TSX with no new types beyond the already-exported `InventoryExpirySummary`).
-  Re-run `pnpm --dir frontend build` before merge/release.
-- An earlier full-repo `pnpm --dir frontend lint` in this session showed 4
-  pre-existing `noExplicitAny` errors in unrelated files
-  (`components/app/sales/__tests__/order-form.test.tsx`,
-  `order-list.test.tsx`), confirmed present on `HEAD` via `git stash` before
-  this change with the same count; not caused by this task, out of scope to
-  fix here.
+- `pnpm --dir frontend build` passed fresh; Next route output completed successfully.
+- Biome lint passed.
+- Backend unit verification passed fresh: 60 suites, 607 passed, 1 skipped.
+- Backend E2E was run fresh with correct secrets and isolated database `nomogreen_e2e`: 17 failed, 4 passed, 1 skipped. This is an environment limitation: the isolated database has 54 public tables and the supplier table, but no `_prisma_migrations` table and no `SupplierType` enum; shared `nomogreen` also has migration/schema drift. No migration or schema was changed. E2E is not a merge gate for this frontend-only task and remains an environment follow-up.
 
 ## Risk Assessment
 
 | Risk | Severity | Mitigation |
 |---|---|---|
-| Frontend build not re-verified after the last edit in this session | Low | The two touched files pass lint and their full test suite; recommend running `pnpm --dir frontend build` before merge. |
+| Backend E2E environment drift | Medium | Keep the isolated/shared database mismatch as a follow-up; it is outside this frontend-only task and no schema/migration changes were made. |
 | Summary/list fetches racing on unmount | Low | Both effects use the existing `active` flag guard pattern already used in this file. |
 
 ---
