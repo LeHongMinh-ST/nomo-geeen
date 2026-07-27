@@ -2,7 +2,7 @@
 	"name": "NomoGreen — Bán hàng vật tư nông nghiệp",
 	"short_name": "NomoGreen",
 	"description": "Phần mềm bán hàng vật tư nông nghiệp: bán hàng, kho và công nợ.",
-	"start_url": "/trang-chu",
+	"start_url": "/",
 	"scope": "/",
 	"display": "standalone",
 	"orientation": "portrait",

@@ -9,7 +9,7 @@
  *   - KHÔNG đụng API/POST.
  */
 
-const VERSION = "nomo-v2";
+const VERSION = "nomo-v3";
 const RUNTIME = `${VERSION}-runtime`;
 const ASSETS = `${VERSION}-assets`;
 
@@ -60,7 +60,7 @@ self.addEventListener("fetch", (event) => {
 					return res;
 				} catch {
 					const cached = await caches.match(request);
-					return cached || caches.match("/trang-chu");
+					return cached || caches.match("/");
 				}
 			})(),
 		);

@@ -608,7 +608,7 @@ NomoGreen triển khai theo hướng **PWA**: chạy trên trình duyệt nhưng
 | ---- | ------- |
 | `name` | NomoGreen — Bán hàng vật tư nông nghiệp |
 | `short_name` | NomoGreen |
-| `start_url` | `/trang-chu` |
+| `start_url` | `/` |
 | `scope` | `/` |
 | `display` | `standalone` |
 | `orientation` | `portrait` |
@@ -623,7 +623,7 @@ NomoGreen triển khai theo hướng **PWA**: chạy trên trình duyệt nhưng
 ## 26.3 Service worker (`/public/sw.js`)
 
 * Đăng ký ở client, **chỉ chạy production** (không cản HMR khi dev).
-* **Điều hướng (HTML):** network-first, fallback cache khi mất mạng (về được `/trang-chu`).
+* **Điều hướng (HTML):** network-first, fallback cache khi mất mạng (về được `/`).
 * **Static (font, icon, ảnh, css, js):** cache-first; đổi tên file khi đổi nội dung để bust cache.
 * **Không đụng API/POST:** dữ liệu nghiệp vụ không cache — tránh hiển thị số liệu cũ.
 * Versioned cache (`nomo-v1`); `activate` dọn cache phiên bản cũ.
