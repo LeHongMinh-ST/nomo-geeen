@@ -52,8 +52,8 @@ export function SupplierForm({
 	}
 	async function submit(event: React.FormEvent) {
 		event.preventDefault();
-		if (!form.code.trim() || !form.name.trim()) {
-			setError("Mã và tên nhà cung cấp là bắt buộc.");
+		if (!form.name.trim()) {
+			setError("Tên nhà cung cấp là bắt buộc.");
 			return;
 		}
 		setSaving(true);
@@ -107,18 +107,22 @@ export function SupplierForm({
 					/>
 				</Field>
 				<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-					<Field label="Mã NCC" required>
-						<div className="relative">
-							<Hash className={iconClass} aria-hidden />
-							<input
-								required
-								value={form.code}
-								onChange={(e) => set("code", e.target.value)}
-								placeholder="NCC-001"
-								className={`${inputClass} pl-10.5`}
-							/>
-						</div>
-					</Field>
+					{mode === "edit" ? (
+						<Field label="Mã NCC">
+							<div className="relative">
+								<Hash className={iconClass} aria-hidden />
+								<input
+									readOnly
+									value={form.code ?? ""}
+									className={`${inputClass} bg-[#f5f5f5] pl-10.5`}
+								/>
+							</div>
+						</Field>
+					) : (
+						<p className="self-end pb-3 text-sm text-[#616161]">
+							Mã nhà cung cấp sẽ được hệ thống tự sinh.
+						</p>
+					)}
 					<Field label="Loại nhà cung cấp">
 						<div className="relative">
 							<select

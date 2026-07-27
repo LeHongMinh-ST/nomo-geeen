@@ -24,7 +24,7 @@ export type SupplierListResponse = {
 	total: number;
 };
 export type SupplierInput = {
-	code: string;
+	code?: string;
 	name: string;
 	/** Chuoi rong = xoa phan loai. */
 	supplierType?: SupplierType | "";

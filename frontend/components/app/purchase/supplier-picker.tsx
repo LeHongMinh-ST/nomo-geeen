@@ -74,9 +74,9 @@ function normalizeKey(value: string) {
 
 function findExistingSupplier(
 	results: TenantSupplier[],
-	draft: { code: string; name: string; phone: string },
+	draft: { code?: string; name: string; phone: string },
 ): TenantSupplier | undefined {
-	const code = normalizeKey(draft.code);
+	const code = normalizeKey(draft.code ?? "");
 	const name = normalizeKey(draft.name);
 	const phone = draft.phone.trim();
 	return results.find((supplier) => {
@@ -105,7 +105,6 @@ function SupplierSheet({
 	const [creating, setCreating] = useState(false);
 	const [saving, setSaving] = useState(false);
 	const [newSupplier, setNewSupplier] = useState({
-		code: "",
 		name: "",
 		phone: "",
 	});
@@ -135,17 +134,16 @@ function SupplierSheet({
 	async function submitNewSupplier(event: React.FormEvent) {
 		event.preventDefault();
 		const draft = {
-			code: newSupplier.code.trim(),
 			name: newSupplier.name.trim(),
 			phone: newSupplier.phone.trim(),
 		};
-		if (!draft.code || !draft.name || saving) return;
+		if (!draft.name || saving) return;
 
 		const existing = findExistingSupplier(results, draft);
 		if (existing) {
 			onPick(existing.id);
 			setCreating(false);
-			setNewSupplier({ code: "", name: "", phone: "" });
+			setNewSupplier({ name: "", phone: "" });
 			return;
 		}
 
@@ -153,13 +151,12 @@ function SupplierSheet({
 		setError(null);
 		try {
 			const created = await createTenantSupplier({
-				code: draft.code,
 				name: draft.name,
 				phone: draft.phone || undefined,
 			});
 			onPick(created.id);
 			setCreating(false);
-			setNewSupplier({ code: "", name: "", phone: "" });
+			setNewSupplier({ name: "", phone: "" });
 		} catch {
 			setError("Không thể tạo nhà cung cấp");
 		} finally {
@@ -232,16 +229,6 @@ function SupplierSheet({
 							</p>
 							<input
 								required
-								placeholder="Mã NCC"
-								aria-label="Mã NCC"
-								value={newSupplier.code}
-								onChange={(e) =>
-									setNewSupplier((v) => ({ ...v, code: e.target.value }))
-								}
-								className="h-10 rounded-[8px] border border-border bg-white px-3 text-sm"
-							/>
-							<input
-								required
 								placeholder="Tên nhà cung cấp"
 								aria-label="Tên nhà cung cấp"
 								value={newSupplier.name}
@@ -264,7 +251,7 @@ function SupplierSheet({
 									type="button"
 									onClick={() => {
 										setCreating(false);
-										setNewSupplier({ code: "", name: "", phone: "" });
+										setNewSupplier({ name: "", phone: "" });
 									}}
 									className="h-10 flex-1 rounded-[8px] border border-border text-sm font-semibold text-foreground"
 								>
@@ -285,7 +272,6 @@ function SupplierSheet({
 							onClick={() => {
 								setCreating(true);
 								setNewSupplier({
-									code: "",
 									name: query.trim(),
 									phone: "",
 								});

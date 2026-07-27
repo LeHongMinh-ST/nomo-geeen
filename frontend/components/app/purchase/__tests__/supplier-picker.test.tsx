@@ -63,7 +63,7 @@ describe("SupplierPicker", () => {
 		vi.mocked(createTenantSupplier).mockResolvedValue({
 			...existing,
 			id: "sup-new",
-			code: "NCC-99",
+			code: "NCC-001",
 			name: "NCC Mới",
 			phone: "0912345678",
 		});
@@ -73,9 +73,6 @@ describe("SupplierPicker", () => {
 		fireEvent.click(
 			await screen.findByRole("button", { name: /\+ Thêm nhà cung cấp mới/ }),
 		);
-		fireEvent.change(screen.getByLabelText("Mã NCC"), {
-			target: { value: "NCC-99" },
-		});
 		fireEvent.change(screen.getByLabelText("Tên nhà cung cấp"), {
 			target: { value: "NCC Mới" },
 		});
@@ -86,7 +83,6 @@ describe("SupplierPicker", () => {
 
 		await waitFor(() => {
 			expect(createTenantSupplier).toHaveBeenCalledWith({
-				code: "NCC-99",
 				name: "NCC Mới",
 				phone: "0912345678",
 			});
@@ -94,16 +90,13 @@ describe("SupplierPicker", () => {
 		});
 	});
 
-	it("reuses an existing supplier when code or name already matches", async () => {
+	it("reuses an existing supplier when name or phone already matches", async () => {
 		const onChange = vi.fn();
 		render(<SupplierPicker onChange={onChange} />);
 		fireEvent.click(screen.getByRole("button", { name: /Chọn nhà cung cấp/ }));
 		fireEvent.click(
 			await screen.findByRole("button", { name: /\+ Thêm nhà cung cấp mới/ }),
 		);
-		fireEvent.change(screen.getByLabelText("Mã NCC"), {
-			target: { value: "NCC-01" },
-		});
 		fireEvent.change(screen.getByLabelText("Tên nhà cung cấp"), {
 			target: { value: "Vật tư Bình Điền" },
 		});

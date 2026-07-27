@@ -76,22 +76,27 @@ export class SuppliersService {
 
 	async create(tenantId: string, dto: CreateSupplierDto) {
 		const data = this.normalize(dto);
-		if (!data.code || !data.name) throw this.invalidInput();
-		try {
-			const supplier = await this.prisma.supplier.create({
-				data: {
-					tenantId,
-					...data,
-					code: data.code as string,
-					name: data.name as string,
-					status: 'ACTIVE',
-				},
-			});
-			return this.toResponse(supplier);
-		} catch (error) {
-			this.throwIfCodeConflict(error);
-			throw error;
+		if (!data.name) throw this.invalidInput();
+		for (let attempt = 0; attempt < 3; attempt += 1) {
+			const code = data.code ?? (await this.nextCode(tenantId));
+			try {
+				const supplier = await this.prisma.supplier.create({
+					data: {
+						tenantId,
+						...data,
+						code,
+						name: data.name,
+						status: 'ACTIVE',
+					},
+				});
+				return this.toResponse(supplier);
+			} catch (error) {
+				if (!data.code && this.isCodeConflict(error)) continue;
+				this.throwIfCodeConflict(error);
+				throw error;
+			}
 		}
+		throw new ConflictException('Could not generate a unique supplier code');
 	}
 
 	async update(tenantId: string, id: string, dto: UpdateSupplierDto) {
@@ -133,7 +138,7 @@ export class SuppliersService {
 
 	private normalize(dto: CreateSupplierDto | UpdateSupplierDto) {
 		return {
-			...(dto.code !== undefined ? { code: dto.code.trim() } : {}),
+			...(dto.code !== undefined ? { code: dto.code.trim() || undefined } : {}),
 			...(dto.name !== undefined ? { name: dto.name.trim() } : {}),
 			...(dto.supplierType !== undefined
 				? { supplierType: this.normalizeSupplierType(dto.supplierType) }
@@ -153,6 +158,17 @@ export class SuppliersService {
 				? { taxCode: dto.taxCode.trim() || null }
 				: {}),
 		};
+	}
+
+	private async nextCode(tenantId: string) {
+		const rows = await this.prisma.supplier.findMany({
+			where: { tenantId },
+			select: { code: true },
+		});
+		const used = new Set(rows.map((row) => row.code));
+		let sequence = 1;
+		while (used.has(`NCC-${String(sequence).padStart(3, '0')}`)) sequence += 1;
+		return `NCC-${String(sequence).padStart(3, '0')}`;
 	}
 
 	/** Chuoi rong => xoa phan loai; chuoi khong map duoc => tu choi thay vi am tham null. */
@@ -185,7 +201,7 @@ export class SuppliersService {
 	private invalidInput() {
 		return new UnprocessableEntityException({
 			reason: 'VALIDATION_ERROR',
-			message: 'Supplier code and name are required',
+			message: 'Supplier name is required',
 		});
 	}
 	private invalidSupplierType() {
@@ -196,13 +212,16 @@ export class SuppliersService {
 		});
 	}
 	private throwIfCodeConflict(error: unknown): void {
-		if (
-			error instanceof Prisma.PrismaClientKnownRequestError &&
-			error.code === 'P2002'
-		)
+		if (this.isCodeConflict(error))
 			throw new ConflictException({
 				reason: 'DUPLICATE_SUPPLIER_CODE',
 				message: 'Supplier code already exists in this tenant',
 			});
+	}
+	private isCodeConflict(error: unknown): boolean {
+		return (
+			error instanceof Prisma.PrismaClientKnownRequestError &&
+			error.code === 'P2002'
+		);
 	}
 }

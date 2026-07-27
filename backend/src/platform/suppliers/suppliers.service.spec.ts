@@ -60,7 +60,7 @@ describe('SuppliersService', () => {
 			}),
 		);
 	});
-	it.each([[{ code: '   ', name: 'Valid' }], [{ code: 'Valid', name: '   ' }]])(
+	it.each([[{ name: '   ' }]])(
 		'rejects empty required fields on create',
 		async (dto) => {
 			const { service, prisma } = makeService();
@@ -70,6 +70,35 @@ describe('SuppliersService', () => {
 			expect(prisma.supplier.create).not.toHaveBeenCalled();
 		},
 	);
+	it('generates the supplier code per tenant when omitted', async () => {
+		const { service, prisma } = makeService();
+		prisma.supplier.findMany.mockResolvedValue([
+			{ code: 'NCC-001' },
+			{ code: 'MANUAL' },
+		]);
+		prisma.supplier.create.mockResolvedValue({
+			id: 's2',
+			code: 'NCC-002',
+			name: 'New supplier',
+			supplierType: null,
+			contactName: null,
+			phone: null,
+			email: null,
+			address: null,
+			province: null,
+			taxCode: null,
+			balance: 0n,
+			status: 'ACTIVE',
+			createdAt: new Date(),
+			updatedAt: new Date(),
+		});
+		await service.create('tenant-1', { name: 'New supplier' });
+		expect(prisma.supplier.create).toHaveBeenCalledWith(
+			expect.objectContaining({
+				data: expect.objectContaining({ code: 'NCC-002' }),
+			}),
+		);
+	});
 	it('rejects empty required fields on update and does not write balance', async () => {
 		const { service, prisma } = makeService();
 		prisma.supplier.findFirst.mockResolvedValue({ id: 's1' });

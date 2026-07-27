@@ -15,6 +15,14 @@ services:
       interval: 5s
       timeout: 5s
       retries: 20
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1G
+        reservations:
+          cpus: "0.25"
+          memory: 256M
     networks: [nomogreen]
 
   redis:
@@ -28,6 +36,14 @@ services:
       interval: 5s
       timeout: 5s
       retries: 20
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 256M
+        reservations:
+          cpus: "0.05"
+          memory: 64M
     networks: [nomogreen]
 
   migrate:
@@ -42,6 +58,11 @@ services:
       postgres:
         condition: service_healthy
     command: ["pnpm", "exec", "prisma", "migrate", "deploy"]
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
     networks: [nomogreen]
 
   backend:
@@ -54,6 +75,7 @@ services:
     environment:
       NODE_ENV: production
       PORT: 3001
+      NODE_OPTIONS: --max-old-space-size=512
       DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-nomogreen}?schema=public
       REDIS_URL: redis://redis:6379
       JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:?JWT_ACCESS_SECRET is required}
@@ -74,6 +96,14 @@ services:
       interval: 10s
       timeout: 5s
       retries: 10
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 768M
+        reservations:
+          cpus: "0.25"
+          memory: 256M
     networks: [nomogreen]
 
   frontend:
@@ -88,6 +118,7 @@ services:
     environment:
       NODE_ENV: production
       PORT: 3000
+      NODE_OPTIONS: --max-old-space-size=384
     depends_on:
       backend:
         condition: service_healthy
@@ -97,6 +128,14 @@ services:
       timeout: 5s
       retries: 10
       start_period: 30s
+    deploy:
+      resources:
+        limits:
+          cpus: "0.75"
+          memory: 512M
+        reservations:
+          cpus: "0.15"
+          memory: 128M
     networks: [nomogreen]
 
 volumes:

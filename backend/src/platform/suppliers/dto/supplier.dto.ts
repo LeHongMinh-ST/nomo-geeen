@@ -27,7 +27,7 @@ export class SupplierQueryDto {
  * mapSupplierType va tu choi gia tri khong map duoc.
  */
 export class CreateSupplierDto {
-	@IsString() @IsNotEmpty() code!: string;
+	@IsOptional() @IsString() @IsNotEmpty() code?: string;
 	@IsString() @IsNotEmpty() name!: string;
 	@IsOptional() @IsString() supplierType?: string;
 	@IsOptional() @IsString() contactName?: string;
