@@ -143,6 +143,7 @@ export default function ThietLapPage() {
 	const [fields, setFields] = useState<Field[]>([]);
 	const [saved, setSaved] = useState(false);
 	const [error, setError] = useState<string | null>(null);
+	const [saving, setSaving] = useState(false);
 
 	useEffect(() => {
 		if (user) setFields(fieldsFor(user, address));
@@ -179,6 +180,7 @@ export default function ThietLapPage() {
 		);
 		setError(null);
 		setSaved(false);
+		setSaving(true);
 		try {
 			const nextAddress = await updateProfile({
 				fullName: String(values.name ?? "").trim(),
@@ -193,6 +195,8 @@ export default function ThietLapPage() {
 			setError(
 				cause instanceof Error ? cause.message : "Không thể lưu thông tin.",
 			);
+		} finally {
+			setSaving(false);
 		}
 	}
 
@@ -285,10 +289,10 @@ export default function ThietLapPage() {
 
 				<button
 					type="submit"
-					disabled={loading || !user}
+					disabled={saving || !user}
 					className="mt-1 flex h-12 w-full items-center justify-center rounded-[10px] bg-primary text-base font-semibold text-white transition-all duration-200 ease-out hover:bg-[#5cad45] active:translate-y-px active:bg-[#3f8530] md:h-11"
 				>
-					{loading ? "Đang lưu..." : "Lưu thay đổi"}
+					{saving ? "Đang lưu..." : "Lưu thay đổi"}
 				</button>
 			</form>
 

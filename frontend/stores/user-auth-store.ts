@@ -107,14 +107,9 @@ export const useUserAuth = create<UserAuthState>((set, get) => ({
 	updateProfile: async (input) => {
 		const token = get().accessToken;
 		if (!token) throw new Error("Phiên đăng nhập đã hết hạn.");
-		set({ loading: true });
-		try {
-			const response = await updateCurrentProfile(token, input);
-			set({ user: response.user });
-			return response.address;
-		} finally {
-			set({ loading: false });
-		}
+		const response = await updateCurrentProfile(token, input);
+		set({ user: response.user });
+		return response.address;
 	},
 	logout: async () => {
 		const token = get().accessToken;
