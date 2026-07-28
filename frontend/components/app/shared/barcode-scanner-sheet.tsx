@@ -143,17 +143,17 @@ export function BarcodeScannerSheet({
 					<h2 className="mb-3 text-lg font-bold text-foreground">{title}</h2>
 
 					<div className="relative mb-4 aspect-[4/3] w-full overflow-hidden rounded-[16px] bg-[#111]">
+						<video
+							ref={videoRef}
+							autoPlay
+							playsInline
+							muted
+							className={`size-full object-cover ${camState === "on" ? "" : "hidden"}`}
+						>
+							<track kind="captions" />
+						</video>
 						{camState === "on" ? (
 							<>
-								<video
-									ref={videoRef}
-									autoPlay
-									playsInline
-									muted
-									className="size-full object-cover"
-								>
-									<track kind="captions" />
-								</video>
 								<div className="pointer-events-none absolute inset-0 flex items-center justify-center">
 									<div className="relative h-28 w-4/5 rounded-[12px] border-2 border-white/80">
 										<ScanLine
