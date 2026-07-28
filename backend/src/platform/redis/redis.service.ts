@@ -87,4 +87,23 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
 	): Promise<unknown> {
 		return this.client.eval(script, numKeys, ...args);
 	}
+
+	/**
+	 * Pub/sub publish for cross-instance fan-out (notifications SSE).
+	 * Call sites treat failure as best-effort — local delivery still runs.
+	 */
+	async publish(channel: string, message: string): Promise<number> {
+		return this.client.publish(channel, message);
+	}
+
+	/**
+	 * Dedicated subscriber connection (ioredis requires a separate client for subscribe).
+	 * Caller owns connect/quit lifecycle.
+	 */
+	duplicate(): Redis {
+		return this.client.duplicate({
+			lazyConnect: true,
+			maxRetriesPerRequest: 2,
+		});
+	}
 }

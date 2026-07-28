@@ -9,6 +9,8 @@ Format theo [Keep a Changelog](https://keepachangelog.com/), tuân thủ [Semant
 ## [Unreleased]
 
 ### Added
+- **Tenant notification SSE** — `GET /tenant/notifications/stream` (Bearer fetch streaming, heartbeat, disconnect cleanup); `NotificationEventsService` fan-out theo tenant/user + Redis pub/sub multi-instance (fallback in-process); producer publish sau create/update; FE subscribe/reconnect re-fetch list+unread, polling fallback, cleanup unmount. List/unread-count vẫn là source of truth.
+- **Tenant in-app notifications (header bell)** — API `/tenant/notifications` (list/unread-count/sync/read/read-all); `notification` + per-user `notification_read` + `dedupeKey`; runtime producers công nợ/tồn thấp/gần HSD (digest/ngày, không spam); FE chuông desktop popover + mobile sheet + `/thong-bao`; seed demo; chưa BullMQ/push.
 - **Tenant home dashboard live data** — trang chủ tenant (`/`) bỏ mock KPI; `GET /tenant/reports/home-summary` (`dashboard:view`) gom doanh thu hôm nay/tháng, phải thu, cảnh báo tồn/HSD/công nợ, series 7 ngày và top bán chạy; FE `HomeDashboard` xử lý loading/error/empty, chào theo `fullName` thật.
 - **Quick-sale POS workspace refresh** — `/ban-nhanh` now presents a focused two-column counter workspace on desktop: product search and quick-add tiles on the left, sticky customer/order summary and payment actions on the right. Mobile keeps the existing stacked flow and bottom-fixed actions.
 - **Quick-sale customer inline UX** — `/ban-nhanh` now exposes customer lookup directly in the counter form, supports debounced name/phone autocomplete, and creates a customer inline through the existing tenant customer API. Existing balance/note context is shown; customer order history remains pending a customerId-filtered sales-history contract.
