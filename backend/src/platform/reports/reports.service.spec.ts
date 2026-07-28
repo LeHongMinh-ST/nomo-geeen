@@ -221,4 +221,111 @@ describe('ReportsService', () => {
 			}),
 		).rejects.toBeInstanceOf(BadRequestException);
 	});
+
+	it('returns a JSON-safe home dashboard summary from live domain data', async () => {
+		const now = new Date('2026-07-28T10:00:00+07:00');
+		const prisma = {
+			sale: {
+				aggregate: jest
+					.fn()
+					.mockResolvedValueOnce({
+						_count: { _all: 3 },
+						_sum: { total: 12_000_000n },
+					})
+					.mockResolvedValueOnce({
+						_count: { _all: 2 },
+						_sum: { total: 10_000_000n },
+					})
+					.mockResolvedValueOnce({
+						_count: { _all: 40 },
+						_sum: { total: 100_000_000n },
+					})
+					.mockResolvedValueOnce({
+						_count: { _all: 30 },
+						_sum: { total: 80_000_000n },
+					}),
+				findMany: jest.fn().mockResolvedValue([
+					{ soldAt: new Date('2026-07-28T09:00:00+07:00'), total: 5_000_000n },
+					{ soldAt: new Date('2026-07-27T09:00:00+07:00'), total: 4_000_000n },
+				]),
+			},
+			saleLine: {
+				findMany: jest.fn().mockResolvedValue([
+					{
+						productId: 'p1',
+						productNameSnapshot: 'NPK',
+						qtyBase: new Prisma.Decimal('10'),
+						lineTotal: 2_000_000n,
+					},
+				]),
+			},
+			customer: {
+				aggregate: jest.fn().mockResolvedValue({
+					_count: { _all: 5 },
+					_sum: { balance: 15_000_000n },
+				}),
+			},
+			tenantSettings: {
+				findUnique: jest.fn().mockResolvedValue({
+					lowStockThresholdDefault: new Prisma.Decimal('10'),
+				}),
+			},
+			stock: {
+				findMany: jest.fn().mockResolvedValue([
+					{
+						qty: new Prisma.Decimal('4'),
+						warehouseId: 'w1',
+						product: {
+							status: 'ACTIVE',
+							batches: [
+								{
+									tenantId: 'tenant-1',
+									warehouseId: 'w1',
+									expiresAt: new Date('2026-08-10T00:00:00.000Z'),
+									qtyOnHand: new Prisma.Decimal('4'),
+								},
+							],
+						},
+					},
+					{
+						qty: new Prisma.Decimal('50'),
+						warehouseId: 'w1',
+						product: {
+							status: 'ACTIVE',
+							batches: [],
+						},
+					},
+				]),
+			},
+		};
+		const result = await new ReportsService(prisma as never).homeSummary(
+			'tenant-1',
+			now,
+		);
+		expect(result.today).toMatchObject({
+			revenue: '12000000',
+			orders: 3,
+			previousRevenue: '10000000',
+		});
+		expect(result.month.revenue).toBe('100000000');
+		expect(result.receivable).toEqual({
+			balance: '15000000',
+			customers: 5,
+		});
+		expect(result.alerts.lowStock).toBe(1);
+		expect(result.alerts.debtOwing).toBe(5);
+		expect(result.alerts.nearExpiry).toBe(1);
+		expect(result.last7Days).toHaveLength(7);
+		expect(result.last7Days.at(-1)).toMatchObject({
+			date: '2026-07-28',
+			revenue: '5000000',
+		});
+		expect(result.topProducts[0]).toMatchObject({
+			productId: 'p1',
+			name: 'NPK',
+			total: '2000000',
+			qtyBase: '10',
+		});
+		expect(() => JSON.stringify(result)).not.toThrow();
+	});
 });

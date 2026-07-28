@@ -81,7 +81,8 @@ The admin permission catalog is exposed at `/admin/settings/permissions` and gat
 - No global audit interceptor was found; coverage is service-owned and therefore must be reviewed when new mutation modules are added.
 - The admin navigation contains the permission-gated `/admin/audit-log` route, and dashboard recent activity reads a bounded newest-audit query.
 - Tenant user auth (`specs/user-registration-authentication`) is implementation-complete including idle-logout and login throttle; formal status is `ready_for_review` pending optional re-run of e2e with full JWT env.
-- Product conversions, price tiers, and dashboard aggregation remain separate follow-up slices; the product API exposes core catalog fields and read-only stock quantity. The advanced sales-order lifecycle is now available under `/tenant/sales/orders`; `POST /tenant/sales/quick` remains the separate inventory-only quick-sale shortcut and does not provide order list/detail or cancellation semantics.
+- Product conversions and price tiers remain separate follow-up slices; the product API exposes core catalog fields and read-only stock quantity. The advanced sales-order lifecycle is now available under `/tenant/sales/orders`; `POST /tenant/sales/quick` remains the separate inventory-only quick-sale shortcut and does not provide order list/detail or cancellation semantics.
+- Tenant home dashboard reads `GET /tenant/reports/home-summary` (`dashboard:view`, no advanced_mode gate): completed-sale KPIs for today/month with previous-period totals, customer receivable balance/count, low-stock (threshold from `TenantSettings.lowStockThresholdDefault` or 10), near-expiry item counts (EXPIRED/CRITICAL/WARNING), last-7-day revenue series (Asia/Ho_Chi_Minh day bounds), and month top products. Frontend `HomeDashboard` is a client child of the server page so bearer auth stays in the user store.
 - Inventory reads are available; batch responses expose `healthState` and optimistic `version`.
   Livestock transitions use `PATCH /tenant/inventory/batches/:batchId/health-state` with
   transactional audit; stock writes otherwise flow through purchase complete / quick sale.
@@ -98,8 +99,9 @@ The admin permission catalog is exposed at `/admin/settings/permissions` and gat
   PaymentVoucher contract is approved. Original sale/purchase documents remain immutable.
 
 - Operational reports expose tenant-scoped stock and completed-sales summaries with
-  optional Phase-1 `BusinessGroup` filtering and breakdowns. The `/bao-cao` frontend uses
-  the shared tenant error mapper and keeps chart/export/profit accounting outside this slice.
+  optional Phase-1 `BusinessGroup` filtering and breakdowns, plus home-summary for the
+  tenant dashboard. The `/bao-cao` frontend uses the shared tenant error mapper and keeps
+  chart/export/profit accounting outside the reports page (home chart is separate).
 
 - The frontend tenant sales client and customer picker are available. R5 migrates `/don-ban-hang` and `/don-ban-hang/:id` to canonical list/detail/cancel operations with debounced server queries, desktop replacement paging, mobile deduplicated incremental loading, conflict refetch, inline retry, and responsive loading/error states. Order creation/complete orchestration remains R6; no new seed fallback is part of this slice.
 
@@ -129,8 +131,7 @@ The repository contains local runtime/package configuration and migrations, but 
 - Product kind changes in edit mode require explicit confirmation when specialist attributes would
   be discarded; the mobile sticky save action remains part of the same form boundary.
 
-- Tenant-enabled business groups are managed at `/tenant/settings/business-groups` and consumed by
-  ProductForm. The backend prevents disabling the final enabled group with `NO_ENABLED_BUSINESS_GROUP`.
+- Package entitlements determine enabled business groups and are consumed by ProductForm; tenant users cannot toggle package access from settings.
 
 ## Supplier and purchase batch metadata
 
@@ -173,3 +174,10 @@ The repository contains local runtime/package configuration and migrations, but 
 - Sales order creation can optionally resolve a tenant Handbook `diseaseId` and persist
   `diseaseNameSnapshot`, `consultContext`, and `suggestedQtyMeta` on the Sale. These fields are
   historical snapshots; completed orders do not depend on later Handbook edits.
+
+## Fixed product catalog and package access
+
+- Product categories are no longer part of tenant product create/update/lookups or product-list filters; the legacy database columns remain only for backward-compatible records.
+- `BusinessGroup` is the fixed product catalog. Default access is `CROP_INPUTS` (thuốc bảo vệ thực vật + phân bón) and `CROP_SEEDLINGS` (cây trồng).
+- `HUMAN_DRUGS`, `VETERINARY_DRUGS`, and `ANIMAL_FEED` require package features `product_group:human_drugs`, `product_group:veterinary_drugs`, and `product_group:animal_feed`; backend checks these entitlements on create/update.
+- Starter seeds the default groups, Professional adds veterinary drugs and animal feed, and Enterprise adds human drugs.

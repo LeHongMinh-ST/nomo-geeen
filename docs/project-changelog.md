@@ -1,4 +1,5 @@
 # Project Changelog
+- **Fixed product catalog and package entitlements** — bỏ route/quản lý danh mục tenant; sản phẩm dùng nhóm hàng cố định. Gói cơ bản mở Thuốc bảo vệ thực vật + Phân bón và Cây trồng; feature entitlement mở thêm Thuốc dùng cho người, Thuốc thú y và Thức ăn chăn nuôi.
 
 Tất cả thay đổi đáng chú ý của NomoGreen Platform được ghi nhận tại đây.
 Format theo [Keep a Changelog](https://keepachangelog.com/), tuân thủ [Semantic Versioning](https://semver.org/).
@@ -8,14 +9,12 @@ Format theo [Keep a Changelog](https://keepachangelog.com/), tuân thủ [Semant
 ## [Unreleased]
 
 ### Added
+- **Tenant home dashboard live data** — trang chủ tenant (`/`) bỏ mock KPI; `GET /tenant/reports/home-summary` (`dashboard:view`) gom doanh thu hôm nay/tháng, phải thu, cảnh báo tồn/HSD/công nợ, series 7 ngày và top bán chạy; FE `HomeDashboard` xử lý loading/error/empty, chào theo `fullName` thật.
 - **Quick-sale POS workspace refresh** — `/ban-nhanh` now presents a focused two-column counter workspace on desktop: product search and quick-add tiles on the left, sticky customer/order summary and payment actions on the right. Mobile keeps the existing stacked flow and bottom-fixed actions.
 - **Quick-sale customer inline UX** — `/ban-nhanh` now exposes customer lookup directly in the counter form, supports debounced name/phone autocomplete, and creates a customer inline through the existing tenant customer API. Existing balance/note context is shown; customer order history remains pending a customerId-filtered sales-history contract.
 - **Cảnh báo hạn dùng theo tầng** (catalog §14.2) — backend tính tier 180/90/30 ngày từ ngày hết
   hạn; inventory list/card/detail hiển thị kết quả server trả về, không tự tính theo đồng hồ trình duyệt.
-- **Màn hình bật/tắt nhóm kinh doanh** (catalog §3) — `/thiet-lap/nhom-kinh-doanh` cho chủ cửa
-  hàng tự bật/tắt 5 nhóm Phase 1, kèm số sản phẩm đang có mỗi nhóm. Backend chặn tắt sạch mọi
-  nhóm bằng `NO_ENABLED_BUSINESS_GROUP` (422) để cửa hàng không tự khoá khả năng tạo sản phẩm.
-  Nhãn nhóm ở `product-kind-form.ts` được đồng bộ với catalog §2.
+- **Màn hình nhóm kinh doanh** — hiển thị các nhóm hàng được mở theo gói dịch vụ và số sản phẩm; tenant không tự bật/tắt quyền mở nhóm. Nhãn nhóm ở `product-kind-form.ts` đồng bộ với catalog hệ thống.
 - **Nhà cung cấp: tỉnh/thành phố + loại chuẩn hoá** (catalog §14.1) — thêm `Supplier.province`
   tách khỏi `address`; `supplierType` chuyển từ free text sang enum `SupplierType`
   (`CROP_PROTECTION` / `FERTILIZER` / `BOTH`). Migration backfill best-effort theo token đã bỏ

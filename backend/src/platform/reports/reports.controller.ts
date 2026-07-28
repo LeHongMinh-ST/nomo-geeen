@@ -32,4 +32,11 @@ export class ReportsController {
 	sales(@Req() req: TenantRequest, @Query() query: ReportDateQueryDto) {
 		return this.reports.salesSummary(req.user.tenantId, query);
 	}
+
+	/** Home dashboard KPIs — core screen, permission dashboard:view only. */
+	@Get('home-summary')
+	@RequireTenantPermission('dashboard:view')
+	home(@Req() req: TenantRequest) {
+		return this.reports.homeSummary(req.user.tenantId);
+	}
 }

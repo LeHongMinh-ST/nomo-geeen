@@ -47,6 +47,30 @@ describe('ReportsController', () => {
 		).toHaveBeenCalledWith('tenant-1', query);
 	});
 
+	it('forwards home dashboard summary with dashboard:view', () => {
+		const reports = {
+			homeSummary: jest.fn().mockReturnValue({ today: { revenue: '0' } }),
+		} as never;
+		const controller = new ReportsController(reports);
+		const request = { user: { tenantId: 'tenant-1' } } as never;
+		expect(controller.home(request)).toEqual({ today: { revenue: '0' } });
+		expect(
+			(reports as { homeSummary: jest.Mock }).homeSummary,
+		).toHaveBeenCalledWith('tenant-1');
+		expect(
+			Reflect.getMetadata(
+				TENANT_PERMISSIONS_KEY,
+				ReportsController.prototype.home,
+			),
+		).toEqual(['dashboard:view']);
+		expect(
+			Reflect.getMetadata(
+				ENTITLEMENT_FEATURE_KEY,
+				ReportsController.prototype.home,
+			),
+		).toBeUndefined();
+	});
+
 	it('imports the audit module required by the tenant permission guard', () => {
 		expect(Reflect.getMetadata('imports', ReportsModule)).toContain(
 			AuditModule,

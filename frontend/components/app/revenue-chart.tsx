@@ -8,29 +8,38 @@ import { formatVND } from "@/lib/format";
  * Tối đa 1 màu (Brand Green), có nhãn số rõ ràng, không phụ thuộc thư viện.
  */
 
-type Day = { label: string; value: number };
+export type RevenueChartDay = { label: string; value: number };
 
-const data: Day[] = [
-	{ label: "T2", value: 8_200_000 },
-	{ label: "T3", value: 10_500_000 },
-	{ label: "T4", value: 7_400_000 },
-	{ label: "T5", value: 13_100_000 },
-	{ label: "T6", value: 11_800_000 },
-	{ label: "T7", value: 15_600_000 },
-	{ label: "CN", value: 12_480_000 },
-];
-
-const max = Math.max(...data.map((d) => d.value));
-
-const todayIndex = data.length - 1;
-
-export function RevenueChart() {
+export function RevenueChart({
+	data,
+	emptyLabel = "Chưa có doanh thu trong 7 ngày gần đây",
+}: {
+	data: RevenueChartDay[];
+	emptyLabel?: string;
+}) {
+	const safe = data.length
+		? data
+		: Array.from({ length: 7 }, (_, i) => ({
+				label: ["T2", "T3", "T4", "T5", "T6", "T7", "CN"][i] ?? "—",
+				value: 0,
+			}));
+	const max = Math.max(0, ...safe.map((d) => d.value));
+	const todayIndex = safe.length - 1;
 	const [active, setActive] = useState<number | null>(todayIndex);
+	const hasRevenue = max > 0;
+
+	if (!hasRevenue) {
+		return (
+			<p className="flex h-44 items-center justify-center text-sm text-muted-foreground">
+				{emptyLabel}
+			</p>
+		);
+	}
 
 	return (
 		<div className="flex flex-col gap-3">
 			<div className="flex h-44 items-end justify-between gap-1.5 sm:gap-2">
-				{data.map((day, index) => {
+				{safe.map((day, index) => {
 					const heightPct = Math.max(8, Math.round((day.value / max) * 100));
 					const isActive = active === index;
 					const isToday = index === todayIndex;
@@ -55,9 +64,7 @@ export function RevenueChart() {
 							</span>
 							<span
 								className={`w-full max-w-10 rounded-t-[8px] transition-all duration-200 ease-out sm:max-w-none ${
-									isToday || isActive
-										? "bg-primary"
-										: "bg-[#c8e0c0]"
+									isToday || isActive ? "bg-primary" : "bg-[#c8e0c0]"
 								}`}
 								style={{
 									height: `${heightPct}%`,
