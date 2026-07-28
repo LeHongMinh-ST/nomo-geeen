@@ -104,6 +104,11 @@ Format theo [Keep a Changelog](https://keepachangelog.com/), tuân thủ [Semant
 - **Tenant auth acceptance coverage** — added deterministic Postgres/Redis tenant lifecycle E2E and re-ran admin auth plus tenant product regressions: 5 suites / 19 tests passing.
 
 ### Fixed
+- **Quick-sale footer gap** — kéo nền thanh tổng tiền xuống dưới vùng chồng an toàn của bottom nav để không còn kẽ hở giữa nút thanh toán và menu mobile; bottom nav vẫn nằm trên lớp footer.
+- **Handbook empty state mobile CTA duplication** — ẩn nút “Thêm sổ tay” trong empty state trên mobile, giữ lại FAB “Thêm” duy nhất; desktop vẫn hiển thị CTA trong empty state.
+- **Restore mobile quick-sale shortcut** — khôi phục nút `+` Bán nhanh ở giữa bottom navigation; các CTA tạo mới trong empty state vẫn chỉ hiển thị trên desktop để tránh trùng với FAB mobile.
+- **Purchase empty state mobile CTA duplication** — ẩn nút “Tạo phiếu nhập” trong empty state trên mobile, giữ lại FAB “Tạo phiếu” duy nhất; desktop vẫn hiển thị CTA trong empty state.
+- **Product empty state mobile CTA duplication** — ẩn nút “Thêm sản phẩm” trong empty state trên mobile, giữ lại FAB “Thêm” duy nhất; desktop vẫn hiển thị CTA trong empty state.
 - **Mobile bottom navigation and footer overlap** — removed the redundant center `+` action from the four-item tenant navigation, reserved safe-area space in the shared app content, and increased handbook form bottom spacing/z-index so fixed actions do not cover content or appear detached from the bottom menu.
 - **Quick-sale dual customer entry** — the new-customer name and optional phone fields now remain editable together; suggestions render inline instead of opening a modal that disabled the second field.
 - **Quick-sale populated-state spacing** — removed the remaining bottom-action padding from the product list so adding items does not create a large gap before the customer form.

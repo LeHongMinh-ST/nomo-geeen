@@ -583,7 +583,7 @@ function EmptyState({ hasProducts }: { hasProducts: boolean }) {
 			{!hasProducts ? (
 				<Link
 					href="/san-pham/them"
-					className="flex h-12 items-center gap-2 rounded-[10px] bg-primary px-6 text-base font-semibold text-white transition-colors duration-200 ease-out hover:bg-[#5cad45] active:bg-[#3f8530]"
+					className="hidden h-12 items-center gap-2 rounded-[10px] bg-primary px-6 text-base font-semibold text-white transition-colors duration-200 ease-out hover:bg-[#5cad45] active:bg-[#3f8530] lg:flex"
 				>
 					<Plus className="size-5" aria-hidden />
 					Thêm sản phẩm

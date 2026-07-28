@@ -1,7 +1,7 @@
 "use client";
 
 import type { LucideIcon } from "lucide-react";
-import { House } from "lucide-react";
+import { House, Plus } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -152,8 +152,27 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 				</div>
 
 				{/* Bottom nav — chỉ mobile */}
-				<nav className="pb-safe fixed inset-x-0 bottom-0 z-40 grid h-[68px] grid-cols-4 items-center border-t border-border bg-white [height:calc(68px+env(safe-area-inset-bottom,0px))] lg:hidden">
-					{bottomNavItems.map((item) => {
+				<nav className="pb-safe fixed inset-x-0 bottom-0 z-40 grid h-[68px] grid-cols-5 items-center border-t border-border bg-white [height:calc(68px+env(safe-area-inset-bottom,0px))] lg:hidden">
+					{bottomNavItems.slice(0, 2).map((item) => (
+						<BottomLink
+							key={item.href}
+							item={item}
+							active={isActive(pathname, item.href)}
+						/>
+					))}
+
+					{/* Nút + Bán nhanh — hành động chính trên mobile */}
+					<div className="flex items-center justify-center">
+						<Link
+							href="/ban-nhanh"
+							className="flex size-14 -translate-y-3 select-none flex-col items-center justify-center rounded-full bg-primary text-white shadow-[0_8px_20px_rgba(76,175,80,0.4)] transition-transform duration-150 ease-out active:scale-90 active:bg-[#3f8530]"
+							aria-label="Bán nhanh"
+						>
+							<Plus className="size-7" aria-hidden />
+						</Link>
+					</div>
+
+					{bottomNavItems.slice(2).map((item) => {
 						// Mục "Khác" mở Sheet thay vì điều hướng.
 						if (item.href === "/khac") {
 							const activeColor = (
