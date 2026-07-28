@@ -46,7 +46,7 @@ const shortcuts: {
 		href: "/nhap-hang",
 		tile: USER_TILE_GREEN,
 	},
-	{ icon: HandCoins, label: "Thu nợ", href: "/cong-no", tile: USER_TILE_BLUE },
+	{ icon: HandCoins, label: "Công nợ", href: "/cong-no", tile: USER_TILE_BLUE },
 ];
 
 function greetingDateLabel(now = new Date()): string {

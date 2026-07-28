@@ -15,6 +15,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ListFilterBar } from "@/components/app/shared/list-filter-bar";
 import { ListSkeleton } from "@/components/app/shared/list-skeleton";
 import { formatVND } from "@/lib/format";
+import { businessGroupLabel } from "@/lib/product-kind-form";
 import {
 	brandName,
 	getStockStatus,
@@ -247,7 +248,7 @@ export function ProductList() {
 											Sản phẩm
 										</th>
 										<th className="min-w-[120px] px-4 py-3 font-semibold">
-											Danh mục
+											Ngành hàng
 										</th>
 										<th className="min-w-[110px] whitespace-nowrap px-4 py-3 text-right font-semibold">
 											Giá bán
@@ -297,7 +298,7 @@ export function ProductList() {
 													</Link>
 												</td>
 												<td className="px-4 py-3 text-base text-[#616161]">
-													{p.productKind ?? p.businessGroup ?? "Sản phẩm"}
+													{businessGroupLabel(p.businessGroup)}
 												</td>
 												<td className="whitespace-nowrap px-4 py-3 text-right text-base font-bold text-foreground">
 													{formatVND(p.salePrice)}₫

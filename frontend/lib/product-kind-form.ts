@@ -8,6 +8,10 @@ export const BUSINESS_GROUP_CATALOG = [
 	{ id: "VETERINARY_DRUGS", label: "Thuốc thú y" },
 ] as const;
 
+const BUSINESS_GROUP_LABELS: Record<string, string> = {
+	LIVESTOCK: "Con giống",
+};
+
 export type BusinessGroupId =
 	| (typeof BUSINESS_GROUP_CATALOG)[number]["id"]
 	| "LIVESTOCK";
@@ -217,6 +221,19 @@ export function getProductKindsForGroup(group: BusinessGroupId) {
 
 export function getProductKindDefinition(kind: string | null | undefined) {
 	return kind ? KIND_BY_ID.get(kind as ProductKindId) : undefined;
+}
+
+export function businessGroupLabel(id: string | null | undefined): string {
+	if (!id) return "Chưa phân loại";
+	return (
+		BUSINESS_GROUP_CATALOG.find((group) => group.id === id)?.label ??
+		BUSINESS_GROUP_LABELS[id] ??
+		"Chưa phân loại"
+	);
+}
+
+export function productKindLabel(id: string | null | undefined): string {
+	return getProductKindDefinition(id)?.label ?? "Chưa phân loại";
 }
 
 export function getRequiredAttrKeys(

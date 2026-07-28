@@ -309,7 +309,7 @@ Hướng dẫn
 * Mobile: tên cửa hàng/logo + chuông thông báo. Bỏ bớt để nhường chỗ nội dung.
 * Desktop (kiểu FarmGo):
   * Toggle sidebar
-  * Nút **"+ Tạo mới"** dạng **pill nổi bật**, đặt gần giữa topbar — mở menu nhanh: Bán hàng, Nhập hàng, Thêm khách, Thu nợ... (≤ 3 lần chạm).
+  * Nút **"+ Tạo mới"** dạng **pill nổi bật**, đặt gần giữa topbar — mở menu nhanh: Bán hàng, Nhập hàng, Thêm khách, Công nợ... (≤ 3 lần chạm).
   * Ô tìm kiếm
   * Chuông thông báo (badge đỏ khi có mới)
   * Avatar kèm vai trò ("Minh Tâm — Chủ cửa hàng") — luôn biết mình đang ở quyền nào.
@@ -489,7 +489,7 @@ Thứ tự ưu tiên trên mobile (cuộn dọc) — cảm giác app native (PWA
 3. Cảnh báo: Hàng sắp hết · Nợ đến hạn · Hàng sắp hết hạn
    · mobile: horizontal snap-scroll chips (không stack 3 card dọc)
    · sm+: grid 3 cột
-4. Lối tắt nhanh: [Bán hàng] [Nhập hàng] [Thu nợ]  (tile ≥ 96px, icon module accent)
+4. Lối tắt nhanh: [Bán hàng] [Nhập hàng] [Công nợ]  (tile ≥ 96px, icon module accent)
 5. Biểu đồ doanh thu 7 ngày (cột, nhãn số khi chạm; hôm nay đậm hơn)
 6. Bán chạy trong tháng
 ```

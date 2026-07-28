@@ -13,6 +13,7 @@ import {
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { formatVND } from "@/lib/format";
+import { businessGroupLabel, productKindLabel } from "@/lib/product-kind-form";
 import {
 	brandName,
 	getStockStatus,
@@ -131,8 +132,12 @@ export function ProductDetail({ product }: { product: Product }) {
 			{/* Thông tin cơ bản */}
 			<InfoSection icon={Tag} tile="#5cad45" title="Thông tin chung">
 				<InfoRow
-					label="Nhóm hàng"
-					value={product.businessGroup ?? product.productKind ?? "—"}
+					label="Ngành hàng"
+					value={businessGroupLabel(product.businessGroup)}
+				/>
+				<InfoRow
+					label="Loại sản phẩm"
+					value={productKindLabel(product.productKind)}
 				/>
 				<InfoRow
 					label="Thương hiệu"

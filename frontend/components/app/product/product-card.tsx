@@ -3,6 +3,7 @@
 import { Package } from "lucide-react";
 import Link from "next/link";
 import { formatVND } from "@/lib/format";
+import { businessGroupLabel } from "@/lib/product-kind-form";
 import {
 	brandName,
 	getStockStatus,
@@ -43,7 +44,7 @@ export function ProductCard({ product }: { product: Product }) {
 				</div>
 
 				<p className="text-sm text-[#616161]">
-					{product.productKind ?? product.businessGroup ?? "Sản phẩm"}
+					{businessGroupLabel(product.businessGroup)}
 					{product.brandId
 						? ` · ${product.brandLabel ?? brandName(product.brandId)}`
 						: ""}

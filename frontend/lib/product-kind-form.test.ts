@@ -1,11 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
 	BUSINESS_GROUP_CATALOG,
+	businessGroupLabel,
 	filterEnabledBusinessGroups,
 	getProductKindsForGroup,
 	getRequiredAttrKeys,
 	isCompatibleProductKind,
 	normalizeProductAttrs,
+	productKindLabel,
 	resolveLegacyProductKind,
 } from "@/lib/product-kind-form";
 
@@ -28,6 +30,16 @@ describe("product kind contract", () => {
 			"Thức ăn chăn nuôi",
 			"Thuốc thú y",
 		]);
+	});
+
+	it("maps product groups and kinds to Vietnamese labels", () => {
+		expect(businessGroupLabel("CROP_INPUTS")).toBe(
+			"Thuốc bảo vệ thực vật + Phân bón",
+		);
+		expect(businessGroupLabel("LIVESTOCK")).toBe("Con giống");
+		expect(businessGroupLabel("UNKNOWN")).toBe("Chưa phân loại");
+		expect(productKindLabel("FERTILIZER")).toBe("Phân bón");
+		expect(productKindLabel("UNKNOWN")).toBe("Chưa phân loại");
 	});
 
 	it("filters enabled groups while preserving catalog order", () => {
