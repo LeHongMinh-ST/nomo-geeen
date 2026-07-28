@@ -107,6 +107,7 @@ Format theo [Keep a Changelog](https://keepachangelog.com/), tuân thủ [Semant
 - **Tenant auth acceptance coverage** — added deterministic Postgres/Redis tenant lifecycle E2E and re-ran admin auth plus tenant product regressions: 5 suites / 19 tests passing.
 
 ### Fixed
+- **Quick-sale bottom action overlap** — đặt thanh tổng tiền/thanh toán mobile lên `bottom-nav-safe` để không bị bottom navigation che mất.
 - **Quick-sale iPhone footer gap** — kéo nền thanh tổng tiền xuyên qua safe-area phía dưới, để bottom nav phủ lên lớp nền footer và không còn lộ customer picker giữa nút thanh toán với menu mobile.
 - **Handbook empty state mobile CTA duplication** — ẩn nút “Thêm sổ tay” trong empty state trên mobile, giữ lại FAB “Thêm” duy nhất; desktop vẫn hiển thị CTA trong empty state.
 - **Restore mobile quick-sale shortcut** — khôi phục nút `+` Bán nhanh ở giữa bottom navigation; các CTA tạo mới trong empty state vẫn chỉ hiển thị trên desktop để tránh trùng với FAB mobile.

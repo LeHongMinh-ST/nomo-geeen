@@ -9,10 +9,12 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Product } from "@/lib/products";
 import { ProductForm } from "./product-form";
 
-const { createTenantProduct, updateTenantProduct } = vi.hoisted(() => ({
-	createTenantProduct: vi.fn(),
-	updateTenantProduct: vi.fn(),
-}));
+const { createTenantProduct, updateTenantProduct, getTenantBusinessGroups } =
+	vi.hoisted(() => ({
+		createTenantProduct: vi.fn(),
+		updateTenantProduct: vi.fn(),
+		getTenantBusinessGroups: vi.fn(),
+	}));
 
 vi.mock("next/navigation", () => ({
 	useRouter: () => ({ back: vi.fn(), push: vi.fn() }),
@@ -20,9 +22,7 @@ vi.mock("next/navigation", () => ({
 vi.mock("@/lib/tenant-products-api", () => ({
 	createTenantProduct,
 	updateTenantProduct,
-	getTenantBusinessGroups: vi
-		.fn()
-		.mockResolvedValue({ configured: false, groups: [] }),
+	getTenantBusinessGroups,
 	getProductLookups: vi.fn(),
 }));
 
@@ -55,16 +55,20 @@ describe("ProductForm ProductKind flow", () => {
 	beforeEach(() => {
 		createTenantProduct.mockReset();
 		updateTenantProduct.mockReset();
+		getTenantBusinessGroups.mockResolvedValue({
+			configured: false,
+			groups: [],
+		});
 	});
 
-	it("filters kind choices and keeps specialist fields hidden until a kind is selected", async () => {
+	it("filters kind choices while specialist fields stay hidden during create", async () => {
 		render(<ProductForm mode="create" lookups={lookups} />);
 
 		await waitFor(() =>
 			expect(
 				screen.getByRole("combobox", { name: "Nhóm ngành hàng" }),
 			).toBeInTheDocument(),
-			);
+		);
 		const group = screen.getByLabelText("Nhóm ngành hàng");
 		expect(screen.queryByLabelText("Hoạt chất")).not.toBeInTheDocument();
 
@@ -78,8 +82,10 @@ describe("ProductForm ProductKind flow", () => {
 		).not.toBeInTheDocument();
 
 		fireEvent.change(kind, { target: { value: "PESTICIDE" } });
-		expect(screen.getByLabelText("Hoạt chất")).toBeInTheDocument();
-		expect(screen.getByLabelText("Nồng độ / hàm lượng")).toBeInTheDocument();
+		expect(screen.queryByLabelText("Hoạt chất")).not.toBeInTheDocument();
+		expect(
+			screen.queryByLabelText("Nồng độ / hàm lượng"),
+		).not.toBeInTheDocument();
 	});
 
 	it("auto-selects the only kind and hides the kind selector", () => {
@@ -90,10 +96,42 @@ describe("ProductForm ProductKind flow", () => {
 		});
 
 		expect(screen.queryByLabelText("Loại sản phẩm")).not.toBeInTheDocument();
-		expect(screen.getAllByText("Thức ăn chăn nuôi")).toHaveLength(2);
+		expect(screen.getAllByText("Thức ăn chăn nuôi")).toHaveLength(1);
 	});
 
-	it("blocks submit when selected kind required attrs are empty", async () => {
+	it("renders one purchased group as a fixed value without a chevron", async () => {
+		getTenantBusinessGroups.mockResolvedValue({
+			configured: true,
+			groups: [{ businessGroup: "ANIMAL_FEED", enabled: true }],
+		});
+		render(<ProductForm mode="create" lookups={lookups} />);
+
+		await waitFor(() =>
+			expect(screen.getByLabelText("Nhóm ngành hàng")).toHaveTextContent(
+				"Thức ăn chăn nuôi",
+			),
+		);
+		expect(screen.getByLabelText("Nhóm ngành hàng")).not.toHaveAttribute(
+			"aria-expanded",
+		);
+		expect(
+			screen.queryByRole("combobox", { name: "Nhóm ngành hàng" }),
+		).not.toBeInTheDocument();
+		expect(screen.queryByLabelText("Loại sản phẩm")).not.toBeInTheDocument();
+	});
+
+	it("hides post-create operational sections and the required-kind helper on create", () => {
+		render(<ProductForm mode="create" lookups={lookups} />);
+
+		expect(screen.queryByText("Đơn vị & quy đổi")).not.toBeInTheDocument();
+		expect(screen.queryByText("Tồn kho")).not.toBeInTheDocument();
+		expect(
+			screen.queryByText(/Thông tin bắt buộc cho:/),
+		).not.toBeInTheDocument();
+	});
+
+	it("does not require specialist attrs during create", async () => {
+		createTenantProduct.mockResolvedValue({ id: "created" });
 		render(<ProductForm mode="create" lookups={lookups} />);
 		fireEvent.change(screen.getByLabelText("Nhóm ngành hàng"), {
 			target: { value: "CROP_INPUTS" },
@@ -106,14 +144,7 @@ describe("ProductForm ProductKind flow", () => {
 				.getAllByRole("button", { name: "Thêm sản phẩm" })[0]
 				.closest("form") as HTMLFormElement,
 		);
-		await waitFor(() =>
-			expect(
-				screen.getByText(
-					"Vui lòng chọn nhóm, loại sản phẩm và điền đủ thông tin chuyên ngành bắt buộc.",
-				),
-			).toBeInTheDocument(),
-		);
-		expect(createTenantProduct).not.toHaveBeenCalled();
+		await waitFor(() => expect(createTenantProduct).toHaveBeenCalled());
 	});
 
 	it("submits canonical group, kind, and normalized attrs", async () => {
@@ -129,40 +160,14 @@ describe("ProductForm ProductKind flow", () => {
 			screen.getByPlaceholderText("VD: Phân bón NPK Đầu Trâu 20-20-15"),
 			{ target: { value: "Thuốc test" } },
 		);
-		expect(screen.getByPlaceholderText("Tự sinh khi lưu sản phẩm")).toHaveAttribute(
-			"readonly",
-		);
-		fireEvent.change(screen.getByLabelText("Hoạt chất"), {
-			target: { value: " Fipronil " },
-		});
-		fireEvent.change(screen.getByLabelText("Nồng độ / hàm lượng"), {
-			target: { value: "800 g/kg" },
-		});
-		fireEvent.change(screen.getByLabelText("Thời gian cách ly (ngày)"), {
-			target: { value: "7" },
-		});
-		fireEvent.change(screen.getByLabelText("Thời gian tái nhập (ngày)"), {
-			target: { value: "1" },
-		});
+		expect(
+			screen.getByPlaceholderText("Tự sinh khi lưu sản phẩm"),
+		).toHaveAttribute("readonly");
 		fireEvent.change(screen.getByPlaceholderText("Nhập thương hiệu"), {
 			target: { value: "Đầu Trâu" },
 		});
 		fireEvent.change(screen.getByPlaceholderText("Nhập nhà sản xuất"), {
 			target: { value: "Công ty ABC" },
-		});
-		fireEvent.change(
-			screen.getByText(/Chọn đơn vị/).closest("select") as HTMLSelectElement,
-			{ target: { value: "unit" } },
-		);
-		fireEvent.click(screen.getByRole("button", { name: "Thêm quy đổi" }));
-		fireEvent.change(screen.getByLabelText("Đơn vị quy đổi 1"), {
-			target: { value: "box" },
-		});
-		fireEvent.change(screen.getByLabelText("Hệ số quy đổi 1"), {
-			target: { value: "50" },
-		});
-		fireEvent.change(screen.getAllByPlaceholderText("0")[1], {
-			target: { value: "100" },
 		});
 		fireEvent.submit(
 			screen
@@ -174,15 +179,10 @@ describe("ProductForm ProductKind flow", () => {
 				expect.objectContaining({
 					brandName: "Đầu Trâu",
 					manufacturerName: "Công ty ABC",
-					conversions: [{ unitId: "box", factor: 50, kind: "BOTH" }],
+					conversions: [],
 					businessGroup: "CROP_INPUTS",
 					productKind: "PESTICIDE",
-					attrs: {
-						activeIngredient: "Fipronil",
-						concentration: "800 g/kg",
-						phiDays: 7,
-							reiDays: 1,
-					},
+					attrs: {},
 				}),
 			),
 		);
@@ -208,21 +208,73 @@ describe("ProductForm ProductKind flow", () => {
 		expect(screen.queryByLabelText("Loại sản phẩm")).not.toBeInTheDocument();
 		expect(screen.getByLabelText("Hoạt chất")).toHaveValue("Amoxicillin");
 		expect(screen.getByLabelText("Dạng bào chế")).toHaveValue("Tiêm");
+		expect(screen.getByText("Đơn vị & quy đổi")).toBeInTheDocument();
+		expect(screen.getByText("Tồn kho")).toBeInTheDocument();
+	});
+
+	it("limits base unit options to Gói, Chai, and kg and preserves allowed edit value", () => {
+		render(
+			<ProductForm
+				mode="edit"
+				product={{ ...productFixture, baseUnitId: "kilo" }}
+				lookups={{
+					...lookups,
+					units: [
+						{ id: "package", code: "GOI", name: "Gói" },
+						{ id: "bottle", code: "CHAI", name: "Chai" },
+						{ id: "kilo", code: "KG", name: "Kilôgam" },
+						{ id: "bag", code: "BAO", name: "Bao" },
+					],
+				}}
+			/>,
+		);
+
+		const baseUnit = screen.getByLabelText(
+			"Đơn vị tồn kho gốc (Base Unit)",
+		) as HTMLSelectElement;
+		expect(
+			within(baseUnit)
+				.getAllByRole("option")
+				.map((option) => option.textContent),
+		).toEqual(["Chọn đơn vị (Chai, Kg, Gói...)", "Gói", "Chai", "kg"]);
+		expect(baseUnit).toHaveValue("kilo");
+	});
+
+	it("clears a disallowed edit base unit", () => {
+		render(
+			<ProductForm
+				mode="edit"
+				product={{ ...productFixture, baseUnitId: "bag" }}
+				lookups={{
+					...lookups,
+					units: [{ id: "bag", code: "BAO", name: "Bao" }],
+				}}
+			/>,
+		);
+		expect(
+			screen.getByRole("combobox", {
+				name: "Đơn vị tồn kho gốc (Base Unit)",
+			}),
+		).toHaveValue("");
 	});
 
 	it("renders API attr errors inline without exposing the backend message", async () => {
-		createTenantProduct.mockRejectedValue(
+		updateTenantProduct.mockRejectedValue(
 			Object.assign(new Error("Thông tin chưa hợp lệ"), {
 				serverMessage: "attrs.activeIngredient is required for PESTICIDE",
 			}),
 		);
-		render(<ProductForm mode="create" lookups={lookups} />);
-		fireEvent.change(screen.getByLabelText("Nhóm ngành hàng"), {
-			target: { value: "CROP_INPUTS" },
-		});
-		fireEvent.change(screen.getByLabelText("Loại sản phẩm"), {
-			target: { value: "PESTICIDE" },
-		});
+		render(
+			<ProductForm
+				mode="edit"
+				product={{
+					...productFixture,
+					businessGroup: "CROP_INPUTS",
+					productKind: "PESTICIDE",
+				}}
+				lookups={lookups}
+			/>,
+		);
 		fireEvent.change(screen.getByLabelText("Hoạt chất"), {
 			target: { value: "Fipronil" },
 		});
@@ -237,7 +289,7 @@ describe("ProductForm ProductKind flow", () => {
 		});
 		fireEvent.submit(
 			screen
-				.getAllByRole("button", { name: "Thêm sản phẩm" })[0]
+				.getAllByRole("button", { name: "Lưu thay đổi" })[0]
 				.closest("form") as HTMLFormElement,
 		);
 		await waitFor(() =>

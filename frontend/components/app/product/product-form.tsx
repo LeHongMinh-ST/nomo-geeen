@@ -172,8 +172,25 @@ export function ProductForm({
 	const [enabledGroups, setEnabledGroups] = useState<
 		(typeof BUSINESS_GROUP_CATALOG)[number][]
 	>([...BUSINESS_GROUP_CATALOG]);
+	const allowedUnits = (lookups?.units ?? [])
+		.filter((unit) => {
+			const normalizedName = unit.name.trim().toLocaleLowerCase();
+			const normalizedCode = unit.code.trim().toUpperCase();
+			return (
+				normalizedName === "gói" ||
+				normalizedName === "chai" ||
+				normalizedName === "kg" ||
+				normalizedCode === "GOI" ||
+				normalizedCode === "CHAI" ||
+				normalizedCode === "KG"
+			);
+		})
+		.map((unit) => ({
+			...unit,
+			name: unit.code.trim().toUpperCase() === "KG" ? "kg" : unit.name,
+		}));
 	const selectedUnitName =
-		lookups?.units.find((unit) => unit.id === form.baseUnit)?.name ?? "";
+		allowedUnits.find((unit) => unit.id === form.baseUnit)?.name ?? "";
 
 	useEffect(() => {
 		if (providedLookups) return;
@@ -195,6 +212,36 @@ export function ProductForm({
 				setError("Không thể tải nhóm ngành sản phẩm. Vui lòng thử lại."),
 			);
 	}, []);
+
+	useEffect(() => {
+		if (enabledGroups.length !== 1) return;
+		const group = enabledGroups[0];
+		const kinds = getProductKindsForGroup(group.id);
+		setForm((current) => ({
+			...current,
+			businessGroup: group.id,
+			productKind:
+				current.productKind &&
+				getProductKindDefinition(current.productKind)?.businessGroup ===
+					group.id
+					? current.productKind
+					: kinds.length === 1
+						? kinds[0].id
+						: "",
+		}));
+	}, [enabledGroups]);
+
+	useEffect(() => {
+		if (!form.baseUnit) return;
+		if (allowedUnits.some((unit) => unit.id === form.baseUnit)) return;
+		if (mode === "create" && !allowedUnits.length) return;
+		const nextBaseUnit = mode === "create" ? allowedUnits[0].id : "";
+		setForm((current) =>
+			current.baseUnit === nextBaseUnit
+				? current
+				: { ...current, baseUnit: nextBaseUnit },
+		);
+	}, [allowedUnits, form.baseUnit, mode]);
 
 	const selectedKind = getProductKindDefinition(form.productKind);
 	const availableKinds = form.businessGroup
@@ -290,7 +337,8 @@ export function ProductForm({
 
 	async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
 		e.preventDefault();
-		const requiredAttrs = getRequiredAttrKeys(form.productKind);
+		const requiredAttrs =
+			mode === "edit" ? getRequiredAttrKeys(form.productKind) : [];
 		const nextFieldErrors: Record<string, string> = {};
 		if (!form.businessGroup)
 			nextFieldErrors.businessGroup = "Hãy chọn nhóm ngành hàng.";
@@ -363,19 +411,26 @@ export function ProductForm({
 		>
 			<Section icon={FlaskConical} tile="#5cad45" title="Phân loại sản phẩm">
 				<Field label="Nhóm ngành hàng" required>
-					<Select
-						value={form.businessGroup}
-						onChange={(value) => setBusinessGroup(value as BusinessGroupId)}
-						placeholder="Chọn nhóm ngành hàng"
-						ariaLabel="Nhóm ngành hàng"
-						ariaInvalid={Boolean(fieldErrors.businessGroup)}
-						ariaDescribedBy="business-group-error"
-						options={enabledGroups.map((group) => ({
-							value: group.id,
-							label: group.label,
-						}))}
-						required
-					/>
+					{enabledGroups.length === 1 ? (
+						<FixedValue
+							ariaLabel="Nhóm ngành hàng"
+							value={enabledGroups[0].label}
+						/>
+					) : (
+						<Select
+							value={form.businessGroup}
+							onChange={(value) => setBusinessGroup(value as BusinessGroupId)}
+							placeholder="Chọn nhóm ngành hàng"
+							ariaLabel="Nhóm ngành hàng"
+							ariaInvalid={Boolean(fieldErrors.businessGroup)}
+							ariaDescribedBy="business-group-error"
+							options={enabledGroups.map((group) => ({
+								value: group.id,
+								label: group.label,
+							}))}
+							required
+						/>
+					)}
 					<InlineFieldError
 						id="business-group-error"
 						message={fieldErrors.businessGroup}
@@ -401,11 +456,6 @@ export function ProductForm({
 							message={fieldErrors.productKind}
 						/>
 					</Field>
-				) : null}
-				{selectedKind ? (
-					<div className="rounded-[10px] bg-[#f4f8f1] px-3 py-2 text-base text-[#416b35]">
-						Thông tin bắt buộc cho: <strong>{selectedKind.label}</strong>
-					</div>
 				) : null}
 			</Section>
 
@@ -480,131 +530,136 @@ export function ProductForm({
 				</label>
 			</Section>
 
-			{/* Section 2: Đơn vị & quy đổi */}
-			<Section icon={Layers} tile="#5cad45" title="Đơn vị & quy đổi">
-				<Field label="Đơn vị tồn kho gốc (Base Unit)" required>
-					<Select
-						value={form.baseUnit}
-						onChange={(v) => set("baseUnit", v)}
-						placeholder="Chọn đơn vị (Chai, Kg, Gói...)"
-						options={(lookups?.units ?? []).map((u) => ({
-							value: u.id,
-							label: u.name,
-						}))}
-						required
-					/>
-				</Field>
+			{/* Section 2: Đơn vị & quy đổi — hoàn thiện sau khi tạo sản phẩm */}
+			{mode === "edit" ? (
+				<Section icon={Layers} tile="#5cad45" title="Đơn vị & quy đổi">
+					<Field label="Đơn vị tồn kho gốc (Base Unit)" required>
+						<Select
+							value={form.baseUnit}
+							onChange={(v) => set("baseUnit", v)}
+							placeholder="Chọn đơn vị (Chai, Kg, Gói...)"
+							ariaLabel="Đơn vị tồn kho gốc (Base Unit)"
+							options={allowedUnits.map((u) => ({
+								value: u.id,
+								label: u.name,
+							}))}
+							required
+						/>
+					</Field>
 
-				<div className="flex flex-col gap-2">
-					<span className="text-sm font-medium text-foreground">
-						Đơn vị quy đổi
-					</span>
-					<p className="text-sm text-[#616161]">
-						Nhập theo đơn vị lớn, tự quy đổi ra{" "}
-						{selectedUnitName || "đơn vị gốc"}. VD: 1 Bao = 50 Kg.
-					</p>
+					<div className="flex flex-col gap-2">
+						<span className="text-sm font-medium text-foreground">
+							Đơn vị quy đổi
+						</span>
+						<p className="text-sm text-[#616161]">
+							Nhập theo đơn vị lớn, tự quy đổi ra{" "}
+							{selectedUnitName || "đơn vị gốc"}. VD: 1 Bao = 50 Kg.
+						</p>
 
-					{form.conversions.map((c, i) => (
-						// biome-ignore lint/suspicious/noArrayIndexKey: dòng nhập tạm, không có id ổn định
-						<div key={i} className="flex items-center gap-2">
-							<Select
-								value={c.unitId ?? ""}
-								onChange={(value) =>
-									updateConversion(i, {
-										unitId: value,
-										unit:
-											lookups?.units.find((unit) => unit.id === value)?.name ??
-											"",
-									})
-								}
-								placeholder="Chọn đơn vị"
-								options={(lookups?.units ?? [])
-									.filter(
-										(unit) =>
-											unit.id !== form.baseUnit &&
-											(form.conversions.every(
-												(other, otherIndex) =>
-													otherIndex === i || other.unitId !== unit.id,
-											) ||
-												unit.id === c.unitId),
-									)
-									.map((unit) => ({ value: unit.id, label: unit.name }))}
-								ariaLabel={`Đơn vị quy đổi ${i + 1}`}
-								ariaInvalid={!c.unitId}
-								className="flex-1"
-							/>
-							<span className="text-base text-[#616161]">=</span>
+						{form.conversions.map((c, i) => (
+							// biome-ignore lint/suspicious/noArrayIndexKey: dòng nhập tạm, không có id ổn định
+							<div key={i} className="flex items-center gap-2">
+								<Select
+									value={c.unitId ?? ""}
+									onChange={(value) =>
+										updateConversion(i, {
+											unitId: value,
+											unit:
+												lookups?.units.find((unit) => unit.id === value)
+													?.name ?? "",
+										})
+									}
+									placeholder="Chọn đơn vị"
+									options={allowedUnits
+										.filter(
+											(unit) =>
+												unit.id !== form.baseUnit &&
+												(form.conversions.every(
+													(other, otherIndex) =>
+														otherIndex === i || other.unitId !== unit.id,
+												) ||
+													unit.id === c.unitId),
+										)
+										.map((unit) => ({ value: unit.id, label: unit.name }))}
+									ariaLabel={`Đơn vị quy đổi ${i + 1}`}
+									ariaInvalid={!c.unitId}
+									className="flex-1"
+								/>
+								<span className="text-base text-[#616161]">=</span>
+								<input
+									type="number"
+									inputMode="numeric"
+									min={1}
+									value={c.factor}
+									aria-label={`Hệ số quy đổi ${i + 1}`}
+									onChange={(e) =>
+										updateConversion(i, { factor: Number(e.target.value) })
+									}
+									className={`${inputClass} w-24 text-right`}
+								/>
+								<span className="w-16 shrink-0 text-sm text-[#616161]">
+									{selectedUnitName || "gốc"}
+								</span>
+								<button
+									type="button"
+									aria-label="Xóa dòng quy đổi"
+									onClick={() => removeConversion(i)}
+									className="flex size-11 shrink-0 items-center justify-center rounded-[10px] text-[#9e9e9e] hover:bg-[#fdecea] hover:text-destructive"
+								>
+									<Trash2 className="size-5" aria-hidden />
+								</button>
+							</div>
+						))}
+
+						<button
+							type="button"
+							onClick={addConversion}
+							className="flex h-11 items-center justify-center gap-2 rounded-[10px] border border-dashed border-border text-base font-semibold text-primary hover:bg-accent"
+						>
+							<Plus className="size-5" aria-hidden />
+							Thêm quy đổi
+						</button>
+					</div>
+				</Section>
+			) : null}
+
+			{/* Section 3: Tồn kho — chỉ hiển thị sau khi sản phẩm đã tồn tại */}
+			{mode === "edit" ? (
+				<Section icon={Tag} tile="#5cad45" title="Tồn kho">
+					<div className="rounded-[10px] bg-[#f4f8f1] px-3 py-3 text-base text-[#416b35]">
+						Giá vốn, giá bán lẻ và giá bán sỉ được nhập theo từng lô trong phiếu
+						nhập hàng.
+					</div>
+
+					<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+						<Field label={`Tồn kho hiện tại (${selectedUnitName || "gốc"})`}>
 							<input
 								type="number"
 								inputMode="numeric"
-								min={1}
-								value={c.factor}
-								aria-label={`Hệ số quy đổi ${i + 1}`}
-								onChange={(e) =>
-									updateConversion(i, { factor: Number(e.target.value) })
-								}
-								className={`${inputClass} w-24 text-right`}
+								min={0}
+								value={form.stock}
+								onChange={(e) => set("stock", e.target.value)}
+								placeholder="0"
+								className={`${inputClass} text-right`}
 							/>
-							<span className="w-16 shrink-0 text-sm text-[#616161]">
-								{selectedUnitName || "gốc"}
-							</span>
-							<button
-								type="button"
-								aria-label="Xóa dòng quy đổi"
-								onClick={() => removeConversion(i)}
-								className="flex size-11 shrink-0 items-center justify-center rounded-[10px] text-[#9e9e9e] hover:bg-[#fdecea] hover:text-destructive"
-							>
-								<Trash2 className="size-5" aria-hidden />
-							</button>
-						</div>
-					))}
+						</Field>
+						<Field label="Ngưỡng cảnh báo sắp hết">
+							<input
+								type="number"
+								inputMode="numeric"
+								min={0}
+								value={form.lowStockThreshold}
+								onChange={(e) => set("lowStockThreshold", e.target.value)}
+								placeholder="0"
+								className={`${inputClass} text-right`}
+							/>
+						</Field>
+					</div>
+				</Section>
+			) : null}
 
-					<button
-						type="button"
-						onClick={addConversion}
-						className="flex h-11 items-center justify-center gap-2 rounded-[10px] border border-dashed border-border text-base font-semibold text-primary hover:bg-accent"
-					>
-						<Plus className="size-5" aria-hidden />
-						Thêm quy đổi
-					</button>
-				</div>
-			</Section>
-
-			{/* Section 3: Tồn kho */}
-			<Section icon={Tag} tile="#5cad45" title="Tồn kho">
-				<div className="rounded-[10px] bg-[#f4f8f1] px-3 py-3 text-base text-[#416b35]">
-					Giá vốn, giá bán lẻ và giá bán sỉ được nhập theo từng lô trong phiếu
-					nhập hàng.
-				</div>
-
-				<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-					<Field label={`Tồn kho hiện tại (${selectedUnitName || "gốc"})`}>
-						<input
-							type="number"
-							inputMode="numeric"
-							min={0}
-							value={form.stock}
-							onChange={(e) => set("stock", e.target.value)}
-							placeholder="0"
-							className={`${inputClass} text-right`}
-						/>
-					</Field>
-					<Field label="Ngưỡng cảnh báo sắp hết">
-						<input
-							type="number"
-							inputMode="numeric"
-							min={0}
-							value={form.lowStockThreshold}
-							onChange={(e) => set("lowStockThreshold", e.target.value)}
-							placeholder="0"
-							className={`${inputClass} text-right`}
-						/>
-					</Field>
-				</div>
-			</Section>
-
-			{/* Section 4: Trường chuyên ngành theo ProductKind */}
-			{selectedKind ? (
+			{/* Section 4: Trường chuyên ngành theo ProductKind — chỉ hiện khi chỉnh sửa */}
+			{mode === "edit" && selectedKind ? (
 				<Section
 					icon={FlaskConical}
 					tile="#5cad45"
@@ -790,6 +845,23 @@ function Select({
 				aria-hidden
 			/>
 		</div>
+	);
+}
+
+function FixedValue({
+	ariaLabel,
+	value,
+}: {
+	ariaLabel: string;
+	value: string;
+}) {
+	return (
+		<input
+			readOnly
+			aria-label={ariaLabel}
+			value={value}
+			className={`${inputClass} flex items-center bg-[#f8f9f8] text-foreground`}
+		/>
 	);
 }
 
