@@ -2,48 +2,43 @@
 
 import { CameraOff, ScanLine, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { getStockStatus, type Product } from "@/lib/products";
 import { useScrollLock } from "@/lib/use-scroll-lock";
 
 /**
- * Sheet quét mã vạch (DESIGN.md §15.1, §26 PWA).
- * Mở camera preview và tự giải mã barcode khi BarcodeDetector được hỗ trợ;
- * ô nhập/dán mã tay luôn là fallback. Tìm SP theo barcode rồi gọi onFound,
- * hoặc trả mã thẳng cho form qua onCode.
+ * Sheet quét mã vạch dùng chung (DESIGN.md §15.1, §26 PWA).
+ * Mở camera preview, tự giải mã bằng BarcodeDetector khi trình duyệt hỗ trợ,
+ * và luôn giữ ô nhập/dán mã tay làm fallback. Caller tự tra sản phẩm / điền form.
  */
-export function ScanSheet({
+export function BarcodeScannerSheet({
 	open,
 	onClose,
-	onFound,
-	products,
 	onCode,
+	title = "Quét mã vạch",
+	hint = "Đưa mã vào khung, rồi nhập số bên dưới",
 }: {
 	open: boolean;
 	onClose: () => void;
-	onFound: (product: Product) => void;
-	products: Product[];
-	onCode?: (code: string) => void;
+	/** Nhận mã đã nhập/quét; caller tự tra cứu theo mã. */
+	onCode: (code: string) => void;
+	title?: string;
+	hint?: string;
 }) {
 	const videoRef = useRef<HTMLVideoElement>(null);
 	const frameRef = useRef<number | null>(null);
 	const detectedRef = useRef(false);
 	const [code, setCode] = useState("");
-	const [error, setError] = useState<string | null>(null);
 	const [camState, setCamState] = useState<
 		"idle" | "on" | "denied" | "unsupported"
 	>("idle");
 
-	// Reset khi mở lại.
 	useEffect(() => {
 		if (open) {
 			setCode("");
-			setError(null);
 			setCamState("idle");
 			detectedRef.current = false;
 		}
 	}, [open]);
 
-	// Bật/tắt camera và tự giải mã theo vòng đời sheet.
 	// Scanner lifecycle follows sheet visibility; callbacks are intentionally read from the open session.
 	// biome-ignore lint/correctness/useExhaustiveDependencies: do not restart camera on parent callback identity changes
 	useEffect(() => {
@@ -81,9 +76,8 @@ export function ScanSheet({
 				}
 				if (videoRef.current) videoRef.current.srcObject = stream;
 				setCamState("on");
-
 				if (!BarcodeDetectorCtor || !videoRef.current) return;
-				let detector: InstanceType<typeof BarcodeDetectorCtor> | null = null;
+				let detector: InstanceType<typeof BarcodeDetectorCtor>;
 				try {
 					detector = new BarcodeDetectorCtor({
 						formats: [
@@ -96,17 +90,10 @@ export function ScanSheet({
 						],
 					});
 				} catch {
-					// Fallback: vẫn dùng được ô nhập tay bên dưới.
 					return;
 				}
 				const scanFrame = async () => {
-					if (
-						cancelled ||
-						detectedRef.current ||
-						!videoRef.current ||
-						!detector
-					)
-						return;
+					if (cancelled || detectedRef.current || !videoRef.current) return;
 					if (
 						videoRef.current.readyState >= HTMLMediaElement.HAVE_ENOUGH_DATA
 					) {
@@ -115,16 +102,7 @@ export function ScanSheet({
 							const detectedCode = detections[0]?.rawValue?.trim();
 							if (detectedCode) {
 								detectedRef.current = true;
-								setCode(detectedCode);
-								setError(null);
-								handleCode(detectedCode);
-								// Nếu handleCode reset (no-match / out-of-stock) → tiếp tục quét;
-								// nếu thành công → dừng.
-								if (!detectedRef.current && !cancelled) {
-									frameRef.current = requestAnimationFrame(
-										() => void scanFrame(),
-									);
-								}
+								onCode(detectedCode);
 								return;
 							}
 						} catch {
@@ -148,10 +126,8 @@ export function ScanSheet({
 		};
 	}, [open]);
 
-	// Khóa cuộn nền (iOS-safe).
 	useScrollLock(open);
 
-	// Đóng bằng phím Esc.
 	useEffect(() => {
 		if (!open) return;
 		function onKey(e: KeyboardEvent) {
@@ -161,48 +137,11 @@ export function ScanSheet({
 		return () => window.removeEventListener("keydown", onKey);
 	}, [open, onClose]);
 
-	function handleCode(nextCode: string) {
-		if (onCode) {
-			onCode(nextCode);
-			return;
-		}
-		const product = products.find(
-			(item) => item.barcode?.trim() === nextCode.trim(),
-		);
-		if (!product) {
-			setError("Không tìm thấy sản phẩm với mã này.");
-			detectedRef.current = false;
-			return;
-		}
-		if (getStockStatus(product) === "out-of-stock") {
-			setError("Sản phẩm này đã hết hàng.");
-			detectedRef.current = false;
-			return;
-		}
-		onFound(product);
-		setCode("");
-		setError(null);
-	}
-
 	function submit() {
-		const nextCode = code.trim();
-		if (!nextCode) return;
-		if (onCode) {
-			handleCode(nextCode);
-			return;
-		}
-		const product = products.find((item) => item.barcode?.trim() === nextCode);
-		if (!product) {
-			setError("Không tìm thấy sản phẩm với mã này.");
-			return;
-		}
-		if (getStockStatus(product) === "out-of-stock") {
-			setError("Sản phẩm này đã hết hàng.");
-			return;
-		}
-		onFound(product);
+		const trimmed = code.trim();
+		if (!trimmed) return;
+		onCode(trimmed);
 		setCode("");
-		setError(null);
 	}
 
 	return (
@@ -222,7 +161,7 @@ export function ScanSheet({
 			<div
 				role="dialog"
 				aria-modal="true"
-				aria-label="Quét mã vạch"
+				aria-label={title}
 				className={`absolute inset-x-0 bottom-0 mx-auto flex max-h-[92dvh] w-full max-w-2xl flex-col rounded-t-[18px] bg-card transition-transform duration-300 ease-out ${
 					open ? "translate-y-0" : "translate-y-full"
 				}`}
@@ -240,11 +179,8 @@ export function ScanSheet({
 				</div>
 
 				<div className="pb-safe overflow-y-auto overscroll-contain px-4 pb-4">
-					<h2 className="mb-3 text-lg font-bold text-foreground">
-						Quét mã vạch
-					</h2>
+					<h2 className="mb-3 text-lg font-bold text-foreground">{title}</h2>
 
-					{/* Khung camera */}
 					<div className="relative mb-4 aspect-[4/3] w-full overflow-hidden rounded-[16px] bg-[#111]">
 						{camState === "on" ? (
 							<>
@@ -257,7 +193,6 @@ export function ScanSheet({
 								>
 									<track kind="captions" />
 								</video>
-								{/* Khung ngắm */}
 								<div className="pointer-events-none absolute inset-0 flex items-center justify-center">
 									<div className="relative h-28 w-4/5 rounded-[12px] border-2 border-white/80">
 										<ScanLine
@@ -267,9 +202,7 @@ export function ScanSheet({
 									</div>
 								</div>
 								<p className="absolute inset-x-0 bottom-3 text-center text-sm font-medium text-white/90">
-									{onCode
-										? "Đưa mã vào khung để tự điền vào form"
-										: "Đưa mã vào khung để tìm sản phẩm"}
+									{hint}
 								</p>
 							</>
 						) : (
@@ -289,23 +222,19 @@ export function ScanSheet({
 						)}
 					</div>
 
-					{/* Nhập mã tay */}
 					<div className="flex flex-col gap-1.5">
 						<label
-							htmlFor="barcode"
+							htmlFor="barcode-scanner-input"
 							className="text-sm font-semibold text-[#616161]"
 						>
 							Mã vạch
 						</label>
 						<div className="flex items-center gap-2">
 							<input
-								id="barcode"
+								id="barcode-scanner-input"
 								inputMode="numeric"
 								value={code}
-								onChange={(e) => {
-									setCode(e.target.value);
-									setError(null);
-								}}
+								onChange={(e) => setCode(e.target.value)}
 								onKeyDown={(e) => {
 									if (e.key === "Enter") submit();
 								}}
@@ -318,18 +247,12 @@ export function ScanSheet({
 								disabled={!code.trim()}
 								className="flex h-12 shrink-0 items-center gap-2 rounded-[10px] bg-primary px-5 text-base font-semibold text-white transition-colors duration-200 ease-out hover:bg-[#5cad45] active:bg-[#3f8530] disabled:cursor-not-allowed disabled:bg-[#a5d6a7]"
 							>
-								Thêm
+								Dùng mã
 							</button>
 						</div>
-						{error ? (
-							<p className="text-sm font-medium text-destructive">{error}</p>
-						) : (
-							<p className="text-sm text-[#9e9e9e]">
-								{onCode
-									? "Nếu camera không tự quét, hãy nhập mã bên dưới."
-									: "Nếu camera không tự quét, hãy nhập mã bên dưới."}
-							</p>
-						)}
+						<p className="text-sm text-[#9e9e9e]">
+							Nếu camera không tự quét, hãy nhập mã bên dưới.
+						</p>
 					</div>
 				</div>
 			</div>

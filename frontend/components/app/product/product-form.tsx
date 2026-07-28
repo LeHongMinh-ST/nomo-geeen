@@ -1,7 +1,6 @@
 "use client";
 
 import {
-	Barcode,
 	ChevronDown,
 	FlaskConical,
 	Layers,
@@ -13,25 +12,26 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { BarcodeInput } from "@/components/app/shared/barcode-input";
 import {
 	BUSINESS_GROUP_CATALOG,
+	type BusinessGroupId,
 	getProductKindDefinition,
 	getProductKindsForGroup,
 	getRequiredAttrKeys,
 	normalizeProductAttrs,
+	type ProductKindId,
 	resolveEnabledBusinessGroups,
 	resolveLegacyProductKind,
-	type BusinessGroupId,
-	type ProductKindId,
 } from "@/lib/product-kind-form";
 import type { Product, UnitConversion } from "@/lib/products";
 import {
 	createTenantProduct,
 	getProductLookups,
 	getTenantBusinessGroups,
-	updateTenantProduct,
 	type ProductInput,
 	type ProductLookups,
+	updateTenantProduct,
 } from "@/lib/tenant-products-api";
 
 /**
@@ -67,25 +67,39 @@ type FormState = {
 type ProductFormError = { message: string; field?: string };
 
 function mapProductFormError(cause: unknown): ProductFormError {
-	const reason = typeof cause === "object" && cause && "reason" in cause
-		? String((cause as { reason?: unknown }).reason ?? "")
-		: "";
-	const serverMessage = typeof cause === "object" && cause && "serverMessage" in cause
-		? String((cause as { serverMessage?: unknown }).serverMessage ?? "")
-		: "";
+	const reason =
+		typeof cause === "object" && cause && "reason" in cause
+			? String((cause as { reason?: unknown }).reason ?? "")
+			: "";
+	const serverMessage =
+		typeof cause === "object" && cause && "serverMessage" in cause
+			? String((cause as { serverMessage?: unknown }).serverMessage ?? "")
+			: "";
 	const detail = `${reason} ${serverMessage}`;
 	if (detail.includes("businessGroup is not enabled")) {
-		return { message: "Nhóm ngành hàng này chưa được bật cho cửa hàng.", field: "businessGroup" };
+		return {
+			message: "Nhóm ngành hàng này chưa được bật cho cửa hàng.",
+			field: "businessGroup",
+		};
 	}
 	if (detail.includes("productKind is incompatible")) {
-		return { message: "Loại sản phẩm không thuộc nhóm ngành đã chọn.", field: "productKind" };
+		return {
+			message: "Loại sản phẩm không thuộc nhóm ngành đã chọn.",
+			field: "productKind",
+		};
 	}
 	const attrMatch = detail.match(/attrs\.([A-Za-z0-9_]+)/);
 	if (attrMatch) {
-		return { message: "Thông tin chuyên ngành này chưa hợp lệ.", field: attrMatch[1] };
+		return {
+			message: "Thông tin chuyên ngành này chưa hợp lệ.",
+			field: attrMatch[1],
+		};
 	}
-	if (cause instanceof Error && cause.message) return { message: cause.message };
-	return { message: "Không thể lưu sản phẩm. Vui lòng kiểm tra dữ liệu và thử lại." };
+	if (cause instanceof Error && cause.message)
+		return { message: cause.message };
+	return {
+		message: "Không thể lưu sản phẩm. Vui lòng kiểm tra dữ liệu và thử lại.",
+	};
 }
 
 function toFormState(p?: Product): FormState {
@@ -103,8 +117,12 @@ function toFormState(p?: Product): FormState {
 			field.key,
 			String(
 				p?.attrs?.[field.key] ??
-					(field.key === "activeIngredient" ? p?.agro?.activeIngredient : undefined) ??
-					(field.key === "concentration" ? p?.agro?.concentration : undefined) ??
+					(field.key === "activeIngredient"
+						? p?.agro?.activeIngredient
+						: undefined) ??
+					(field.key === "concentration"
+						? p?.agro?.concentration
+						: undefined) ??
 					(field.key === "phiDays" ? p?.agro?.phi : undefined) ??
 					(field.key === "reiDays" ? p?.agro?.rei : undefined) ??
 					"",
@@ -187,11 +205,17 @@ export function ProductForm({
 		if (
 			value !== form.businessGroup &&
 			Object.values(form.attrs).some((attr) => attr.trim()) &&
-			!window.confirm("Đổi nhóm ngành sẽ xóa thông tin chuyên ngành đã nhập. Tiếp tục?")
+			!window.confirm(
+				"Đổi nhóm ngành sẽ xóa thông tin chuyên ngành đã nhập. Tiếp tục?",
+			)
 		) {
 			return;
 		}
-		setFieldErrors((current) => ({ ...current, businessGroup: "", productKind: "" }));
+		setFieldErrors((current) => ({
+			...current,
+			businessGroup: "",
+			productKind: "",
+		}));
 		const kinds = value ? getProductKindsForGroup(value) : [];
 		setForm((current) => ({
 			...current,
@@ -200,8 +224,9 @@ export function ProductForm({
 				kinds.length === 1
 					? kinds[0].id
 					: value &&
-						  current.productKind &&
-						  getProductKindDefinition(current.productKind)?.businessGroup === value
+							current.productKind &&
+							getProductKindDefinition(current.productKind)?.businessGroup ===
+								value
 						? current.productKind
 						: "",
 			attrs: {},
@@ -212,7 +237,9 @@ export function ProductForm({
 		if (
 			value !== form.productKind &&
 			Object.values(form.attrs).some((attr) => attr.trim()) &&
-			!window.confirm("Đổi loại sản phẩm có thể xóa một số thông tin chuyên ngành. Tiếp tục?")
+			!window.confirm(
+				"Đổi loại sản phẩm có thể xóa một số thông tin chuyên ngành. Tiếp tục?",
+			)
 		) {
 			return;
 		}
@@ -243,7 +270,10 @@ export function ProductForm({
 	}
 
 	function addConversion() {
-		set("conversions", [...form.conversions, { unit: "", unitId: "", factor: 1 }]);
+		set("conversions", [
+			...form.conversions,
+			{ unit: "", unitId: "", factor: 1 },
+		]);
 	}
 	function updateConversion(i: number, patch: Partial<UnitConversion>) {
 		set(
@@ -262,10 +292,13 @@ export function ProductForm({
 		e.preventDefault();
 		const requiredAttrs = getRequiredAttrKeys(form.productKind);
 		const nextFieldErrors: Record<string, string> = {};
-		if (!form.businessGroup) nextFieldErrors.businessGroup = "Hãy chọn nhóm ngành hàng.";
-		if (!form.productKind) nextFieldErrors.productKind = "Hãy chọn loại sản phẩm.";
+		if (!form.businessGroup)
+			nextFieldErrors.businessGroup = "Hãy chọn nhóm ngành hàng.";
+		if (!form.productKind)
+			nextFieldErrors.productKind = "Hãy chọn loại sản phẩm.";
 		for (const key of requiredAttrs) {
-			if (!form.attrs[key]?.trim()) nextFieldErrors[key] = "Trường này bắt buộc.";
+			if (!form.attrs[key]?.trim())
+				nextFieldErrors[key] = "Trường này bắt buộc.";
 		}
 		if (
 			!form.businessGroup ||
@@ -337,10 +370,16 @@ export function ProductForm({
 						ariaLabel="Nhóm ngành hàng"
 						ariaInvalid={Boolean(fieldErrors.businessGroup)}
 						ariaDescribedBy="business-group-error"
-						options={enabledGroups.map((group) => ({ value: group.id, label: group.label }))}
+						options={enabledGroups.map((group) => ({
+							value: group.id,
+							label: group.label,
+						}))}
 						required
 					/>
-					<InlineFieldError id="business-group-error" message={fieldErrors.businessGroup} />
+					<InlineFieldError
+						id="business-group-error"
+						message={fieldErrors.businessGroup}
+					/>
 				</Field>
 				{availableKinds.length > 1 ? (
 					<Field label="Loại sản phẩm" required>
@@ -351,10 +390,16 @@ export function ProductForm({
 							ariaLabel="Loại sản phẩm"
 							ariaInvalid={Boolean(fieldErrors.productKind)}
 							ariaDescribedBy="product-kind-error"
-							options={availableKinds.map((kind) => ({ value: kind.id, label: kind.label }))}
+							options={availableKinds.map((kind) => ({
+								value: kind.id,
+								label: kind.label,
+							}))}
 							required
 						/>
-						<InlineFieldError id="product-kind-error" message={fieldErrors.productKind} />
+						<InlineFieldError
+							id="product-kind-error"
+							message={fieldErrors.productKind}
+						/>
 					</Field>
 				) : null}
 				{selectedKind ? (
@@ -392,17 +437,11 @@ export function ProductForm({
 						</div>
 					</Field>
 					<Field label="Mã vạch (Barcode)">
-						<div className="relative">
-							<Barcode className={iconClass} aria-hidden />
-							<input
-								type="text"
-								inputMode="numeric"
-								value={form.barcode}
-								onChange={(e) => set("barcode", e.target.value)}
-								placeholder="8938501234567"
-								className={`${inputClass} pl-10.5`}
-							/>
-						</div>
+						<BarcodeInput
+							value={form.barcode}
+							onChange={(value) => set("barcode", value)}
+							placeholder="8938501234567"
+						/>
 					</Field>
 				</div>
 
@@ -474,7 +513,8 @@ export function ProductForm({
 									updateConversion(i, {
 										unitId: value,
 										unit:
-											lookups?.units.find((unit) => unit.id === value)?.name ?? "",
+											lookups?.units.find((unit) => unit.id === value)?.name ??
+											"",
 									})
 								}
 								placeholder="Chọn đơn vị"
@@ -485,7 +525,8 @@ export function ProductForm({
 											(form.conversions.every(
 												(other, otherIndex) =>
 													otherIndex === i || other.unitId !== unit.id,
-											) || unit.id === c.unitId),
+											) ||
+												unit.id === c.unitId),
 									)
 									.map((unit) => ({ value: unit.id, label: unit.name }))}
 								ariaLabel={`Đơn vị quy đổi ${i + 1}`}
@@ -532,8 +573,8 @@ export function ProductForm({
 			{/* Section 3: Tồn kho */}
 			<Section icon={Tag} tile="#5cad45" title="Tồn kho">
 				<div className="rounded-[10px] bg-[#f4f8f1] px-3 py-3 text-base text-[#416b35]">
-					Giá vốn, giá bán lẻ và giá bán sỉ được nhập theo từng lô trong
-					phiếu nhập hàng.
+					Giá vốn, giá bán lẻ và giá bán sỉ được nhập theo từng lô trong phiếu
+					nhập hàng.
 				</div>
 
 				<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -560,12 +601,15 @@ export function ProductForm({
 						/>
 					</Field>
 				</div>
-
 			</Section>
 
 			{/* Section 4: Trường chuyên ngành theo ProductKind */}
 			{selectedKind ? (
-				<Section icon={FlaskConical} tile="#5cad45" title="Thông tin chuyên ngành">
+				<Section
+					icon={FlaskConical}
+					tile="#5cad45"
+					title="Thông tin chuyên ngành"
+				>
 					<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 						{selectedKind.fields.map((field) => (
 							<Field
@@ -585,7 +629,10 @@ export function ProductForm({
 									onChange={(e) => setAttr(field.key, e.target.value)}
 									className={`${inputClass} ${field.input === "number" ? "text-right" : ""}`}
 								/>
-								<InlineFieldError id={`${field.key}-error`} message={fieldErrors[field.key]} />
+								<InlineFieldError
+									id={`${field.key}-error`}
+									message={fieldErrors[field.key]}
+								/>
 							</Field>
 						))}
 					</div>
