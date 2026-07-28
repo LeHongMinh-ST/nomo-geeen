@@ -50,14 +50,14 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-      target: builder
+      target: runner
     restart: "no"
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-nomogreen}?schema=public
     depends_on:
       postgres:
         condition: service_healthy
-    command: ["pnpm", "exec", "prisma", "migrate", "deploy"]
+    command: ["node_modules/.bin/prisma", "migrate", "deploy"]
     deploy:
       resources:
         limits:
@@ -70,6 +70,8 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     restart: unless-stopped
+    ports:
+      - "${BACKEND_PORT:-8005}:3001"
     expose: ["3001"]
     environment:
       NODE_ENV: production
@@ -118,6 +120,8 @@ services:
         NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:?NEXT_PUBLIC_API_BASE_URL is required}
         NEXT_PUBLIC_ERROR_REPORTING_URL: ${NEXT_PUBLIC_ERROR_REPORTING_URL:-}
     restart: unless-stopped
+    ports:
+      - "${FRONTEND_PORT:-3005}:3000"
     expose: ["3000"]
     environment:
       NODE_ENV: production
