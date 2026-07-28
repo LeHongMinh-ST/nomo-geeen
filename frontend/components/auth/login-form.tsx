@@ -1,5 +1,6 @@
 "use client";
 import {
+	Fingerprint,
 	KeyRound,
 	LoaderCircle,
 	LogIn,
@@ -14,6 +15,7 @@ import {
 	authenticatePasskey,
 	canUsePasskey,
 	isPasskeyCacheFresh,
+	passkeyBiometricKind,
 } from "@/lib/passkey";
 import type { UserApiError } from "@/lib/user-auth-api";
 import { passkeyAuthenticationOptions } from "@/lib/user-auth-api";
@@ -36,6 +38,7 @@ export function LoginForm() {
 	} | null>(null);
 	const [passkeyBusy, setPasskeyBusy] = useState(false);
 	const [passkeyRefresh, setPasskeyRefresh] = useState(0);
+	const biometricKind = passkeyBiometricKind();
 	const prefetchRequest = useMemo(
 		() => ({
 			identifier: identifier.trim() || undefined,
@@ -158,10 +161,14 @@ export function LoginForm() {
 						type="button"
 						onClick={handlePasskey}
 						disabled={loading || passkeyBusy}
-						aria-label="Đăng nhập bằng Face ID / sinh trắc học"
+						aria-label={`Đăng nhập bằng ${biometricKind === "face" ? "Face ID" : biometricKind === "touch" ? "Touch ID" : "sinh trắc học"}`}
 						className="flex size-12 shrink-0 items-center justify-center rounded-[10px] border border-border bg-white text-foreground disabled:opacity-70 lg:hidden"
 					>
-						<ScanFace className="size-5" aria-hidden />
+						{biometricKind === "face" ? (
+							<ScanFace className="size-5" aria-hidden />
+						) : (
+							<Fingerprint className="size-5" aria-hidden />
+						)}
 					</button>
 				) : null}
 			</div>

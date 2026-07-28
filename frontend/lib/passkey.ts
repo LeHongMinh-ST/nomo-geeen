@@ -43,3 +43,22 @@ export async function registerPasskey(options: unknown) {
 export async function authenticatePasskey(options: unknown) {
 	return startAuthentication({ optionsJSON: options as AuthenticationOptions });
 }
+
+export type PasskeyBiometricKind = "face" | "touch" | "fingerprint";
+
+export function passkeyBiometricKind(
+	userAgent = typeof navigator === "undefined" ? "" : navigator.userAgent,
+): PasskeyBiometricKind {
+	if (/iPhone|iPad|iPod/i.test(userAgent)) return "face";
+	if (/Macintosh|Mac OS X/i.test(userAgent)) return "touch";
+	return "fingerprint";
+}
+
+export function passkeyDeviceLabel(
+	userAgent = typeof navigator === "undefined" ? "" : navigator.userAgent,
+) {
+	const kind = passkeyBiometricKind(userAgent);
+	if (kind === "face") return "iPhone/iPad · Face ID";
+	if (kind === "touch") return "Mac · Touch ID";
+	return "Thiết bị · Sinh trắc học";
+}

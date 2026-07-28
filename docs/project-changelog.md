@@ -9,6 +9,9 @@ Format theo [Keep a Changelog](https://keepachangelog.com/), tuân thủ [Semant
 ## [Unreleased]
 
 ### Added
+- **Thiết bị đăng nhập** — loại bỏ thẻ OTP chưa triển khai khỏi màn quản lý passkey, chỉ giữ phần thiết bị Face ID/Touch ID.
+- **Tenant passkey device management** — thêm mục Thiết bị đăng nhập riêng trong Thiết lập; hỗ trợ đăng ký nhiều passkey, hiển thị loại sinh trắc học, ngày đăng ký, lần dùng gần nhất, trạng thái đồng bộ và thu hồi từng thiết bị. Nút đăng nhập mobile chọn icon Face ID/Touch ID theo nền tảng.
+- **Product creation flow** — category selection now follows the tenant's purchased catalog, single-category tenants see a fixed value, product-unit choices are limited to `Gói`, `Chai`, and `kg`, and post-create-only information sections remain hidden during initial creation.
 - **Home dashboard header** — removed the duplicate top-right “Bán” shortcut; quick sale remains available through the existing sales navigation.
 - **Tenant notification SSE** — `GET /tenant/notifications/stream` (Bearer fetch streaming, heartbeat, disconnect cleanup); `NotificationEventsService` fan-out theo tenant/user + Redis pub/sub multi-instance (fallback in-process); producer publish sau create/update; FE subscribe/reconnect re-fetch list+unread, polling fallback, cleanup unmount. List/unread-count vẫn là source of truth.
 - **Tenant in-app notifications (header bell)** — API `/tenant/notifications` (list/unread-count/sync/read/read-all); `notification` + per-user `notification_read` + `dedupeKey`; runtime producers công nợ/tồn thấp/gần HSD (digest/ngày, không spam); FE chuông desktop popover + mobile sheet + `/thong-bao`; seed demo; chưa BullMQ/push.

@@ -9,12 +9,12 @@ import {
 	Mail,
 	MapPin,
 	Phone,
+	ShieldCheck,
 	UserRound,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { PasskeySettings } from "@/components/auth/passkey-settings";
 import { getCurrentProfile } from "@/lib/user-auth-api";
 import { useUserAuth } from "@/stores/user-auth-store";
 
@@ -108,6 +108,13 @@ const settingGroups: {
 				desc: "Tạo tài khoản và phân quyền nhân viên",
 				tile: "#1a6fa8",
 				href: "/thiet-lap/nhan-vien",
+			},
+			{
+				icon: ShieldCheck,
+				label: "Thiết bị đăng nhập",
+				desc: "Quản lý Face ID, Touch ID và các passkey",
+				tile: "#1a6fa8",
+				href: "/thiet-lap/bao-mat",
 			},
 		],
 	},
@@ -223,8 +230,6 @@ export default function ThietLapPage() {
 					</span>
 				</div>
 			</div>
-
-			<PasskeySettings />
 
 			{/* Form thông tin cá nhân */}
 			<form

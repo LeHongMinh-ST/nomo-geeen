@@ -372,6 +372,7 @@ export class AuthController {
 			claims.familyId,
 			dto.challengeId,
 			dto.response,
+			dto.label,
 		);
 	}
 

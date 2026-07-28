@@ -154,13 +154,14 @@ export function passkeyRegistrationVerify(
 	accessToken: string,
 	challengeId: string,
 	response: unknown,
+	label?: string,
 ) {
 	return requestJson<{ id: string; message: string }>(
 		"/auth/passkeys/registration/verify",
 		{
 			method: "POST",
 			headers: { Authorization: `Bearer ${accessToken}` },
-			body: JSON.stringify({ challengeId, response }),
+			body: JSON.stringify({ challengeId, response, label }),
 		},
 	);
 }
@@ -185,6 +186,7 @@ export function listPasskeys(accessToken: string) {
 			id: string;
 			label: string | null;
 			deviceType: string | null;
+			backedUp: boolean;
 			createdAt: string;
 			lastUsedAt: string | null;
 		}>

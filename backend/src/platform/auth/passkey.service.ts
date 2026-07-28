@@ -192,6 +192,7 @@ export class PasskeyService {
 		familyId: string,
 		challengeId: string,
 		response: any,
+		label?: string,
 	) {
 		this.assertEnabled();
 		let challenge: Challenge;
@@ -263,7 +264,7 @@ export class PasskeyService {
 				deviceType: info.credentialDeviceType,
 				backedUp: info.credentialBackedUp,
 				aaguid: info.aaguid,
-				label: 'Thiết bị đăng nhập',
+				label: label?.trim() || 'Thiết bị đăng nhập',
 			},
 		});
 		return {
