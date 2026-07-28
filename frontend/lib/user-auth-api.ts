@@ -82,7 +82,7 @@ async function requestJson<T>(
 	if (!response.ok) {
 		const body = (await response.json().catch(() => null)) as {
 			reason?: string;
-		message?: string | string[];
+			message?: string | string[];
 		} | null;
 		throw createUserApiError(response.status, body ?? undefined);
 	}
@@ -144,6 +144,58 @@ export function updateCurrentProfile(
 	});
 }
 
+export function passkeyRegistrationOptions(accessToken: string) {
+	return requestJson<{ challengeId: string; options: unknown }>(
+		"/auth/passkeys/registration/options",
+		{ headers: { Authorization: `Bearer ${accessToken}` } },
+	);
+}
+export function passkeyRegistrationVerify(
+	accessToken: string,
+	challengeId: string,
+	response: unknown,
+) {
+	return requestJson<{ id: string; message: string }>(
+		"/auth/passkeys/registration/verify",
+		{
+			method: "POST",
+			headers: { Authorization: `Bearer ${accessToken}` },
+			body: JSON.stringify({ challengeId, response }),
+		},
+	);
+}
+export function passkeyAuthenticationOptions(identifier?: string) {
+	return requestJson<{ challengeId: string; options: unknown }>(
+		"/auth/passkeys/authentication/options",
+		{ method: "POST", body: JSON.stringify({ identifier }) },
+	);
+}
+export function passkeyAuthenticationVerify(
+	challengeId: string,
+	response: unknown,
+) {
+	return requestJson<TenantAuthResponse>(
+		"/auth/passkeys/authentication/verify",
+		{ method: "POST", body: JSON.stringify({ challengeId, response }) },
+	);
+}
+export function listPasskeys(accessToken: string) {
+	return requestJson<
+		Array<{
+			id: string;
+			label: string | null;
+			deviceType: string | null;
+			createdAt: string;
+			lastUsedAt: string | null;
+		}>
+	>("/auth/passkeys", { headers: { Authorization: `Bearer ${accessToken}` } });
+}
+export function revokePasskey(accessToken: string, id: string) {
+	return requestJson(`/auth/passkeys/${id}`, {
+		method: "DELETE",
+		headers: { Authorization: `Bearer ${accessToken}` },
+	});
+}
 export function logoutUser(accessToken: string): Promise<void> {
 	return requestJson<void>("/auth/logout", {
 		method: "POST",

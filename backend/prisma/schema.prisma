@@ -143,6 +143,7 @@ enum AuditAction {
   LOGIN
   LOGOUT
   REFRESH_REUSE_DETECTED
+  PASSKEY_FAILURE
   // admin-tenant-management (deploy migration before app code that emits these)
   TENANT_UPDATE
   TENANT_STATUS_CHANGE
@@ -517,6 +518,7 @@ model User {
   ticketMessages TicketMessage[]
   notifications  Notification[]
   notificationReads NotificationRead[]
+  passkeys Passkey[]
 
   @@unique([tenantId, username])
   @@index([tenantId, status])
@@ -524,6 +526,26 @@ model User {
   @@index([phone])
   @@index([email])
   @@map("user")
+}
+
+model Passkey {
+  id String @id @default(uuid())
+  userId String
+  credentialId String @unique
+  publicKey Bytes
+  signCount Int @default(0)
+  version Int @default(0)
+  transports Json?
+  deviceType String?
+  backedUp Boolean @default(false)
+  aaguid String?
+  label String?
+  createdAt DateTime @default(now())
+  lastUsedAt DateTime?
+  revokedAt DateTime?
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([userId, revokedAt])
+  @@map("passkey")
 }
 
 // Vai tro (3.8). tenantId null = system role. Phase 1: OWNER / MANAGER / STAFF.

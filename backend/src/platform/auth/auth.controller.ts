@@ -1,8 +1,10 @@
 import {
 	Body,
 	Controller,
+	Delete,
 	Get,
 	HttpCode,
+	Param,
 	Patch,
 	Post,
 	Query,
@@ -18,11 +20,17 @@ import { AuthRequestPolicy } from './auth-request-policy';
 import { RequirePermission } from './decorators/require-permission.decorator';
 import { AdminLoginDto } from './dto/admin-login.dto';
 import { ChangeTenantPasswordDto } from './dto/change-tenant-password.dto';
+import {
+	PasskeyAuthenticationOptionsDto,
+	PasskeyChallengeDto,
+} from './dto/passkey.dto';
 import { TenantLoginDto } from './dto/tenant-login.dto';
 import { TenantRegisterDto } from './dto/tenant-register.dto';
 import { UpdateTenantProfileDto } from './dto/update-tenant-profile.dto';
 import { AccessTokenGuard } from './guards/access-token.guard';
 import { PermissionGuard } from './guards/permission.guard';
+import { TenantAccessTokenGuard } from './guards/tenant-access-token.guard';
+import { PasskeyService } from './passkey.service';
 import { RefreshTokenStore } from './refresh-token.store';
 import { TenantAuthService } from './tenant-auth.service';
 import {
@@ -82,6 +90,7 @@ export class AuthController {
 		private readonly tokens: TokenService,
 		private readonly sessions: RefreshTokenStore,
 		private readonly requestPolicy: AuthRequestPolicy,
+		private readonly passkeys: PasskeyService,
 	) {}
 
 	@Post('login')
@@ -173,7 +182,8 @@ export class AuthController {
 		const realm = requestedRefreshRealm(req.query.realm);
 
 		if (realm === 'user') {
-			if (!userCookie) throw new UnauthorizedException('Missing user refresh token');
+			if (!userCookie)
+				throw new UnauthorizedException('Missing user refresh token');
 			this.requestPolicy.assertAllowedCookieOrigin(req);
 			const result = await this.tenantAuth.refreshUser(userCookie, {
 				ip: req.ip,
@@ -187,7 +197,8 @@ export class AuthController {
 		}
 
 		if (realm === 'admin') {
-			if (!adminCookie) throw new UnauthorizedException('Missing admin refresh token');
+			if (!adminCookie)
+				throw new UnauthorizedException('Missing admin refresh token');
 			try {
 				const result = await this.auth.refresh(adminCookie, {
 					ip: req.ip,
@@ -292,7 +303,7 @@ export class AuthController {
 		if (claims.userType === 'tenant') {
 			if (!claims.tenantId)
 				throw new UnauthorizedException('Invalid tenant token');
-			return this.tenantAuth.meUser(claims.sub, claims.tenantId);
+			return this.tenantAuth.meUser(claims.sub, claims.tenantId!);
 		}
 		try {
 			const admin = await this.auth.me(claims.sub);
@@ -313,8 +324,9 @@ export class AuthController {
 	@Get('profile')
 	async profile(@Req() req: Request) {
 		const claims = this.tokens.verifyTenantAccess(bearerToken(req));
-		if (!claims.tenantId) throw new UnauthorizedException('Invalid tenant token');
-		return this.tenantAuth.profile(claims.sub, claims.tenantId);
+		if (!claims.tenantId)
+			throw new UnauthorizedException('Invalid tenant token');
+		return this.tenantAuth.profile(claims.sub, claims.tenantId!);
 	}
 
 	@Patch('profile')
@@ -323,9 +335,10 @@ export class AuthController {
 		@Req() req: Request,
 	) {
 		const claims = this.tokens.verifyTenantAccess(bearerToken(req));
-		if (!claims.tenantId) throw new UnauthorizedException('Invalid tenant token');
+		if (!claims.tenantId)
+			throw new UnauthorizedException('Invalid tenant token');
 		this.requestPolicy.assertAllowedCookieOrigin(req);
-		return this.tenantAuth.updateProfile(claims.sub, claims.tenantId, dto);
+		return this.tenantAuth.updateProfile(claims.sub, claims.tenantId!, dto);
 	}
 
 	/**
@@ -333,6 +346,79 @@ export class AuthController {
 	 * + PermissionGuard (@RequirePermission('admin.user:view')). Used to
 	 * verify the wiring end-to-end before R1/R2 endpoints rely on it.
 	 */
+	@Get('passkeys/registration/options')
+	@UseGuards(TenantAccessTokenGuard)
+	async passkeyRegistrationOptions(@Req() req: Request) {
+		this.requestPolicy.assertAllowedCookieOrigin(req);
+		const claims = this.tokens.verifyTenantAccess(bearerToken(req));
+		return this.passkeys.registrationOptions(
+			claims.sub,
+			claims.tenantId!,
+			claims.familyId,
+		);
+	}
+
+	@Post('passkeys/registration/verify')
+	@UseGuards(TenantAccessTokenGuard)
+	async passkeyRegistrationVerify(
+		@Body() dto: PasskeyChallengeDto,
+		@Req() req: Request,
+	) {
+		this.requestPolicy.assertAllowedCookieOrigin(req);
+		const claims = this.tokens.verifyTenantAccess(bearerToken(req));
+		return this.passkeys.registrationVerify(
+			claims.sub,
+			claims.tenantId!,
+			claims.familyId,
+			dto.challengeId,
+			dto.response,
+		);
+	}
+
+	@Post('passkeys/authentication/options')
+	@HttpCode(200)
+	async passkeyAuthenticationOptions(
+		@Body() dto: PasskeyAuthenticationOptionsDto,
+		@Req() req: Request,
+	) {
+		this.requestPolicy.assertAllowedCookieOrigin(req);
+		return this.passkeys.authenticationOptions(dto.identifier);
+	}
+
+	@Post('passkeys/authentication/verify')
+	@HttpCode(200)
+	async passkeyAuthenticationVerify(
+		@Body() dto: PasskeyChallengeDto,
+		@Req() req: Request,
+		@Res({ passthrough: true }) res: Response,
+	) {
+		this.requestPolicy.assertAllowedCookieOrigin(req);
+		const result = await this.passkeys.authenticationVerify(
+			dto.challengeId,
+			dto.response,
+			{ ip: req.ip, userAgent: req.get('user-agent') ?? undefined },
+		);
+		res.cookie(USER_REFRESH_COOKIE, result.refreshToken, {
+			...refreshCookieOptions(result.refreshTtlSec * 1000, true),
+			path: '/auth',
+		});
+		return { accessToken: result.accessToken, user: result.user };
+	}
+
+	@Get('passkeys')
+	@UseGuards(TenantAccessTokenGuard)
+	async listPasskeys(@Req() req: Request) {
+		const claims = this.tokens.verifyTenantAccess(bearerToken(req));
+		return this.passkeys.list(claims.sub, claims.tenantId!);
+	}
+
+	@Delete('passkeys/:id')
+	@UseGuards(TenantAccessTokenGuard)
+	async revokePasskey(@Param('id') id: string, @Req() req: Request) {
+		const claims = this.tokens.verifyTenantAccess(bearerToken(req));
+		return this.passkeys.revoke(claims.sub, claims.tenantId!, id);
+	}
+
 	@Get('admin/ping')
 	@UseGuards(AccessTokenGuard, PermissionGuard)
 	@RequirePermission('admin.user:view')

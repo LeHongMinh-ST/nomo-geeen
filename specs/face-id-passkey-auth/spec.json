@@ -1,0 +1,142 @@
+{
+  "feature_name": "face-id-passkey-auth",
+  "title": "Đăng nhập PWA bằng Face ID, Touch ID và Android biometric",
+  "language": "vi",
+  "status": "ready_for_implementation",
+  "phase": "tasks",
+  "current_phase": "tasks",
+  "ready_for_implementation": true,
+  "created_at": "2026-07-28T16:20:00+07:00",
+  "updated_at": "2026-07-28T16:52:30+07:00",
+  "timestamps": {
+    "init": "2026-07-28T16:20:00+07:00",
+    "requirements_done": "2026-07-28T16:21:00+07:00",
+    "design_done": "2026-07-28T16:22:00+07:00",
+    "tasks_done": "2026-07-28T16:23:00+07:00",
+    "validation_done": "2026-07-28T16:24:00+07:00"
+  },
+  "scope_lock": {
+    "in_scope": [
+      "tenant passkey registration/authentication",
+      "one-time Redis challenge",
+      "Prisma credential persistence",
+      "refresh-family issuance/revocation",
+      "mobile Vietnamese UI",
+      "tests"
+    ],
+    "out_of_scope": [
+      "biometric image/template",
+      "admin passkeys",
+      "passwordless account creation",
+      "native app"
+    ]
+  },
+  "dependencies": [
+    "existing tenant JWT/refresh auth",
+    "PostgreSQL",
+    "Redis",
+    "HTTPS or localhost secure context"
+  ],
+  "tags": [
+    "auth",
+    "webauthn",
+    "passkey",
+    "pwa",
+    "privacy",
+    "migration"
+  ],
+  "priority": "P0",
+  "effort": "L",
+  "progress": {
+    "init": "done",
+    "requirements": "done",
+    "research": "done",
+    "design": "done",
+    "tasks": "done",
+    "code": "pending",
+    "test": "pending",
+    "review": "pending"
+  },
+  "approvals": {
+    "requirements": {
+      "generated": true,
+      "approved": true
+    },
+    "design": {
+      "generated": true,
+      "approved": true
+    },
+    "tasks": {
+      "generated": true,
+      "approved": true
+    }
+  },
+  "design_context": {
+    "discovery_mode": "full",
+    "discovery_reason": "Cross-layer authentication, schema migration, browser API, privacy and session revocation.",
+    "execution_tier": "deep",
+    "validation_recommended": true,
+    "validation_recommended_reason": "WebAuthn and persistent credentials are security-sensitive."
+  },
+  "validation": {
+    "status": "completed",
+    "session_count": 1,
+    "questions_asked": 0,
+    "last_validated_at": "2026-07-28T16:24:00+07:00"
+  },
+  "task_files": [
+    "tasks/task-R0-01-passkey-contract.md",
+    "tasks/task-R1-01-passkey-backend.md",
+    "tasks/task-R2-01-passkey-frontend.md",
+    "tasks/task-R3-01-passkey-acceptance.md"
+  ],
+  "task_registry": {
+    "tasks/task-R0-01-passkey-contract.md": {
+      "id": "R0-01",
+      "title": "Contract và migration passkey",
+      "status": "pending",
+      "dependencies": [],
+      "blocker": null,
+      "started_at": null,
+      "completed_at": null,
+      "last_updated_at": "2026-07-28T16:24:00+07:00"
+    },
+    "tasks/task-R1-01-passkey-backend.md": {
+      "id": "R1-01",
+      "title": "Backend WebAuthn và session",
+      "status": "pending",
+      "dependencies": [
+        "tasks/task-R0-01-passkey-contract.md"
+      ],
+      "blocker": null,
+      "started_at": null,
+      "completed_at": null,
+      "last_updated_at": "2026-07-28T16:24:00+07:00"
+    },
+    "tasks/task-R2-01-passkey-frontend.md": {
+      "id": "R2-01",
+      "title": "UI PWA passkey",
+      "status": "pending",
+      "dependencies": [
+        "tasks/task-R1-01-passkey-backend.md"
+      ],
+      "blocker": null,
+      "started_at": null,
+      "completed_at": null,
+      "last_updated_at": "2026-07-28T16:24:00+07:00"
+    },
+    "tasks/task-R3-01-passkey-acceptance.md": {
+      "id": "R3-01",
+      "title": "Acceptance và reachability",
+      "status": "pending",
+      "dependencies": [
+        "tasks/task-R1-01-passkey-backend.md",
+        "tasks/task-R2-01-passkey-frontend.md"
+      ],
+      "blocker": null,
+      "started_at": null,
+      "completed_at": null,
+      "last_updated_at": "2026-07-28T16:24:00+07:00"
+    }
+  }
+}

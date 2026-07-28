@@ -189,3 +189,12 @@ Format theo [Keep a Changelog](https://keepachangelog.com/), tuân thủ [Semant
 - Go-live hardening: đồng bộ contract nhóm hàng `HUMAN_DRUGS` và migration billing reference; thêm readiness Prisma/Redis, structured request/error logs, Prometheus counters, Redis-backed auth rate limit, frontend error-reporting baseline và policy SSE degraded/single-instance.
 - Hoàn thiện các màn hình thông tin cửa hàng, đổi mật khẩu bằng API auth/profile hiện có; `LoadingGate` không còn delay giả lập.
 - Reviewer hardening: bảo vệ `/metrics` bằng `METRICS_TOKEN`, thêm Nginx gateway `limit_req` + proxy headers, và cấu hình/test `TRUST_PROXY` explicit.
+
+## 2026-07-28 — Passkey/WebAuthn
+
+- Thêm tenant passkey registration/authentication bằng SimpleWebAuthn, Redis one-time challenge TTL 300 giây, Prisma public-key credential persistence, strict origin/RP ID và refresh-family issuance/revoke.
+- Frontend thêm nút đăng nhập passkey tại /dang-nhap và bật/thu hồi passkey tại /thiet-lap; access token vẫn memory-only, không lưu biometric data.
+
+## 2026-07-28 — Mobile PWA pull-to-refresh
+
+- Thêm kéo xuống để tải lại cho standalone mobile PWA; không bật trên desktop, mobile browser thường hoặc vùng form/danh sách cuộn.

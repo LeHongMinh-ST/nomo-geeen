@@ -192,3 +192,11 @@ The repository contains local runtime/package configuration and migrations, but 
 - Nginx production gateway tại `deploy/nginx/nginx.conf` áp `limit_req` cho `POST /auth/login` và `/auth/refresh`, forward `Host`, `X-Real-IP`, `X-Forwarded-For`, `X-Forwarded-Proto`, và route API tới backend. App guard Redis vẫn là defense-in-depth. `TRUST_PROXY` mặc định `false`; production qua một gateway đặt `TRUST_PROXY=1` (hoặc CIDR/network tin cậy) để `request.ip` là client IP, không phải IP gateway.
 - SSE notification dùng Redis pub/sub khi sẵn sàng, fallback fan-out trong process khi Redis lỗi. Fallback chỉ an toàn cho một instance; nhiều instance có thể không nhận được event chéo instance trong thời gian degraded, nên production multi-instance phải giữ Redis healthy và alert degraded.
 - Frontend fetch boundary ghi nhận lỗi dạng tối thiểu qua console ở development và POST tới `NEXT_PUBLIC_ERROR_REPORTING_URL` khi được cấu hình production. Wiring aggregation/error tracking cụ thể do deployment cung cấp, không nhúng secrets vào frontend.
+
+## Passkey/WebAuthn cho tenant PWA
+
+- Authenticated tenant users có thể gọi GET/POST /auth/passkeys/registration/options|verify để đăng ký passkey sau password login; public unauthenticated flow dùng POST /auth/passkeys/authentication/options|verify. GET/DELETE /auth/passkeys chỉ đọc/thu hồi credential của chính user qua TenantAccessTokenGuard.
+- Redis giữ challenge key webauthn:challenge:{id}, TTL 300 giây; verify dùng Lua GET+DEL atomic nên challenge one-time, bound user/tenant khi registration và bound origin/RP ID qua WEBAUTHN_ORIGIN/WEBAUTHN_RP_ID.
+- PostgreSQL bảng passkey chỉ lưu credentialId, publicKey, signCount, transports và metadata/revokedAt; không lưu private key, ảnh hay face template. Counter phải monotonic để chặn replay.
+- Assertion thành công gọi TenantAuthService.createSessionForUser, tạo tenant access JWT memory-only và refresh family mới trong Redis; cookie nomo_user_rt vẫn HttpOnly. Logout/revoke giữ nguyên blacklist/family revocation hiện có.
+- Feature bật bằng WEBAUTHN_ENABLED=true và fail closed nếu thiếu RP ID/origin. Localhost là secure-context dev; production yêu cầu HTTPS. iOS standalone PWA/Android Chrome chưa được tuyên bố hỗ trợ nếu chưa có browser/device proof.

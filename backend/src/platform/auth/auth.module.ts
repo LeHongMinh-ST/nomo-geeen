@@ -10,6 +10,7 @@ import { AccessTokenGuard } from './guards/access-token.guard';
 import { PermissionGuard } from './guards/permission.guard';
 import { TenantAccessTokenGuard } from './guards/tenant-access-token.guard';
 import { TenantPermissionGuard } from './guards/tenant-permission.guard';
+import { PasskeyService } from './passkey.service';
 import { PasswordService } from './password.service';
 import { RefreshTokenStore } from './refresh-token.store';
 import { AccessTokenStrategy } from './strategies/access-token.strategy';
@@ -37,6 +38,7 @@ import { TokenService } from './token.service';
 		TenantAccessTokenGuard,
 		TenantPermissionGuard,
 		TenantAuthService,
+		PasskeyService,
 		PermissionGuard,
 	],
 	exports: [

@@ -444,7 +444,10 @@ export class TenantAuthService {
 			where: { tenantId },
 			select: { address: true },
 		});
-		return { user: this.toPublicUser(updated), address: settings?.address ?? '' };
+		return {
+			user: this.toPublicUser(updated),
+			address: settings?.address ?? '',
+		};
 	}
 
 	async changePassword(
@@ -522,6 +525,49 @@ export class TenantAuthService {
 		});
 	}
 
+	async createSessionForUser(
+		userId: string,
+		tenantId: string,
+		context: { ip?: string; userAgent?: string } = {},
+	): Promise<TenantRegistrationResult> {
+		const user = await this.findActiveUser(userId, tenantId);
+		if (!user) throw new UnauthorizedException('Passkey user not found');
+		const familyId = randomUUID();
+		const accessToken = this.tokens.signTenantAccess(
+			this.toIdentity(user, familyId),
+			familyId,
+		);
+		const refreshToken = this.tokens.signTenantRefresh(
+			user.id,
+			user.tenantId,
+			familyId,
+		);
+		const refreshTtlSec = remainingTtlSec(
+			this.tokens.verifyTenantRefresh(refreshToken).exp ?? 0,
+		);
+		await this.sessions.openUser(
+			familyId,
+			refreshToken,
+			refreshTtlSec,
+			user.id,
+		);
+		await this.audit.log({
+			tenantId,
+			actorId: user.id,
+			actorType: AuditActorType.USER,
+			actorRoleCode: user.role.code,
+			action: AuditAction.LOGIN,
+			resource: 'auth',
+			ipAddress: context.ip,
+			userAgent: context.userAgent,
+		});
+		return {
+			accessToken,
+			refreshToken,
+			refreshTtlSec,
+			user: this.toPublicUser(user),
+		};
+	}
 	private toIdentity(
 		user: NonNullable<Awaited<ReturnType<TenantAuthService['findActiveUser']>>>,
 		familyId: string,

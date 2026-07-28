@@ -14,6 +14,7 @@ import {
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { PasskeySettings } from "@/components/auth/passkey-settings";
 import { getCurrentProfile } from "@/lib/user-auth-api";
 import { useUserAuth } from "@/stores/user-auth-store";
 
@@ -31,48 +32,61 @@ type Field = {
 	inputMode?: "text" | "tel" | "email";
 };
 
-function fieldsFor(user: { fullName: string; phone: string | null; email: string | null }, address: string): Field[] {
+function fieldsFor(
+	user: { fullName: string; phone: string | null; email: string | null },
+	address: string,
+): Field[] {
 	return [
-	{
-		key: "name",
-		label: "Họ và tên",
-		icon: UserRound,
-		value: user.fullName,
-		type: "text",
-	},
-	{
-		key: "phone",
-		label: "Số điện thoại",
-		icon: Phone,
-		value: user.phone ?? "",
-		type: "tel",
-		inputMode: "tel",
-	},
-	{
-		key: "email",
-		label: "Email",
-		icon: Mail,
-		value: user.email ?? "",
-		type: "email",
-		inputMode: "email",
-	},
-	{
-		key: "address",
-		label: "Địa chỉ",
-		icon: MapPin,
-		value: address,
-		type: "text",
-	},
-];
+		{
+			key: "name",
+			label: "Họ và tên",
+			icon: UserRound,
+			value: user.fullName,
+			type: "text",
+		},
+		{
+			key: "phone",
+			label: "Số điện thoại",
+			icon: Phone,
+			value: user.phone ?? "",
+			type: "tel",
+			inputMode: "tel",
+		},
+		{
+			key: "email",
+			label: "Email",
+			icon: Mail,
+			value: user.email ?? "",
+			type: "email",
+			inputMode: "email",
+		},
+		{
+			key: "address",
+			label: "Địa chỉ",
+			icon: MapPin,
+			value: address,
+			type: "text",
+		},
+	];
 }
 
 function roleLabel(role?: string) {
-	return role === "OWNER" ? "Chủ cửa hàng" : role === "MANAGER" ? "Quản lý" : "Nhân viên";
+	return role === "OWNER"
+		? "Chủ cửa hàng"
+		: role === "MANAGER"
+			? "Quản lý"
+			: "Nhân viên";
 }
 
 function initials(name?: string) {
 	const words = (name ?? "").trim().split(/\s+/).filter(Boolean);
-	return words.slice(-2).map((word) => word[0]).join("").toUpperCase() || "NT";
+	return (
+		words
+			.slice(-2)
+			.map((word) => word[0])
+			.join("")
+			.toUpperCase() || "NT"
+	);
 }
 
 const settingGroups: {
@@ -131,7 +145,11 @@ export default function ThietLapPage() {
 		if (!accessToken) return;
 		getCurrentProfile(accessToken)
 			.then((profile) => setAddress(profile.address))
-			.catch((cause) => setError(cause instanceof Error ? cause.message : "Không thể tải thông tin."));
+			.catch((cause) =>
+				setError(
+					cause instanceof Error ? cause.message : "Không thể tải thông tin.",
+				),
+			);
 	}, [accessToken]);
 
 	async function handleLogout() {
@@ -149,7 +167,9 @@ export default function ThietLapPage() {
 	async function handleSave(event: React.FormEvent<HTMLFormElement>) {
 		event.preventDefault();
 		if (!user) return;
-		const values = Object.fromEntries(fields.map((field) => [field.key, field.value]));
+		const values = Object.fromEntries(
+			fields.map((field) => [field.key, field.value]),
+		);
 		setError(null);
 		setSaved(false);
 		try {
@@ -163,7 +183,9 @@ export default function ThietLapPage() {
 			setError(null);
 			setSaved(true);
 		} catch (cause) {
-			setError(cause instanceof Error ? cause.message : "Không thể lưu thông tin.");
+			setError(
+				cause instanceof Error ? cause.message : "Không thể lưu thông tin.",
+			);
 		}
 	}
 
@@ -201,6 +223,8 @@ export default function ThietLapPage() {
 					</span>
 				</div>
 			</div>
+
+			<PasskeySettings />
 
 			{/* Form thông tin cá nhân */}
 			<form
@@ -245,7 +269,14 @@ export default function ThietLapPage() {
 						Đã lưu thay đổi thành công.
 					</p>
 				) : null}
-				{error ? <p role="alert" className="rounded-[10px] bg-[#fdecea] px-4 py-3 text-sm text-destructive">{error}</p> : null}
+				{error ? (
+					<p
+						role="alert"
+						className="rounded-[10px] bg-[#fdecea] px-4 py-3 text-sm text-destructive"
+					>
+						{error}
+					</p>
+				) : null}
 
 				<button
 					type="submit"

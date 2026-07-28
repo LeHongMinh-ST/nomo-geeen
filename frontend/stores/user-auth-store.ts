@@ -1,15 +1,15 @@
 "use client";
-
 import { create } from "zustand";
 import {
 	changeUserPassword,
-	updateCurrentProfile,
 	getCurrentUser,
 	loginUser,
 	logoutUser,
+	passkeyAuthenticationVerify,
 	refreshUser,
 	registerUser,
 	type TenantAuthUser,
+	updateCurrentProfile,
 } from "@/lib/user-auth-api";
 
 type UserAuthState = {
@@ -19,23 +19,24 @@ type UserAuthState = {
 	hasHydrated: boolean;
 	hydrate: () => Promise<void>;
 	login: (identifier: string, password: string) => Promise<void>;
+	loginPasskey: (challengeId: string, response: unknown) => Promise<void>;
 	register: (input: Parameters<typeof registerUser>[0]) => Promise<void>;
 	changePassword: (
 		currentPassword: string,
 		newPassword: string,
 	) => Promise<void>;
-	updateProfile: (input: Parameters<typeof updateCurrentProfile>[1]) => Promise<string>;
+	updateProfile: (
+		input: Parameters<typeof updateCurrentProfile>[1],
+	) => Promise<string>;
 	logout: () => Promise<void>;
 	clear: () => void;
 	setAccessToken: (token: string | null) => void;
 };
-
 export const useUserAuth = create<UserAuthState>((set, get) => ({
 	user: null,
 	accessToken: null,
 	loading: false,
 	hasHydrated: false,
-
 	hydrate: async () => {
 		if (get().hasHydrated || get().loading) return;
 		set({ loading: true });
@@ -49,7 +50,6 @@ export const useUserAuth = create<UserAuthState>((set, get) => ({
 			set({ loading: false });
 		}
 	},
-
 	login: async (identifier, password) => {
 		set({ loading: true });
 		try {
@@ -63,7 +63,19 @@ export const useUserAuth = create<UserAuthState>((set, get) => ({
 			set({ loading: false });
 		}
 	},
-
+	loginPasskey: async (challengeId, response) => {
+		set({ loading: true });
+		try {
+			const result = await passkeyAuthenticationVerify(challengeId, response);
+			set({
+				user: result.user,
+				accessToken: result.accessToken,
+				hasHydrated: true,
+			});
+		} finally {
+			set({ loading: false });
+		}
+	},
 	register: async (input) => {
 		set({ loading: true });
 		try {
@@ -77,7 +89,6 @@ export const useUserAuth = create<UserAuthState>((set, get) => ({
 			set({ loading: false });
 		}
 	},
-
 	changePassword: async (currentPassword, newPassword) => {
 		const token = get().accessToken;
 		if (!token) throw new Error("Phiên đăng nhập đã hết hạn.");
@@ -93,10 +104,9 @@ export const useUserAuth = create<UserAuthState>((set, get) => ({
 			set({ loading: false });
 		}
 	},
-
 	updateProfile: async (input) => {
 		const token = get().accessToken;
-		if (!token) throw new Error('Phiên đăng nhập đã hết hạn.');
+		if (!token) throw new Error("Phiên đăng nhập đã hết hạn.");
 		set({ loading: true });
 		try {
 			const response = await updateCurrentProfile(token, input);
@@ -106,19 +116,14 @@ export const useUserAuth = create<UserAuthState>((set, get) => ({
 			set({ loading: false });
 		}
 	},
-
 	logout: async () => {
 		const token = get().accessToken;
-		if (token) {
+		if (token)
 			try {
 				await logoutUser(token);
-			} catch {
-				// Clear local state even when the server is unavailable.
-			}
-		}
+			} catch {}
 		set({ user: null, accessToken: null, hasHydrated: true, loading: false });
 	},
-
 	clear: () =>
 		set({ user: null, accessToken: null, hasHydrated: true, loading: false }),
 	setAccessToken: (accessToken) => set({ accessToken }),
