@@ -9,6 +9,7 @@ Format theo [Keep a Changelog](https://keepachangelog.com/), tuân thủ [Semant
 ## [Unreleased]
 
 ### Added
+- **Home dashboard header** — removed the duplicate top-right “Bán” shortcut; quick sale remains available through the existing sales navigation.
 - **Tenant notification SSE** — `GET /tenant/notifications/stream` (Bearer fetch streaming, heartbeat, disconnect cleanup); `NotificationEventsService` fan-out theo tenant/user + Redis pub/sub multi-instance (fallback in-process); producer publish sau create/update; FE subscribe/reconnect re-fetch list+unread, polling fallback, cleanup unmount. List/unread-count vẫn là source of truth.
 - **Tenant in-app notifications (header bell)** — API `/tenant/notifications` (list/unread-count/sync/read/read-all); `notification` + per-user `notification_read` + `dedupeKey`; runtime producers công nợ/tồn thấp/gần HSD (digest/ngày, không spam); FE chuông desktop popover + mobile sheet + `/thong-bao`; seed demo; chưa BullMQ/push.
 - **Tenant home dashboard live data** — trang chủ tenant (`/`) bỏ mock KPI; `GET /tenant/reports/home-summary` (`dashboard:view`) gom doanh thu hôm nay/tháng, phải thu, cảnh báo tồn/HSD/công nợ, series 7 ngày và top bán chạy; FE `HomeDashboard` xử lý loading/error/empty, chào theo `fullName` thật.
@@ -103,6 +104,7 @@ Format theo [Keep a Changelog](https://keepachangelog.com/), tuân thủ [Semant
 - **Tenant auth acceptance coverage** — added deterministic Postgres/Redis tenant lifecycle E2E and re-ran admin auth plus tenant product regressions: 5 suites / 19 tests passing.
 
 ### Fixed
+- **Mobile bottom navigation and footer overlap** — removed the redundant center `+` action from the four-item tenant navigation, reserved safe-area space in the shared app content, and increased handbook form bottom spacing/z-index so fixed actions do not cover content or appear detached from the bottom menu.
 - **Quick-sale dual customer entry** — the new-customer name and optional phone fields now remain editable together; suggestions render inline instead of opening a modal that disabled the second field.
 - **Quick-sale populated-state spacing** — removed the remaining bottom-action padding from the product list so adding items does not create a large gap before the customer form.
 - **Quick-sale mobile footer overlap** — reserved bottom-navigation/action-bar space after the complete POS content so the phone field and customer form are not covered by the fixed checkout bar.

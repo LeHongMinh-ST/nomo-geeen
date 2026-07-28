@@ -173,7 +173,7 @@ export function DiseaseForm({
 	return (
 		<form
 			onSubmit={handleSubmit}
-			className="mx-auto flex w-full max-w-2xl flex-col gap-5 pb-24 lg:mx-0 lg:pb-6"
+			className="mx-auto flex w-full max-w-2xl flex-col gap-5 pb-[calc(148px+env(safe-area-inset-bottom,0px))] lg:mx-0 lg:pb-6"
 		>
 			{error ? (
 				<p className="rounded-[10px] border border-[#ffcdd2] bg-[#ffebee] px-3 py-2 text-sm text-[#c62828]">
@@ -320,7 +320,7 @@ export function DiseaseForm({
 			</div>
 
 			{/* Hành động — mobile dính đáy full-width */}
-			<div className="fixed inset-x-0 bottom-nav-safe z-20 border-t border-border bg-card p-3 lg:hidden">
+			<div className="fixed inset-x-0 bottom-nav-safe z-40 border-t border-border bg-card p-3 lg:hidden">
 				<button
 					type="submit"
 					disabled={saving}

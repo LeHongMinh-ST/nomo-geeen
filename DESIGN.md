@@ -221,8 +221,8 @@ Quy tắc:
 * Mỗi màn hình chỉ **một** nút Primary rõ ràng.
 * Nút quan trọng dùng **icon + chữ** (không chỉ icon) để người mới hiểu ngay.
 * Trên mobile, nút hành động chính **kéo dài hết chiều ngang** (full-width) ở đáy màn hình.
-* **Form mobile**: nút Lưu/Thêm **dính đáy** (`fixed`, ngay trên bottom nav — `bottom-[68px]`), full-width, luôn thấy khi cuộn form dài.
-* **Danh sách mobile/tablet** (`< lg`): hành động tạo mới dùng **FAB pill "＋ <hành động>"** nổi góc phải dưới (trên bottom nav, `bottom-[84px] right-4`), màu Primary + bóng xanh. Desktop đã có nút ở header/toolbar thì FAB phải `lg:hidden` — không trùng lặp. Lưu ý: nút "+" giữa bottom nav là **Bán nhanh**, không dùng thay cho tạo mới trong module khác.
+* **Form mobile**: nút Lưu/Thêm **dính đáy** (`fixed`, ngay trên bottom nav — `bottom-[68px]`), full-width, luôn thấy khi cuộn form dài. Form phải chừa đủ padding cuối cho cả footer dính đáy và safe-area để nội dung không bị che.
+* **Danh sách mobile/tablet** (`< lg`): hành động tạo mới dùng **FAB pill "＋ <hành động>"** nổi góc phải dưới (trên bottom nav, `bottom-[84px] right-4`), màu Primary + bóng xanh. Desktop đã có nút ở header/toolbar thì FAB phải `lg:hidden` — không trùng lặp. Bottom nav tenant chỉ gồm 4 mục điều hướng; không chèn thêm nút hành động ở giữa.
 
 ---
 
