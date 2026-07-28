@@ -3,7 +3,6 @@
 import {
 	ChevronLeft,
 	ChevronRight,
-	FolderCog,
 	MoreVertical,
 	Package,
 	Pencil,
@@ -18,7 +17,6 @@ import { ListSkeleton } from "@/components/app/shared/list-skeleton";
 import { formatVND } from "@/lib/format";
 import {
 	brandName,
-	categoryName,
 	getStockStatus,
 	type Product,
 	type StockStatus,
@@ -59,7 +57,6 @@ export function ProductList() {
 	const [items, setItems] = useState<Product[]>([]);
 	const [lookups, setLookups] = useState<ProductLookups | null>(null);
 	const [query, setQuery] = useState("");
-	const [categoryId, setCategoryId] = useState<string>("all");
 	const [status, setStatus] = useState<StatusFilter>("all");
 	const [confirmId, setConfirmId] = useState<string | null>(null);
 	const [menuId, setMenuId] = useState<string | null>(null);
@@ -93,7 +90,6 @@ export function ProductList() {
 	const filtered = useMemo(() => {
 		const q = query.trim().toLowerCase();
 		return items.filter((p) => {
-			if (categoryId !== "all" && p.categoryId !== categoryId) return false;
 			if (status !== "all" && getStockStatus(p) !== status) return false;
 			if (!q) return true;
 			return (
@@ -102,14 +98,14 @@ export function ProductList() {
 				(p.barcode?.includes(q) ?? false)
 			);
 		});
-	}, [items, query, categoryId, status]);
+	}, [items, query, status]);
 
 	// Đổi bộ lọc/tìm kiếm → về trang đầu và thu gọn lại danh sách mobile.
 	// biome-ignore lint/correctness/useExhaustiveDependencies: reset khi tiêu chí lọc đổi
 	useEffect(() => {
 		setPage(1);
 		setMobileCount(MOBILE_BATCH);
-	}, [query, categoryId, status]);
+	}, [query, status]);
 
 	const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
 	const safePage = Math.min(page, pageCount);
@@ -177,13 +173,6 @@ export function ProductList() {
 				{/* Hành động — desktop */}
 				<div className="hidden items-center gap-2 lg:flex">
 					<Link
-						href="/san-pham/danh-muc"
-						className="flex h-11 items-center gap-2 rounded-[10px] border border-border bg-card px-4 text-base font-semibold text-foreground transition-colors duration-200 ease-out hover:bg-[#f5f5f5]"
-					>
-						<FolderCog className="size-5" aria-hidden />
-						Danh mục
-					</Link>
-					<Link
 						href="/san-pham/them"
 						className="flex h-11 items-center gap-2 rounded-full bg-primary px-5 text-base font-semibold text-white transition-colors duration-200 ease-out hover:bg-[#5cad45] active:bg-[#3f8530]"
 					>
@@ -208,13 +197,6 @@ export function ProductList() {
 						className="h-12 w-full rounded-[10px] border border-border bg-white pl-11 pr-4 text-base text-foreground placeholder:text-[#9e9e9e] transition-colors duration-200 ease-out focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/25 md:h-11"
 					/>
 				</div>
-				<Link
-					href="/san-pham/danh-muc"
-					aria-label="Quản lý danh mục"
-					className="flex size-12 shrink-0 items-center justify-center rounded-[10px] border border-border bg-card text-foreground transition-colors duration-200 ease-out hover:bg-[#f5f5f5] md:h-11 lg:hidden"
-				>
-					<FolderCog className="size-5" aria-hidden />
-				</Link>
 			</div>
 
 			{/* Bộ lọc — không modal */}
@@ -226,19 +208,6 @@ export function ProductList() {
 						value: status,
 						options: statusFilters,
 						onChange: (v) => setStatus(v as StatusFilter),
-					},
-					{
-						key: "category",
-						label: "Danh mục",
-						value: categoryId,
-						options: [
-							{ value: "all", label: "Mọi danh mục" },
-							...(lookups?.categories ?? []).map((c) => ({
-								value: c.id,
-								label: c.name,
-							})),
-						],
-						onChange: setCategoryId,
 					},
 				]}
 			/>
@@ -328,7 +297,7 @@ export function ProductList() {
 													</Link>
 												</td>
 												<td className="px-4 py-3 text-base text-[#616161]">
-													{p.categoryLabel ?? categoryName(p.categoryId)}
+													{p.productKind ?? p.businessGroup ?? "Sản phẩm"}
 												</td>
 												<td className="whitespace-nowrap px-4 py-3 text-right text-base font-bold text-foreground">
 													{formatVND(p.salePrice)}₫

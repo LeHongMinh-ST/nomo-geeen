@@ -379,13 +379,26 @@ Index: `(tenant_id, created_at)`, `(actor_type, actor_id)`.
 |---|---|---|
 | id | uuid PK | |
 | tenant_id | FK → tenant | Cascade |
-| user_id | FK → user? | null = gửi toàn tenant |
+| user_id | FK → user? | null = **audience** toàn tenant (không phải người đọc) |
 | type | enum `NotificationType` | DEBT_DUE / LOW_STOCK / NEAR_EXPIRED / SYSTEM |
 | title | string | |
 | body | string? | |
-| read_at | datetime? | |
+| dedupe_key | string? | idempotent producer key; unique với tenant_id |
 
-Index: `(tenant_id, user_id, read_at)`.
+Index: `(tenant_id, user_id, created_at)`. Unique: `(tenant_id, dedupe_key)`.
+
+### 5.7.1 `notification_read` — Đã đọc theo user
+
+| Cột | Kiểu | Ghi chú |
+|---|---|---|
+| id | uuid PK | |
+| tenant_id | string | denormalized cho query/index |
+| notification_id | FK → notification | Cascade |
+| user_id | FK → user | Cascade |
+| read_at | datetime | |
+
+Unique: `(notification_id, user_id)`. Index: `(tenant_id, user_id, read_at)`.
+Một notification tenant-wide có thể có nhiều receipt; user A đọc không ảnh hưởng user B.
 
 ## 5.8 `stored_file` — Metadata file (3.10)
 

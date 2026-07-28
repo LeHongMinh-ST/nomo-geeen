@@ -92,11 +92,56 @@ const TENANTS: DemoTenant[] = [
 		slug: 'nong-xanh-bvtv',
 		name: 'Đại lý Thuốc BVTV Nông Xanh',
 		tenantType: 'RETAIL_DEALER',
-		productSkus: ['TBV-001', 'TBV-002', 'TBV-003', 'TBV-004', 'TBV-005', 'TBV-006', 'TBV-007', 'TBV-008', 'TBV-009', 'TBV-010', 'TBV-011', 'TBV-012', 'TBV-013', 'TBV-014', 'TBV-015', 'TBV-016', 'TBV-017', 'TBV-018', 'PB-001', 'PB-002', 'PB-003', 'PB-004', 'PB-005', 'PB-006', 'PB-007', 'PB-008'],
+		productSkus: [
+			'TBV-001',
+			'TBV-002',
+			'TBV-003',
+			'TBV-004',
+			'TBV-005',
+			'TBV-006',
+			'TBV-007',
+			'TBV-008',
+			'TBV-009',
+			'TBV-010',
+			'TBV-011',
+			'TBV-012',
+			'TBV-013',
+			'TBV-014',
+			'TBV-015',
+			'TBV-016',
+			'TBV-017',
+			'TBV-018',
+			'PB-001',
+			'PB-002',
+			'PB-003',
+			'PB-004',
+			'PB-005',
+			'PB-006',
+			'PB-007',
+			'PB-008',
+		],
 		users: [
-			{ username: 'chubvtv', role: 'OWNER', fullName: 'Anh Minh', email: 'minh@nongxanhbvtv.vn', phone: '0914000001' },
-			{ username: 'quanly.bvtv', role: 'MANAGER', fullName: 'Chị Hạnh', email: 'hanh@nongxanhbvtv.vn', phone: '0914000002' },
-			{ username: 'nhanvien.bvtv', role: 'STAFF', fullName: 'Anh Phúc', email: 'phuc@nongxanhbvtv.vn', phone: '0914000003' },
+			{
+				username: 'chubvtv',
+				role: 'OWNER',
+				fullName: 'Anh Minh',
+				email: 'minh@nongxanhbvtv.vn',
+				phone: '0914000001',
+			},
+			{
+				username: 'quanly.bvtv',
+				role: 'MANAGER',
+				fullName: 'Chị Hạnh',
+				email: 'hanh@nongxanhbvtv.vn',
+				phone: '0914000002',
+			},
+			{
+				username: 'nhanvien.bvtv',
+				role: 'STAFF',
+				fullName: 'Anh Phúc',
+				email: 'phuc@nongxanhbvtv.vn',
+				phone: '0914000003',
+			},
 		],
 	},
 	{
@@ -221,23 +266,91 @@ const PRODUCT_SPECS: Record<
 		attrs?: Record<string, unknown>;
 	}
 > = {
-	'TBV-001': { netContent: 100, netContentUnit: 'ml', attrs: { phiDays: 7, reiDays: 1 } },
-	'TBV-002': { netContent: 100, netContentUnit: 'g', attrs: { phiDays: 7, reiDays: 1 } },
-	'TBV-003': { netContent: 900, netContentUnit: 'ml', attrs: { phiDays: 14, reiDays: 2 } },
-	'TBV-004': { netContent: 20, netContentUnit: 'g', attrs: { phiDays: 7, reiDays: 1 } },
-	'TBV-005': { netContent: 100, netContentUnit: 'ml', attrs: { phiDays: 7, reiDays: 1 } },
-	'TBV-006': { netContent: 100, netContentUnit: 'g', attrs: { phiDays: 10, reiDays: 1 } },
-	'TBV-007': { netContent: 100, netContentUnit: 'g', attrs: { phiDays: 14, reiDays: 1 } },
-	'TBV-008': { netContent: 100, netContentUnit: 'ml', attrs: { phiDays: 14, reiDays: 1 } },
-	'TBV-009': { netContent: 1000, netContentUnit: 'ml', attrs: { phiDays: 14, reiDays: 2 } },
-	'TBV-010': { netContent: 100, netContentUnit: 'ml', attrs: { phiDays: 7, reiDays: 1 } },
-	'TBV-011': { netContent: 100, netContentUnit: 'ml', attrs: { phiDays: 14, reiDays: 1 } },
-	'TBV-012': { netContent: 100, netContentUnit: 'g', attrs: { phiDays: 7, reiDays: 1 } },
-	'TBV-013': { netContent: 8, netContentUnit: 'g', attrs: { phiDays: 14, reiDays: 1 } },
-	'TBV-014': { netContent: 500, netContentUnit: 'ml', attrs: { phiDays: 7, reiDays: 1 } },
-	'TBV-015': { netContent: 1000, netContentUnit: 'g', attrs: { phiDays: 10, reiDays: 2 } },
-	'TBV-016': { netContent: 100, netContentUnit: 'ml', attrs: { phiDays: 7, reiDays: 1 } },
-	'TBV-017': { netContent: 480, netContentUnit: 'ml', attrs: { phiDays: 14, reiDays: 1 } },
+	'TBV-001': {
+		netContent: 100,
+		netContentUnit: 'ml',
+		attrs: { phiDays: 7, reiDays: 1 },
+	},
+	'TBV-002': {
+		netContent: 100,
+		netContentUnit: 'g',
+		attrs: { phiDays: 7, reiDays: 1 },
+	},
+	'TBV-003': {
+		netContent: 900,
+		netContentUnit: 'ml',
+		attrs: { phiDays: 14, reiDays: 2 },
+	},
+	'TBV-004': {
+		netContent: 20,
+		netContentUnit: 'g',
+		attrs: { phiDays: 7, reiDays: 1 },
+	},
+	'TBV-005': {
+		netContent: 100,
+		netContentUnit: 'ml',
+		attrs: { phiDays: 7, reiDays: 1 },
+	},
+	'TBV-006': {
+		netContent: 100,
+		netContentUnit: 'g',
+		attrs: { phiDays: 10, reiDays: 1 },
+	},
+	'TBV-007': {
+		netContent: 100,
+		netContentUnit: 'g',
+		attrs: { phiDays: 14, reiDays: 1 },
+	},
+	'TBV-008': {
+		netContent: 100,
+		netContentUnit: 'ml',
+		attrs: { phiDays: 14, reiDays: 1 },
+	},
+	'TBV-009': {
+		netContent: 1000,
+		netContentUnit: 'ml',
+		attrs: { phiDays: 14, reiDays: 2 },
+	},
+	'TBV-010': {
+		netContent: 100,
+		netContentUnit: 'ml',
+		attrs: { phiDays: 7, reiDays: 1 },
+	},
+	'TBV-011': {
+		netContent: 100,
+		netContentUnit: 'ml',
+		attrs: { phiDays: 14, reiDays: 1 },
+	},
+	'TBV-012': {
+		netContent: 100,
+		netContentUnit: 'g',
+		attrs: { phiDays: 7, reiDays: 1 },
+	},
+	'TBV-013': {
+		netContent: 8,
+		netContentUnit: 'g',
+		attrs: { phiDays: 14, reiDays: 1 },
+	},
+	'TBV-014': {
+		netContent: 500,
+		netContentUnit: 'ml',
+		attrs: { phiDays: 7, reiDays: 1 },
+	},
+	'TBV-015': {
+		netContent: 1000,
+		netContentUnit: 'g',
+		attrs: { phiDays: 10, reiDays: 2 },
+	},
+	'TBV-016': {
+		netContent: 100,
+		netContentUnit: 'ml',
+		attrs: { phiDays: 7, reiDays: 1 },
+	},
+	'TBV-017': {
+		netContent: 480,
+		netContentUnit: 'ml',
+		attrs: { phiDays: 14, reiDays: 1 },
+	},
 	'TBV-018': {
 		netContent: 1000,
 		netContentUnit: 'g',
@@ -246,42 +359,82 @@ const PRODUCT_SPECS: Record<
 	'PB-001': {
 		netContent: 50,
 		netContentUnit: 'kg',
-		attrs: { composition: 'NPK 20-20-15', nitrogenPercent: 20, phosphorusPercent: 20, potassiumPercent: 15 },
+		attrs: {
+			composition: 'NPK 20-20-15',
+			nitrogenPercent: 20,
+			phosphorusPercent: 20,
+			potassiumPercent: 15,
+		},
 	},
 	'PB-002': {
 		netContent: 50,
 		netContentUnit: 'kg',
-		attrs: { composition: 'Ure 46%N', nitrogenPercent: 46, phosphorusPercent: 0, potassiumPercent: 0 },
+		attrs: {
+			composition: 'Ure 46%N',
+			nitrogenPercent: 46,
+			phosphorusPercent: 0,
+			potassiumPercent: 0,
+		},
 	},
 	'PB-003': {
 		netContent: 100,
 		netContentUnit: 'g',
-		attrs: { composition: 'NPK 30-15-10 + TE', nitrogenPercent: 30, phosphorusPercent: 15, potassiumPercent: 10 },
+		attrs: {
+			composition: 'NPK 30-15-10 + TE',
+			nitrogenPercent: 30,
+			phosphorusPercent: 15,
+			potassiumPercent: 10,
+		},
 	},
 	'PB-004': {
 		netContent: 50,
 		netContentUnit: 'kg',
-		attrs: { composition: 'Kali clorua 60% K2O', nitrogenPercent: 0, phosphorusPercent: 0, potassiumPercent: 60 },
+		attrs: {
+			composition: 'Kali clorua 60% K2O',
+			nitrogenPercent: 0,
+			phosphorusPercent: 0,
+			potassiumPercent: 60,
+		},
 	},
 	'PB-005': {
 		netContent: 50,
 		netContentUnit: 'kg',
-		attrs: { composition: 'Lan nung chay 16% P2O5', nitrogenPercent: 0, phosphorusPercent: 16, potassiumPercent: 0 },
+		attrs: {
+			composition: 'Lan nung chay 16% P2O5',
+			nitrogenPercent: 0,
+			phosphorusPercent: 16,
+			potassiumPercent: 0,
+		},
 	},
 	'PB-006': {
 		netContent: 50,
 		netContentUnit: 'kg',
-		attrs: { composition: 'DAP 18-46-0', nitrogenPercent: 18, phosphorusPercent: 46, potassiumPercent: 0 },
+		attrs: {
+			composition: 'DAP 18-46-0',
+			nitrogenPercent: 18,
+			phosphorusPercent: 46,
+			potassiumPercent: 0,
+		},
 	},
 	'PB-007': {
 		netContent: 25,
 		netContentUnit: 'kg',
-		attrs: { composition: 'Huu co vi sinh 15% OM, NPK 3-2-2', nitrogenPercent: 3, phosphorusPercent: 2, potassiumPercent: 2 },
+		attrs: {
+			composition: 'Huu co vi sinh 15% OM, NPK 3-2-2',
+			nitrogenPercent: 3,
+			phosphorusPercent: 2,
+			potassiumPercent: 2,
+		},
 	},
 	'PB-008': {
 		netContent: 500,
 		netContentUnit: 'ml',
-		attrs: { composition: 'Canxi 10% + Bo 0,5%', nitrogenPercent: 0, phosphorusPercent: 0, potassiumPercent: 0 },
+		attrs: {
+			composition: 'Canxi 10% + Bo 0,5%',
+			nitrogenPercent: 0,
+			phosphorusPercent: 0,
+			potassiumPercent: 0,
+		},
 	},
 };
 
@@ -331,15 +484,141 @@ const PRODUCTS: DemoProduct[] = [
 		activeIngredient: 'Paraquat',
 		concentration: '20%',
 	},
-	{ sku: 'TBV-004', name: 'Thuốc trừ rầy Chess 50WG (gói 20g)', productKind: 'PESTICIDE', domain: 'CROP', unit: 'GOI', category: 'Thuốc BVTV', brand: 'Syngenta', manufacturer: 'Syngenta VN', cost: 18000, sale: 28000, stock: 90, activeIngredient: 'Pymetrozine', concentration: '50%', },
-	{ sku: 'TBV-005', name: 'Thuốc trừ sâu Voliam Targo 063SC (chai 100ml)', productKind: 'PESTICIDE', domain: 'CROP', unit: 'CHAI', category: 'Thuốc BVTV', brand: 'Syngenta', manufacturer: 'Syngenta VN', cost: 110000, sale: 145000, stock: 35, activeIngredient: 'Chlorantraniliprole', concentration: '63g/l', },
-	{ sku: 'TBV-006', name: 'Thuốc trừ bệnh Ridomil Gold 68WG (gói 100g)', productKind: 'PESTICIDE', domain: 'CROP', unit: 'GOI', category: 'Thuốc BVTV', brand: 'Syngenta', manufacturer: 'Syngenta VN', cost: 42000, sale: 58000, stock: 75, activeIngredient: 'Metalaxyl-M', concentration: '68%', },
-	{ sku: 'TBV-007', name: 'Thuốc trừ bệnh Beam 75WP (gói 100g)', productKind: 'PESTICIDE', domain: 'CROP', unit: 'GOI', category: 'Thuốc BVTV', brand: 'Bayer', manufacturer: 'Bayer VN', cost: 30000, sale: 45000, stock: 80, activeIngredient: 'Tricyclazole', concentration: '75%', },
-	{ sku: 'TBV-008', name: 'Thuốc trừ bệnh Anvil 5SC (chai 100ml)', productKind: 'PESTICIDE', domain: 'CROP', unit: 'CHAI', category: 'Thuốc BVTV', brand: 'Bayer', manufacturer: 'Bayer VN', cost: 52000, sale: 72000, stock: 45, activeIngredient: 'Hexaconazole', concentration: '5%', },
-	{ sku: 'TBV-009', name: 'Thuốc trừ cỏ Roundup  Glyphosate (chai 1 lít)', productKind: 'PESTICIDE', domain: 'CROP', unit: 'CHAI', category: 'Thuốc BVTV', brand: 'Syngenta', manufacturer: 'Syngenta VN', cost: 70000, sale: 95000, stock: 50, activeIngredient: 'Glyphosate', concentration: '480g/l', },
-	{ sku: 'TBV-010', name: 'Thuốc trừ sâu Vertimec 1.8EC (chai 100ml)', productKind: 'PESTICIDE', domain: 'CROP', unit: 'CHAI', category: 'Thuốc BVTV', brand: 'Syngenta', manufacturer: 'Syngenta VN', cost: 60000, sale: 85000, stock: 55, activeIngredient: 'Abamectin', concentration: '1.8%', },
-	{ sku: 'TBV-011', name: 'Thuốc trừ rầy Confidor 200SL (chai 100ml)', productKind: 'PESTICIDE', domain: 'CROP', unit: 'CHAI', category: 'Thuốc BVTV', brand: 'Bayer', manufacturer: 'Bayer VN', cost: 48000, sale: 68000, stock: 65, activeIngredient: 'Imidacloprid', concentration: '200g/l', },
-	{ sku: 'TBV-012', name: 'Thuốc gốc đồng Kocide 46.1DF (gói 100g)', productKind: 'PESTICIDE', domain: 'CROP', unit: 'GOI', category: 'Thuốc BVTV', brand: 'Bayer', manufacturer: 'Bayer VN', cost: 36000, sale: 52000, stock: 70, activeIngredient: 'Copper Hydroxide', concentration: '46.1%', },
+	{
+		sku: 'TBV-004',
+		name: 'Thuốc trừ rầy Chess 50WG (gói 20g)',
+		productKind: 'PESTICIDE',
+		domain: 'CROP',
+		unit: 'GOI',
+		category: 'Thuốc BVTV',
+		brand: 'Syngenta',
+		manufacturer: 'Syngenta VN',
+		cost: 18000,
+		sale: 28000,
+		stock: 90,
+		activeIngredient: 'Pymetrozine',
+		concentration: '50%',
+	},
+	{
+		sku: 'TBV-005',
+		name: 'Thuốc trừ sâu Voliam Targo 063SC (chai 100ml)',
+		productKind: 'PESTICIDE',
+		domain: 'CROP',
+		unit: 'CHAI',
+		category: 'Thuốc BVTV',
+		brand: 'Syngenta',
+		manufacturer: 'Syngenta VN',
+		cost: 110000,
+		sale: 145000,
+		stock: 35,
+		activeIngredient: 'Chlorantraniliprole',
+		concentration: '63g/l',
+	},
+	{
+		sku: 'TBV-006',
+		name: 'Thuốc trừ bệnh Ridomil Gold 68WG (gói 100g)',
+		productKind: 'PESTICIDE',
+		domain: 'CROP',
+		unit: 'GOI',
+		category: 'Thuốc BVTV',
+		brand: 'Syngenta',
+		manufacturer: 'Syngenta VN',
+		cost: 42000,
+		sale: 58000,
+		stock: 75,
+		activeIngredient: 'Metalaxyl-M',
+		concentration: '68%',
+	},
+	{
+		sku: 'TBV-007',
+		name: 'Thuốc trừ bệnh Beam 75WP (gói 100g)',
+		productKind: 'PESTICIDE',
+		domain: 'CROP',
+		unit: 'GOI',
+		category: 'Thuốc BVTV',
+		brand: 'Bayer',
+		manufacturer: 'Bayer VN',
+		cost: 30000,
+		sale: 45000,
+		stock: 80,
+		activeIngredient: 'Tricyclazole',
+		concentration: '75%',
+	},
+	{
+		sku: 'TBV-008',
+		name: 'Thuốc trừ bệnh Anvil 5SC (chai 100ml)',
+		productKind: 'PESTICIDE',
+		domain: 'CROP',
+		unit: 'CHAI',
+		category: 'Thuốc BVTV',
+		brand: 'Bayer',
+		manufacturer: 'Bayer VN',
+		cost: 52000,
+		sale: 72000,
+		stock: 45,
+		activeIngredient: 'Hexaconazole',
+		concentration: '5%',
+	},
+	{
+		sku: 'TBV-009',
+		name: 'Thuốc trừ cỏ Roundup  Glyphosate (chai 1 lít)',
+		productKind: 'PESTICIDE',
+		domain: 'CROP',
+		unit: 'CHAI',
+		category: 'Thuốc BVTV',
+		brand: 'Syngenta',
+		manufacturer: 'Syngenta VN',
+		cost: 70000,
+		sale: 95000,
+		stock: 50,
+		activeIngredient: 'Glyphosate',
+		concentration: '480g/l',
+	},
+	{
+		sku: 'TBV-010',
+		name: 'Thuốc trừ sâu Vertimec 1.8EC (chai 100ml)',
+		productKind: 'PESTICIDE',
+		domain: 'CROP',
+		unit: 'CHAI',
+		category: 'Thuốc BVTV',
+		brand: 'Syngenta',
+		manufacturer: 'Syngenta VN',
+		cost: 60000,
+		sale: 85000,
+		stock: 55,
+		activeIngredient: 'Abamectin',
+		concentration: '1.8%',
+	},
+	{
+		sku: 'TBV-011',
+		name: 'Thuốc trừ rầy Confidor 200SL (chai 100ml)',
+		productKind: 'PESTICIDE',
+		domain: 'CROP',
+		unit: 'CHAI',
+		category: 'Thuốc BVTV',
+		brand: 'Bayer',
+		manufacturer: 'Bayer VN',
+		cost: 48000,
+		sale: 68000,
+		stock: 65,
+		activeIngredient: 'Imidacloprid',
+		concentration: '200g/l',
+	},
+	{
+		sku: 'TBV-012',
+		name: 'Thuốc gốc đồng Kocide 46.1DF (gói 100g)',
+		productKind: 'PESTICIDE',
+		domain: 'CROP',
+		unit: 'GOI',
+		category: 'Thuốc BVTV',
+		brand: 'Bayer',
+		manufacturer: 'Bayer VN',
+		cost: 36000,
+		sale: 52000,
+		stock: 70,
+		activeIngredient: 'Copper Hydroxide',
+		concentration: '46.1%',
+	},
 	{
 		sku: 'PB-001',
 		name: 'Phân NPK Đầu Trâu 20-20-15 (bao 50kg)',
@@ -379,17 +658,161 @@ const PRODUCTS: DemoProduct[] = [
 		sale: 20000,
 		stock: 200,
 	},
-	{ sku: 'TBV-013', name: 'Thuốc trừ sâu Regent 800WG (gói 8g)', productKind: 'PESTICIDE', domain: 'CROP', unit: 'GOI', category: 'Thuốc BVTV', brand: 'Bayer', manufacturer: 'Bayer VN', cost: 12000, sale: 20000, stock: 150, activeIngredient: 'Fipronil', concentration: '800g/kg', },
-	{ sku: 'TBV-014', name: 'Thuốc trừ bệnh Validacin 5SL (chai 500ml)', productKind: 'PESTICIDE', domain: 'CROP', unit: 'CHAI', category: 'Thuốc BVTV', brand: 'Khác', manufacturer: null, cost: 55000, sale: 78000, stock: 40, activeIngredient: 'Validamycin', concentration: '5%', },
-	{ sku: 'TBV-015', name: 'Thuốc trừ bệnh Dithane M-45 80WP (gói 1kg)', productKind: 'PESTICIDE', domain: 'CROP', unit: 'GOI', category: 'Thuốc BVTV', brand: 'Bayer', manufacturer: 'Bayer VN', cost: 95000, sale: 130000, stock: 45, activeIngredient: 'Mancozeb', concentration: '80%', },
-	{ sku: 'TBV-016', name: 'Thuốc trừ nhện Ortus 5SC (chai 100ml)', productKind: 'PESTICIDE', domain: 'CROP', unit: 'CHAI', category: 'Thuốc BVTV', brand: 'Khác', manufacturer: null, cost: 78000, sale: 105000, stock: 30, activeIngredient: 'Fenpyroximate', concentration: '5%', },
-	{ sku: 'TBV-017', name: 'Thuốc trừ bệnh Fuji-One 40EC (chai 480ml)', productKind: 'PESTICIDE', domain: 'CROP', unit: 'CHAI', category: 'Thuốc BVTV', brand: 'Khác', manufacturer: null, cost: 88000, sale: 120000, stock: 35, activeIngredient: 'Isoprothiolane', concentration: '40%', },
-	{ sku: 'TBV-018', name: 'Nấm đối kháng Trichoderma (gói 1kg)', productKind: 'BIOLOGICAL_PRODUCT', domain: 'CROP', unit: 'GOI', category: 'Thuốc BVTV', brand: 'Khác', manufacturer: null, cost: 40000, sale: 60000, stock: 60, activeIngredient: 'Trichoderma spp.', concentration: '10^8 CFU/g', },
-	{ sku: 'PB-004', name: 'Phân Kali Clorua MOP (bao 50kg)', productKind: 'FERTILIZER', domain: 'GENERAL', unit: 'BAO', category: 'Phân bón', brand: 'Phú Mỹ', manufacturer: 'Đạm Phú Mỹ', cost: 620000, sale: 760000, stock: 20, },
-	{ sku: 'PB-005', name: 'Phân Lân nung chảy Văn Điển (bao 50kg)', productKind: 'FERTILIZER', domain: 'GENERAL', unit: 'BAO', category: 'Phân bón', brand: 'Khác', manufacturer: null, cost: 300000, sale: 390000, stock: 25, },
-	{ sku: 'PB-006', name: 'Phân DAP 18-46-0 (bao 50kg)', productKind: 'FERTILIZER', domain: 'GENERAL', unit: 'BAO', category: 'Phân bón', brand: 'Phú Mỹ', manufacturer: 'Đạm Phú Mỹ', cost: 780000, sale: 950000, stock: 18, },
-	{ sku: 'PB-007', name: 'Phân hữu cơ vi sinh (bao 25kg)', productKind: 'FERTILIZER', domain: 'CROP', unit: 'BAO', category: 'Phân bón', brand: 'Khác', manufacturer: null, cost: 120000, sale: 175000, stock: 40, },
-	{ sku: 'PB-008', name: 'Phân bón lá Canxi-Bo (chai 500ml)', productKind: 'FERTILIZER', domain: 'CROP', unit: 'CHAI', category: 'Phân bón', brand: 'Đầu Trâu', manufacturer: 'Bình Điền', cost: 35000, sale: 55000, stock: 90, },
+	{
+		sku: 'TBV-013',
+		name: 'Thuốc trừ sâu Regent 800WG (gói 8g)',
+		productKind: 'PESTICIDE',
+		domain: 'CROP',
+		unit: 'GOI',
+		category: 'Thuốc BVTV',
+		brand: 'Bayer',
+		manufacturer: 'Bayer VN',
+		cost: 12000,
+		sale: 20000,
+		stock: 150,
+		activeIngredient: 'Fipronil',
+		concentration: '800g/kg',
+	},
+	{
+		sku: 'TBV-014',
+		name: 'Thuốc trừ bệnh Validacin 5SL (chai 500ml)',
+		productKind: 'PESTICIDE',
+		domain: 'CROP',
+		unit: 'CHAI',
+		category: 'Thuốc BVTV',
+		brand: 'Khác',
+		manufacturer: null,
+		cost: 55000,
+		sale: 78000,
+		stock: 40,
+		activeIngredient: 'Validamycin',
+		concentration: '5%',
+	},
+	{
+		sku: 'TBV-015',
+		name: 'Thuốc trừ bệnh Dithane M-45 80WP (gói 1kg)',
+		productKind: 'PESTICIDE',
+		domain: 'CROP',
+		unit: 'GOI',
+		category: 'Thuốc BVTV',
+		brand: 'Bayer',
+		manufacturer: 'Bayer VN',
+		cost: 95000,
+		sale: 130000,
+		stock: 45,
+		activeIngredient: 'Mancozeb',
+		concentration: '80%',
+	},
+	{
+		sku: 'TBV-016',
+		name: 'Thuốc trừ nhện Ortus 5SC (chai 100ml)',
+		productKind: 'PESTICIDE',
+		domain: 'CROP',
+		unit: 'CHAI',
+		category: 'Thuốc BVTV',
+		brand: 'Khác',
+		manufacturer: null,
+		cost: 78000,
+		sale: 105000,
+		stock: 30,
+		activeIngredient: 'Fenpyroximate',
+		concentration: '5%',
+	},
+	{
+		sku: 'TBV-017',
+		name: 'Thuốc trừ bệnh Fuji-One 40EC (chai 480ml)',
+		productKind: 'PESTICIDE',
+		domain: 'CROP',
+		unit: 'CHAI',
+		category: 'Thuốc BVTV',
+		brand: 'Khác',
+		manufacturer: null,
+		cost: 88000,
+		sale: 120000,
+		stock: 35,
+		activeIngredient: 'Isoprothiolane',
+		concentration: '40%',
+	},
+	{
+		sku: 'TBV-018',
+		name: 'Nấm đối kháng Trichoderma (gói 1kg)',
+		productKind: 'BIOLOGICAL_PRODUCT',
+		domain: 'CROP',
+		unit: 'GOI',
+		category: 'Thuốc BVTV',
+		brand: 'Khác',
+		manufacturer: null,
+		cost: 40000,
+		sale: 60000,
+		stock: 60,
+		activeIngredient: 'Trichoderma spp.',
+		concentration: '10^8 CFU/g',
+	},
+	{
+		sku: 'PB-004',
+		name: 'Phân Kali Clorua MOP (bao 50kg)',
+		productKind: 'FERTILIZER',
+		domain: 'GENERAL',
+		unit: 'BAO',
+		category: 'Phân bón',
+		brand: 'Phú Mỹ',
+		manufacturer: 'Đạm Phú Mỹ',
+		cost: 620000,
+		sale: 760000,
+		stock: 20,
+	},
+	{
+		sku: 'PB-005',
+		name: 'Phân Lân nung chảy Văn Điển (bao 50kg)',
+		productKind: 'FERTILIZER',
+		domain: 'GENERAL',
+		unit: 'BAO',
+		category: 'Phân bón',
+		brand: 'Khác',
+		manufacturer: null,
+		cost: 300000,
+		sale: 390000,
+		stock: 25,
+	},
+	{
+		sku: 'PB-006',
+		name: 'Phân DAP 18-46-0 (bao 50kg)',
+		productKind: 'FERTILIZER',
+		domain: 'GENERAL',
+		unit: 'BAO',
+		category: 'Phân bón',
+		brand: 'Phú Mỹ',
+		manufacturer: 'Đạm Phú Mỹ',
+		cost: 780000,
+		sale: 950000,
+		stock: 18,
+	},
+	{
+		sku: 'PB-007',
+		name: 'Phân hữu cơ vi sinh (bao 25kg)',
+		productKind: 'FERTILIZER',
+		domain: 'CROP',
+		unit: 'BAO',
+		category: 'Phân bón',
+		brand: 'Khác',
+		manufacturer: null,
+		cost: 120000,
+		sale: 175000,
+		stock: 40,
+	},
+	{
+		sku: 'PB-008',
+		name: 'Phân bón lá Canxi-Bo (chai 500ml)',
+		productKind: 'FERTILIZER',
+		domain: 'CROP',
+		unit: 'CHAI',
+		category: 'Phân bón',
+		brand: 'Đầu Trâu',
+		manufacturer: 'Bình Điền',
+		cost: 35000,
+		sale: 55000,
+		stock: 90,
+	},
 	{
 		sku: 'HG-001',
 		name: 'Hạt giống lúa OM5451 (túi 1kg)',
@@ -581,15 +1004,53 @@ async function ensureUser(
 }
 
 async function seedBvtvRelations(tenantId: string): Promise<void> {
-	const warehouse = await prisma.warehouse.findFirstOrThrow({ where: { tenantId, code: 'DEFAULT' } });
-	const owner = await prisma.user.findFirstOrThrow({ where: { tenantId, username: 'chubvtv' } });
-	const units = await prisma.unit.findMany({ where: { tenantId }, select: { id: true, code: true } });
+	const warehouse = await prisma.warehouse.findFirstOrThrow({
+		where: { tenantId, code: 'DEFAULT' },
+	});
+	const owner = await prisma.user.findFirstOrThrow({
+		where: { tenantId, username: 'chubvtv' },
+	});
+	const units = await prisma.unit.findMany({
+		where: { tenantId },
+		select: { id: true, code: true },
+	});
 	const unitByCode = new Map(units.map((unit) => [unit.code, unit.id]));
 	const products = await prisma.product.findMany({
-		where: { tenantId, sku: { in: ['TBV-001', 'TBV-002', 'TBV-003', 'TBV-004', 'TBV-005', 'TBV-006', 'TBV-007', 'TBV-008', 'TBV-009', 'TBV-010', 'TBV-011', 'TBV-012', 'PB-001', 'PB-002', 'PB-003'] } },
-		select: { id: true, sku: true, name: true, baseUnitId: true, salePrice: true, costPrice: true, activeIngredient: true },
+		where: {
+			tenantId,
+			sku: {
+				in: [
+					'TBV-001',
+					'TBV-002',
+					'TBV-003',
+					'TBV-004',
+					'TBV-005',
+					'TBV-006',
+					'TBV-007',
+					'TBV-008',
+					'TBV-009',
+					'TBV-010',
+					'TBV-011',
+					'TBV-012',
+					'PB-001',
+					'PB-002',
+					'PB-003',
+				],
+			},
+		},
+		select: {
+			id: true,
+			sku: true,
+			name: true,
+			baseUnitId: true,
+			salePrice: true,
+			costPrice: true,
+			activeIngredient: true,
+		},
 	});
-	const productBySku = new Map(products.map((product) => [product.sku, product]));
+	const productBySku = new Map(
+		products.map((product) => [product.sku, product]),
+	);
 	const productSpecs = [
 		['TBV-001', 'LOT-RAD-2026', 40, '2026-12-31'],
 		['TBV-002', 'LOT-ANT-2026', 120, '2027-03-31'],
@@ -612,22 +1073,62 @@ async function seedBvtvRelations(tenantId: string): Promise<void> {
 		const product = productBySku.get(sku);
 		if (!product) continue;
 		const batch = await prisma.productBatch.upsert({
-			where: { tenantId_productId_warehouseId_batchCode: { tenantId, productId: product.id, warehouseId: warehouse.id, batchCode } },
-			update: { expiresAt: new Date(`${expiresAt}T00:00:00.000Z`), qtyOnHand: qty },
-			create: { tenantId, productId: product.id, warehouseId: warehouse.id, batchCode, manufacturedAt: new Date('2026-01-15T00:00:00.000Z'), expiresAt: new Date(`${expiresAt}T00:00:00.000Z`), qtyOnHand: qty },
+			where: {
+				tenantId_productId_warehouseId_batchCode: {
+					tenantId,
+					productId: product.id,
+					warehouseId: warehouse.id,
+					batchCode,
+				},
+			},
+			update: {
+				expiresAt: new Date(`${expiresAt}T00:00:00.000Z`),
+				qtyOnHand: qty,
+			},
+			create: {
+				tenantId,
+				productId: product.id,
+				warehouseId: warehouse.id,
+				batchCode,
+				manufacturedAt: new Date('2026-01-15T00:00:00.000Z'),
+				expiresAt: new Date(`${expiresAt}T00:00:00.000Z`),
+				qtyOnHand: qty,
+			},
 			select: { id: true },
 		});
 		await prisma.stock.upsert({
-			where: { warehouseId_productId: { warehouseId: warehouse.id, productId: product.id } },
+			where: {
+				warehouseId_productId: {
+					warehouseId: warehouse.id,
+					productId: product.id,
+				},
+			},
 			update: { qty, avgCost: product.costPrice },
-			create: { tenantId, warehouseId: warehouse.id, productId: product.id, qty, avgCost: product.costPrice },
+			create: {
+				tenantId,
+				warehouseId: warehouse.id,
+				productId: product.id,
+				qty,
+				avgCost: product.costPrice,
+			},
 		});
 		batches.set(sku, { id: batch.id, qty });
 	}
 	const supplier = await prisma.supplier.upsert({
 		where: { tenantId_code: { tenantId, code: 'NPP-SYNGENTA' } },
 		update: { name: 'Nhà phân phối Vật tư Xanh', status: 'ACTIVE' },
-		create: { tenantId, code: 'NPP-SYNGENTA', name: 'Nhà phân phối Vật tư Xanh', supplierType: 'CROP_PROTECTION', contactName: 'Nguyễn Văn Nam', phone: '0905000001', address: 'Khu công nghiệp Trà Nóc', province: 'Cần Thơ', status: 'ACTIVE', paymentTerms: '30 ngày' },
+		create: {
+			tenantId,
+			code: 'NPP-SYNGENTA',
+			name: 'Nhà phân phối Vật tư Xanh',
+			supplierType: 'CROP_PROTECTION',
+			contactName: 'Nguyễn Văn Nam',
+			phone: '0905000001',
+			address: 'Khu công nghiệp Trà Nóc',
+			province: 'Cần Thơ',
+			status: 'ACTIVE',
+			paymentTerms: '30 ngày',
+		},
 		select: { id: true },
 	});
 	const purchaseLines = ['TBV-001', 'TBV-002', 'TBV-003'].flatMap((sku) => {
@@ -635,39 +1136,211 @@ async function seedBvtvRelations(tenantId: string): Promise<void> {
 		const batch = batches.get(sku);
 		if (!product || !batch) return [];
 		const qty = Math.min(10, batch.qty);
-		return [{ tenantId, productId: product.id, unitId: product.baseUnitId, qty, qtyBase: qty, unitPrice: product.costPrice, lineTotal: product.costPrice * BigInt(qty), batchCode: `PUR-${batch.id.slice(0, 8)}`, manufacturedAt: new Date('2026-01-15T00:00:00.000Z'), expiresAt: null, batchId: batch.id }];
+		return [
+			{
+				tenantId,
+				productId: product.id,
+				unitId: product.baseUnitId,
+				qty,
+				qtyBase: qty,
+				unitPrice: product.costPrice,
+				lineTotal: product.costPrice * BigInt(qty),
+				batchCode: `PUR-${batch.id.slice(0, 8)}`,
+				manufacturedAt: new Date('2026-01-15T00:00:00.000Z'),
+				expiresAt: null,
+				batchId: batch.id,
+			},
+		];
 	});
 	const purchase = await prisma.purchase.upsert({
 		where: { tenantId_docNo: { tenantId, docNo: 'PN-BVTV-0001' } },
-		update: { status: 'COMPLETED', supplierId: supplier.id, warehouseId: warehouse.id, subtotal: purchaseLines.reduce((sum, line) => sum + line.lineTotal, 0n), total: purchaseLines.reduce((sum, line) => sum + line.lineTotal, 0n), amountPaid: 0n, debtAmount: purchaseLines.reduce((sum, line) => sum + line.lineTotal, 0n), completedAt: new Date() },
-		create: { tenantId, docNo: 'PN-BVTV-0001', idempotencyKey: 'seed-bvtv-purchase-1', supplierId: supplier.id, warehouseId: warehouse.id, status: 'COMPLETED', subtotal: purchaseLines.reduce((sum, line) => sum + line.lineTotal, 0n), total: purchaseLines.reduce((sum, line) => sum + line.lineTotal, 0n), amountPaid: 0n, debtAmount: purchaseLines.reduce((sum, line) => sum + line.lineTotal, 0n), paymentMethod: 'CREDIT', createdBy: owner.id, completedAt: new Date() },
+		update: {
+			status: 'COMPLETED',
+			supplierId: supplier.id,
+			warehouseId: warehouse.id,
+			subtotal: purchaseLines.reduce((sum, line) => sum + line.lineTotal, 0n),
+			total: purchaseLines.reduce((sum, line) => sum + line.lineTotal, 0n),
+			amountPaid: 0n,
+			debtAmount: purchaseLines.reduce((sum, line) => sum + line.lineTotal, 0n),
+			completedAt: new Date(),
+		},
+		create: {
+			tenantId,
+			docNo: 'PN-BVTV-0001',
+			idempotencyKey: 'seed-bvtv-purchase-1',
+			supplierId: supplier.id,
+			warehouseId: warehouse.id,
+			status: 'COMPLETED',
+			subtotal: purchaseLines.reduce((sum, line) => sum + line.lineTotal, 0n),
+			total: purchaseLines.reduce((sum, line) => sum + line.lineTotal, 0n),
+			amountPaid: 0n,
+			debtAmount: purchaseLines.reduce((sum, line) => sum + line.lineTotal, 0n),
+			paymentMethod: 'CREDIT',
+			createdBy: owner.id,
+			completedAt: new Date(),
+		},
 		select: { id: true },
 	});
-	for (const line of purchaseLines) await prisma.purchaseLine.deleteMany({ where: { purchaseId: purchase.id, productId: line.productId } });
-	if (purchaseLines.length) await prisma.purchaseLine.createMany({ data: purchaseLines.map((line) => ({ ...line, purchaseId: purchase.id })) });
-	const purchaseDebt = purchaseLines.reduce((sum, line) => sum + line.lineTotal, 0n);
-	const existingPurchaseDebt = await prisma.debtLedger.findFirst({ where: { tenantId, partyType: 'SUPPLIER', partyId: supplier.id, refType: 'PURCHASE', refId: purchase.id } });
-	if (!existingPurchaseDebt) await prisma.debtLedger.create({ data: { tenantId, partyType: 'SUPPLIER', partyId: supplier.id, entryType: 'PURCHASE', direction: 'INCREASE', amount: purchaseDebt, balanceAfter: purchaseDebt, refType: 'PURCHASE', refId: purchase.id, createdBy: owner.id, note: 'Công nợ nhập hàng seed demo' } });
-	await prisma.supplier.update({ where: { id: supplier.id }, data: { balance: purchaseDebt } });
-	const customer = await prisma.customer.findFirst({ where: { tenantId, phone: '0906000001' }, select: { id: true } }) ?? await prisma.customer.create({ data: { tenantId, code: 'KH-BVTV-001', name: 'Anh Ba - Hộ trồng lúa', nameSearch: 'anh ba ho trong lua', phone: '0906000001', address: 'Vĩnh Long', type: 'FARMER', productionProfile: { crop: 'Lúa', areaHa: 3, currentStage: 'Đẻ nhánh' }, debtLimit: 10000000n } });
-	const disease = await prisma.disease.upsert({ where: { id: (await prisma.disease.findFirst({ where: { tenantId, name: 'Đạo ôn' }, select: { id: true } }))?.id ?? '00000000-0000-0000-0000-000000000000' }, update: {}, create: { tenantId, name: 'Đạo ôn', nameSearch: normalizeVietnameseSearch('Đạo ôn'), aliases: ['cháy lá', 'blast'], aliasesSearch: normalizeSearchList(['cháy lá', 'blast']), domain: 'CROP', handbookCategory: 'CROP_PROTECTION_AND_FERTILIZER', target: 'Lúa', type: 'DISEASE', symptom: 'Vết bệnh hình thoi, lá cháy khô, bông lép.', note: 'Phun khi bệnh mới chớm.' }, select: { id: true } });
+	for (const line of purchaseLines)
+		await prisma.purchaseLine.deleteMany({
+			where: { purchaseId: purchase.id, productId: line.productId },
+		});
+	if (purchaseLines.length)
+		await prisma.purchaseLine.createMany({
+			data: purchaseLines.map((line) => ({ ...line, purchaseId: purchase.id })),
+		});
+	const purchaseDebt = purchaseLines.reduce(
+		(sum, line) => sum + line.lineTotal,
+		0n,
+	);
+	const existingPurchaseDebt = await prisma.debtLedger.findFirst({
+		where: {
+			tenantId,
+			partyType: 'SUPPLIER',
+			partyId: supplier.id,
+			refType: 'PURCHASE',
+			refId: purchase.id,
+		},
+	});
+	if (!existingPurchaseDebt)
+		await prisma.debtLedger.create({
+			data: {
+				tenantId,
+				partyType: 'SUPPLIER',
+				partyId: supplier.id,
+				entryType: 'PURCHASE',
+				direction: 'INCREASE',
+				amount: purchaseDebt,
+				balanceAfter: purchaseDebt,
+				refType: 'PURCHASE',
+				refId: purchase.id,
+				createdBy: owner.id,
+				note: 'Công nợ nhập hàng seed demo',
+			},
+		});
+	await prisma.supplier.update({
+		where: { id: supplier.id },
+		data: { balance: purchaseDebt },
+	});
+	const customer =
+		(await prisma.customer.findFirst({
+			where: { tenantId, phone: '0906000001' },
+			select: { id: true },
+		})) ??
+		(await prisma.customer.create({
+			data: {
+				tenantId,
+				code: 'KH-BVTV-001',
+				name: 'Anh Ba - Hộ trồng lúa',
+				nameSearch: 'anh ba ho trong lua',
+				phone: '0906000001',
+				address: 'Vĩnh Long',
+				type: 'FARMER',
+				productionProfile: { crop: 'Lúa', areaHa: 3, currentStage: 'Đẻ nhánh' },
+				debtLimit: 10000000n,
+			},
+		}));
+	const disease = await prisma.disease.upsert({
+		where: {
+			id:
+				(
+					await prisma.disease.findFirst({
+						where: { tenantId, name: 'Đạo ôn' },
+						select: { id: true },
+					})
+				)?.id ?? '00000000-0000-0000-0000-000000000000',
+		},
+		update: {},
+		create: {
+			tenantId,
+			name: 'Đạo ôn',
+			nameSearch: normalizeVietnameseSearch('Đạo ôn'),
+			aliases: ['cháy lá', 'blast'],
+			aliasesSearch: normalizeSearchList(['cháy lá', 'blast']),
+			domain: 'CROP',
+			handbookCategory: 'CROP_PROTECTION_AND_FERTILIZER',
+			target: 'Lúa',
+			type: 'DISEASE',
+			symptom: 'Vết bệnh hình thoi, lá cháy khô, bông lép.',
+			note: 'Phun khi bệnh mới chớm.',
+		},
+		select: { id: true },
+	});
 	const diseaseSpecs = [
 		['Rầy nâu', 'PEST', 'Lúa', 'Spinetoram', 'TBV-001'],
 		['Sâu cuốn lá', 'PEST', 'Lúa', 'Spinetoram', 'TBV-001'],
 		['Đốm lá', 'DISEASE', 'Rau màu', 'Propineb', 'TBV-002'],
 		['Cỏ dại ruộng cạn', 'WEED', 'Cây trồng cạn', 'Paraquat', 'TBV-003'],
 	] as const;
-	const diseases = [{ id: disease.id, name: 'Đạo ôn', ingredient: 'Propineb', sku: 'TBV-002', type: 'DISEASE', target: 'Lúa' }, ...diseaseSpecs.map(([name, type, target, ingredient, sku]) => ({ id: '', name, ingredient, sku, type, target }))];
+	const diseases = [
+		{
+			id: disease.id,
+			name: 'Đạo ôn',
+			ingredient: 'Propineb',
+			sku: 'TBV-002',
+			type: 'DISEASE',
+			target: 'Lúa',
+		},
+		...diseaseSpecs.map(([name, type, target, ingredient, sku]) => ({
+			id: '',
+			name,
+			ingredient,
+			sku,
+			type,
+			target,
+		})),
+	];
 	for (const spec of diseases) {
 		let diseaseId = spec.id;
 		if (!diseaseId) {
-			const found = await prisma.disease.findFirst({ where: { tenantId, name: spec.name }, select: { id: true } });
-			diseaseId = found?.id ?? (await prisma.disease.create({ data: { tenantId, name: spec.name, nameSearch: normalizeVietnameseSearch(spec.name), aliases: [], aliasesSearch: '', domain: 'CROP', handbookCategory: 'CROP_PROTECTION_AND_FERTILIZER', target: spec.target, type: spec.type as 'DISEASE' | 'PEST' | 'WEED', symptom: `Triệu chứng thường gặp của ${spec.name}.` }, select: { id: true } })).id;
+			const found = await prisma.disease.findFirst({
+				where: { tenantId, name: spec.name },
+				select: { id: true },
+			});
+			diseaseId =
+				found?.id ??
+				(
+					await prisma.disease.create({
+						data: {
+							tenantId,
+							name: spec.name,
+							nameSearch: normalizeVietnameseSearch(spec.name),
+							aliases: [],
+							aliasesSearch: '',
+							domain: 'CROP',
+							handbookCategory: 'CROP_PROTECTION_AND_FERTILIZER',
+							target: spec.target,
+							type: spec.type as 'DISEASE' | 'PEST' | 'WEED',
+							symptom: `Triệu chứng thường gặp của ${spec.name}.`,
+						},
+						select: { id: true },
+					})
+				).id;
 		}
-		await prisma.diseaseIngredient.deleteMany({ where: { tenantId, diseaseId } });
-		await prisma.diseaseIngredient.create({ data: { tenantId, diseaseId, activeIngredient: spec.ingredient, sortOrder: 0 } });
+		await prisma.diseaseIngredient.deleteMany({
+			where: { tenantId, diseaseId },
+		});
+		await prisma.diseaseIngredient.create({
+			data: {
+				tenantId,
+				diseaseId,
+				activeIngredient: spec.ingredient,
+				sortOrder: 0,
+			},
+		});
 		const product = productBySku.get(spec.sku);
-		if (product) await prisma.diseaseProductPin.upsert({ where: { diseaseId_productId: { diseaseId, productId: product.id } }, update: { isExcluded: false, sortOrder: 0 }, create: { tenantId, diseaseId, productId: product.id, sortOrder: 0, isExcluded: false } });
+		if (product)
+			await prisma.diseaseProductPin.upsert({
+				where: { diseaseId_productId: { diseaseId, productId: product.id } },
+				update: { isExcluded: false, sortOrder: 0 },
+				create: {
+					tenantId,
+					diseaseId,
+					productId: product.id,
+					sortOrder: 0,
+					isExcluded: false,
+				},
+			});
 	}
 	const secondaryLinks = [
 		['Đạo ôn', 'Tricyclazole', 'TBV-007'],
@@ -677,12 +1350,44 @@ async function seedBvtvRelations(tenantId: string): Promise<void> {
 		['Cỏ dại ruộng cạn', 'Glyphosate', 'TBV-009'],
 	] as const;
 	for (const [name, ingredient, sku] of secondaryLinks) {
-		const secondaryDisease = await prisma.disease.findFirstOrThrow({ where: { tenantId, name: name }, select: { id: true } });
+		const secondaryDisease = await prisma.disease.findFirstOrThrow({
+			where: { tenantId, name: name },
+			select: { id: true },
+		});
 		const secondaryProduct = productBySku.get(sku);
 		if (!secondaryProduct) continue;
-		const hasIngredient = await prisma.diseaseIngredient.findFirst({ where: { tenantId, diseaseId: secondaryDisease.id, activeIngredient: ingredient } });
-		if (!hasIngredient) await prisma.diseaseIngredient.create({ data: { tenantId, diseaseId: secondaryDisease.id, activeIngredient: ingredient, sortOrder: 1 } });
-		await prisma.diseaseProductPin.upsert({ where: { diseaseId_productId: { diseaseId: secondaryDisease.id, productId: secondaryProduct.id } }, update: { isExcluded: false, sortOrder: 1 }, create: { tenantId, diseaseId: secondaryDisease.id, productId: secondaryProduct.id, sortOrder: 1, isExcluded: false } });
+		const hasIngredient = await prisma.diseaseIngredient.findFirst({
+			where: {
+				tenantId,
+				diseaseId: secondaryDisease.id,
+				activeIngredient: ingredient,
+			},
+		});
+		if (!hasIngredient)
+			await prisma.diseaseIngredient.create({
+				data: {
+					tenantId,
+					diseaseId: secondaryDisease.id,
+					activeIngredient: ingredient,
+					sortOrder: 1,
+				},
+			});
+		await prisma.diseaseProductPin.upsert({
+			where: {
+				diseaseId_productId: {
+					diseaseId: secondaryDisease.id,
+					productId: secondaryProduct.id,
+				},
+			},
+			update: { isExcluded: false, sortOrder: 1 },
+			create: {
+				tenantId,
+				diseaseId: secondaryDisease.id,
+				productId: secondaryProduct.id,
+				sortOrder: 1,
+				isExcluded: false,
+			},
+		});
 	}
 	const dosageByDisease = new Map([
 		['Đạo ôn', 1],
@@ -692,36 +1397,216 @@ async function seedBvtvRelations(tenantId: string): Promise<void> {
 		['Cỏ dại ruộng cạn', 1.5],
 	]);
 	for (const [name] of dosageByDisease) {
-		const row = await prisma.disease.findFirst({ where: { tenantId, name }, select: { id: true } });
+		const row = await prisma.disease.findFirst({
+			where: { tenantId, name },
+			select: { id: true },
+		});
 		if (!row) continue;
-		await prisma.disease.update({ where: { id: row.id }, data: { formulaExpr: 'area_mau * dose_per_mau' } });
-		await prisma.diseaseConsultField.deleteMany({ where: { tenantId, diseaseId: row.id } });
-		await prisma.diseaseConsultField.createMany({ data: [
-			{ tenantId, diseaseId: row.id, fieldKey: 'area_mau', label: 'Quy mô ruộng', fieldType: 'SELECT', unit: 'mẫu', options: { choices: [{ label: '1 mẫu', value: 1 }, { label: '5 mẫu', value: 5 }, { label: '10 mẫu', value: 10 }, { label: '20 mẫu', value: 20 }] }, required: true, sortOrder: 0 },
-			{ tenantId, diseaseId: row.id, fieldKey: 'dose_per_mau', label: 'Liều thuốc / mẫu', fieldType: 'SELECT', unit: 'đơn vị thuốc/mẫu', options: { choices: [{ label: '0,5 đơn vị/mẫu', value: 0.5 }, { label: '1 đơn vị/mẫu', value: 1 }, { label: '1,5 đơn vị/mẫu', value: 1.5 }, { label: '2 đơn vị/mẫu', value: 2 }], help: 'Chọn theo nhãn thuốc và tình trạng ruộng.' }, required: true, sortOrder: 1 },
-		] });
+		await prisma.disease.update({
+			where: { id: row.id },
+			data: { formulaExpr: 'area_mau * dose_per_mau' },
+		});
+		await prisma.diseaseConsultField.deleteMany({
+			where: { tenantId, diseaseId: row.id },
+		});
+		await prisma.diseaseConsultField.createMany({
+			data: [
+				{
+					tenantId,
+					diseaseId: row.id,
+					fieldKey: 'area_mau',
+					label: 'Quy mô ruộng',
+					fieldType: 'SELECT',
+					unit: 'mẫu',
+					options: {
+						choices: [
+							{ label: '1 mẫu', value: 1 },
+							{ label: '5 mẫu', value: 5 },
+							{ label: '10 mẫu', value: 10 },
+							{ label: '20 mẫu', value: 20 },
+						],
+					},
+					required: true,
+					sortOrder: 0,
+				},
+				{
+					tenantId,
+					diseaseId: row.id,
+					fieldKey: 'dose_per_mau',
+					label: 'Liều thuốc / mẫu',
+					fieldType: 'SELECT',
+					unit: 'đơn vị thuốc/mẫu',
+					options: {
+						choices: [
+							{ label: '0,5 đơn vị/mẫu', value: 0.5 },
+							{ label: '1 đơn vị/mẫu', value: 1 },
+							{ label: '1,5 đơn vị/mẫu', value: 1.5 },
+							{ label: '2 đơn vị/mẫu', value: 2 },
+						],
+						help: 'Chọn theo nhãn thuốc và tình trạng ruộng.',
+					},
+					required: true,
+					sortOrder: 1,
+				},
+			],
+		});
 	}
 	const saleProduct = productBySku.get('TBV-001');
 	const saleBatch = batches.get('TBV-001');
 	if (saleProduct && saleBatch) {
 		const qty = 2;
 		const lineTotal = saleProduct.salePrice * BigInt(qty);
-		const sale = await prisma.sale.upsert({ where: { tenantId_docNo: { tenantId, docNo: 'BH-BVTV-0001' } }, update: { customerId: customer.id, diseaseId: disease.id, diseaseNameSnapshot: 'Đạo ôn', total: lineTotal, subtotal: lineTotal, amountPaid: 0n, debtAmount: lineTotal, paymentMethod: 'CASH', completedAt: new Date() }, create: { tenantId, docNo: 'BH-BVTV-0001', idempotencyKey: 'seed-bvtv-sale-1', channel: 'QUICK_SALE', status: 'COMPLETED', customerId: customer.id, customerNameSnapshot: 'Anh Ba - Hộ trồng lúa', customerPhoneSnapshot: '0906000001', warehouseId: warehouse.id, subtotal: lineTotal, total: lineTotal, amountPaid: 0n, debtAmount: lineTotal, paymentMethod: 'CASH', diseaseId: disease.id, diseaseNameSnapshot: 'Đạo ôn', consultContext: { target: 'Lúa', symptom: 'Vết bệnh hình thoi' }, suggestedQtyMeta: { source: 'seed', qty }, createdBy: owner.id, completedAt: new Date() }, select: { id: true } });
+		const sale = await prisma.sale.upsert({
+			where: { tenantId_docNo: { tenantId, docNo: 'BH-BVTV-0001' } },
+			update: {
+				customerId: customer.id,
+				diseaseId: disease.id,
+				diseaseNameSnapshot: 'Đạo ôn',
+				total: lineTotal,
+				subtotal: lineTotal,
+				amountPaid: 0n,
+				debtAmount: lineTotal,
+				paymentMethod: 'CASH',
+				completedAt: new Date(),
+			},
+			create: {
+				tenantId,
+				docNo: 'BH-BVTV-0001',
+				idempotencyKey: 'seed-bvtv-sale-1',
+				channel: 'QUICK_SALE',
+				status: 'COMPLETED',
+				customerId: customer.id,
+				customerNameSnapshot: 'Anh Ba - Hộ trồng lúa',
+				customerPhoneSnapshot: '0906000001',
+				warehouseId: warehouse.id,
+				subtotal: lineTotal,
+				total: lineTotal,
+				amountPaid: 0n,
+				debtAmount: lineTotal,
+				paymentMethod: 'CASH',
+				diseaseId: disease.id,
+				diseaseNameSnapshot: 'Đạo ôn',
+				consultContext: { target: 'Lúa', symptom: 'Vết bệnh hình thoi' },
+				suggestedQtyMeta: { source: 'seed', qty },
+				createdBy: owner.id,
+				completedAt: new Date(),
+			},
+			select: { id: true },
+		});
 		await prisma.saleLine.deleteMany({ where: { saleId: sale.id } });
-		const line = await prisma.saleLine.create({ data: { id: `00000000-0000-0000-0000-${sale.id.slice(-12)}`, tenantId, saleId: sale.id, productId: saleProduct.id, productNameSnapshot: saleProduct.name, unitId: saleProduct.baseUnitId, qty, qtyBase: qty, unitPrice: saleProduct.salePrice, lineTotal, unitCost: saleProduct.costPrice, batchId: saleBatch.id } });
-		await prisma.saleLineBatch.create({ data: { saleLineId: line.id, batchId: saleBatch.id, qtyBase: qty } });
-		await prisma.customer.update({ where: { id: customer.id }, data: { balance: lineTotal } });
-		const existingSaleDebt = await prisma.debtLedger.findFirst({ where: { tenantId, partyType: 'CUSTOMER', partyId: customer.id, refType: 'SALE', refId: sale.id } });
-		if (!existingSaleDebt) await prisma.debtLedger.create({ data: { tenantId, partyType: 'CUSTOMER', partyId: customer.id, entryType: 'SALE', direction: 'INCREASE', amount: lineTotal, balanceAfter: lineTotal, refType: 'SALE', refId: sale.id, createdBy: owner.id, note: 'Công nợ bán thuốc seed demo' } });
-		const voucher = await prisma.paymentVoucher.upsert({ where: { tenantId_docNo: { tenantId, docNo: 'PT-BVTV-0001' } }, update: {}, create: { tenantId, docNo: 'PT-BVTV-0001', idempotencyKey: 'seed-bvtv-voucher-1', voucherType: 'RECEIPT', partyType: 'CUSTOMER', partyId: customer.id, amount: 30000n, method: 'CASH', refSaleId: sale.id, customerId: customer.id, createdBy: owner.id, note: 'Khách trả trước một phần' }, select: { id: true } });
-		await prisma.paymentVoucherLine.deleteMany({ where: { voucherId: voucher.id } });
-		await prisma.paymentVoucherLine.create({ data: { voucherId: voucher.id, method: 'CASH', amount: 30000n, refSaleId: sale.id } });
+		const line = await prisma.saleLine.create({
+			data: {
+				id: `00000000-0000-0000-0000-${sale.id.slice(-12)}`,
+				tenantId,
+				saleId: sale.id,
+				productId: saleProduct.id,
+				productNameSnapshot: saleProduct.name,
+				unitId: saleProduct.baseUnitId,
+				qty,
+				qtyBase: qty,
+				unitPrice: saleProduct.salePrice,
+				lineTotal,
+				unitCost: saleProduct.costPrice,
+				batchId: saleBatch.id,
+			},
+		});
+		await prisma.saleLineBatch.create({
+			data: { saleLineId: line.id, batchId: saleBatch.id, qtyBase: qty },
+		});
+		await prisma.customer.update({
+			where: { id: customer.id },
+			data: { balance: lineTotal },
+		});
+		const existingSaleDebt = await prisma.debtLedger.findFirst({
+			where: {
+				tenantId,
+				partyType: 'CUSTOMER',
+				partyId: customer.id,
+				refType: 'SALE',
+				refId: sale.id,
+			},
+		});
+		if (!existingSaleDebt)
+			await prisma.debtLedger.create({
+				data: {
+					tenantId,
+					partyType: 'CUSTOMER',
+					partyId: customer.id,
+					entryType: 'SALE',
+					direction: 'INCREASE',
+					amount: lineTotal,
+					balanceAfter: lineTotal,
+					refType: 'SALE',
+					refId: sale.id,
+					createdBy: owner.id,
+					note: 'Công nợ bán thuốc seed demo',
+				},
+			});
+		const voucher = await prisma.paymentVoucher.upsert({
+			where: { tenantId_docNo: { tenantId, docNo: 'PT-BVTV-0001' } },
+			update: {},
+			create: {
+				tenantId,
+				docNo: 'PT-BVTV-0001',
+				idempotencyKey: 'seed-bvtv-voucher-1',
+				voucherType: 'RECEIPT',
+				partyType: 'CUSTOMER',
+				partyId: customer.id,
+				amount: 30000n,
+				method: 'CASH',
+				refSaleId: sale.id,
+				customerId: customer.id,
+				createdBy: owner.id,
+				note: 'Khách trả trước một phần',
+			},
+			select: { id: true },
+		});
+		await prisma.paymentVoucherLine.deleteMany({
+			where: { voucherId: voucher.id },
+		});
+		await prisma.paymentVoucherLine.create({
+			data: {
+				voucherId: voucher.id,
+				method: 'CASH',
+				amount: 30000n,
+				refSaleId: sale.id,
+			},
+		});
 	}
-	const adjustment = await prisma.stockAdjustment.upsert({ where: { tenantId_docNo: { tenantId, docNo: 'DC-BVTV-0001' } }, update: {}, create: { tenantId, docNo: 'DC-BVTV-0001', warehouseId: warehouse.id, status: 'COMPLETED', note: 'Điều chỉnh kiểm kê lô TBV-002', createdBy: owner.id }, select: { id: true } });
+	const adjustment = await prisma.stockAdjustment.upsert({
+		where: { tenantId_docNo: { tenantId, docNo: 'DC-BVTV-0001' } },
+		update: {},
+		create: {
+			tenantId,
+			docNo: 'DC-BVTV-0001',
+			warehouseId: warehouse.id,
+			status: 'COMPLETED',
+			note: 'Điều chỉnh kiểm kê lô TBV-002',
+			createdBy: owner.id,
+		},
+		select: { id: true },
+	});
 	const adjustProduct = productBySku.get('TBV-002');
 	const adjustBatch = batches.get('TBV-002');
-	if (adjustProduct && adjustBatch) await prisma.stockAdjustmentLine.deleteMany({ where: { adjustmentId: adjustment.id } }).then(() => prisma.stockAdjustmentLine.create({ data: { adjustmentId: adjustment.id, productId: adjustProduct.id, batchId: adjustBatch.id, qtyBefore: 120, qtyAfter: 120, delta: 0, reasonCode: 'COUNT_CONFIRMED' } }));
-	console.log(`  [REL] ${tenantId}: batches=${batches.size}, purchaseLines=${purchaseLines.length}, diseases=${diseases.length}, sale=BH-BVTV-0001`);
+	if (adjustProduct && adjustBatch)
+		await prisma.stockAdjustmentLine
+			.deleteMany({ where: { adjustmentId: adjustment.id } })
+			.then(() =>
+				prisma.stockAdjustmentLine.create({
+					data: {
+						adjustmentId: adjustment.id,
+						productId: adjustProduct.id,
+						batchId: adjustBatch.id,
+						qtyBefore: 120,
+						qtyAfter: 120,
+						delta: 0,
+						reasonCode: 'COUNT_CONFIRMED',
+					},
+				}),
+			);
+	console.log(
+		`  [REL] ${tenantId}: batches=${batches.size}, purchaseLines=${purchaseLines.length}, diseases=${diseases.length}, sale=BH-BVTV-0001`,
+	);
 }
 
 // findFirst-then-create cho model khong co unique (tenantId, name).
@@ -757,8 +1642,23 @@ const HANDBOOK_PROTOCOLS: Record<string, ProtocolSeed[]> = {
 			note: 'Phun khi vết bệnh mới chớm, nhắc lại sau 5-7 ngày nếu trời âm u.',
 			isDefault: true,
 			items: [
-				{ sku: 'TBV-007', doseAmount: 15, doseUnit: 'g', perAreaAmount: 1, perAreaUnit: 'CONG_NAM', mixing: 'Pha 15g cho bình 25 lít nước.', usage: 'Phun ướt đều tán lá, tránh phun lúc nắng gắt.' },
-				{ sku: 'PB-003', doseAmount: 20, doseUnit: 'g', perAreaAmount: 1, perAreaUnit: 'CONG_NAM', usage: 'Phun phục hồi sau khi bệnh ngừng lây lan.' },
+				{
+					sku: 'TBV-007',
+					doseAmount: 15,
+					doseUnit: 'g',
+					perAreaAmount: 1,
+					perAreaUnit: 'CONG_NAM',
+					mixing: 'Pha 15g cho bình 25 lít nước.',
+					usage: 'Phun ướt đều tán lá, tránh phun lúc nắng gắt.',
+				},
+				{
+					sku: 'PB-003',
+					doseAmount: 20,
+					doseUnit: 'g',
+					perAreaAmount: 1,
+					perAreaUnit: 'CONG_NAM',
+					usage: 'Phun phục hồi sau khi bệnh ngừng lây lan.',
+				},
 			],
 		},
 		{
@@ -766,8 +1666,22 @@ const HANDBOOK_PROTOCOLS: Record<string, ProtocolSeed[]> = {
 			note: 'Dùng khi Beam hết hàng hoặc cần luân phiên hoạt chất chống kháng.',
 			isDefault: false,
 			items: [
-				{ sku: 'TBV-017', doseAmount: 30, doseUnit: 'ml', perAreaAmount: 1, perAreaUnit: 'CONG_NAM', mixing: 'Pha 30ml cho bình 25 lít nước.' },
-				{ sku: 'TBV-014', doseAmount: 40, doseUnit: 'ml', perAreaAmount: 1, perAreaUnit: 'CONG_NAM', usage: 'Phòng khô vằn đi kèm khi ruộng rậm.' },
+				{
+					sku: 'TBV-017',
+					doseAmount: 30,
+					doseUnit: 'ml',
+					perAreaAmount: 1,
+					perAreaUnit: 'CONG_NAM',
+					mixing: 'Pha 30ml cho bình 25 lít nước.',
+				},
+				{
+					sku: 'TBV-014',
+					doseAmount: 40,
+					doseUnit: 'ml',
+					perAreaAmount: 1,
+					perAreaUnit: 'CONG_NAM',
+					usage: 'Phòng khô vằn đi kèm khi ruộng rậm.',
+				},
 			],
 		},
 	],
@@ -777,15 +1691,37 @@ const HANDBOOK_PROTOCOLS: Record<string, ProtocolSeed[]> = {
 			note: 'Phun khi rầy đạt 3 con/dảnh, rẽ hàng phun vào gốc lúa.',
 			isDefault: true,
 			items: [
-				{ sku: 'TBV-004', doseAmount: 8, doseUnit: 'g', perAreaAmount: 1, perAreaUnit: 'CONG_NAM', mixing: 'Pha 8g cho bình 25 lít nước.', usage: 'Phun vào gốc, nơi rầy trú.' },
-				{ sku: 'PB-008', doseAmount: 25, doseUnit: 'ml', perAreaAmount: 1, perAreaUnit: 'CONG_NAM', usage: 'Bổ sung canxi-bo giúp cứng cây sau khi rầy giảm.' },
+				{
+					sku: 'TBV-004',
+					doseAmount: 8,
+					doseUnit: 'g',
+					perAreaAmount: 1,
+					perAreaUnit: 'CONG_NAM',
+					mixing: 'Pha 8g cho bình 25 lít nước.',
+					usage: 'Phun vào gốc, nơi rầy trú.',
+				},
+				{
+					sku: 'PB-008',
+					doseAmount: 25,
+					doseUnit: 'ml',
+					perAreaAmount: 1,
+					perAreaUnit: 'CONG_NAM',
+					usage: 'Bổ sung canxi-bo giúp cứng cây sau khi rầy giảm.',
+				},
 			],
 		},
 		{
 			name: 'Bộ thuốc thay thế',
 			isDefault: false,
 			items: [
-				{ sku: 'TBV-013', doseAmount: 2, doseUnit: 'g', perAreaAmount: 1, perAreaUnit: 'CONG_NAM', mixing: 'Pha 2g cho bình 25 lít nước.' },
+				{
+					sku: 'TBV-013',
+					doseAmount: 2,
+					doseUnit: 'g',
+					perAreaAmount: 1,
+					perAreaUnit: 'CONG_NAM',
+					mixing: 'Pha 2g cho bình 25 lít nước.',
+				},
 			],
 		},
 	],
@@ -795,15 +1731,34 @@ const HANDBOOK_PROTOCOLS: Record<string, ProtocolSeed[]> = {
 			note: 'Phun khi sâu tuổi 1-2, trước khi cuốn lá kín.',
 			isDefault: true,
 			items: [
-				{ sku: 'TBV-005', doseAmount: 20, doseUnit: 'ml', perAreaAmount: 1, perAreaUnit: 'CONG_NAM', mixing: 'Pha 20ml cho bình 25 lít nước.' },
-				{ sku: 'PB-003', doseAmount: 20, doseUnit: 'g', perAreaAmount: 1, perAreaUnit: 'CONG_NAM' },
+				{
+					sku: 'TBV-005',
+					doseAmount: 20,
+					doseUnit: 'ml',
+					perAreaAmount: 1,
+					perAreaUnit: 'CONG_NAM',
+					mixing: 'Pha 20ml cho bình 25 lít nước.',
+				},
+				{
+					sku: 'PB-003',
+					doseAmount: 20,
+					doseUnit: 'g',
+					perAreaAmount: 1,
+					perAreaUnit: 'CONG_NAM',
+				},
 			],
 		},
 		{
 			name: 'Bộ thuốc thay thế',
 			isDefault: false,
 			items: [
-				{ sku: 'TBV-013', doseAmount: 2, doseUnit: 'g', perAreaAmount: 1, perAreaUnit: 'CONG_NAM' },
+				{
+					sku: 'TBV-013',
+					doseAmount: 2,
+					doseUnit: 'g',
+					perAreaAmount: 1,
+					perAreaUnit: 'CONG_NAM',
+				},
 			],
 		},
 	],
@@ -813,7 +1768,14 @@ const HANDBOOK_PROTOCOLS: Record<string, ProtocolSeed[]> = {
 			note: 'Phun khi cỏ cao 10-15cm, tránh phun dính lá cây trồng.',
 			isDefault: true,
 			items: [
-				{ sku: 'TBV-009', doseAmount: 100, doseUnit: 'ml', perAreaAmount: 1, perAreaUnit: 'CONG_NAM', usage: 'Dùng béc chụp, không phun ngược gió.' },
+				{
+					sku: 'TBV-009',
+					doseAmount: 100,
+					doseUnit: 'ml',
+					perAreaAmount: 1,
+					perAreaUnit: 'CONG_NAM',
+					usage: 'Dùng béc chụp, không phun ngược gió.',
+				},
 			],
 		},
 		{
@@ -821,7 +1783,13 @@ const HANDBOOK_PROTOCOLS: Record<string, ProtocolSeed[]> = {
 			note: 'Cháy nhanh hơn nhưng không diệt được gốc rễ.',
 			isDefault: false,
 			items: [
-				{ sku: 'TBV-003', doseAmount: 80, doseUnit: 'ml', perAreaAmount: 1, perAreaUnit: 'CONG_NAM' },
+				{
+					sku: 'TBV-003',
+					doseAmount: 80,
+					doseUnit: 'ml',
+					perAreaAmount: 1,
+					perAreaUnit: 'CONG_NAM',
+				},
 			],
 		},
 	],
@@ -831,17 +1799,50 @@ const HANDBOOK_PROTOCOLS: Record<string, ProtocolSeed[]> = {
 			note: 'Trị rầy chổng cánh môi giới + phục hồi bộ rễ. Cây đã nhiễm nặng nên đốn bỏ.',
 			isDefault: true,
 			items: [
-				{ sku: 'TBV-011', doseAmount: 15, doseUnit: 'ml', perAreaAmount: 1, perAreaUnit: 'CONG_NAM', usage: 'Phun khi cây ra đọt non, đúng lúc rầy đẻ.' },
-				{ sku: 'TBV-018', doseAmount: 200, doseUnit: 'g', perAreaAmount: 1, perAreaUnit: 'CONG_NAM', usage: 'Trộn gốc để đối kháng nấm rễ.' },
-				{ sku: 'PB-008', doseAmount: 30, doseUnit: 'ml', perAreaAmount: 1, perAreaUnit: 'CONG_NAM' },
+				{
+					sku: 'TBV-011',
+					doseAmount: 15,
+					doseUnit: 'ml',
+					perAreaAmount: 1,
+					perAreaUnit: 'CONG_NAM',
+					usage: 'Phun khi cây ra đọt non, đúng lúc rầy đẻ.',
+				},
+				{
+					sku: 'TBV-018',
+					doseAmount: 200,
+					doseUnit: 'g',
+					perAreaAmount: 1,
+					perAreaUnit: 'CONG_NAM',
+					usage: 'Trộn gốc để đối kháng nấm rễ.',
+				},
+				{
+					sku: 'PB-008',
+					doseAmount: 30,
+					doseUnit: 'ml',
+					perAreaAmount: 1,
+					perAreaUnit: 'CONG_NAM',
+				},
 			],
 		},
 		{
 			name: 'Bộ thuốc thay thế',
 			isDefault: false,
 			items: [
-				{ sku: 'TBV-001', doseAmount: 15, doseUnit: 'ml', perAreaAmount: 1, perAreaUnit: 'CONG_NAM' },
-				{ sku: 'PB-007', doseAmount: 5, doseUnit: 'kg', perAreaAmount: 1, perAreaUnit: 'CONG_NAM', usage: 'Bón gốc cải tạo đất đầu mùa mưa.' },
+				{
+					sku: 'TBV-001',
+					doseAmount: 15,
+					doseUnit: 'ml',
+					perAreaAmount: 1,
+					perAreaUnit: 'CONG_NAM',
+				},
+				{
+					sku: 'PB-007',
+					doseAmount: 5,
+					doseUnit: 'kg',
+					perAreaAmount: 1,
+					perAreaUnit: 'CONG_NAM',
+					usage: 'Bón gốc cải tạo đất đầu mùa mưa.',
+				},
 			],
 		},
 	],
@@ -851,8 +1852,21 @@ const HANDBOOK_PROTOCOLS: Record<string, ProtocolSeed[]> = {
 			note: 'Phun phòng khi trời ẩm kéo dài, đừng đợi thấy mốc trắng.',
 			isDefault: true,
 			items: [
-				{ sku: 'TBV-015', doseAmount: 60, doseUnit: 'g', perAreaAmount: 1, perAreaUnit: 'CONG_NAM', mixing: 'Pha 60g cho bình 25 lít nước.' },
-				{ sku: 'PB-003', doseAmount: 20, doseUnit: 'g', perAreaAmount: 1, perAreaUnit: 'CONG_NAM' },
+				{
+					sku: 'TBV-015',
+					doseAmount: 60,
+					doseUnit: 'g',
+					perAreaAmount: 1,
+					perAreaUnit: 'CONG_NAM',
+					mixing: 'Pha 60g cho bình 25 lít nước.',
+				},
+				{
+					sku: 'PB-003',
+					doseAmount: 20,
+					doseUnit: 'g',
+					perAreaAmount: 1,
+					perAreaUnit: 'CONG_NAM',
+				},
 			],
 		},
 		{
@@ -860,7 +1874,13 @@ const HANDBOOK_PROTOCOLS: Record<string, ProtocolSeed[]> = {
 			note: 'Lưu dẫn mạnh hơn, dùng khi bệnh đã lan.',
 			isDefault: false,
 			items: [
-				{ sku: 'TBV-006', doseAmount: 50, doseUnit: 'g', perAreaAmount: 1, perAreaUnit: 'CONG_NAM' },
+				{
+					sku: 'TBV-006',
+					doseAmount: 50,
+					doseUnit: 'g',
+					perAreaAmount: 1,
+					perAreaUnit: 'CONG_NAM',
+				},
 			],
 		},
 	],
@@ -883,7 +1903,9 @@ async function seedHandbookProtocols(tenantId: string): Promise<void> {
 		where: { tenantId, sku: { in: skus }, deletedAt: null },
 		select: { id: true, sku: true, activeIngredient: true },
 	});
-	const productBySku = new Map(products.map((product) => [product.sku, product]));
+	const productBySku = new Map(
+		products.map((product) => [product.sku, product]),
+	);
 
 	let protocolCount = 0;
 	let skipped = 0;
@@ -1088,12 +2110,17 @@ async function seedTenant(t: DemoTenant): Promise<void> {
 			domain: p.domain as Prisma.ProductUncheckedCreateInput['domain'],
 			productKind:
 				p.productKind as Prisma.ProductUncheckedCreateInput['productKind'],
-			businessGroup: ['PESTICIDE', 'FERTILIZER', 'BIOLOGICAL_PRODUCT'].includes(p.productKind) ? 'CROP_INPUTS' : null,
+			businessGroup: ['PESTICIDE', 'FERTILIZER', 'BIOLOGICAL_PRODUCT'].includes(
+				p.productKind,
+			)
+				? 'CROP_INPUTS'
+				: null,
 			activeIngredient: p.activeIngredient ?? null,
 			concentration: p.concentration ?? null,
 			netContent: spec?.netContent ?? null,
 			netContentUnit: spec?.netContentUnit ?? null,
-			attrs: (spec?.attrs ?? null) as Prisma.ProductUncheckedCreateInput['attrs'],
+			attrs: (spec?.attrs ??
+				null) as Prisma.ProductUncheckedCreateInput['attrs'],
 			costPrice: BigInt(p.cost),
 			salePrice: BigInt(p.sale),
 			status: 'ACTIVE',
@@ -1142,6 +2169,62 @@ async function seedTenant(t: DemoTenant): Promise<void> {
 	);
 	if (t.slug === 'nong-xanh-bvtv') await seedBvtvRelations(tenantId);
 	await seedHandbookProtocols(tenantId);
+	const ownerUser = await prisma.user.findFirstOrThrow({
+		where: { tenantId, username: owner.username },
+		select: { id: true },
+	});
+	await seedNotifications(tenantId, ownerUser.id);
+}
+
+/** In-app notification fixtures for header bell — idempotent by title+type per tenant. */
+async function seedNotifications(tenantId: string, ownerId: string) {
+	const fixtures = [
+		{
+			userId: null as string | null,
+			type: 'SYSTEM' as const,
+			title: 'Chào mừng dùng NomoGreen',
+			body: 'Chuông thông báo đã bật. Bạn sẽ nhận cảnh báo công nợ, tồn kho và hạn dùng tại đây.',
+		},
+		{
+			userId: null,
+			type: 'LOW_STOCK' as const,
+			title: 'Hàng sắp hết',
+			body: 'Một số mặt hàng dưới ngưỡng tồn tối thiểu. Kiểm tra kho để nhập bổ sung.',
+		},
+		{
+			userId: null,
+			type: 'NEAR_EXPIRED' as const,
+			title: 'Hàng gần hết hạn',
+			body: 'Có lô hàng trong vòng 30 ngày hết hạn. Ưu tiên bán trước.',
+		},
+		{
+			userId: ownerId,
+			type: 'DEBT_DUE' as const,
+			title: 'Công nợ đến hạn',
+			body: 'Có khách còn dư nợ đến hạn thu. Mở mục Công nợ để theo dõi.',
+		},
+	];
+	for (const item of fixtures) {
+		const existing = await prisma.notification.findFirst({
+			where: {
+				tenantId,
+				type: item.type,
+				title: item.title,
+				userId: item.userId,
+			},
+			select: { id: true },
+		});
+		if (existing) continue;
+		await prisma.notification.create({
+			data: {
+				tenantId,
+				userId: item.userId,
+				type: item.type,
+				title: item.title,
+				body: item.body,
+			},
+		});
+	}
 }
 
 async function main() {

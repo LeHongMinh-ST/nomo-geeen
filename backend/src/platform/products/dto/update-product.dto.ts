@@ -1,9 +1,9 @@
 import { BusinessGroup, ProductKind } from '@prisma/client';
 import { Type } from 'class-transformer';
 import {
+	IsArray,
 	IsBoolean,
 	IsEnum,
-	IsArray,
 	IsInt,
 	IsNotEmpty,
 	IsObject,
@@ -34,10 +34,6 @@ export class UpdateProductDto {
 	@IsOptional()
 	@IsUUID('4')
 	baseUnitId?: string;
-
-	@IsOptional()
-	@IsUUID('4')
-	categoryId?: string | null;
 
 	@IsOptional()
 	@IsUUID('4')

@@ -3,11 +3,22 @@ import { BusinessGroup, ProductKind } from '@prisma/client';
 
 export const BUSINESS_GROUP_CATALOG = [
 	{ id: BusinessGroup.CROP_INPUTS, label: 'Thuốc bảo vệ thực vật + Phân bón' },
-	{ id: BusinessGroup.CROP_SEEDLINGS, label: 'Cây giống' },
+	{ id: BusinessGroup.CROP_SEEDLINGS, label: 'Cây trồng' },
 	{ id: BusinessGroup.ANIMAL_FEED, label: 'Thức ăn chăn nuôi' },
 	{ id: BusinessGroup.VETERINARY_DRUGS, label: 'Thuốc thú y' },
-	{ id: BusinessGroup.LIVESTOCK, label: 'Con giống' },
+	{ id: BusinessGroup.HUMAN_DRUGS, label: 'Thuốc (dùng cho người)' },
 ] as const;
+
+export const DEFAULT_BUSINESS_GROUPS = [
+	BusinessGroup.CROP_INPUTS,
+	BusinessGroup.CROP_SEEDLINGS,
+] as const;
+
+export const BUSINESS_GROUP_FEATURES: Partial<Record<BusinessGroup, string>> = {
+	[BusinessGroup.HUMAN_DRUGS]: 'product_group:human_drugs',
+	[BusinessGroup.VETERINARY_DRUGS]: 'product_group:veterinary_drugs',
+	[BusinessGroup.ANIMAL_FEED]: 'product_group:animal_feed',
+};
 
 /** Canonical crop-input types from the BA brief. Category remains a store label. */
 export const CROP_INPUT_PRODUCT_TYPE_CATALOG = [
@@ -29,6 +40,7 @@ const KIND_GROUP: Partial<Record<ProductKind, BusinessGroup>> = {
 	[ProductKind.CROP_SEED]: BusinessGroup.CROP_SEEDLINGS,
 	[ProductKind.SEED]: BusinessGroup.CROP_SEEDLINGS,
 	[ProductKind.SEEDLING]: BusinessGroup.CROP_SEEDLINGS,
+	[ProductKind.HUMAN_DRUG]: BusinessGroup.HUMAN_DRUGS,
 	[ProductKind.ANIMAL_FEED]: BusinessGroup.ANIMAL_FEED,
 	[ProductKind.VET_DRUG]: BusinessGroup.VETERINARY_DRUGS,
 	[ProductKind.LIVESTOCK_SEED]: BusinessGroup.LIVESTOCK,
@@ -44,6 +56,7 @@ const REQUIRED_ATTRS: Partial<Record<ProductKind, string[]>> = {
 	[ProductKind.SEEDLING]: ['species', 'variety'],
 	[ProductKind.ANIMAL_FEED]: ['animalSpecies', 'feedForm'],
 	[ProductKind.VET_DRUG]: ['activeIngredient', 'dosageForm'],
+	[ProductKind.HUMAN_DRUG]: ['activeIngredient', 'dosageForm'],
 	[ProductKind.LIVESTOCK_SEED]: ['species', 'breed'],
 };
 

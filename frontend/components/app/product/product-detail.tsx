@@ -15,7 +15,6 @@ import { useState } from "react";
 import { formatVND } from "@/lib/format";
 import {
 	brandName,
-	categoryName,
 	getStockStatus,
 	manufacturers,
 	type Product,
@@ -132,8 +131,8 @@ export function ProductDetail({ product }: { product: Product }) {
 			{/* Thông tin cơ bản */}
 			<InfoSection icon={Tag} tile="#5cad45" title="Thông tin chung">
 				<InfoRow
-					label="Danh mục"
-					value={product.categoryLabel ?? categoryName(product.categoryId)}
+					label="Nhóm hàng"
+					value={product.businessGroup ?? product.productKind ?? "—"}
 				/>
 				<InfoRow
 					label="Thương hiệu"

@@ -2,13 +2,15 @@
  * backend/src/platform/products/product-contract.ts. */
 export const BUSINESS_GROUP_CATALOG = [
 	{ id: "CROP_INPUTS", label: "Thuốc bảo vệ thực vật + Phân bón" },
-	{ id: "CROP_SEEDLINGS", label: "Cây giống" },
+	{ id: "CROP_SEEDLINGS", label: "Cây trồng" },
+	{ id: "HUMAN_DRUGS", label: "Thuốc (dùng cho người)" },
 	{ id: "ANIMAL_FEED", label: "Thức ăn chăn nuôi" },
 	{ id: "VETERINARY_DRUGS", label: "Thuốc thú y" },
-	{ id: "LIVESTOCK", label: "Con giống" },
 ] as const;
 
-export type BusinessGroupId = (typeof BUSINESS_GROUP_CATALOG)[number]["id"];
+export type BusinessGroupId =
+	| (typeof BUSINESS_GROUP_CATALOG)[number]["id"]
+	| "LIVESTOCK";
 
 export type ProductKindId =
 	| "PESTICIDE"
@@ -20,6 +22,7 @@ export type ProductKindId =
 	| "CROP_SEED"
 	| "SEED"
 	| "SEEDLING"
+	| "HUMAN_DRUG"
 	| "ANIMAL_FEED"
 	| "VET_DRUG"
 	| "LIVESTOCK_SEED";
@@ -51,6 +54,16 @@ const COMMON_CROP_FIELDS = [
 ] as const satisfies readonly ProductKindField[];
 
 export const PRODUCT_KIND_CATALOG: readonly ProductKindDefinition[] = [
+	{
+		id: "HUMAN_DRUG",
+		label: "Thuốc (dùng cho người)",
+		businessGroup: "HUMAN_DRUGS",
+		requiredAttrs: ["activeIngredient", "dosageForm"],
+		fields: [
+			{ key: "activeIngredient", label: "Hoạt chất", input: "text" },
+			{ key: "dosageForm", label: "Dạng bào chế", input: "text" },
+		],
+	},
 	{
 		id: "PESTICIDE",
 		label: "Thuốc bảo vệ thực vật",
@@ -252,7 +265,9 @@ export function resolveEnabledBusinessGroups(
 ): (typeof BUSINESS_GROUP_CATALOG)[number][] {
 	return configured
 		? filterEnabledBusinessGroups(groups)
-		: [...BUSINESS_GROUP_CATALOG];
+		: BUSINESS_GROUP_CATALOG.filter(
+				(group) => group.id === "CROP_INPUTS" || group.id === "CROP_SEEDLINGS",
+			);
 }
 
 const LEGACY_KIND_ALIASES: Record<string, ProductKindId> = {
@@ -268,6 +283,7 @@ const LEGACY_KIND_ALIASES: Record<string, ProductKindId> = {
 	ANIMAL_FEED: "ANIMAL_FEED",
 	VET_DRUG: "VET_DRUG",
 	LIVESTOCK_SEED: "LIVESTOCK_SEED",
+	HUMAN_DRUG: "HUMAN_DRUG",
 };
 
 export function resolveLegacyProductKind(

@@ -61,6 +61,9 @@ const FEATURES = [
 	{ code: 'barcode', name: 'Ma vach' },
 	{ code: 'quantity_tier_pricing', name: 'Gia theo bac so luong' },
 	{ code: 'advanced_mode', name: 'Che do nang cao (da kho, RBAC day du)' },
+	{ code: 'product_group:human_drugs', name: 'Nhom hang thuoc dung cho nguoi' },
+	{ code: 'product_group:veterinary_drugs', name: 'Nhom hang thuoc thu y' },
+	{ code: 'product_group:animal_feed', name: 'Nhom hang thuc an chan nuoi' },
 ];
 
 // Goi dich vu (3.4): moi goi co day du chuc nang; khac nhau o quota.
@@ -72,7 +75,9 @@ const PLANS = [
 		maxUsers: 2,
 		maxWarehouses: 1,
 		maxStorageBytes: 1073741824n, // 1 GB
-		features: FEATURES.map((f) => f.code),
+		features: FEATURES.map((f) => f.code).filter(
+			(code) => !code.startsWith('product_group:'),
+		),
 	},
 	{
 		code: 'professional',
@@ -81,7 +86,9 @@ const PLANS = [
 		maxUsers: 5,
 		maxWarehouses: 1,
 		maxStorageBytes: 5368709120n, // 5 GB
-		features: FEATURES.map((f) => f.code),
+		features: FEATURES.map((f) => f.code).filter(
+			(code) => !code.includes('human_drugs'),
+		),
 	},
 	{
 		code: 'enterprise',
@@ -112,21 +119,150 @@ const RESOURCES = [
 const ACTIONS = ['view', 'create', 'edit', 'delete', 'approve', 'export'];
 
 const HANDBOOK_DEFAULTS = [
-	{ name: 'Đạo ôn', aliases: ['cháy lá', 'đạo ôn lá', 'blast'], category: 'CROP_PROTECTION_AND_FERTILIZER', target: 'Lúa', type: 'DISEASE', symptom: 'Vết bệnh hình thoi, tâm xám tro, viền nâu; nặng thì lá cháy khô, bông lép.', ingredients: ['Tricyclazole', 'Isoprothiolane'] },
-	{ name: 'Rầy nâu', aliases: ['rầy', 'cháy rầy'], category: 'CROP_PROTECTION_AND_FERTILIZER', target: 'Lúa', type: 'PEST', symptom: 'Rầy chích hút gốc lúa, cây vàng lụi từng chòm; truyền bệnh vàng lùn.', ingredients: ['Fipronil', 'Pymetrozine'] },
-	{ name: 'Sâu cuốn lá', aliases: ['sâu cuốn lá nhỏ', 'cuốn lá'], category: 'CROP_PROTECTION_AND_FERTILIZER', target: 'Lúa', type: 'PEST', symptom: 'Sâu nhả tơ cuốn lá thành ống, ăn phần thịt lá để lại lớp biểu bì trắng.', ingredients: ['Fipronil', 'Chlorantraniliprole'] },
-	{ name: 'Cỏ dại ruộng cạn', aliases: ['cỏ dại', 'cỏ ruộng'], category: 'CROP_PROTECTION_AND_FERTILIZER', target: 'Cây trồng cạn', type: 'WEED', symptom: 'Cỏ mọc dày tranh dinh dưỡng, che sáng cây trồng non.', ingredients: ['Paraquat', 'Glyphosate'] },
-	{ name: 'Vàng lá gân xanh', aliases: ['vàng lá', 'greening'], category: 'CROP_PROTECTION_AND_FERTILIZER', target: 'Cam quýt', type: 'DISEASE', symptom: 'Lá vàng loang lổ nhưng gân còn xanh, trái méo lệch, cây suy dần.', ingredients: ['Imidacloprid'] },
-	{ name: 'Sương mai', aliases: ['mốc sương'], category: 'CROP_PROTECTION_AND_FERTILIZER', target: 'Rau màu', type: 'DISEASE', symptom: 'Mặt trên lá đốm vàng, mặt dưới lớp mốc trắng xám; lan nhanh khi ẩm.', ingredients: ['Mancozeb', 'Metalaxyl'] },
-	{ name: 'Dịch tả lợn', aliases: ['dịch tả heo'], category: 'VETERINARY_DRUGS', target: 'Lợn', type: 'OTHER', symptom: 'Lợn sốt cao, bỏ ăn, da đỏ tím vùng tai bụng, chết nhanh hàng loạt.', ingredients: [] },
-	{ name: 'Cúm gia cầm', aliases: ['cúm gà', 'cúm vịt'], category: 'VETERINARY_DRUGS', target: 'Gà, vịt', type: 'OTHER', symptom: 'Gia cầm ủ rũ, khó thở, mào tím, chảy nước mắt mũi, chết đột ngột.', ingredients: [] },
-	{ name: 'Tụ huyết trùng', aliases: ['tụ trùng'], category: 'VETERINARY_DRUGS', target: 'Trâu, bò', type: 'DISEASE', symptom: 'Sốt cao đột ngột, sưng hầu, khó thở, chảy dãi; diễn biến cấp tính.', ingredients: ['Oxytetracycline', 'Streptomycin'] },
-	{ name: 'Đốm trắng ở tôm', aliases: ['đốm trắng', 'WSSV'], category: 'UNCATEGORIZED', target: 'Tôm', type: 'OTHER', symptom: 'Tôm giảm ăn, bơi lờ đờ, vỏ xuất hiện đốm trắng; dễ chết nhanh.', ingredients: [] },
-	{ name: 'Hoại tử gan tụy cấp', aliases: ['AHPND', 'gan tụy cấp'], category: 'UNCATEGORIZED', target: 'Tôm', type: 'DISEASE', symptom: 'Tôm bỏ ăn, ruột rỗng, gan tụy nhạt màu và teo nhỏ.', ingredients: [] },
-	{ name: 'Xuất huyết ở cá', aliases: ['bệnh đỏ thân', 'đỏ mình'], category: 'UNCATEGORIZED', target: 'Cá', type: 'DISEASE', symptom: 'Cá xuất huyết ngoài da, lờ đờ, bỏ ăn và chết rải rác.', ingredients: ['Florfenicol', 'Doxycycline'] },
-	{ name: 'Chọn giống lúa vụ Đông Xuân', aliases: ['giống lúa ĐX', 'chọn giống lúa'], category: 'CROP_SEEDLINGS', target: 'Lúa', type: 'OTHER', symptom: 'Chọn giống phù hợp mùa vụ, đất đai và thời gian sinh trưởng.', ingredients: [] },
-	{ name: 'Chọn cám heo giai đoạn vỗ béo', aliases: ['cám heo vỗ béo', 'thức ăn heo'], category: 'ANIMAL_FEED', target: 'Lợn', type: 'OTHER', symptom: 'Chọn khẩu phần đủ năng lượng, đạm và khoáng cho giai đoạn tăng trọng.', ingredients: [] },
-	{ name: 'Chọn heo giống hậu bị', aliases: ['heo giống', 'lợn hậu bị'], category: 'LIVESTOCK', target: 'Lợn', type: 'OTHER', symptom: 'Ưu tiên con giống khỏe mạnh, nguồn gốc rõ ràng, tăng trưởng đồng đều.', ingredients: [] },
+	{
+		name: 'Đạo ôn',
+		aliases: ['cháy lá', 'đạo ôn lá', 'blast'],
+		category: 'CROP_PROTECTION_AND_FERTILIZER',
+		target: 'Lúa',
+		type: 'DISEASE',
+		symptom:
+			'Vết bệnh hình thoi, tâm xám tro, viền nâu; nặng thì lá cháy khô, bông lép.',
+		ingredients: ['Tricyclazole', 'Isoprothiolane'],
+	},
+	{
+		name: 'Rầy nâu',
+		aliases: ['rầy', 'cháy rầy'],
+		category: 'CROP_PROTECTION_AND_FERTILIZER',
+		target: 'Lúa',
+		type: 'PEST',
+		symptom:
+			'Rầy chích hút gốc lúa, cây vàng lụi từng chòm; truyền bệnh vàng lùn.',
+		ingredients: ['Fipronil', 'Pymetrozine'],
+	},
+	{
+		name: 'Sâu cuốn lá',
+		aliases: ['sâu cuốn lá nhỏ', 'cuốn lá'],
+		category: 'CROP_PROTECTION_AND_FERTILIZER',
+		target: 'Lúa',
+		type: 'PEST',
+		symptom:
+			'Sâu nhả tơ cuốn lá thành ống, ăn phần thịt lá để lại lớp biểu bì trắng.',
+		ingredients: ['Fipronil', 'Chlorantraniliprole'],
+	},
+	{
+		name: 'Cỏ dại ruộng cạn',
+		aliases: ['cỏ dại', 'cỏ ruộng'],
+		category: 'CROP_PROTECTION_AND_FERTILIZER',
+		target: 'Cây trồng cạn',
+		type: 'WEED',
+		symptom: 'Cỏ mọc dày tranh dinh dưỡng, che sáng cây trồng non.',
+		ingredients: ['Paraquat', 'Glyphosate'],
+	},
+	{
+		name: 'Vàng lá gân xanh',
+		aliases: ['vàng lá', 'greening'],
+		category: 'CROP_PROTECTION_AND_FERTILIZER',
+		target: 'Cam quýt',
+		type: 'DISEASE',
+		symptom: 'Lá vàng loang lổ nhưng gân còn xanh, trái méo lệch, cây suy dần.',
+		ingredients: ['Imidacloprid'],
+	},
+	{
+		name: 'Sương mai',
+		aliases: ['mốc sương'],
+		category: 'CROP_PROTECTION_AND_FERTILIZER',
+		target: 'Rau màu',
+		type: 'DISEASE',
+		symptom:
+			'Mặt trên lá đốm vàng, mặt dưới lớp mốc trắng xám; lan nhanh khi ẩm.',
+		ingredients: ['Mancozeb', 'Metalaxyl'],
+	},
+	{
+		name: 'Dịch tả lợn',
+		aliases: ['dịch tả heo'],
+		category: 'VETERINARY_DRUGS',
+		target: 'Lợn',
+		type: 'OTHER',
+		symptom:
+			'Lợn sốt cao, bỏ ăn, da đỏ tím vùng tai bụng, chết nhanh hàng loạt.',
+		ingredients: [],
+	},
+	{
+		name: 'Cúm gia cầm',
+		aliases: ['cúm gà', 'cúm vịt'],
+		category: 'VETERINARY_DRUGS',
+		target: 'Gà, vịt',
+		type: 'OTHER',
+		symptom:
+			'Gia cầm ủ rũ, khó thở, mào tím, chảy nước mắt mũi, chết đột ngột.',
+		ingredients: [],
+	},
+	{
+		name: 'Tụ huyết trùng',
+		aliases: ['tụ trùng'],
+		category: 'VETERINARY_DRUGS',
+		target: 'Trâu, bò',
+		type: 'DISEASE',
+		symptom:
+			'Sốt cao đột ngột, sưng hầu, khó thở, chảy dãi; diễn biến cấp tính.',
+		ingredients: ['Oxytetracycline', 'Streptomycin'],
+	},
+	{
+		name: 'Đốm trắng ở tôm',
+		aliases: ['đốm trắng', 'WSSV'],
+		category: 'UNCATEGORIZED',
+		target: 'Tôm',
+		type: 'OTHER',
+		symptom: 'Tôm giảm ăn, bơi lờ đờ, vỏ xuất hiện đốm trắng; dễ chết nhanh.',
+		ingredients: [],
+	},
+	{
+		name: 'Hoại tử gan tụy cấp',
+		aliases: ['AHPND', 'gan tụy cấp'],
+		category: 'UNCATEGORIZED',
+		target: 'Tôm',
+		type: 'DISEASE',
+		symptom: 'Tôm bỏ ăn, ruột rỗng, gan tụy nhạt màu và teo nhỏ.',
+		ingredients: [],
+	},
+	{
+		name: 'Xuất huyết ở cá',
+		aliases: ['bệnh đỏ thân', 'đỏ mình'],
+		category: 'UNCATEGORIZED',
+		target: 'Cá',
+		type: 'DISEASE',
+		symptom: 'Cá xuất huyết ngoài da, lờ đờ, bỏ ăn và chết rải rác.',
+		ingredients: ['Florfenicol', 'Doxycycline'],
+	},
+	{
+		name: 'Chọn giống lúa vụ Đông Xuân',
+		aliases: ['giống lúa ĐX', 'chọn giống lúa'],
+		category: 'CROP_SEEDLINGS',
+		target: 'Lúa',
+		type: 'OTHER',
+		symptom: 'Chọn giống phù hợp mùa vụ, đất đai và thời gian sinh trưởng.',
+		ingredients: [],
+	},
+	{
+		name: 'Chọn cám heo giai đoạn vỗ béo',
+		aliases: ['cám heo vỗ béo', 'thức ăn heo'],
+		category: 'ANIMAL_FEED',
+		target: 'Lợn',
+		type: 'OTHER',
+		symptom:
+			'Chọn khẩu phần đủ năng lượng, đạm và khoáng cho giai đoạn tăng trọng.',
+		ingredients: [],
+	},
+	{
+		name: 'Chọn heo giống hậu bị',
+		aliases: ['heo giống', 'lợn hậu bị'],
+		category: 'LIVESTOCK',
+		target: 'Lợn',
+		type: 'OTHER',
+		symptom:
+			'Ưu tiên con giống khỏe mạnh, nguồn gốc rõ ràng, tăng trưởng đồng đều.',
+		ingredients: [],
+	},
 ] as const;
 
 const HANDBOOK_DOSAGE_DEFAULTS: Record<string, number> = {
@@ -148,24 +284,36 @@ async function seedDefaultHandbook() {
 			const disease = existing
 				? await prisma.disease.findFirstOrThrow({ where: { id: existing.id } })
 				: await prisma.disease.create({
-				data: {
-					tenantId: tenant.id,
-					name: item.name,
-					// Ban khong dau, khop migration backfill_diacritic_free_search.
-					nameSearch: normalizeVietnameseSearch(item.name),
-					aliases: [...item.aliases],
-					aliasesSearch: normalizeSearchList(item.aliases),
-					domain: item.category === 'VETERINARY_DRUGS' || item.category === 'ANIMAL_FEED' || item.category === 'LIVESTOCK' ? 'LIVESTOCK' : item.category === 'UNCATEGORIZED' ? 'GENERAL' : 'CROP',
-					handbookCategory: item.category,
-					target: item.target,
-					type: item.type,
-					symptom: item.symptom,
-					sortOrder: created,
-				},
-				});
+						data: {
+							tenantId: tenant.id,
+							name: item.name,
+							// Ban khong dau, khop migration backfill_diacritic_free_search.
+							nameSearch: normalizeVietnameseSearch(item.name),
+							aliases: [...item.aliases],
+							aliasesSearch: normalizeSearchList(item.aliases),
+							domain:
+								item.category === 'VETERINARY_DRUGS' ||
+								item.category === 'ANIMAL_FEED' ||
+								item.category === 'LIVESTOCK'
+									? 'LIVESTOCK'
+									: item.category === 'UNCATEGORIZED'
+										? 'GENERAL'
+										: 'CROP',
+							handbookCategory: item.category,
+							target: item.target,
+							type: item.type,
+							symptom: item.symptom,
+							sortOrder: created,
+						},
+					});
 			if (!existing && item.ingredients.length > 0) {
 				await prisma.diseaseIngredient.createMany({
-					data: item.ingredients.map((activeIngredient, sortOrder) => ({ tenantId: tenant.id, diseaseId: disease.id, activeIngredient, sortOrder })),
+					data: item.ingredients.map((activeIngredient, sortOrder) => ({
+						tenantId: tenant.id,
+						diseaseId: disease.id,
+						activeIngredient,
+						sortOrder,
+					})),
 				});
 			}
 			const dosePerMau = HANDBOOK_DOSAGE_DEFAULTS[item.name];
@@ -179,8 +327,43 @@ async function seedDefaultHandbook() {
 				});
 				await prisma.diseaseConsultField.createMany({
 					data: [
-						{ tenantId: tenant.id, diseaseId: disease.id, fieldKey: 'area_mau', label: 'Quy mô ruộng', fieldType: 'SELECT', unit: 'mẫu', options: { choices: [{ label: '1 mẫu', value: 1 }, { label: '5 mẫu', value: 5 }, { label: '10 mẫu', value: 10 }, { label: '20 mẫu', value: 20 }] }, required: true, sortOrder: 0 },
-						{ tenantId: tenant.id, diseaseId: disease.id, fieldKey: 'dose_per_mau', label: 'Liều thuốc / mẫu', fieldType: 'SELECT', unit: 'đơn vị thuốc/mẫu', options: { choices: [{ label: '0,5 đơn vị/mẫu', value: 0.5 }, { label: '1 đơn vị/mẫu', value: 1 }, { label: '1,5 đơn vị/mẫu', value: 1.5 }, { label: '2 đơn vị/mẫu', value: 2 }], help: 'Chọn theo nhãn thuốc và tình trạng ruộng.' }, required: true, sortOrder: 1 },
+						{
+							tenantId: tenant.id,
+							diseaseId: disease.id,
+							fieldKey: 'area_mau',
+							label: 'Quy mô ruộng',
+							fieldType: 'SELECT',
+							unit: 'mẫu',
+							options: {
+								choices: [
+									{ label: '1 mẫu', value: 1 },
+									{ label: '5 mẫu', value: 5 },
+									{ label: '10 mẫu', value: 10 },
+									{ label: '20 mẫu', value: 20 },
+								],
+							},
+							required: true,
+							sortOrder: 0,
+						},
+						{
+							tenantId: tenant.id,
+							diseaseId: disease.id,
+							fieldKey: 'dose_per_mau',
+							label: 'Liều thuốc / mẫu',
+							fieldType: 'SELECT',
+							unit: 'đơn vị thuốc/mẫu',
+							options: {
+								choices: [
+									{ label: '0,5 đơn vị/mẫu', value: 0.5 },
+									{ label: '1 đơn vị/mẫu', value: 1 },
+									{ label: '1,5 đơn vị/mẫu', value: 1.5 },
+									{ label: '2 đơn vị/mẫu', value: 2 },
+								],
+								help: 'Chọn theo nhãn thuốc và tình trạng ruộng.',
+							},
+							required: true,
+							sortOrder: 1,
+						},
 					],
 				});
 			}
@@ -357,7 +540,10 @@ async function main() {
 	// templates. New tenants already clone these grants during provisioning;
 	// this keeps older tenants compatible with the current permission catalog.
 	const tenantRoles = await prisma.role.findMany({
-		where: { tenantId: { not: null }, code: { in: ['OWNER', 'MANAGER', 'STAFF'] } },
+		where: {
+			tenantId: { not: null },
+			code: { in: ['OWNER', 'MANAGER', 'STAFF'] },
+		},
 		select: { id: true, code: true },
 	});
 	const templatesByCode = new Map([
@@ -374,7 +560,12 @@ async function main() {
 		});
 		for (const grant of grants) {
 			await prisma.rolePermission.upsert({
-				where: { roleId_permissionId: { roleId: tenantRole.id, permissionId: grant.permissionId } },
+				where: {
+					roleId_permissionId: {
+						roleId: tenantRole.id,
+						permissionId: grant.permissionId,
+					},
+				},
 				update: {},
 				create: { roleId: tenantRole.id, permissionId: grant.permissionId },
 			});

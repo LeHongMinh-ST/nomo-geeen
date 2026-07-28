@@ -5,7 +5,6 @@ import Link from "next/link";
 import { formatVND } from "@/lib/format";
 import {
 	brandName,
-	categoryName,
 	getStockStatus,
 	type Product,
 	stockStatusBadgeClass,
@@ -44,7 +43,7 @@ export function ProductCard({ product }: { product: Product }) {
 				</div>
 
 				<p className="text-sm text-[#616161]">
-					{product.categoryLabel ?? categoryName(product.categoryId)}
+					{product.productKind ?? product.businessGroup ?? "Sản phẩm"}
 					{product.brandId
 						? ` · ${product.brandLabel ?? brandName(product.brandId)}`
 						: ""}

@@ -1,19 +1,20 @@
 "use client";
 
 import type { LucideIcon } from "lucide-react";
-import { Bell, House, Plus } from "lucide-react";
+import { House, Plus } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { useUserAuth } from "@/stores/user-auth-store";
 import { MoreSheet } from "@/components/app/more-sheet";
+import { NotificationBell } from "@/components/app/notifications/notification-bell";
 import {
 	bottomNavItems,
 	navGroups,
 	USER_TILE_ACTIVE,
 	USER_TILE_GREEN,
 } from "@/lib/navigation";
+import { useUserAuth } from "@/stores/user-auth-store";
 
 /**
  * Khung ứng dụng: sidebar (desktop) + topbar + bottom nav (mobile).
@@ -26,11 +27,21 @@ function isActive(pathname: string, href: string) {
 
 function initials(name?: string) {
 	const words = (name ?? "").trim().split(/\s+/).filter(Boolean);
-	return words.slice(-2).map((word) => word[0]).join("").toUpperCase() || "NT";
+	return (
+		words
+			.slice(-2)
+			.map((word) => word[0])
+			.join("")
+			.toUpperCase() || "NT"
+	);
 }
 
 function roleLabel(role?: string) {
-	return role === "OWNER" ? "Chủ cửa hàng" : role === "MANAGER" ? "Quản lý" : "Nhân viên";
+	return role === "OWNER"
+		? "Chủ cửa hàng"
+		: role === "MANAGER"
+			? "Quản lý"
+			: "Nhân viên";
 }
 
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -57,9 +68,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 						<span className="truncate text-base font-bold tracking-tight text-foreground">
 							{user?.tenantName ?? "Vật tư Minh Tâm"}
 						</span>
-						<span className="truncate text-sm text-[#9e9e9e]">
-							Cửa hàng
-						</span>
+						<span className="truncate text-sm text-[#9e9e9e]">Cửa hàng</span>
 					</span>
 				</div>
 
@@ -101,10 +110,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 				{/* Topbar */}
 				<header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-border bg-card px-4 lg:px-6">
 					{/* Logo + tên cửa hàng — mobile */}
-					<Link
-						href="/"
-						className="flex items-center gap-2.5 lg:hidden"
-					>
+					<Link href="/" className="flex items-center gap-2.5 lg:hidden">
 						<span className="flex size-10 items-center justify-center rounded-full bg-accent text-base font-semibold text-accent-foreground">
 							{initials(user?.fullName)}
 						</span>
@@ -117,15 +123,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 					</Link>
 
 					<div className="ml-auto flex items-center gap-2 lg:gap-3">
-						{/* Chuông thông báo */}
-						<button
-							type="button"
-							aria-label="Thông báo"
-							className="relative flex size-11 items-center justify-center rounded-[10px] text-[#616161] transition-colors duration-200 ease-out hover:bg-[#f5f5f5]"
-						>
-							<Bell className="size-5.5" aria-hidden />
-							<span className="absolute right-2.5 top-2.5 size-2 rounded-full bg-destructive" />
-						</button>
+						<NotificationBell />
 
 						{/* Avatar + vai trò (desktop) */}
 						<Link
@@ -218,7 +216,8 @@ function SidebarLink({
 	active: boolean;
 	className?: string;
 }) {
-	const activeColor = USER_TILE_ACTIVE[item.tile] ?? USER_TILE_ACTIVE[USER_TILE_GREEN];
+	const activeColor =
+		USER_TILE_ACTIVE[item.tile] ?? USER_TILE_ACTIVE[USER_TILE_GREEN];
 	return (
 		<Link
 			href={item.href}

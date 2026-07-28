@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import {
 	BadRequestException,
 	Injectable,
@@ -13,18 +14,18 @@ import {
 	ProductKind,
 	ProductStatus,
 } from '@prisma/client';
-import { randomUUID } from 'node:crypto';
 import { AuditLogger } from '../audit/audit-logger.service';
 import type { TenantIdentity } from '../auth/token.service';
 import { EntitlementService } from '../entitlements/entitlement.service';
 import { TenantQuotaCounterService } from '../entitlements/tenant-quota-counter.service';
 import { PrismaService } from '../prisma/prisma.service';
 import type { CreateProductDto } from './dto/create-product.dto';
+import type { ProductConversionDto } from './dto/product-conversion.dto';
 import type { ProductLookupResponse } from './dto/product-lookup.dto';
 import type { UpdateProductDto } from './dto/update-product.dto';
-import type { ProductConversionDto } from './dto/product-conversion.dto';
 import {
-	assertSelectableBusinessGroup,
+	BUSINESS_GROUP_FEATURES,
+	DEFAULT_BUSINESS_GROUPS,
 	hasSpecializedAttrs,
 	resolveBusinessGroup,
 	validateProductContract,
@@ -36,7 +37,6 @@ type ProductRow = {
 	name: string;
 	barcode: string | null;
 	baseUnitId: string;
-	categoryId: string | null;
 	brandId: string | null;
 	manufacturerId: string | null;
 	domain: string | null;
@@ -79,7 +79,6 @@ export class ProductsService {
 				name: true,
 				barcode: true,
 				baseUnitId: true,
-				categoryId: true,
 				brandId: true,
 				manufacturerId: true,
 				domain: true,
@@ -122,7 +121,6 @@ export class ProductsService {
 				name: true,
 				barcode: true,
 				baseUnitId: true,
-				categoryId: true,
 				brandId: true,
 				manufacturerId: true,
 				domain: true,
@@ -159,12 +157,7 @@ export class ProductsService {
 	}
 
 	async lookups(tenantId: string): Promise<ProductLookupResponse> {
-		const [categories, brands, manufacturers, units] = await Promise.all([
-			this.prisma.category.findMany({
-				where: { tenantId, deletedAt: null },
-				select: { id: true, name: true },
-				orderBy: { name: 'asc' },
-			}),
+		const [brands, manufacturers, units] = await Promise.all([
 			this.prisma.brand.findMany({
 				where: { tenantId, deletedAt: null },
 				select: { id: true, name: true },
@@ -181,23 +174,30 @@ export class ProductsService {
 				orderBy: { name: 'asc' },
 			}),
 		]);
-		return { categories, brands, manufacturers, units };
+		return { brands, manufacturers, units };
 	}
-
 	async businessGroups(tenantId: string) {
-		const [configured, counts] = await Promise.all([
-			this.prisma.tenantBusinessGroup.findMany({
-				where: { tenantId },
-				select: { businessGroup: true, enabled: true },
-				orderBy: { businessGroup: 'asc' },
-			}),
+		const [entitlement, counts] = await Promise.all([
+			typeof this.entitlements.getEffectiveEntitlement === 'function'
+				? this.entitlements.getEffectiveEntitlement(tenantId)
+				: Promise.resolve({ featureCodes: [] as string[] }),
 			this.countActiveProductsByGroup(this.prisma, tenantId),
 		]);
-		return {
-			configured: configured.length > 0,
-			groups: configured,
-			productCounts: counts,
-		};
+		const enabled = new Set<BusinessGroup>(DEFAULT_BUSINESS_GROUPS);
+		for (const group of Object.keys(
+			BUSINESS_GROUP_FEATURES,
+		) as BusinessGroup[]) {
+			if (
+				BUSINESS_GROUP_FEATURES[group] &&
+				entitlement.featureCodes.includes(BUSINESS_GROUP_FEATURES[group]!)
+			)
+				enabled.add(group);
+		}
+		const groups = Object.values(BusinessGroup).map((businessGroup) => ({
+			businessGroup,
+			enabled: enabled.has(businessGroup),
+		}));
+		return { configured: true, groups, productCounts: counts };
 	}
 
 	async updateBusinessGroups(
@@ -289,26 +289,14 @@ export class ProductsService {
 
 		return this.prisma.$transaction(async (tx) => {
 			await this.entitlements.assertFeature(tenantId, 'inventory', tx);
+			if (dto.businessGroup)
+				await this.assertBusinessGroupAccess(tenantId, dto.businessGroup, tx);
 			await this.counters.reserve(tx, tenantId, 'maxProducts', 1n);
 			const unit = await tx.unit.findFirst({
 				where: { id: dto.baseUnitId, tenantId, deletedAt: null },
 				select: { id: true },
 			});
 			if (!unit) throw new NotFoundException('Base unit not found');
-			if (dto.categoryId) {
-				const category = await tx.category.findFirst({
-					where: { id: dto.categoryId, tenantId, deletedAt: null },
-					select: { id: true },
-				});
-				if (!category) throw new NotFoundException('Category not found');
-			}
-			if (dto.businessGroup) {
-				const configuredGroups = await tx.tenantBusinessGroup.findMany({
-					where: { tenantId },
-					select: { businessGroup: true, enabled: true },
-				});
-				assertSelectableBusinessGroup(dto.businessGroup, configuredGroups);
-			}
 
 			try {
 				const created = await tx.product.create({
@@ -318,7 +306,6 @@ export class ProductsService {
 						name,
 						barcode: dto.barcode?.trim() || null,
 						baseUnitId: unit.id,
-						categoryId: dto.categoryId,
 						brandId: await this.resolveNamedReference(
 							tx,
 							'brand',
@@ -343,7 +330,13 @@ export class ProductsService {
 					},
 					select: { id: true, sku: true, name: true, baseUnitId: true },
 				});
-				await this.syncConversions(tx, tenantId, created.id, unit.id, dto.conversions);
+				await this.syncConversions(
+					tx,
+					tenantId,
+					created.id,
+					unit.id,
+					dto.conversions,
+				);
 				if (actor)
 					await this.audit.writeInTx(tx, {
 						tenantId,
@@ -406,13 +399,8 @@ export class ProductsService {
 						dto.productKind !== current.productKind) ||
 						specializedAttrsPresent),
 			);
-			if (nextGroup) {
-				const configuredGroups = await tx.tenantBusinessGroup.findMany({
-					where: { tenantId },
-					select: { businessGroup: true, enabled: true },
-				});
-				assertSelectableBusinessGroup(nextGroup, configuredGroups);
-			}
+			if (nextGroup)
+				await this.assertBusinessGroupAccess(tenantId, nextGroup, tx);
 			if (dto.baseUnitId)
 				await this.requireReference(
 					tx,
@@ -421,14 +409,7 @@ export class ProductsService {
 					dto.baseUnitId,
 					'Base unit not found',
 				);
-			if (dto.categoryId)
-				await this.requireReference(
-					tx,
-					'category',
-					tenantId,
-					dto.categoryId,
-					'Category not found',
-				);
+
 			if (dto.brandId)
 				await this.requireReference(
 					tx,
@@ -447,7 +428,13 @@ export class ProductsService {
 				);
 			const nextBrandId =
 				dto.brandName !== undefined
-					? await this.resolveNamedReference(tx, 'brand', tenantId, undefined, dto.brandName)
+					? await this.resolveNamedReference(
+							tx,
+							'brand',
+							tenantId,
+							undefined,
+							dto.brandName,
+						)
 					: dto.brandId;
 			const nextManufacturerId =
 				dto.manufacturerName !== undefined
@@ -470,7 +457,6 @@ export class ProductsService {
 								? undefined
 								: dto.barcode.trim() || null,
 						baseUnitId: dto.baseUnitId,
-						categoryId: dto.categoryId,
 						brandId: nextBrandId,
 						manufacturerId: nextManufacturerId,
 						costPrice:
@@ -494,7 +480,7 @@ export class ProductsService {
 					tx,
 					tenantId,
 					product.id,
-					(dto.baseUnitId ?? product.baseUnitId),
+					dto.baseUnitId ?? product.baseUnitId,
 					dto.conversions,
 				);
 				const stock = await tx.stock.aggregate({
@@ -560,7 +546,6 @@ export class ProductsService {
 			name: true,
 			barcode: true,
 			baseUnitId: true,
-			categoryId: true,
 			brandId: true,
 			manufacturerId: true,
 			domain: true,
@@ -606,6 +591,19 @@ export class ProductsService {
 		};
 	}
 
+	private async assertBusinessGroupAccess(
+		tenantId: string,
+		group: BusinessGroup,
+		client: Prisma.TransactionClient,
+	) {
+		if ((DEFAULT_BUSINESS_GROUPS as readonly BusinessGroup[]).includes(group))
+			return;
+		const feature = BUSINESS_GROUP_FEATURES[group];
+		if (!feature)
+			throw new BadRequestException('This product group is not available');
+		await this.entitlements.assertFeature(tenantId, feature, client);
+	}
+
 	private async validateReference(
 		tx: Prisma.TransactionClient,
 		model: 'brand' | 'manufacturer',
@@ -628,16 +626,22 @@ export class ProductsService {
 		conversions?: ProductConversionDto[],
 	) {
 		if (conversions === undefined) return;
-		const unitIds = [...new Set(conversions.map((conversion) => conversion.unitId))];
+		const unitIds = [
+			...new Set(conversions.map((conversion) => conversion.unitId)),
+		];
 		if (unitIds.includes(baseUnitId))
-			throw new BadRequestException('Conversion unit must differ from base unit');
+			throw new BadRequestException(
+				'Conversion unit must differ from base unit',
+			);
 		const units = await tx.unit.findMany({
 			where: { id: { in: unitIds }, tenantId, deletedAt: null },
 			select: { id: true },
 		});
 		if (units.length !== unitIds.length)
 			throw new NotFoundException('Conversion unit not found');
-		await tx.productUnitConversion.deleteMany({ where: { tenantId, productId } });
+		await tx.productUnitConversion.deleteMany({
+			where: { tenantId, productId },
+		});
 		if (conversions.length === 0) return;
 		await tx.productUnitConversion.createMany({
 			data: conversions.map((conversion) => ({

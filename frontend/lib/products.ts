@@ -41,15 +41,15 @@ export type Product = {
 	id: string;
 	name: string;
 	sku: string;
+	categoryId?: string;
+	categoryLabel?: string;
 	barcode?: string;
-	categoryId: string;
 	brandId?: string;
 	supplierId?: string;
 	manufacturerId?: string;
 	/** Đơn vị tồn kho gốc (base_spec §5.1). */
 	baseUnit: string;
 	baseUnitId?: string;
-	categoryLabel?: string;
 	brandLabel?: string;
 	manufacturerLabel?: string;
 	/** Các đơn vị nhập/bán quy đổi ra Base Unit. */

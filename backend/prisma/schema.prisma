@@ -516,6 +516,7 @@ model User {
   createdTickets SupportTicket[]
   ticketMessages TicketMessage[]
   notifications  Notification[]
+  notificationReads NotificationRead[]
 
   @@unique([tenantId, username])
   @@index([tenantId, status])
@@ -625,21 +626,41 @@ model AuditLog {
 }
 
 // Thong bao (3.11). Scope theo tenant, co the nham 1 user cu the.
+// Trang thai da doc la per-user qua NotificationRead (khong dung cot chung).
 model Notification {
   id        String           @id @default(uuid())
   tenantId  String
-  userId    String? // null = gui toan tenant
+  userId    String? // null = gui toan tenant (audience), KHONG phai nguoi doc
   type      NotificationType @default(SYSTEM)
   title     String
   body      String?
-  readAt    DateTime?
+  /// Idempotency key: (tenant, type, object, day) — null only for ad-hoc/system rows.
+  dedupeKey String?
   createdAt DateTime         @default(now())
 
-  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  user   User?  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user   User?              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reads  NotificationRead[]
 
-  @@index([tenantId, userId, readAt])
+  @@unique([tenantId, dedupeKey])
+  @@index([tenantId, userId, createdAt])
   @@map("notification")
+}
+
+// Da doc theo tung user — tenant-wide notification khong chia se readAt.
+model NotificationRead {
+  id             String   @id @default(uuid())
+  tenantId       String
+  notificationId String
+  userId         String
+  readAt         DateTime @default(now())
+
+  notification Notification @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([notificationId, userId])
+  @@index([tenantId, userId, readAt])
+  @@map("notification_read")
 }
 
 // Metadata file tren R2/MinIO (3.10). BE chi luu metadata; sizeBytes phuc vu quota.
@@ -685,6 +706,7 @@ enum HandbookCategory {
 enum BusinessGroup {
   CROP_INPUTS
   CROP_SEEDLINGS
+  HUMAN_DRUGS
   ANIMAL_FEED
   VETERINARY_DRUGS
   LIVESTOCK
@@ -700,6 +722,7 @@ enum ProductKind {
   CROP_SEED
   SEED
   SEEDLING
+  HUMAN_DRUG
   VET_DRUG
   ANIMAL_FEED
   LIVESTOCK_SEED

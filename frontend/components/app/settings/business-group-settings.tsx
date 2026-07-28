@@ -121,7 +121,7 @@ export function BusinessGroupSettings() {
 		<div className="mx-auto flex w-full max-w-2xl flex-col gap-6 lg:mx-0">
 			<SettingHeader
 				title="Nhóm kinh doanh"
-				description="Chọn những nhóm hàng cửa hàng đang kinh doanh."
+				description="Nhóm hàng được mở tự động theo gói dịch vụ của cửa hàng."
 			/>
 
 			{/* Hệ quả của việc tắt nhóm — catalog §3 */}
@@ -129,7 +129,7 @@ export function BusinessGroupSettings() {
 				<Info className="mt-0.5 size-5 shrink-0 text-[#9a6800]" aria-hidden />
 				<div className="flex flex-col gap-1 text-sm text-[#6b5300]">
 					<p className="text-base font-semibold text-[#9a6800]">
-						Tắt nhóm không xóa dữ liệu
+						Gói dịch vụ quyết định nhóm hàng
 					</p>
 					<p>
 						Tắt một nhóm chỉ ngăn tạo sản phẩm mới và thêm dòng bán hàng mới
@@ -220,7 +220,7 @@ export function BusinessGroupSettings() {
 					type="button"
 					onClick={() => void save()}
 					disabled={allOff || saving || loading}
-					className="flex h-12 w-full items-center justify-center rounded-[10px] bg-primary text-base font-semibold text-white transition-all duration-200 ease-out hover:bg-[#5cad45] active:translate-y-px active:bg-[#3f8530] disabled:cursor-not-allowed disabled:opacity-50 md:h-11"
+					className="hidden flex h-12 w-full items-center justify-center rounded-[10px] bg-primary text-base font-semibold text-white transition-all duration-200 ease-out hover:bg-[#5cad45] active:translate-y-px active:bg-[#3f8530] disabled:cursor-not-allowed disabled:opacity-50 md:h-11"
 				>
 					{saving ? "Đang lưu…" : "Lưu thay đổi"}
 				</button>

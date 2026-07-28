@@ -1,9 +1,9 @@
-import type { Product } from "@/lib/products";
 import type {
 	BusinessGroupId,
 	ProductKindId,
 	TenantBusinessGroup,
 } from "@/lib/product-kind-form";
+import type { Product } from "@/lib/products";
 import { userFetch } from "@/lib/user-fetch";
 
 export type TenantProduct = {
@@ -12,7 +12,6 @@ export type TenantProduct = {
 	name: string;
 	barcode: string | null;
 	baseUnitId: string;
-	categoryId: string | null;
 	brandId: string | null;
 	manufacturerId: string | null;
 	costPrice: string;
@@ -37,7 +36,6 @@ export type TenantProduct = {
 };
 
 export type ProductLookups = {
-	categories: Array<{ id: string; name: string }>;
 	brands: Array<{ id: string; name: string }>;
 	manufacturers: Array<{ id: string; name: string }>;
 	units: Array<{ id: string; code: string; name: string }>;
@@ -48,7 +46,6 @@ export type ProductInput = {
 	name: string;
 	barcode?: string;
 	baseUnitId: string;
-	categoryId?: string;
 	brandId?: string;
 	manufacturerId?: string;
 	brandName?: string;
@@ -71,9 +68,6 @@ export function mapTenantProduct(
 	row: TenantProduct,
 	lookups: ProductLookups,
 ): Product {
-	const category = lookups.categories.find(
-		(item) => item.id === row.categoryId,
-	);
 	const brand = lookups.brands.find((item) => item.id === row.brandId);
 	const manufacturer = lookups.manufacturers.find(
 		(item) => item.id === row.manufacturerId,
@@ -84,8 +78,6 @@ export function mapTenantProduct(
 		name: row.name,
 		sku: row.sku,
 		barcode: row.barcode ?? undefined,
-		categoryId: row.categoryId ?? "",
-		categoryLabel: category?.name,
 		brandId: row.brandId ?? undefined,
 		brandLabel: brand?.name,
 		manufacturerId: row.manufacturerId ?? undefined,

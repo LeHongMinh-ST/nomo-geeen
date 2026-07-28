@@ -11,6 +11,7 @@ import { DebtsModule } from './platform/debts/debts.module';
 import { EntitlementsModule } from './platform/entitlements/entitlements.module';
 import { HandbookModule } from './platform/handbook/handbook.module';
 import { InventoryModule } from './platform/inventory/inventory.module';
+import { NotificationsModule } from './platform/notifications/notifications.module';
 import { PrismaModule } from './platform/prisma/prisma.module';
 import { ProductsModule } from './platform/products/products.module';
 import { PurchasesModule } from './platform/purchases/purchases.module';
@@ -46,6 +47,7 @@ import { TenantsModule } from './platform/tenants/tenants.module';
 		SalesModule,
 		StockAdjustmentsModule,
 		HandbookModule,
+		NotificationsModule,
 	],
 	controllers: [AppController],
 	providers: [AppService],
