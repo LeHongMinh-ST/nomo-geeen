@@ -2,9 +2,11 @@
 
 import { ChevronRight, LogOut, X } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { navGroups } from "@/lib/navigation";
 import { useScrollLock } from "@/lib/use-scroll-lock";
+import { useUserAuth } from "@/stores/user-auth-store";
 
 /**
  * Menu "Khác" cho mobile — Sheet trượt từ dưới (DESIGN.md §10.1, §24).
@@ -18,6 +20,10 @@ export function MoreSheet({
 	open: boolean;
 	onClose: () => void;
 }) {
+	const router = useRouter();
+	const logout = useUserAuth((state) => state.logout);
+	const loading = useUserAuth((state) => state.loading);
+
 	// Khóa cuộn nền khi sheet mở (iOS-safe).
 	useScrollLock(open);
 
@@ -30,6 +36,12 @@ export function MoreSheet({
 		window.addEventListener("keydown", onKey);
 		return () => window.removeEventListener("keydown", onKey);
 	}, [open, onClose]);
+
+	async function handleLogout() {
+		await logout();
+		onClose();
+		router.replace("/dang-nhap");
+	}
 
 	return (
 		<div
@@ -127,10 +139,12 @@ export function MoreSheet({
 					{/* Đăng xuất */}
 					<button
 						type="button"
+						onClick={() => void handleLogout()}
+						disabled={loading}
 						className="flex h-12 w-full items-center justify-center gap-2 rounded-[10px] border border-border text-base font-semibold text-destructive transition-colors duration-200 ease-out hover:bg-[#fdecea]"
 					>
 						<LogOut className="size-5" aria-hidden />
-						Đăng xuất
+						{loading ? "Đang đăng xuất..." : "Đăng xuất"}
 					</button>
 				</div>
 			</div>
