@@ -110,7 +110,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 				{/* Cột nội dung */}
 				<div className="flex min-h-[100dvh] flex-col lg:pl-[260px]">
 					{/* Topbar */}
-					<header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-border bg-card px-4 lg:px-6">
+					<header className="sticky top-0 z-50 flex h-16 items-center gap-3 border-b border-border bg-card px-4 lg:px-6">
 						{/* Logo + tên cửa hàng — mobile */}
 						<Link href="/" className="flex items-center gap-2.5 lg:hidden">
 							<span className="flex size-10 items-center justify-center rounded-full bg-accent text-base font-semibold text-accent-foreground">
