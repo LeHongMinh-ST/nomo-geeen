@@ -251,7 +251,7 @@ export function QuickSale() {
 			</div>
 
 			{/* Thanh tổng + hành động dính đáy — mobile/tablet */}
-			<div className="fixed inset-x-0 bottom-[calc(44px+env(safe-area-inset-bottom,0px))] z-30 flex flex-col gap-2.5 border-t border-border bg-card px-4 pb-3 pt-3 shadow-[0_-4px_20px_rgba(0,0,0,0.06)] lg:hidden">
+			<div className="fixed inset-x-0 bottom-0 z-30 flex flex-col gap-2.5 border-t border-border bg-card px-4 pb-[calc(44px+env(safe-area-inset-bottom,0px))] pt-3 shadow-[0_-4px_20px_rgba(0,0,0,0.06)] lg:hidden">
 				<SummaryRow itemCount={itemCount} total={subtotal} />
 				<ActionButtons disabled={empty} onDebt={onDebt} onPay={() => setPayOpen(true)} />
 			</div>
