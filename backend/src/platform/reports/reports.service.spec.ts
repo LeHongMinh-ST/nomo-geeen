@@ -78,17 +78,17 @@ describe('ReportsService', () => {
 		const result = await new ReportsService(prisma as never).stockSummary(
 			'tenant-1',
 			{
-				businessGroup: 'LIVESTOCK' as never,
+				businessGroup: 'HUMAN_DRUGS' as never,
 			},
 		);
-		expect(result.filter).toEqual({ businessGroup: 'LIVESTOCK' });
+		expect(result.filter).toEqual({ businessGroup: 'HUMAN_DRUGS' });
 		expect(result.items).toEqual([]);
 		expect(result.byBusinessGroup).toEqual([]);
 		expect(prisma.stock.findMany).toHaveBeenCalledWith(
 			expect.objectContaining({
 				where: {
 					tenantId: 'tenant-1',
-					product: { businessGroup: 'LIVESTOCK' },
+					product: { businessGroup: 'HUMAN_DRUGS' },
 				},
 			}),
 		);

@@ -168,9 +168,9 @@ describe('ProductsService', () => {
 			expect(result.productCounts).toEqual({
 				CROP_INPUTS: 7,
 				CROP_SEEDLINGS: 0,
+				HUMAN_DRUGS: 0,
 				ANIMAL_FEED: 0,
 				VETERINARY_DRUGS: 0,
-				LIVESTOCK: 0,
 			});
 		});
 	});
@@ -196,10 +196,10 @@ describe('ProductsService', () => {
 			const { prisma, service } = makeService();
 			(prisma.tenantBusinessGroup.findMany as jest.Mock).mockResolvedValue([
 				{ businessGroup: BusinessGroup.CROP_INPUTS, enabled: true },
-				{ businessGroup: BusinessGroup.LIVESTOCK, enabled: false },
+				{ businessGroup: BusinessGroup.HUMAN_DRUGS, enabled: false },
 			]);
 			(prisma.product.groupBy as jest.Mock).mockResolvedValue([
-				{ businessGroup: BusinessGroup.LIVESTOCK, _count: { _all: 3 } },
+				{ businessGroup: BusinessGroup.HUMAN_DRUGS, _count: { _all: 3 } },
 			]);
 
 			const result = await service.updateBusinessGroups('tenant-1', [
@@ -215,7 +215,7 @@ describe('ProductsService', () => {
 					where: {
 						tenantId_businessGroup: {
 							tenantId: 'tenant-1',
-							businessGroup: BusinessGroup.LIVESTOCK,
+							businessGroup: BusinessGroup.HUMAN_DRUGS,
 						},
 					},
 					update: { enabled: false },
@@ -223,7 +223,7 @@ describe('ProductsService', () => {
 			);
 			expect(result.configured).toBe(true);
 			// Disabling a group does not remove its existing products.
-			expect(result.productCounts.LIVESTOCK).toBe(3);
+			expect(result.productCounts.HUMAN_DRUGS).toBe(3);
 		});
 	});
 });

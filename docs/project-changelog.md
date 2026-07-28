@@ -184,3 +184,8 @@ Format theo [Keep a Changelog](https://keepachangelog.com/), tuân thủ [Semant
 - Wired OrderForm draft/direct-complete flows to the canonical API with stable retry idempotency, real base-unit IDs, PaymentSheet settlement mapping, and recoverable errors.
 - Wired draft detail completion with duplicate-submit protection and canonical server response replacement.
 - Added form and lifecycle component coverage; frontend build and focused tests pass.
+## 2026-07-28
+
+- Go-live hardening: đồng bộ contract nhóm hàng `HUMAN_DRUGS` và migration billing reference; thêm readiness Prisma/Redis, structured request/error logs, Prometheus counters, Redis-backed auth rate limit, frontend error-reporting baseline và policy SSE degraded/single-instance.
+- Hoàn thiện các màn hình thông tin cửa hàng, đổi mật khẩu bằng API auth/profile hiện có; `LoadingGate` không còn delay giả lập.
+- Reviewer hardening: bảo vệ `/metrics` bằng `METRICS_TOKEN`, thêm Nginx gateway `limit_req` + proxy headers, và cấu hình/test `TRUST_PROXY` explicit.

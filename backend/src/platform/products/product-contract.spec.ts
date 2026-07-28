@@ -15,7 +15,7 @@ describe('product contract', () => {
 			BusinessGroup.CROP_SEEDLINGS,
 			BusinessGroup.ANIMAL_FEED,
 			BusinessGroup.VETERINARY_DRUGS,
-			BusinessGroup.LIVESTOCK,
+			BusinessGroup.HUMAN_DRUGS,
 		]);
 		expect(BUSINESS_GROUP_CATALOG[0].label).toBe(
 			'Thuốc bảo vệ thực vật + Phân bón',

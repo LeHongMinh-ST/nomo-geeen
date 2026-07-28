@@ -30,14 +30,14 @@ const CONFIGURED = {
 		{ businessGroup: "CROP_SEEDLINGS", enabled: false },
 		{ businessGroup: "ANIMAL_FEED", enabled: false },
 		{ businessGroup: "VETERINARY_DRUGS", enabled: false },
-		{ businessGroup: "LIVESTOCK", enabled: false },
+		{ businessGroup: "HUMAN_DRUGS", enabled: false },
 	],
 	productCounts: {
 		CROP_INPUTS: 12,
 		CROP_SEEDLINGS: 3,
 		ANIMAL_FEED: 0,
 		VETERINARY_DRUGS: 0,
-		LIVESTOCK: 0,
+		HUMAN_DRUGS: 0,
 	},
 };
 
@@ -60,10 +60,10 @@ describe("BusinessGroupSettings", () => {
 		);
 		for (const label of [
 			"Thuốc bảo vệ thực vật + Phân bón",
-			"Cây giống",
+			"Cây trồng",
 			"Thức ăn chăn nuôi",
 			"Thuốc thú y",
-			"Con giống",
+			"Thuốc (dùng cho người)",
 		])
 			expect(switchFor(label)).toBeInTheDocument();
 
@@ -71,7 +71,7 @@ describe("BusinessGroupSettings", () => {
 			"aria-checked",
 			"true",
 		);
-		expect(switchFor("Cây giống")).toHaveAttribute("aria-checked", "false");
+		expect(switchFor("Cây trồng")).toHaveAttribute("aria-checked", "false");
 		expect(screen.getByText("Đang có 12 sản phẩm")).toBeInTheDocument();
 		expect(screen.getByText("Đang có 3 sản phẩm")).toBeInTheDocument();
 		expect(screen.getAllByText("Chưa có sản phẩm nào")).toHaveLength(3);
@@ -80,7 +80,9 @@ describe("BusinessGroupSettings", () => {
 	it("spells out that disabling a group keeps existing data", async () => {
 		render(<BusinessGroupSettings />);
 
-		expect(screen.getByText("Tắt nhóm không xóa dữ liệu")).toBeInTheDocument();
+		expect(
+			screen.getByText("Gói dịch vụ quyết định nhóm hàng"),
+		).toBeInTheDocument();
 		expect(
 			screen.getByText(/chỉ ngăn tạo sản phẩm mới và thêm dòng bán hàng mới/i),
 		).toBeInTheDocument();
@@ -97,18 +99,21 @@ describe("BusinessGroupSettings", () => {
 		render(<BusinessGroupSettings />);
 
 		await waitFor(() =>
-			expect(switchFor("Con giống")).toHaveAttribute("aria-checked", "true"),
+			expect(switchFor("Thuốc (dùng cho người)")).toHaveAttribute(
+				"aria-checked",
+				"false",
+			),
 		);
-		expect(switchFor("Cây giống")).toHaveAttribute("aria-checked", "true");
+		expect(switchFor("Cây trồng")).toHaveAttribute("aria-checked", "true");
 		expect(screen.getAllByText("Chưa có sản phẩm nào")).toHaveLength(5);
 	});
 
 	it("saves the toggled set and confirms success", async () => {
 		render(<BusinessGroupSettings />);
-		await waitFor(() => expect(switchFor("Cây giống")).toBeInTheDocument());
+		await waitFor(() => expect(switchFor("Cây trồng")).toBeInTheDocument());
 
-		fireEvent.click(switchFor("Cây giống"));
-		expect(switchFor("Cây giống")).toHaveAttribute("aria-checked", "true");
+		fireEvent.click(switchFor("Cây trồng"));
+		expect(switchFor("Cây trồng")).toHaveAttribute("aria-checked", "true");
 		fireEvent.click(screen.getByRole("button", { name: "Lưu thay đổi" }));
 
 		await waitFor(() =>
@@ -151,9 +156,9 @@ describe("BusinessGroupSettings", () => {
 			}),
 		);
 		render(<BusinessGroupSettings />);
-		await waitFor(() => expect(switchFor("Cây giống")).toBeInTheDocument());
+		await waitFor(() => expect(switchFor("Cây trồng")).toBeInTheDocument());
 
-		fireEvent.click(switchFor("Cây giống"));
+		fireEvent.click(switchFor("Cây trồng"));
 		fireEvent.click(screen.getByRole("button", { name: "Lưu thay đổi" }));
 
 		expect(
@@ -167,7 +172,7 @@ describe("BusinessGroupSettings", () => {
 		permissions.current = ["product:view"];
 		render(<BusinessGroupSettings />);
 
-		await waitFor(() => expect(switchFor("Cây giống")).toBeDisabled());
+		await waitFor(() => expect(switchFor("Cây trồng")).toBeDisabled());
 		expect(
 			screen.queryByRole("button", { name: "Lưu thay đổi" }),
 		).not.toBeInTheDocument();

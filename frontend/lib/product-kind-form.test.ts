@@ -14,32 +14,32 @@ describe("product kind contract", () => {
 		expect(BUSINESS_GROUP_CATALOG.map((group) => group.id)).toEqual([
 			"CROP_INPUTS",
 			"CROP_SEEDLINGS",
+			"HUMAN_DRUGS",
 			"ANIMAL_FEED",
 			"VETERINARY_DRUGS",
-			"LIVESTOCK",
 		]);
 	});
 
 	it("uses the catalog §2 labels so the product form and settings agree", () => {
 		expect(BUSINESS_GROUP_CATALOG.map((group) => group.label)).toEqual([
 			"Thuốc bảo vệ thực vật + Phân bón",
-			"Cây giống",
+			"Cây trồng",
+			"Thuốc (dùng cho người)",
 			"Thức ăn chăn nuôi",
 			"Thuốc thú y",
-			"Con giống",
 		]);
 	});
 
 	it("filters enabled groups while preserving catalog order", () => {
 		expect(
 			filterEnabledBusinessGroups([
-				{ businessGroup: "LIVESTOCK", enabled: true },
+				{ businessGroup: "HUMAN_DRUGS", enabled: true },
 				{ businessGroup: "CROP_INPUTS", enabled: true },
 				{ businessGroup: "ANIMAL_FEED", enabled: false },
 			]),
 		).toEqual([
 			{ id: "CROP_INPUTS", label: "Thuốc bảo vệ thực vật + Phân bón" },
-			{ id: "LIVESTOCK", label: "Con giống" },
+			{ id: "HUMAN_DRUGS", label: "Thuốc (dùng cho người)" },
 		]);
 	});
 

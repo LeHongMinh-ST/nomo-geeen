@@ -11,7 +11,7 @@ const catalogSeed = readFileSync(join(root, 'backend/prisma/seed.ts'), 'utf8');
 const migration = readFileSync(
 	join(
 		root,
-		'backend/prisma/migrations/20260719000200_admin_billing_foundation/migration.sql',
+		'backend/prisma/migrations/20260722000200_admin_billing_foundation/migration.sql',
 	),
 	'utf8',
 );

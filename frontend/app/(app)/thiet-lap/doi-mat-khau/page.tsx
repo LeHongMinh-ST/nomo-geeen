@@ -1,118 +1,105 @@
 "use client";
-
 import { Lock } from "lucide-react";
 import { useState } from "react";
 import { SettingHeader } from "@/components/app/setting-header";
 import { PasswordField } from "@/components/auth/fields";
-
-/**
- * Màn Đổi mật khẩu — mobile-first (DESIGN.md §7, §8).
- * FE-only: validate tại chỗ, chưa nối API.
- */
-
+import { useUserAuth } from "@/stores/user-auth-store";
 export default function DoiMatKhauPage() {
+	const changePassword = useUserAuth((state) => state.changePassword);
 	const [current, setCurrent] = useState("");
 	const [next, setNext] = useState("");
 	const [confirm, setConfirm] = useState("");
-	const [errors, setErrors] = useState<{
-		current?: string;
-		next?: string;
-		confirm?: string;
-	}>({});
+	const [error, setError] = useState<string | null>(null);
 	const [saved, setSaved] = useState(false);
-
-	function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+	const [submitting, setSubmitting] = useState(false);
+	async function submit(event: React.FormEvent<HTMLFormElement>) {
 		event.preventDefault();
-		const nextErrors: typeof errors = {};
-		if (!current) nextErrors.current = "Vui lòng nhập mật khẩu hiện tại.";
-		if (!next) {
-			nextErrors.next = "Vui lòng nhập mật khẩu mới.";
-		} else if (next.length < 6) {
-			nextErrors.next = "Mật khẩu mới cần tối thiểu 6 ký tự.";
-		}
-		if (confirm !== next) {
-			nextErrors.confirm = "Mật khẩu nhập lại chưa khớp.";
-		}
-		setErrors(nextErrors);
-		if (Object.keys(nextErrors).length > 0) {
-			setSaved(false);
+		setError(null);
+		setSaved(false);
+		if (
+			!current ||
+			next.length < 12 ||
+			!/(?=.*[A-Za-z])(?=.*\d)(?=.*[^A-Za-z\d])/.test(next) ||
+			next !== confirm
+		) {
+			setError(
+				"Mật khẩu mới cần tối thiểu 12 ký tự gồm chữ, số, ký tự đặc biệt và phải nhập lại khớp.",
+			);
 			return;
 		}
-		// TODO: gọi API đổi mật khẩu khi backend sẵn sàng.
-		setSaved(true);
-		setCurrent("");
-		setNext("");
-		setConfirm("");
+		setSubmitting(true);
+		try {
+			await changePassword(current, next);
+			setSaved(true);
+			setCurrent("");
+			setNext("");
+			setConfirm("");
+		} catch (cause) {
+			setError(
+				cause instanceof Error ? cause.message : "Không thể đổi mật khẩu.",
+			);
+		} finally {
+			setSubmitting(false);
+		}
 	}
-
 	return (
 		<div className="mx-auto flex w-full max-w-2xl flex-col gap-6 lg:mx-0">
 			<SettingHeader
 				title="Đổi mật khẩu"
-				description="Tính năng chưa hỗ trợ trong Phase 1."
+				description="Dùng mật khẩu mạnh để bảo vệ tài khoản cửa hàng."
 			/>
-			<div className="rounded-[10px] border border-[#e6a817]/60 bg-[#fff8e1] px-4 py-3 text-sm text-[#765900]">
-				Chưa hỗ trợ đổi mật khẩu từ màn hình này. Không có thay đổi nào được lưu.
-			</div>
-
 			<form
-				onSubmit={handleSubmit}
+				onSubmit={submit}
 				className="flex flex-col gap-5 rounded-[16px] border border-border bg-card p-5 shadow-card"
 			>
 				<PasswordField
 					label="Mật khẩu hiện tại"
 					value={current}
-					onChange={(value) => {
-						setCurrent(value);
-						setErrors((c) => ({ ...c, current: undefined }));
-					}}
+					onChange={setCurrent}
 					placeholder="Nhập mật khẩu hiện tại"
-					error={errors.current}
+					error={undefined}
 					icon={Lock}
 				/>
-
 				<PasswordField
 					label="Mật khẩu mới"
 					value={next}
-					onChange={(value) => {
-						setNext(value);
-						setErrors((c) => ({ ...c, next: undefined }));
-					}}
-					placeholder="Tối thiểu 6 ký tự"
+					onChange={setNext}
+					placeholder="Tối thiểu 12 ký tự"
 					autoComplete="new-password"
-					error={errors.next}
+					error={undefined}
 					icon={Lock}
 				/>
-
 				<PasswordField
 					label="Nhập lại mật khẩu mới"
 					value={confirm}
-					onChange={(value) => {
-						setConfirm(value);
-						setErrors((c) => ({ ...c, confirm: undefined }));
-					}}
+					onChange={setConfirm}
 					placeholder="Nhập lại mật khẩu mới"
 					autoComplete="new-password"
-					error={errors.confirm}
+					error={undefined}
 					icon={Lock}
 				/>
-
+				{error ? (
+					<p
+						role="alert"
+						className="rounded-[10px] bg-destructive/5 px-4 py-3 text-sm text-destructive"
+					>
+						{error}
+					</p>
+				) : null}
 				{saved ? (
 					<p
 						role="status"
 						className="rounded-[10px] bg-[#e8f5e9] px-4 py-3 text-sm text-[#2e7d32]"
 					>
-						Đã đổi mật khẩu. Kết nối API sẽ được bổ sung ở task backend.
+						Đã đổi mật khẩu.
 					</p>
 				) : null}
-
 				<button
 					type="submit"
-					disabled
-					aria-disabled="true"
-					className="flex h-12 w-full items-center justify-center rounded-[10px] bg-primary text-base font-semibold text-white transition-all duration-200 ease-out hover:bg-[#5cad45] active:translate-y-px active:bg-[#3f8530] md:h-11"
+					disabled={submitting}
+					className="flex h-12 w-full items-center justify-center rounded-[10px] bg-primary text-base font-semibold text-white disabled:opacity-50"
 				>
-					Đổi mật khẩu
+					{submitting ? "Đang lưu…" : "Đổi mật khẩu"}
 				</button>
 			</form>
 		</div>

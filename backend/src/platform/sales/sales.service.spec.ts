@@ -421,7 +421,8 @@ describe('SalesService', () => {
 		});
 	});
 
-	it('rejects an ORDER record reusing a quick-sale idempotency key', async () => {		const { service, tx } = makeService();
+	it('rejects an ORDER record reusing a quick-sale idempotency key', async () => {
+		const { service, tx } = makeService();
 		seedTx(tx);
 		tx.sale.findFirst.mockResolvedValue({
 			id: 'order-1',
@@ -695,7 +696,10 @@ describe('SalesService', () => {
 	it('snapshots tenant handbook context on order creation', async () => {
 		const { service, tx } = makeService();
 		seedOrderCreation(tx);
-		tx.disease.findFirst.mockResolvedValue({ id: 'disease-1', name: 'Late blight' });
+		tx.disease.findFirst.mockResolvedValue({
+			id: 'disease-1',
+			name: 'Late blight',
+		});
 
 		await service.createOrder(
 			'tenant-1',
@@ -1704,21 +1708,21 @@ describe('SalesService', () => {
 			lines: [],
 		});
 
-		await expect(service.findOrder('tenant-a', 'quick-1')).resolves.toMatchObject(
-			{
-				id: 'quick-1',
-				docNo: 'BH-QUICK',
-				channel: 'QUICK_SALE',
-				status: 'COMPLETED',
-				total: 500,
-			},
-		);
+		await expect(
+			service.findOrder('tenant-a', 'quick-1'),
+		).resolves.toMatchObject({
+			id: 'quick-1',
+			docNo: 'BH-QUICK',
+			channel: 'QUICK_SALE',
+			status: 'COMPLETED',
+			total: 500,
+		});
 		expect(prisma.sale.findFirst).toHaveBeenCalledWith(
 			expect.objectContaining({
 				where: {
 					id: 'quick-1',
 					tenantId: 'tenant-a',
-					channel: { in: ['ORDER', 'QUICK_SALE'] },
+					channel: 'ORDER',
 					deletedAt: null,
 				},
 			}),
@@ -1736,7 +1740,7 @@ describe('SalesService', () => {
 				where: {
 					id: 'foreign-sale',
 					tenantId: 'tenant-a',
-					channel: { in: ['ORDER', 'QUICK_SALE'] },
+					channel: 'ORDER',
 					deletedAt: null,
 				},
 			}),

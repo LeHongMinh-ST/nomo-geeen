@@ -1,164 +1,128 @@
 "use client";
-
-import type { LucideIcon } from "lucide-react";
-import {
-	Building2,
-	Camera,
-	FileText,
-	MapPin,
-	Phone,
-	Store,
-} from "lucide-react";
-import { useState } from "react";
+import { Building2, MapPin, Phone, Store } from "lucide-react";
+import { useEffect, useState } from "react";
 import { SettingHeader } from "@/components/app/setting-header";
-
-/**
- * Màn Thông tin cửa hàng — mobile-first (DESIGN.md §8, §9).
- * FE-only: lưu tạm tại chỗ, chưa nối API.
- */
-
-type Field = {
-	key: string;
-	label: string;
-	icon: LucideIcon;
-	value: string;
-	type: "text" | "tel";
-	inputMode?: "text" | "tel";
-	placeholder?: string;
-};
-
-const initialFields: Field[] = [
-	{
-		key: "storeName",
-		label: "Tên cửa hàng",
-		icon: Store,
-		value: "Cửa hàng Vật tư Minh Tâm",
-		type: "text",
-	},
-	{
-		key: "phone",
-		label: "Số điện thoại cửa hàng",
-		icon: Phone,
-		value: "0273 3812 345",
-		type: "tel",
-		inputMode: "tel",
-	},
-	{
-		key: "address",
-		label: "Địa chỉ",
-		icon: MapPin,
-		value: "Tổ 3, Thị trấn Cai Lậy, Tiền Giang",
-		type: "text",
-	},
-	{
-		key: "taxCode",
-		label: "Mã số thuế / GPKD",
-		icon: FileText,
-		value: "1201234567",
-		type: "text",
-		placeholder: "Nhập mã số thuế hoặc số giấy phép",
-	},
-];
+import { getCurrentProfile } from "@/lib/user-auth-api";
+import { useUserAuth } from "@/stores/user-auth-store";
 
 export default function ThongTinCuaHangPage() {
-	const [fields, setFields] = useState(initialFields);
+	const user = useUserAuth((state) => state.user);
+	const accessToken = useUserAuth((state) => state.accessToken);
+	const updateProfile = useUserAuth((state) => state.updateProfile);
+	const [phone, setPhone] = useState("");
+	const [address, setAddress] = useState("");
+	const [error, setError] = useState<string | null>(null);
 	const [saved, setSaved] = useState(false);
-
-	function updateField(key: string, value: string) {
-		setFields((current) =>
-			current.map((f) => (f.key === key ? { ...f, value } : f)),
-		);
-		setSaved(false);
-	}
-
-	function handleSave(event: React.FormEvent<HTMLFormElement>) {
+	useEffect(() => {
+		if (!accessToken) return;
+		void getCurrentProfile(accessToken)
+			.then((profile) => {
+				setPhone(profile.user.phone ?? "");
+				setAddress(profile.address);
+			})
+			.catch((cause) =>
+				setError(
+					cause instanceof Error
+						? cause.message
+						: "Không thể tải thông tin cửa hàng.",
+				),
+			);
+	}, [accessToken]);
+	async function save(event: React.FormEvent<HTMLFormElement>) {
 		event.preventDefault();
-		// TODO: gọi API cập nhật cửa hàng khi backend sẵn sàng.
-		setSaved(true);
+		if (!user) return;
+		setError(null);
+		setSaved(false);
+		try {
+			await updateProfile({
+				fullName: user.fullName,
+				phone: phone.trim() || undefined,
+				email: user.email ?? undefined,
+				address: address.trim() || undefined,
+			});
+			setSaved(true);
+		} catch (cause) {
+			setError(
+				cause instanceof Error
+					? cause.message
+					: "Không thể lưu thông tin cửa hàng.",
+			);
+		}
 	}
-
 	return (
 		<div className="mx-auto flex w-full max-w-2xl flex-col gap-6 lg:mx-0">
 			<SettingHeader
 				title="Thông tin cửa hàng"
-				description="Tính năng chưa hỗ trợ trong Phase 1."
+				description="Cập nhật thông tin liên hệ và địa chỉ từ hồ sơ cửa hàng."
 			/>
-			<div className="rounded-[10px] border border-[#e6a817]/60 bg-[#fff8e1] px-4 py-3 text-sm text-[#765900]">
-				Chưa hỗ trợ cập nhật thông tin cửa hàng. Dữ liệu dưới đây chỉ là bản xem trước.
-			</div>
-
-			{/* Logo cửa hàng */}
 			<div className="flex items-center gap-4 rounded-[16px] border border-border bg-card p-5 shadow-card">
-				<div className="relative">
-					<span className="flex size-20 items-center justify-center rounded-[16px] bg-accent text-accent-foreground">
-						<Building2 className="size-9" aria-hidden />
+				<span className="flex size-20 items-center justify-center rounded-[16px] bg-accent text-accent-foreground">
+					<Building2 className="size-9" aria-hidden />
+				</span>
+				<div>
+					<span className="text-base font-semibold">
+						{user?.tenantName ?? "Đang tải..."}
 					</span>
-					<button
-						type="button"
-						disabled
-						aria-disabled="true"
-						aria-label="Đổi logo cửa hàng"
-						className="absolute -bottom-1 -right-1 flex size-9 items-center justify-center rounded-full border-2 border-card bg-primary text-white transition-colors duration-200 ease-out hover:bg-[#5cad45]"
-					>
-						<Camera className="size-4.5" aria-hidden />
-					</button>
-				</div>
-				<div className="flex min-w-0 flex-col gap-1">
-					<span className="text-base font-semibold text-foreground">
-						Logo cửa hàng
-					</span>
-					<span className="text-sm text-[#616161]">
-						Ảnh vuông, tối thiểu 200×200px.
-					</span>
+					<p className="text-sm text-muted">
+						Tên cửa hàng lấy từ hồ sơ tenant.
+					</p>
 				</div>
 			</div>
-
-			{/* Form thông tin */}
 			<form
-				onSubmit={handleSave}
+				onSubmit={save}
 				className="flex flex-col gap-4 rounded-[16px] border border-border bg-card p-5 shadow-card"
 			>
-				{fields.map((field) => (
-					<div key={field.key} className="flex flex-col gap-2">
-						<label
-							htmlFor={field.key}
-							className="text-sm font-medium text-foreground"
-						>
-							{field.label}
-						</label>
-						<div className="relative">
-							<field.icon
-								className="pointer-events-none absolute left-3.5 top-1/2 size-4.5 -translate-y-1/2 text-[#9e9e9e]"
-								aria-hidden
-							/>
-							<input
-								id={field.key}
-								type={field.type}
-								inputMode={field.inputMode}
-								value={field.value}
-								placeholder={field.placeholder}
-								onChange={(event) => updateField(field.key, event.target.value)}
-								className="h-12 w-full rounded-[10px] border border-border bg-white pl-10.5 pr-4 text-base text-foreground placeholder:text-[#9e9e9e] transition-colors duration-200 ease-out focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/25 md:h-11"
-							/>
-						</div>
+				<label className="flex flex-col gap-2 text-base font-medium">
+					Số điện thoại cửa hàng
+					<div className="relative">
+						<Phone
+							className="pointer-events-none absolute left-3.5 top-1/2 size-4.5 -translate-y-1/2 text-muted"
+							aria-hidden
+						/>
+						<input
+							value={phone}
+							onChange={(event) => setPhone(event.target.value)}
+							type="tel"
+							className="h-12 w-full rounded-[10px] border border-border pl-10.5 text-base"
+						/>
 					</div>
-				))}
-
+				</label>
+				<label className="flex flex-col gap-2 text-base font-medium">
+					Địa chỉ
+					<div className="relative">
+						<MapPin
+							className="pointer-events-none absolute left-3.5 top-1/2 size-4.5 -translate-y-1/2 text-muted"
+							aria-hidden
+						/>
+						<input
+							value={address}
+							onChange={(event) => setAddress(event.target.value)}
+							className="h-12 w-full rounded-[10px] border border-border pl-10.5 text-base"
+						/>
+					</div>
+				</label>
+				{error ? (
+					<p
+						role="alert"
+						className="rounded-[10px] bg-destructive/5 px-4 py-3 text-sm text-destructive"
+					>
+						{error}
+					</p>
+				) : null}
 				{saved ? (
 					<p
 						role="status"
 						className="rounded-[10px] bg-[#e8f5e9] px-4 py-3 text-sm text-[#2e7d32]"
 					>
-						Đã lưu thông tin cửa hàng. Kết nối API sẽ bổ sung ở task backend.
+						Đã lưu thông tin cửa hàng.
 					</p>
 				) : null}
-
 				<button
 					type="submit"
-					disabled
-					aria-disabled="true"
-					className="mt-1 flex h-12 w-full items-center justify-center rounded-[10px] bg-primary text-base font-semibold text-white transition-all duration-200 ease-out hover:bg-[#5cad45] active:translate-y-px active:bg-[#3f8530] md:h-11"
+					disabled={!user}
+					className="flex h-12 w-full items-center justify-center rounded-[10px] bg-primary text-base font-semibold text-white disabled:opacity-50"
 				>
+					<Store className="mr-2 size-5" aria-hidden />
 					Lưu thay đổi
 				</button>
 			</form>

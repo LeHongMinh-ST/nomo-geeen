@@ -2,6 +2,9 @@ import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import cookieParser from 'cookie-parser';
 import { AppModule } from './app.module';
+import { parseTrustProxy } from './platform/http/proxy-config';
+import { MetricsService } from './platform/observability/metrics.service';
+import { ObservabilityMiddleware } from './platform/observability/observability.middleware';
 
 async function bootstrap() {
 	// Chan cau hinh cookie khong an toan o production (R8.4).
@@ -13,6 +16,10 @@ async function bootstrap() {
 	}
 
 	const app = await NestFactory.create(AppModule);
+	app.getHttpAdapter().getInstance().set('trust proxy', parseTrustProxy());
+	const metrics = app.get(MetricsService);
+	const observability = new ObservabilityMiddleware(metrics);
+	app.use(observability.use.bind(observability));
 
 	app.use(cookieParser());
 	app.useGlobalPipes(

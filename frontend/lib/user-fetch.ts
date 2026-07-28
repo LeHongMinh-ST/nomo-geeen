@@ -1,3 +1,4 @@
+import { reportClientError } from "@/lib/error-reporting";
 import { createUserApiError, type UserApiError } from "@/lib/user-auth-api";
 import { useUserAuth } from "@/stores/user-auth-store";
 
@@ -50,9 +51,16 @@ export async function userFetch<T>(
 			headers,
 			credentials: "include",
 		});
-	} catch {
+	} catch (error) {
+		reportClientError(error, {
+			source: "user-fetch",
+			path,
+			reason: "NETWORK_ERROR",
+		});
 		throw Object.assign(
-			new Error("Không thể kết nối máy chủ. Vui lòng kiểm tra backend đang chạy."),
+			new Error(
+				"Không thể kết nối máy chủ. Vui lòng kiểm tra backend đang chạy.",
+			),
 			{ reason: "NETWORK_ERROR" },
 		) as UserApiError;
 	}
@@ -67,12 +75,19 @@ export async function userFetch<T>(
 	if (!response.ok) {
 		const body = (await response.json().catch(() => null)) as {
 			reason?: string;
-		message?: string | string[];
+			message?: string | string[];
 		} | null;
-		throw createUserApiError(
+		const apiError = createUserApiError(
 			response.status,
 			body ?? undefined,
 		) as UserApiError;
+		reportClientError(apiError, {
+			source: "user-fetch",
+			path,
+			status: response.status,
+			reason: apiError.reason,
+		});
+		throw apiError;
 	}
 	if (response.status === 204) return undefined as T;
 	return (await response.json()) as T;

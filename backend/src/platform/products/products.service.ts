@@ -24,6 +24,7 @@ import type { ProductConversionDto } from './dto/product-conversion.dto';
 import type { ProductLookupResponse } from './dto/product-lookup.dto';
 import type { UpdateProductDto } from './dto/update-product.dto';
 import {
+	BUSINESS_GROUP_CATALOG,
 	BUSINESS_GROUP_FEATURES,
 	DEFAULT_BUSINESS_GROUPS,
 	hasSpecializedAttrs,
@@ -187,13 +188,11 @@ export class ProductsService {
 		for (const group of Object.keys(
 			BUSINESS_GROUP_FEATURES,
 		) as BusinessGroup[]) {
-			if (
-				BUSINESS_GROUP_FEATURES[group] &&
-				entitlement.featureCodes.includes(BUSINESS_GROUP_FEATURES[group]!)
-			)
+			const feature = BUSINESS_GROUP_FEATURES[group];
+			if (feature && entitlement.featureCodes.includes(feature))
 				enabled.add(group);
 		}
-		const groups = Object.values(BusinessGroup).map((businessGroup) => ({
+		const groups = BUSINESS_GROUP_CATALOG.map(({ id: businessGroup }) => ({
 			businessGroup,
 			enabled: enabled.has(businessGroup),
 		}));
@@ -265,10 +264,11 @@ export class ProductsService {
 			_count: { _all: true },
 		});
 		const counts = Object.fromEntries(
-			Object.values(BusinessGroup).map((group) => [group, 0]),
+			BUSINESS_GROUP_CATALOG.map(({ id: group }) => [group, 0]),
 		) as Record<BusinessGroup, number>;
 		for (const row of rows)
-			if (row.businessGroup) counts[row.businessGroup] = row._count._all;
+			if (row.businessGroup && counts[row.businessGroup] !== undefined)
+				counts[row.businessGroup] = row._count._all;
 		return counts;
 	}
 
