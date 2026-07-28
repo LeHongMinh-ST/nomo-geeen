@@ -1,5 +1,9 @@
 "use client";
 
+import {
+	BrowserMultiFormatReader,
+	type IScannerControls,
+} from "@zxing/browser";
 import { CameraOff, ScanLine, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { getStockStatus, type Product } from "@/lib/products";
@@ -25,7 +29,6 @@ export function ScanSheet({
 	onCode?: (code: string) => void;
 }) {
 	const videoRef = useRef<HTMLVideoElement>(null);
-	const frameRef = useRef<number | null>(null);
 	const detectedRef = useRef(false);
 	const [code, setCode] = useState("");
 	const [error, setError] = useState<string | null>(null);
@@ -48,19 +51,9 @@ export function ScanSheet({
 	// biome-ignore lint/correctness/useExhaustiveDependencies: do not restart camera on parent callback identity changes
 	useEffect(() => {
 		if (!open) return;
-		let stream: MediaStream | null = null;
 		let cancelled = false;
-		const BarcodeDetectorCtor = (
-			window as typeof window & {
-				BarcodeDetector?: new (options?: {
-					formats?: string[];
-				}) => {
-					detect: (
-						source: HTMLVideoElement,
-					) => Promise<Array<{ rawValue?: string }>>;
-				};
-			}
-		).BarcodeDetector;
+		let controls: IScannerControls | null = null;
+		const reader = new BrowserMultiFormatReader();
 
 		async function start() {
 			if (
@@ -71,69 +64,23 @@ export function ScanSheet({
 				return;
 			}
 			try {
-				stream = await navigator.mediaDevices.getUserMedia({
-					video: { facingMode: "environment" },
-					audio: false,
-				});
-				if (cancelled) {
-					for (const t of stream.getTracks()) t.stop();
-					return;
-				}
-				if (videoRef.current) videoRef.current.srcObject = stream;
-				setCamState("on");
-
-				if (!BarcodeDetectorCtor || !videoRef.current) return;
-				let detector: InstanceType<typeof BarcodeDetectorCtor> | null = null;
-				try {
-					detector = new BarcodeDetectorCtor({
-						formats: [
-							"ean_13",
-							"ean_8",
-							"upc_a",
-							"upc_e",
-							"code_128",
-							"code_39",
-						],
-					});
-				} catch {
-					// Fallback: vẫn dùng được ô nhập tay bên dưới.
-					return;
-				}
-				const scanFrame = async () => {
-					if (
-						cancelled ||
-						detectedRef.current ||
-						!videoRef.current ||
-						!detector
-					)
-						return;
-					if (
-						videoRef.current.readyState >= HTMLMediaElement.HAVE_ENOUGH_DATA
-					) {
-						try {
-							const detections = await detector.detect(videoRef.current);
-							const detectedCode = detections[0]?.rawValue?.trim();
-							if (detectedCode) {
-								detectedRef.current = true;
-								setCode(detectedCode);
-								setError(null);
-								handleCode(detectedCode);
-								// Nếu handleCode reset (no-match / out-of-stock) → tiếp tục quét;
-								// nếu thành công → dừng.
-								if (!detectedRef.current && !cancelled) {
-									frameRef.current = requestAnimationFrame(
-										() => void scanFrame(),
-									);
-								}
-								return;
-							}
-						} catch {
-							// Giữ fallback nhập tay nếu detector không đọc được khung hình.
-						}
-					}
-					frameRef.current = requestAnimationFrame(() => void scanFrame());
-				};
-				frameRef.current = requestAnimationFrame(() => void scanFrame());
+				if (!videoRef.current) return;
+				const pendingControls = reader.decodeFromVideoDevice(
+					undefined,
+					videoRef.current,
+					(result) => {
+						if (cancelled || detectedRef.current || !result) return;
+						const detectedCode = result.getText().trim();
+						if (!detectedCode) return;
+						detectedRef.current = true;
+						setCode(detectedCode);
+						setError(null);
+						handleCode(detectedCode);
+					},
+				);
+				controls = await pendingControls;
+				if (cancelled) controls.stop();
+				else setCamState("on");
 			} catch {
 				setCamState("denied");
 			}
@@ -142,8 +89,7 @@ export function ScanSheet({
 
 		return () => {
 			cancelled = true;
-			if (frameRef.current !== null) cancelAnimationFrame(frameRef.current);
-			if (stream) for (const t of stream.getTracks()) t.stop();
+			controls?.stop();
 			if (videoRef.current) videoRef.current.srcObject = null;
 		};
 	}, [open]);

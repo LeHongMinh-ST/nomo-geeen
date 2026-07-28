@@ -1,5 +1,9 @@
 "use client";
 
+import {
+	BrowserMultiFormatReader,
+	type IScannerControls,
+} from "@zxing/browser";
 import { CameraOff, ScanLine, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useScrollLock } from "@/lib/use-scroll-lock";
@@ -24,7 +28,6 @@ export function BarcodeScannerSheet({
 	hint?: string;
 }) {
 	const videoRef = useRef<HTMLVideoElement>(null);
-	const frameRef = useRef<number | null>(null);
 	const detectedRef = useRef(false);
 	const [code, setCode] = useState("");
 	const [camState, setCamState] = useState<
@@ -43,19 +46,9 @@ export function BarcodeScannerSheet({
 	// biome-ignore lint/correctness/useExhaustiveDependencies: do not restart camera on parent callback identity changes
 	useEffect(() => {
 		if (!open) return;
-		let stream: MediaStream | null = null;
 		let cancelled = false;
-		const BarcodeDetectorCtor = (
-			window as typeof window & {
-				BarcodeDetector?: new (options?: {
-					formats?: string[];
-				}) => {
-					detect: (
-						source: HTMLVideoElement,
-					) => Promise<Array<{ rawValue?: string }>>;
-				};
-			}
-		).BarcodeDetector;
+		let controls: IScannerControls | null = null;
+		const reader = new BrowserMultiFormatReader();
 
 		async function start() {
 			if (
@@ -66,52 +59,21 @@ export function BarcodeScannerSheet({
 				return;
 			}
 			try {
-				stream = await navigator.mediaDevices.getUserMedia({
-					video: { facingMode: "environment" },
-					audio: false,
-				});
-				if (cancelled) {
-					for (const t of stream.getTracks()) t.stop();
-					return;
-				}
-				if (videoRef.current) videoRef.current.srcObject = stream;
-				setCamState("on");
-				if (!BarcodeDetectorCtor || !videoRef.current) return;
-				let detector: InstanceType<typeof BarcodeDetectorCtor>;
-				try {
-					detector = new BarcodeDetectorCtor({
-						formats: [
-							"ean_13",
-							"ean_8",
-							"upc_a",
-							"upc_e",
-							"code_128",
-							"code_39",
-						],
-					});
-				} catch {
-					return;
-				}
-				const scanFrame = async () => {
-					if (cancelled || detectedRef.current || !videoRef.current) return;
-					if (
-						videoRef.current.readyState >= HTMLMediaElement.HAVE_ENOUGH_DATA
-					) {
-						try {
-							const detections = await detector.detect(videoRef.current);
-							const detectedCode = detections[0]?.rawValue?.trim();
-							if (detectedCode) {
-								detectedRef.current = true;
-								onCode(detectedCode);
-								return;
-							}
-						} catch {
-							// Giữ fallback nhập tay nếu detector không đọc được khung hình.
-						}
-					}
-					frameRef.current = requestAnimationFrame(() => void scanFrame());
-				};
-				frameRef.current = requestAnimationFrame(() => void scanFrame());
+				if (!videoRef.current) return;
+				const pendingControls = reader.decodeFromVideoDevice(
+					undefined,
+					videoRef.current,
+					(result) => {
+						if (cancelled || detectedRef.current || !result) return;
+						const detectedCode = result.getText().trim();
+						if (!detectedCode) return;
+						detectedRef.current = true;
+						onCode(detectedCode);
+					},
+				);
+				controls = await pendingControls;
+				if (cancelled) controls.stop();
+				else setCamState("on");
 			} catch {
 				setCamState("denied");
 			}
@@ -120,8 +82,7 @@ export function BarcodeScannerSheet({
 
 		return () => {
 			cancelled = true;
-			if (frameRef.current !== null) cancelAnimationFrame(frameRef.current);
-			if (stream) for (const t of stream.getTracks()) t.stop();
+			controls?.stop();
 			if (videoRef.current) videoRef.current.srcObject = null;
 		};
 	}, [open]);

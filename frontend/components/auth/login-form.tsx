@@ -88,6 +88,7 @@ export function LoginForm() {
 		const ready = cached;
 		if (!ready || !isPasskeyCacheFresh(ready)) {
 			setCached(null);
+			setPasskeyRefresh((value) => value + 1);
 			setServerError(
 				ready
 					? "Phiên chuẩn bị đã hết hạn, vui lòng bấm lại"

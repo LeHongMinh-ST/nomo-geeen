@@ -45,8 +45,14 @@ export function PasskeySettings() {
 				if (active) setCached({ ...next, expiresAt: Date.now() + 290000 });
 				const list = await listPasskeys(prefetchRequest.token);
 				if (active) setItems(list);
-			} catch {
-				if (active) setMessage("Chưa chuẩn bị được đăng nhập sinh trắc học.");
+			} catch (error) {
+				if (active) {
+					setMessage(
+						error instanceof Error
+							? error.message
+							: "Chưa chuẩn bị được đăng nhập sinh trắc học.",
+					);
+				}
 			} finally {
 				if (active) setPreparing(false);
 			}
@@ -60,6 +66,7 @@ export function PasskeySettings() {
 		const ready = cached;
 		if (!ready || !isPasskeyCacheFresh(ready)) {
 			setCached(null);
+			setRefreshNonce((value) => value + 1);
 			setMessage(
 				ready
 					? "Phiên chuẩn bị đã hết hạn, vui lòng bấm lại"
