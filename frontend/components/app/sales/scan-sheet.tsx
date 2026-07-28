@@ -53,6 +53,7 @@ export function ScanSheet({
 		if (!open) return;
 		let cancelled = false;
 		let controls: IScannerControls | null = null;
+		let stream: MediaStream | null = null;
 		const reader = new BrowserMultiFormatReader();
 
 		async function start() {
@@ -64,10 +65,22 @@ export function ScanSheet({
 				return;
 			}
 			try {
-				if (!videoRef.current) return;
-				const pendingControls = reader.decodeFromVideoDevice(
-					undefined,
-					videoRef.current,
+				const video = videoRef.current;
+				if (!video) return;
+				stream = await navigator.mediaDevices.getUserMedia({
+					video: { facingMode: { ideal: "environment" } },
+					audio: false,
+				});
+				if (cancelled) {
+					stream.getTracks().forEach((track) => {
+						track.stop();
+					});
+					return;
+				}
+				setCamState("on");
+				const pendingControls = reader.decodeFromStream(
+					stream,
+					video,
 					(result) => {
 						if (cancelled || detectedRef.current || !result) return;
 						const detectedCode = result.getText().trim();
@@ -90,6 +103,9 @@ export function ScanSheet({
 		return () => {
 			cancelled = true;
 			controls?.stop();
+			stream?.getTracks().forEach((track) => {
+				track.stop();
+			});
 			if (videoRef.current) videoRef.current.srcObject = null;
 		};
 	}, [open]);
@@ -153,7 +169,7 @@ export function ScanSheet({
 
 	return (
 		<div
-			className={`fixed inset-0 z-50 ${open ? "" : "pointer-events-none"}`}
+			className={`fixed inset-0 z-[60] ${open ? "" : "pointer-events-none"}`}
 			aria-hidden={!open}
 		>
 			<button
@@ -192,17 +208,17 @@ export function ScanSheet({
 
 					{/* Khung camera */}
 					<div className="relative mb-4 aspect-[4/3] w-full overflow-hidden rounded-[16px] bg-[#111]">
+						<video
+							ref={videoRef}
+							autoPlay
+							playsInline
+							muted
+							className={`size-full object-cover ${camState === "on" ? "" : "hidden"}`}
+						>
+							<track kind="captions" />
+						</video>
 						{camState === "on" ? (
 							<>
-								<video
-									ref={videoRef}
-									autoPlay
-									playsInline
-									muted
-									className="size-full object-cover"
-								>
-									<track kind="captions" />
-								</video>
 								{/* Khung ngắm */}
 								<div className="pointer-events-none absolute inset-0 flex items-center justify-center">
 									<div className="relative h-28 w-4/5 rounded-[12px] border-2 border-white/80">

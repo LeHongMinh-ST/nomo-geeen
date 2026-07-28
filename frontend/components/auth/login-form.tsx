@@ -1,9 +1,9 @@
 "use client";
 import {
-	Fingerprint,
 	KeyRound,
 	LoaderCircle,
 	LogIn,
+	ScanFace,
 	UserRound,
 } from "lucide-react";
 import Link from "next/link";
@@ -140,31 +140,31 @@ export function LoginForm() {
 					{serverError}
 				</p>
 			) : null}
-			<button
-				type="submit"
-				disabled={loading || passkeyBusy}
-				className="flex h-12 w-full items-center justify-center gap-2 rounded-[10px] bg-primary text-base font-semibold text-white disabled:opacity-70"
-			>
-				{loading ? (
-					<LoaderCircle className="size-5 animate-spin" aria-hidden />
-				) : (
-					<LogIn className="size-5" aria-hidden />
-				)}
-				{loading ? "Đang đăng nhập..." : "Đăng nhập"}
-			</button>
-			{passkeyAvailable ? (
+			<div className="flex items-center gap-2">
 				<button
-					type="button"
-					onClick={handlePasskey}
+					type="submit"
 					disabled={loading || passkeyBusy}
-					className="flex h-12 w-full items-center justify-center gap-2 rounded-[10px] border border-border bg-white text-base font-semibold text-foreground disabled:opacity-70"
+					className="flex h-12 min-w-0 flex-1 items-center justify-center gap-2 rounded-[10px] bg-primary text-base font-semibold text-white disabled:opacity-70"
 				>
-					<Fingerprint className="size-5" aria-hidden />
-					{passkeyBusy
-						? "Đang chờ xác thực thiết bị..."
-						: "Đăng nhập bằng Face ID / sinh trắc học"}
+					{loading ? (
+						<LoaderCircle className="size-5 animate-spin" aria-hidden />
+					) : (
+						<LogIn className="size-5" aria-hidden />
+					)}
+					{loading ? "Đang đăng nhập..." : "Đăng nhập"}
 				</button>
-			) : null}
+				{passkeyAvailable ? (
+					<button
+						type="button"
+						onClick={handlePasskey}
+						disabled={loading || passkeyBusy}
+						aria-label="Đăng nhập bằng Face ID / sinh trắc học"
+						className="flex size-12 shrink-0 items-center justify-center rounded-[10px] border border-border bg-white text-foreground disabled:opacity-70 lg:hidden"
+					>
+						<ScanFace className="size-5" aria-hidden />
+					</button>
+				) : null}
+			</div>
 			<p className="text-center text-sm text-muted-foreground">
 				Chưa có tài khoản?{" "}
 				<Link

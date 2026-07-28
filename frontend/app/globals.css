@@ -4,6 +4,19 @@
    CSS đã build sẵn qua đường dẫn tương đối của PostCSS. */
 @import "../node_modules/tw-animate-css/dist/tw-animate.css";
 
+html,
+body {
+	touch-action: manipulation;
+}
+
+@media (max-width: 768px) {
+	html body input:not([type="hidden"]),
+	html body select:not([data-allow-zoom]),
+	html body textarea:not([data-allow-zoom]) {
+		font-size: 16px;
+	}
+}
+
 /* Be Vietnam Pro — self-hosted from /public/fronts (per DESIGN.md typography) */
 @font-face {
 	font-family: "Be Vietnam Pro";

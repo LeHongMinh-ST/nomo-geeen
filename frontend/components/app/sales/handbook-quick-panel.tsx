@@ -1,9 +1,10 @@
 "use client";
 
-import { PackageOpen, Plus, Search, X } from "lucide-react";
+import { PackageOpen, Plus, ScanLine, Search, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { filterSellableProducts } from "@/components/app/sales/product-picker";
 import { ProtocolPicker } from "@/components/app/sales/protocol-picker";
+import { ScanSheet } from "@/components/app/sales/scan-sheet";
 import type { Product } from "@/lib/products";
 import {
 	type AreaUnitId,
@@ -92,6 +93,7 @@ export function HandbookQuickPanel({
 	const [loading, setLoading] = useState(false);
 	const [products, setProducts] = useState<Product[]>([]);
 	const [productsLoading, setProductsLoading] = useState(true);
+	const [scanOpen, setScanOpen] = useState(false);
 
 	useEffect(() => {
 		Promise.all([listTenantProducts(), getProductLookups()])
@@ -252,7 +254,8 @@ export function HandbookQuickPanel({
 				) : null}
 			</div>
 			{!selected ? (
-				<div className="relative">
+				<div className="flex items-start gap-2">
+				<div className="relative min-w-0 flex-1">
 					<Search
 						className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[#9e9e9e]"
 						aria-hidden
@@ -315,6 +318,24 @@ export function HandbookQuickPanel({
 							) : null}
 						</div>
 					) : null}
+				</div>
+				<button
+					type="button"
+					onClick={() => setScanOpen(true)}
+					aria-label="Quét mã vạch"
+					className="flex size-12 shrink-0 items-center justify-center rounded-[10px] border border-border bg-white text-foreground transition-colors hover:bg-[#f5f5f5] lg:hidden"
+				>
+					<ScanLine className="size-5.5" aria-hidden />
+				</button>
+				<ScanSheet
+					open={scanOpen}
+					onClose={() => setScanOpen(false)}
+					products={products}
+					onFound={(product) => {
+						onAddProduct(product);
+						setScanOpen(false);
+					}}
+				/>
 				</div>
 			) : (
 				<div className="flex flex-col gap-3">

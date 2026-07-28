@@ -318,14 +318,6 @@ export function HomeDashboard() {
 						Chào {name}
 					</h1>
 				</div>
-				<Link
-					href="/ban-nhanh"
-					className="inline-flex h-12 shrink-0 items-center justify-center gap-2 rounded-[10px] bg-primary px-4 text-base font-semibold text-white shadow-[0_6px_16px_rgba(92,173,69,0.28)] transition-all duration-200 ease-out hover:bg-[#4f9c3a] active:scale-[0.97] active:bg-[#3f8530] lg:px-5"
-				>
-					<ShoppingCart className="size-5" aria-hidden />
-					<span className="hidden sm:inline">Bán hàng</span>
-					<span className="sm:hidden">Bán</span>
-				</Link>
 			</header>
 
 			<section

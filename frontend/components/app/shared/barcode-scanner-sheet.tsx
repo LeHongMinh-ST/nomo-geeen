@@ -48,6 +48,7 @@ export function BarcodeScannerSheet({
 		if (!open) return;
 		let cancelled = false;
 		let controls: IScannerControls | null = null;
+		let stream: MediaStream | null = null;
 		const reader = new BrowserMultiFormatReader();
 
 		async function start() {
@@ -59,10 +60,22 @@ export function BarcodeScannerSheet({
 				return;
 			}
 			try {
-				if (!videoRef.current) return;
-				const pendingControls = reader.decodeFromVideoDevice(
-					undefined,
-					videoRef.current,
+				const video = videoRef.current;
+				if (!video) return;
+				stream = await navigator.mediaDevices.getUserMedia({
+					video: { facingMode: { ideal: "environment" } },
+					audio: false,
+				});
+				if (cancelled) {
+					stream.getTracks().forEach((track) => {
+						track.stop();
+					});
+					return;
+				}
+				setCamState("on");
+				const pendingControls = reader.decodeFromStream(
+					stream,
+					video,
 					(result) => {
 						if (cancelled || detectedRef.current || !result) return;
 						const detectedCode = result.getText().trim();
@@ -83,6 +96,9 @@ export function BarcodeScannerSheet({
 		return () => {
 			cancelled = true;
 			controls?.stop();
+			stream?.getTracks().forEach((track) => {
+				track.stop();
+			});
 			if (videoRef.current) videoRef.current.srcObject = null;
 		};
 	}, [open]);
@@ -107,7 +123,7 @@ export function BarcodeScannerSheet({
 
 	return (
 		<div
-			className={`fixed inset-0 z-50 ${open ? "" : "pointer-events-none"}`}
+			className={`fixed inset-0 z-[60] ${open ? "" : "pointer-events-none"}`}
 			aria-hidden={!open}
 		>
 			<button
