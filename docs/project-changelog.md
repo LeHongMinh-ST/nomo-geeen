@@ -9,6 +9,7 @@ Format theo [Keep a Changelog](https://keepachangelog.com/), tuân thủ [Semant
 ## [Unreleased]
 
 ### Added
+- **Continuous sales barcode scanning** — sales product picker and handbook quick panel keep one camera session open for repeated product scans; invalid/out-of-stock codes re-arm immediately and the shared product-form scanner remains one-shot.
 - **Thiết bị đăng nhập** — loại bỏ thẻ OTP chưa triển khai khỏi màn quản lý passkey, chỉ giữ phần thiết bị Face ID/Touch ID.
 - **Tenant passkey device management** — thêm mục Thiết bị đăng nhập riêng trong Thiết lập; hỗ trợ đăng ký nhiều passkey, hiển thị loại sinh trắc học, ngày đăng ký, lần dùng gần nhất, trạng thái đồng bộ và thu hồi từng thiết bị. Nút đăng nhập mobile chọn icon Face ID/Touch ID theo nền tảng.
 - **Product creation flow** — category selection now follows the tenant's purchased catalog, single-category tenants see a fixed value, product-unit choices are limited to `Gói`, `Chai`, and `kg`, and post-create-only information sections remain hidden during initial creation.

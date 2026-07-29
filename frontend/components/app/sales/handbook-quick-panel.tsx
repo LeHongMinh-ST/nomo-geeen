@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { filterSellableProducts } from "@/components/app/sales/product-picker";
 import { ProtocolPicker } from "@/components/app/sales/protocol-picker";
 import { ScanSheet } from "@/components/app/sales/scan-sheet";
+import { formatVND } from "@/lib/format";
 import type { Product } from "@/lib/products";
 import {
 	type AreaUnitId,
@@ -15,7 +16,6 @@ import {
 	type QuickProtocol,
 	type QuickProtocolItem,
 } from "@/lib/tenant-handbook-api";
-import { formatVND } from "@/lib/format";
 import {
 	getProductLookups,
 	listTenantProducts,
@@ -255,87 +255,88 @@ export function HandbookQuickPanel({
 			</div>
 			{!selected ? (
 				<div className="flex items-start gap-2">
-				<div className="relative min-w-0 flex-1">
-					<Search
-						className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[#9e9e9e]"
-						aria-hidden
-					/>
-					<input
-						value={query}
-						onChange={(event) => setQuery(event.target.value)}
-						placeholder="Tìm sản phẩm, mã hàng, bệnh hoặc cây..."
-						className="h-12 w-full rounded-[10px] border border-border bg-white pl-10 pr-3 text-base focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-					/>
-					{query.trim() && (productResults.length > 0 || results.length > 0) ? (
-						<div className="absolute inset-x-0 top-[calc(100%+4px)] z-50 rounded-[10px] border border-border bg-white p-1 shadow-lg">
-							{productsLoading ? (
-								<p className="px-3 py-2 text-sm text-[#616161]">
-									Đang tải sản phẩm...
-								</p>
-							) : null}
-							{productResults.length > 0 ? (
-								<div className="border-b border-border pb-1">
-									<p className="px-3 py-1 text-xs font-semibold uppercase tracking-wide text-[#2e7d32]">
-										Sản phẩm
+					<div className="relative min-w-0 flex-1">
+						<Search
+							className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[#9e9e9e]"
+							aria-hidden
+						/>
+						<input
+							value={query}
+							onChange={(event) => setQuery(event.target.value)}
+							placeholder="Tìm sản phẩm, mã hàng, bệnh hoặc cây..."
+							className="h-12 w-full rounded-[10px] border border-border bg-white pl-10 pr-3 text-base focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+						/>
+						{query.trim() &&
+						(productResults.length > 0 || results.length > 0) ? (
+							<div className="absolute inset-x-0 top-[calc(100%+4px)] z-50 rounded-[10px] border border-border bg-white p-1 shadow-lg">
+								{productsLoading ? (
+									<p className="px-3 py-2 text-sm text-[#616161]">
+										Đang tải sản phẩm...
 									</p>
-									{productResults.map((product) => (
-										<button
-											key={product.id}
-											type="button"
-											onClick={() => {
-												onAddProduct(product);
-												setQuery("");
-											}}
-											className="flex w-full flex-col gap-0.5 rounded-lg px-3 py-2 text-left hover:bg-accent"
-										>
-											<span className="font-semibold">{product.name}</span>
-											<span className="text-sm text-[#616161]">
-												{product.sku} · Còn {product.stock} {product.baseUnit}
-											</span>
-										</button>
-									))}
-								</div>
-							) : null}
-							{results.length > 0 ? (
-								<div className="pt-1">
-									<p className="px-3 py-1 text-xs font-semibold uppercase tracking-wide text-[#2e7d32]">
-										Sổ tay
-									</p>
-									{results.map((item) => (
-										<button
-											key={item.id}
-											type="button"
-											onClick={() => void choose(item.id)}
-											className="flex w-full flex-col gap-0.5 rounded-lg px-3 py-2 text-left hover:bg-accent"
-										>
-											<span className="font-semibold">{item.name}</span>
-											<span className="text-sm text-[#616161]">
-												{item.symptom || "Tra cứu theo mục Sổ tay"}
-											</span>
-										</button>
-									))}
-								</div>
-							) : null}
-						</div>
-					) : null}
-				</div>
-				<button
-					type="button"
-					onClick={() => setScanOpen(true)}
-					aria-label="Quét mã vạch"
-					className="flex size-12 shrink-0 items-center justify-center rounded-[10px] border border-border bg-white text-foreground transition-colors hover:bg-[#f5f5f5] lg:hidden"
-				>
-					<ScanLine className="size-5.5" aria-hidden />
-				</button>
-				<ScanSheet
-					open={scanOpen}
-					onClose={() => setScanOpen(false)}
-					products={products}
-					onFound={(product) => {
-						onAddProduct(product);
-						setScanOpen(false);
-					}}
-				/>
+								) : null}
+								{productResults.length > 0 ? (
+									<div className="border-b border-border pb-1">
+										<p className="px-3 py-1 text-xs font-semibold uppercase tracking-wide text-[#2e7d32]">
+											Sản phẩm
+										</p>
+										{productResults.map((product) => (
+											<button
+												key={product.id}
+												type="button"
+												onClick={() => {
+													onAddProduct(product);
+													setQuery("");
+												}}
+												className="flex w-full flex-col gap-0.5 rounded-lg px-3 py-2 text-left hover:bg-accent"
+											>
+												<span className="font-semibold">{product.name}</span>
+												<span className="text-sm text-[#616161]">
+													{product.sku} · Còn {product.stock} {product.baseUnit}
+												</span>
+											</button>
+										))}
+									</div>
+								) : null}
+								{results.length > 0 ? (
+									<div className="pt-1">
+										<p className="px-3 py-1 text-xs font-semibold uppercase tracking-wide text-[#2e7d32]">
+											Sổ tay
+										</p>
+										{results.map((item) => (
+											<button
+												key={item.id}
+												type="button"
+												onClick={() => void choose(item.id)}
+												className="flex w-full flex-col gap-0.5 rounded-lg px-3 py-2 text-left hover:bg-accent"
+											>
+												<span className="font-semibold">{item.name}</span>
+												<span className="text-sm text-[#616161]">
+													{item.symptom || "Tra cứu theo mục Sổ tay"}
+												</span>
+											</button>
+										))}
+									</div>
+								) : null}
+							</div>
+						) : null}
+					</div>
+					<button
+						type="button"
+						onClick={() => setScanOpen(true)}
+						aria-label="Quét mã vạch"
+						className="flex size-12 shrink-0 items-center justify-center rounded-[10px] border border-border bg-white text-foreground transition-colors hover:bg-[#f5f5f5] lg:hidden"
+					>
+						<ScanLine className="size-5.5" aria-hidden />
+					</button>
+					<ScanSheet
+						open={scanOpen}
+						onClose={() => setScanOpen(false)}
+						products={products}
+						keepOpen
+						onFound={(product) => {
+							onAddProduct(product);
+						}}
+					/>
 				</div>
 			) : (
 				<div className="flex flex-col gap-3">
@@ -395,48 +396,55 @@ export function HandbookQuickPanel({
 										)}
 									</label>
 								))}
-					</div>
-					{!query.trim() ? (
-						<div className="space-y-2">
-							<div className="flex items-center justify-between">
-								<p className="text-sm font-semibold text-[#616161]">Chọn nhanh</p>
-								{products.length > 6 ? (
-									<span className="text-sm text-[#8a918a]">6 sản phẩm gần đây</span>
-								) : null}
 							</div>
-							{productsLoading ? (
-								<div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
-									{[1, 2, 3].map((item) => (
-										<div key={item} className="h-[82px] animate-pulse rounded-[10px] bg-white/80" />
-									))}
-								</div>
-							) : (
-								<div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
-									{products.slice(0, 6).map((product) => (
-										<button
-											key={product.id}
-											type="button"
-											onClick={() => onAddProduct(product)}
-											className="flex min-h-[82px] items-start gap-2 rounded-[10px] border border-[#dcebd7] bg-white p-3 text-left transition-colors hover:border-primary hover:bg-[#fbfffa] active:scale-[0.99]"
-										>
-											<span className="flex size-9 shrink-0 items-center justify-center rounded-[8px] bg-[#f3f8f1] text-primary">
-												<PackageOpen className="size-4.5" aria-hidden />
+							{!query.trim() ? (
+								<div className="space-y-2">
+									<div className="flex items-center justify-between">
+										<p className="text-sm font-semibold text-[#616161]">
+											Chọn nhanh
+										</p>
+										{products.length > 6 ? (
+											<span className="text-sm text-[#8a918a]">
+												6 sản phẩm gần đây
 											</span>
-											<span className="min-w-0">
-												<span className="line-clamp-2 block text-sm font-semibold text-foreground">
-													{product.name}
-												</span>
-												<span className="mt-1 block text-sm font-bold text-primary">
-													{formatVND(product.salePrice)}₫
-												</span>
-											</span>
-										</button>
-									))}
+										) : null}
+									</div>
+									{productsLoading ? (
+										<div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+											{[1, 2, 3].map((item) => (
+												<div
+													key={item}
+													className="h-[82px] animate-pulse rounded-[10px] bg-white/80"
+												/>
+											))}
+										</div>
+									) : (
+										<div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+											{products.slice(0, 6).map((product) => (
+												<button
+													key={product.id}
+													type="button"
+													onClick={() => onAddProduct(product)}
+													className="flex min-h-[82px] items-start gap-2 rounded-[10px] border border-[#dcebd7] bg-white p-3 text-left transition-colors hover:border-primary hover:bg-[#fbfffa] active:scale-[0.99]"
+												>
+													<span className="flex size-9 shrink-0 items-center justify-center rounded-[8px] bg-[#f3f8f1] text-primary">
+														<PackageOpen className="size-4.5" aria-hidden />
+													</span>
+													<span className="min-w-0">
+														<span className="line-clamp-2 block text-sm font-semibold text-foreground">
+															{product.name}
+														</span>
+														<span className="mt-1 block text-sm font-bold text-primary">
+															{formatVND(product.salePrice)}₫
+														</span>
+													</span>
+												</button>
+											))}
+										</div>
+									)}
 								</div>
-							)}
+							) : null}
 						</div>
-					) : null}
-				</div>
 					) : (
 						<p className="text-sm text-[#616161]">
 							Có thể bỏ qua tư vấn và chọn gợi ý bên dưới.

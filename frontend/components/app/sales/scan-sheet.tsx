@@ -21,15 +21,32 @@ export function ScanSheet({
 	onFound,
 	products,
 	onCode,
+	keepOpen = false,
+	allowOutOfStock = false,
 }: {
 	open: boolean;
 	onClose: () => void;
-	onFound: (product: Product) => void;
+	// biome-ignore lint/suspicious/noConfusingVoidType: callers may intentionally report accepted scans with no return value
+	onFound: (product: Product) => boolean | void;
 	products: Product[];
 	onCode?: (code: string) => void;
+	/** Giữ camera mở sau mã hợp lệ để sales có thể quét liên tiếp. */
+	keepOpen?: boolean;
+	/* Cho phép quét sản phẩm hết tồn trong luồng nhập hàng. */
+	allowOutOfStock?: boolean;
 }) {
 	const videoRef = useRef<HTMLVideoElement>(null);
+	const productsRef = useRef(products);
+	const onFoundRef = useRef(onFound);
+	const onCodeRef = useRef(onCode);
+	const allowOutOfStockRef = useRef(allowOutOfStock);
+	productsRef.current = products;
+	onFoundRef.current = onFound;
+	onCodeRef.current = onCode;
+	allowOutOfStockRef.current = allowOutOfStock;
 	const detectedRef = useRef(false);
+	const unlockTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+	const scanCooldownMs = 750;
 	const [code, setCode] = useState("");
 	const [error, setError] = useState<string | null>(null);
 	const [camState, setCamState] = useState<
@@ -43,6 +60,10 @@ export function ScanSheet({
 			setError(null);
 			setCamState("idle");
 			detectedRef.current = false;
+			if (unlockTimerRef.current) {
+				clearTimeout(unlockTimerRef.current);
+				unlockTimerRef.current = null;
+			}
 		}
 	}, [open]);
 
@@ -88,7 +109,13 @@ export function ScanSheet({
 						detectedRef.current = true;
 						setCode(detectedCode);
 						setError(null);
-						handleCode(detectedCode);
+						const accepted = handleCode(detectedCode);
+						if (keepOpen && accepted) {
+							unlockTimerRef.current = setTimeout(() => {
+								detectedRef.current = false;
+								unlockTimerRef.current = null;
+							}, scanCooldownMs);
+						}
 					},
 				);
 				controls = await pendingControls;
@@ -102,13 +129,17 @@ export function ScanSheet({
 
 		return () => {
 			cancelled = true;
+			if (unlockTimerRef.current) {
+				clearTimeout(unlockTimerRef.current);
+				unlockTimerRef.current = null;
+			}
 			controls?.stop();
 			stream?.getTracks().forEach((track) => {
 				track.stop();
 			});
 			if (videoRef.current) videoRef.current.srcObject = null;
 		};
-	}, [open]);
+	}, [open, keepOpen]);
 
 	// Khóa cuộn nền (iOS-safe).
 	useScrollLock(open);
@@ -124,26 +155,49 @@ export function ScanSheet({
 	}, [open, onClose]);
 
 	function handleCode(nextCode: string) {
-		if (onCode) {
-			onCode(nextCode);
-			return;
+		if (onCodeRef.current) {
+			onCodeRef.current(nextCode);
+			return true;
 		}
-		const product = products.find(
+		const product = productsRef.current.find(
 			(item) => item.barcode?.trim() === nextCode.trim(),
 		);
 		if (!product) {
 			setError("Không tìm thấy sản phẩm với mã này.");
 			detectedRef.current = false;
-			return;
+			return false;
 		}
-		if (getStockStatus(product) === "out-of-stock") {
+		if (
+			!allowOutOfStockRef.current &&
+			getStockStatus(product) === "out-of-stock"
+		) {
 			setError("Sản phẩm này đã hết hàng.");
 			detectedRef.current = false;
-			return;
+			return false;
 		}
-		onFound(product);
+		if (product.locked) {
+			setError("Sản phẩm đang bị khóa, không thể bán.");
+			detectedRef.current = false;
+			return false;
+		}
+		if (product.recalled) {
+			setError("Sản phẩm đã thu hồi, không thể bán.");
+			detectedRef.current = false;
+			return false;
+		}
+		if (product.status === "inactive") {
+			setError("Sản phẩm ngừng kinh doanh, không thể bán.");
+			detectedRef.current = false;
+			return false;
+		}
+		const accepted = onFoundRef.current(product) !== false;
+		if (!accepted) {
+			detectedRef.current = false;
+			return false;
+		}
 		setCode("");
 		setError(null);
+		return true;
 	}
 
 	function submit() {
@@ -153,18 +207,7 @@ export function ScanSheet({
 			handleCode(nextCode);
 			return;
 		}
-		const product = products.find((item) => item.barcode?.trim() === nextCode);
-		if (!product) {
-			setError("Không tìm thấy sản phẩm với mã này.");
-			return;
-		}
-		if (getStockStatus(product) === "out-of-stock") {
-			setError("Sản phẩm này đã hết hàng.");
-			return;
-		}
-		onFound(product);
-		setCode("");
-		setError(null);
+		handleCode(nextCode);
 	}
 
 	return (

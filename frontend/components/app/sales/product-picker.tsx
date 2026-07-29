@@ -10,12 +10,12 @@ import {
 	stockStatusBadgeClass,
 	stockStatusLabel,
 } from "@/lib/products";
-import { matchesVietnamese } from "@/lib/vietnamese-search";
 import {
 	getProductLookups,
 	listTenantProducts,
 	mapTenantProduct,
 } from "@/lib/tenant-products-api";
+import { matchesVietnamese } from "@/lib/vietnamese-search";
 
 /**
  * Combobox tìm sản phẩm nhanh (DESIGN.md §8, §15) + nút quét mã vạch (mobile).
@@ -76,11 +76,12 @@ export function ProductPicker({
 			product.status === "inactive" ||
 			(!allowOutOfStock && getStockStatus(product) === "out-of-stock")
 		)
-			return;
+			return false;
 		onSelect(product);
 		setQuery("");
 		setOpen(false);
 		inputRef.current?.blur();
+		return true;
 	}
 
 	return (
@@ -208,10 +209,9 @@ export function ProductPicker({
 				open={scanOpen}
 				onClose={() => setScanOpen(false)}
 				products={products}
-				onFound={(product) => {
-					pick(product);
-					setScanOpen(false);
-				}}
+				keepOpen
+				allowOutOfStock={allowOutOfStock}
+				onFound={(product) => pick(product)}
 			/>
 		</div>
 	);
