@@ -4,7 +4,6 @@ import {
 	ChevronDown,
 	FlaskConical,
 	Layers,
-	Lock,
 	Package,
 	Plus,
 	Tag,
@@ -79,7 +78,6 @@ type FormState = {
 	pest: string;
 	phi: string;
 	rei: string;
-	locked: boolean;
 	businessGroup: BusinessGroupId | "";
 	productKind: ProductKindId | "";
 	attrs: Record<string, string>;
@@ -171,7 +169,6 @@ function toFormState(p?: Product): FormState {
 		pest: p?.agro?.pest ?? "",
 		phi: p?.agro?.phi != null ? String(p.agro.phi) : "",
 		rei: p?.agro?.rei != null ? String(p.agro.rei) : "",
-		locked: p?.locked ?? false,
 		businessGroup: p?.businessGroup ?? definition?.businessGroup ?? "",
 		productKind: productKind ?? "",
 		attrs,
@@ -421,7 +418,6 @@ export function ProductForm({
 				factor: conversion.factor as number,
 				kind: conversion.kind ?? "BOTH",
 			})),
-			isLocked: form.locked,
 			businessGroup: form.businessGroup,
 			productKind: form.productKind,
 			attrs: normalizeProductAttrs(form.productKind, form.attrs),
@@ -545,20 +541,7 @@ export function ProductForm({
 					/>
 				</Field>
 
-				{/* Khóa bán */}
-				<label className="flex items-center gap-3 rounded-[10px] border border-border bg-[#fafafa] px-4 py-3">
-					<input
-						type="checkbox"
-						checked={form.locked}
-						onChange={(e) => set("locked", e.target.checked)}
-						className="size-5 accent-primary"
-					/>
-					<span className="flex items-center gap-1.5 text-base text-foreground">
-						<Lock className="size-4.5 text-[#9e9e9e]" aria-hidden />
-						Khóa bán sản phẩm này
-					</span>
-				</label>
-			</Section>
+				</Section>
 
 			{/* Section 2: Đơn vị & quy đổi — hoàn thiện sau khi tạo sản phẩm */}
 			{mode === "edit" ? (
