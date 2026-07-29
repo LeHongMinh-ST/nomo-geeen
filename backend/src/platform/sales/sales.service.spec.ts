@@ -1722,7 +1722,7 @@ describe('SalesService', () => {
 				where: {
 					id: 'quick-1',
 					tenantId: 'tenant-a',
-					channel: 'ORDER',
+					channel: { in: ['ORDER', 'QUICK_SALE'] },
 					deletedAt: null,
 				},
 			}),
@@ -1740,7 +1740,7 @@ describe('SalesService', () => {
 				where: {
 					id: 'foreign-sale',
 					tenantId: 'tenant-a',
-					channel: 'ORDER',
+					channel: { in: ['ORDER', 'QUICK_SALE'] },
 					deletedAt: null,
 				},
 			}),

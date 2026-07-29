@@ -26,6 +26,7 @@ import {
 	type TenantUserPublic,
 	updateTenantUser,
 } from "@/lib/admin-api/tenant-users";
+import { formatDateTime } from "@/lib/format";
 import { useAdminAuth } from "@/stores/admin-auth-store";
 
 const ROLES: TenantRoleCode[] = ["OWNER", "MANAGER", "STAFF"];
@@ -625,7 +626,7 @@ function UserRow({
 			</td>
 			<td className="px-4 py-3.5 text-sm text-muted-foreground">
 				{user.lastLoginAt
-					? new Date(user.lastLoginAt).toLocaleString("vi-VN")
+						? formatDateTime(user.lastLoginAt)
 					: "Chưa đăng nhập"}
 			</td>
 			<td className="px-4 py-3.5">

@@ -7,7 +7,298 @@ import { ListFilterBar } from "@/components/app/shared/list-filter-bar";
 import { ListSkeleton } from "@/components/app/shared/list-skeleton";
 import { LoadMoreSentinel } from "@/components/app/shared/load-more-sentinel";
 import { formatDate, formatVND } from "@/lib/format";
-import { listOrders, type SalesOrderStatus, type SalesOrderSummary } from "@/lib/tenant-sales-api";
-import { OrderCard, paymentLabel, statusClass, statusLabel } from "./order-card";
-type StatusFilter="all"|SalesOrderStatus; const PAGE_SIZE=20; const filters=[{value:"all",label:"Tất cả"},{value:"COMPLETED",label:"Hoàn thành"},{value:"DRAFT",label:"Nháp"},{value:"CANCELLED",label:"Đã hủy"}];
-export function OrderList(){const [q,setQ]=useState("");const [search,setSearch]=useState("");const [status,setStatus]=useState<StatusFilter>("all");const [page,setPage]=useState(1);const [items,setItems]=useState<SalesOrderSummary[]>([]);const [total,setTotal]=useState(0);const [loading,setLoading]=useState(true);const [error,setError]=useState<Error|null>(null);const [mobile,setMobile]=useState(false);const [more,setMore]=useState(false);const [done,setDone]=useState(false);const seq=useRef(0);const id=`${search}|${status}`;useEffect(()=>{const t=setTimeout(()=>setSearch(q.trim()),350);return()=>clearTimeout(t)},[q]);useEffect(()=>{const m=window.matchMedia("(max-width:1023px)"),f=()=>setMobile(m.matches);f();m.addEventListener("change",f);return()=>m.removeEventListener("change",f)},[]);const fetchPage=useCallback(async(p:number,append:boolean,s:number)=>{try{const r=await listOrders({search:search||undefined,status:status==="all"?undefined:status,page:p,pageSize:PAGE_SIZE});if(s!==seq.current)return;setTotal(r.total);setItems(prev=>{const next=append?[...prev,...r.items.filter(x=>!prev.some(y=>y.id===x.id))]:r.items;if(append&&(next.length===prev.length||r.items.length<PAGE_SIZE))setDone(true);return next});setError(null)}catch(e){if(s===seq.current)setError(e instanceof Error?e:new Error("Không thể tải đơn hàng"))}finally{if(s===seq.current){setLoading(false);setMore(false)}}},[search,status]);useEffect(()=>{setPage(1);setItems([]);setDone(false);const s=++seq.current;setLoading(true);void fetchPage(1,false,s)},[id,fetchPage]);const retry=()=>{const s=++seq.current;setLoading(true);void fetchPage(page,mobile&&page>1,s)};const loadMore=useCallback(()=>{if(!mobile||more||loading||done||items.length>=total)return;const p=page+1;setPage(p);setMore(true);const s=++seq.current;void fetchPage(p,true,s)},[mobile,more,loading,done,items.length,total,page,fetchPage]);const pageCount=Math.max(1,Math.ceil(total/PAGE_SIZE));return <div className="flex w-full flex-col gap-5"><div className="flex items-start justify-between"><div><h1 className="text-2xl font-bold">Đơn bán hàng <span className="rounded-full bg-accent px-2 text-sm text-accent-foreground">{total}</span></h1><p className="text-base text-muted-foreground">Đơn có quản lý: công nợ, giao sau, chỉnh trước khi chốt.</p></div><Link href="/don-ban-hang/tao" className="hidden h-12 items-center gap-2 rounded-full bg-primary px-5 text-base font-semibold text-white lg:flex"><Plus className="size-5"/>Tạo đơn</Link></div><div className="relative"><Search className="absolute left-3 top-3 size-5 text-muted-foreground"/><input aria-label="Tìm kiếm đơn hàng" type="search" value={q} onChange={e=>setQ(e.target.value)} placeholder="Tìm mã đơn, tên khách..." className="h-12 w-full rounded-[10px] border-border pl-11 text-base placeholder:text-muted-foreground"/></div><ListFilterBar groups={[{key:"status",label:"Trạng thái",value:status,options:filters,onChange:v=>setStatus(v as StatusFilter)}]}/>{loading&&items.length===0?<ListSkeleton withToolbar rows={6}/>:error&&items.length===0?<div role="alert" className="rounded border p-8 text-center"><p>{error.message}</p><button className="mt-4 h-12 rounded bg-primary px-6 text-white" onClick={retry}>Thử lại</button></div>:items.length===0?<div className="rounded border border-dashed p-12 text-center"><Package className="mx-auto size-10 text-muted-foreground"/><h2 className="mt-3 text-lg font-semibold">Không tìm thấy đơn nào</h2></div>:<><div className="flex flex-col gap-3 lg:hidden">{error ? <div role="alert" className="rounded border border-destructive p-3"><p>{error.message}</p><button className="mt-2 h-12 rounded bg-primary px-6 text-white" onClick={retry}>Thử lại</button></div> : null}{items.map(o=><OrderCard key={o.id} order={o}/>)}{items.length<total&&!done?<LoadMoreSentinel onReach={loadMore}/>:<p className="text-center text-sm text-muted-foreground">Đã hiển thị tất cả {items.length} đơn</p>}</div><div className="hidden flex-col gap-3 lg:flex">{error&&<div role="alert" className="rounded border border-destructive p-3"><p>{error.message}</p><button className="mt-2 h-12 rounded bg-primary px-6 text-white" onClick={retry}>Thử lại</button></div>}<div className="overflow-hidden rounded-[16px] border border-border bg-card shadow-card"><table className="w-full border-collapse text-left"><thead><tr className="bg-[#f5f5f5] text-sm text-[#616161]"><th className="px-4 py-3 font-semibold">Mã đơn</th><th className="px-4 py-3 font-semibold">Khách hàng</th><th className="px-4 py-3 font-semibold">Ngày</th><th className="px-4 py-3 font-semibold">Thanh toán</th><th className="px-4 py-3 text-right font-semibold">Tổng tiền</th><th className="px-4 py-3 font-semibold">Trạng thái</th></tr></thead><tbody>{items.map(o=><tr key={o.id} className="border-t border-border transition-colors hover:bg-accent"><td className="px-4 py-3"><Link href={`/don-ban-hang/${o.id}`} className="font-semibold">{o.docNo}</Link></td><td className="px-4 py-3">{o.customerName||"Khách lẻ"}<span className="block text-sm text-[#9e9e9e]">{o.itemCount} món</span></td><td className="px-4 py-3">{formatDate(o.soldAt||o.createdAt)}</td><td className="px-4 py-3 text-base text-[#616161]">{o.paymentMethod?paymentLabel[o.paymentMethod]:"Chưa thanh toán"}</td><td className="px-4 py-3 text-right font-bold">{formatVND(o.total)}₫</td><td className="px-4 py-3"><span className={`inline-flex rounded-full px-3 py-1 text-sm font-semibold ${statusClass[o.status]}`}>{statusLabel[o.status]}</span></td></tr>)}</tbody></table></div><DataPagination page={page} pageCount={pageCount} total={total} pageSize={PAGE_SIZE} noun="đơn" onPage={p=>{setPage(p);const s=++seq.current;setLoading(true);void fetchPage(p,false,s)}}/></div></>}<Link href="/don-ban-hang/tao" className="fixed bottom-fab-safe right-4 z-30 h-14 rounded-full bg-primary px-5 py-4 text-white lg:hidden">+ Tạo đơn</Link></div>}
+import {
+	listOrders,
+	type SalesOrderStatus,
+	type SalesOrderSummary,
+} from "@/lib/tenant-sales-api";
+import {
+	OrderCard,
+	paymentLabel,
+	statusClass,
+	statusLabel,
+} from "./order-card";
+type StatusFilter = "all" | SalesOrderStatus;
+const PAGE_SIZE = 20;
+const filters = [
+	{ value: "all", label: "Tất cả" },
+	{ value: "COMPLETED", label: "Hoàn thành" },
+	{ value: "DRAFT", label: "Nháp" },
+	{ value: "CANCELLED", label: "Đã hủy" },
+];
+export function OrderList() {
+	const [q, setQ] = useState("");
+	const [search, setSearch] = useState("");
+	const [status, setStatus] = useState<StatusFilter>("all");
+	const [page, setPage] = useState(1);
+	const [items, setItems] = useState<SalesOrderSummary[]>([]);
+	const [total, setTotal] = useState(0);
+	const [loading, setLoading] = useState(true);
+	const [error, setError] = useState<Error | null>(null);
+	const [mobile, setMobile] = useState(false);
+	const [more, setMore] = useState(false);
+	const [done, setDone] = useState(false);
+	const seq = useRef(0);
+	useEffect(() => {
+		const t = setTimeout(() => setSearch(q.trim()), 350);
+		return () => clearTimeout(t);
+	}, [q]);
+	useEffect(() => {
+		const m = window.matchMedia("(max-width:1023px)"),
+			f = () => setMobile(m.matches);
+		f();
+		m.addEventListener("change", f);
+		return () => m.removeEventListener("change", f);
+	}, []);
+	const fetchPage = useCallback(
+		async (p: number, append: boolean, s: number) => {
+			try {
+				const r = await listOrders({
+					search: search || undefined,
+					status: status === "all" ? undefined : status,
+					page: p,
+					pageSize: PAGE_SIZE,
+				});
+				if (s !== seq.current) return;
+				setTotal(r.total);
+				setItems((prev) => {
+					const next = append
+						? [
+								...prev,
+								...r.items.filter((x) => !prev.some((y) => y.id === x.id)),
+							]
+						: r.items;
+					if (
+						append &&
+						(next.length === prev.length || r.items.length < PAGE_SIZE)
+					)
+						setDone(true);
+					return next;
+				});
+				setError(null);
+			} catch (e) {
+				if (s === seq.current)
+					setError(
+						e instanceof Error ? e : new Error("Không thể tải đơn hàng"),
+					);
+			} finally {
+				if (s === seq.current) {
+					setLoading(false);
+					setMore(false);
+				}
+			}
+		},
+		[search, status],
+	);
+	useEffect(() => {
+		setPage(1);
+		setItems([]);
+		setDone(false);
+		const s = ++seq.current;
+		setLoading(true);
+		void fetchPage(1, false, s);
+	}, [fetchPage]);
+	const retry = () => {
+		const s = ++seq.current;
+		setLoading(true);
+		void fetchPage(page, mobile && page > 1, s);
+	};
+	const loadMore = useCallback(() => {
+		if (!mobile || more || loading || done || items.length >= total) return;
+		const p = page + 1;
+		setPage(p);
+		setMore(true);
+		const s = ++seq.current;
+		void fetchPage(p, true, s);
+	}, [mobile, more, loading, done, items.length, total, page, fetchPage]);
+	const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
+	return (
+		<div className="flex w-full flex-col gap-5">
+			<div className="flex items-start justify-between">
+				<div>
+					<h1 className="text-2xl font-bold">
+						Đơn bán hàng{" "}
+						<span className="rounded-full bg-accent px-2 text-sm text-accent-foreground">
+							{total}
+						</span>
+					</h1>
+					<p className="text-base text-muted-foreground">
+						Đơn có quản lý: công nợ, giao sau, chỉnh trước khi chốt.
+					</p>
+				</div>
+				<Link
+					href="/don-ban-hang/tao"
+					className="hidden h-12 items-center gap-2 rounded-full bg-primary px-5 text-base font-semibold text-white lg:flex"
+				>
+					<Plus className="size-5" />
+					Tạo đơn
+				</Link>
+			</div>
+			<div className="relative">
+				<Search className="absolute left-3 top-3 size-5 text-muted-foreground" />
+				<input
+					aria-label="Tìm kiếm đơn hàng"
+					type="search"
+					value={q}
+					onChange={(e) => setQ(e.target.value)}
+					placeholder="Tìm mã đơn, tên khách..."
+					className="h-12 w-full rounded-[10px] border-border pl-11 text-base placeholder:text-muted-foreground"
+				/>
+			</div>
+			<ListFilterBar
+				groups={[
+					{
+						key: "status",
+						label: "Trạng thái",
+						value: status,
+						options: filters,
+						onChange: (v) => setStatus(v as StatusFilter),
+					},
+				]}
+			/>
+			{loading && items.length === 0 ? (
+				<ListSkeleton withToolbar rows={6} />
+			) : error && items.length === 0 ? (
+				<div role="alert" className="rounded border p-8 text-center">
+					<p>{error.message}</p>
+					<button
+						type="button"
+						className="mt-4 h-12 rounded bg-primary px-6 text-white"
+						onClick={retry}
+					>
+						Thử lại
+					</button>
+				</div>
+			) : items.length === 0 ? (
+				<div className="rounded border border-dashed p-12 text-center">
+					<Package className="mx-auto size-10 text-muted-foreground" />
+					<h2 className="mt-3 text-lg font-semibold">Không tìm thấy đơn nào</h2>
+				</div>
+			) : (
+				<>
+					<div className="flex flex-col gap-3 lg:hidden">
+						{error ? (
+							<div
+								role="alert"
+								className="rounded border border-destructive p-3"
+							>
+								<p>{error.message}</p>
+								<button
+									type="button"
+									className="mt-2 h-12 rounded bg-primary px-6 text-white"
+									onClick={retry}
+								>
+									Thử lại
+								</button>
+							</div>
+						) : null}
+						{items.map((o) => (
+							<OrderCard key={o.id} order={o} />
+						))}
+						{items.length < total && !done ? (
+							<LoadMoreSentinel onReach={loadMore} />
+						) : (
+							<p className="text-center text-sm text-muted-foreground">
+								Đã hiển thị tất cả {items.length} đơn
+							</p>
+						)}
+					</div>
+					<div className="hidden flex-col gap-3 lg:flex">
+						{error && (
+							<div
+								role="alert"
+								className="rounded border border-destructive p-3"
+							>
+								<p>{error.message}</p>
+								<button
+									type="button"
+									className="mt-2 h-12 rounded bg-primary px-6 text-white"
+									onClick={retry}
+								>
+									Thử lại
+								</button>
+							</div>
+						)}
+						<div className="overflow-hidden rounded-[16px] border border-border bg-card shadow-card">
+							<table className="w-full border-collapse text-left">
+								<thead>
+									<tr className="bg-[#f5f5f5] text-sm text-[#616161]">
+										<th className="px-4 py-3 font-semibold">Mã đơn</th>
+										<th className="px-4 py-3 font-semibold">Khách hàng</th>
+										<th className="px-4 py-3 font-semibold">Ngày</th>
+										<th className="px-4 py-3 font-semibold">Thanh toán</th>
+										<th className="px-4 py-3 text-right font-semibold">
+											Tổng tiền
+										</th>
+										<th className="px-4 py-3 font-semibold">Trạng thái</th>
+									</tr>
+								</thead>
+								<tbody>
+									{items.map((o) => (
+										<tr
+											key={o.id}
+											className="border-t border-border transition-colors hover:bg-accent"
+										>
+											<td className="px-4 py-3">
+															<Link
+																href={`/don-ban-hang/${o.id}`}
+																className="inline-flex min-h-12 items-center font-semibold"
+																aria-label={`Mở chi tiết ${o.docNo}`}
+												>
+													{o.docNo}
+												</Link>
+											</td>
+											<td className="px-4 py-3">
+												{o.customerName || "Khách lẻ"}
+												<span className="block text-sm text-[#9e9e9e]">
+													{o.itemCount} món
+												</span>
+											</td>
+											<td className="px-4 py-3">
+												{formatDate(o.soldAt || o.createdAt)}
+											</td>
+											<td className="px-4 py-3 text-base text-[#616161]">
+												{o.paymentMethod
+													? paymentLabel[o.paymentMethod]
+													: "Chưa thanh toán"}
+											</td>
+											<td className="px-4 py-3 text-right font-bold">
+												{formatVND(o.total)}₫
+											</td>
+											<td className="px-4 py-3">
+												<span
+													className={`inline-flex rounded-full px-3 py-1 text-sm font-semibold ${statusClass[o.status]}`}
+												>
+													{statusLabel[o.status]}
+												</span>
+											</td>
+										</tr>
+									))}
+								</tbody>
+							</table>
+						</div>
+						<DataPagination
+							page={page}
+							pageCount={pageCount}
+							total={total}
+							pageSize={PAGE_SIZE}
+							noun="đơn"
+							onPage={(p) => {
+								setPage(p);
+								const s = ++seq.current;
+								setLoading(true);
+								void fetchPage(p, false, s);
+							}}
+						/>
+					</div>
+				</>
+			)}
+			<Link
+				href="/don-ban-hang/tao"
+				className="fixed bottom-fab-safe right-4 z-30 h-14 rounded-full bg-primary px-5 py-4 text-white lg:hidden"
+			>
+				+ Tạo đơn
+			</Link>
+		</div>
+	);
+}

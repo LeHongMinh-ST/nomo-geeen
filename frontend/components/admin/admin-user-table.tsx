@@ -25,6 +25,7 @@ import {
 import type { AdminPublicShape } from "@/lib/admin-api/admin-users";
 import type { RolePublicShape } from "@/lib/admin-api/roles";
 import { labelRoleCode } from "@/lib/admin-labels";
+import { formatDateTime } from "@/lib/format";
 import { Can } from "./can-permission";
 
 const STATUS_LABEL: Record<AdminPublicShape["status"], string> = {
@@ -385,7 +386,7 @@ export function AdminUserTable({
 											</td>
 											<td className="whitespace-nowrap px-4 py-3.5 text-sm text-muted-foreground">
 												{a.lastLoginAt
-													? new Date(a.lastLoginAt).toLocaleString("vi-VN")
+																? formatDateTime(a.lastLoginAt)
 													: "—"}
 											</td>
 											<td className="whitespace-nowrap px-4 py-3.5 text-right">
@@ -503,7 +504,7 @@ function AdminUserCard({
 				<span className="truncate font-mono text-xs">{admin.email}</span>
 				<span className="shrink-0 text-xs">
 					{admin.lastLoginAt
-						? new Date(admin.lastLoginAt).toLocaleString("vi-VN")
+						? formatDateTime(admin.lastLoginAt)
 						: "Chưa đăng nhập"}
 				</span>
 			</div>

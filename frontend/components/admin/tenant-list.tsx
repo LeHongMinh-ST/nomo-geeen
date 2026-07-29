@@ -22,6 +22,7 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import type { TenantListItem, TenantStatus } from "@/lib/admin-api/tenants";
+import { formatDateTime } from "@/lib/format";
 import { Can } from "./can-permission";
 
 const STATUS_LABEL: Record<TenantStatus, string> = {
@@ -373,7 +374,7 @@ export function TenantList({
 													</span>
 												</td>
 												<td className="whitespace-nowrap px-4 py-3.5 text-sm text-muted-foreground">
-													{new Date(t.createdAt).toLocaleString("vi-VN")}
+																{formatDateTime(t.createdAt)}
 												</td>
 												<td className="whitespace-nowrap px-4 py-3.5 text-right">
 													<Link

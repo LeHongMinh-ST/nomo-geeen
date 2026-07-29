@@ -121,6 +121,7 @@ The admin permission catalog is exposed at `/admin/settings/permissions` and gat
   chart/export/profit accounting outside the reports page (home chart is separate).
 
 - The frontend tenant sales client and customer picker are available. R5 migrates `/don-ban-hang` and `/don-ban-hang/:id` to canonical list/detail/cancel operations with debounced server queries, desktop replacement paging, mobile deduplicated incremental loading, conflict refetch, inline retry, and responsive loading/error states. Order creation/complete orchestration remains R6; no new seed fallback is part of this slice.
+- Order detail uses the canonical `SalesOrderDetail` DTO for both on-screen settlement data and a client-rendered narrow receipt invoice. The invoice intentionally stays presentation-only: it exposes only fields already returned by the order API, supports browser print from an isolated receipt iframe and downloadable PDF with embedded Vietnamese font, and keeps app chrome out of the print context; no invoice persistence, electronic-invoice provider integration, or new backend route is implied. Order timestamps use the shared frontend `formatDateTime` (`dd/MM/yyyy HH:mm`) helper.
 
 ## Deployment evidence gap
 

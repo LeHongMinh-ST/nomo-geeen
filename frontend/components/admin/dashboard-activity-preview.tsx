@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { listAuditLogs, type AuditLogItem } from "@/lib/admin-api/audit-logs";
+import { formatDateTime } from "@/lib/format";
 import { useAdminAuth } from "@/stores/admin-auth-store";
 
 export function DashboardActivityPreview() {
@@ -30,6 +31,6 @@ export function DashboardActivityPreview() {
 		{state === "loading" && <p role="status" className="text-base text-[#616161]">Đang tải hoạt động...</p>}
 		{state === "error" && <p role="alert" className="text-base text-[#c62828]">Không thể tải hoạt động. <Link href="/admin/audit-log" className="font-semibold underline">Mở nhật ký hệ thống</Link></p>}
 		{state === "empty" && <p className="text-base text-[#616161]">Chưa có hoạt động nào được ghi nhận.</p>}
-		{state === "ready" && <ul className="flex flex-col gap-4">{items.map((item) => <li key={item.id} className="flex gap-3"><span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-[#3949ab] text-white" aria-hidden>•</span><div className="flex min-w-0 flex-col"><p className="text-base leading-snug text-foreground">{item.action} · {item.resource ?? item.actorType}</p><span className="text-sm text-[#9e9e9e]">{new Date(item.createdAt).toLocaleString("vi-VN")}</span></div></li>)}</ul>}
+		{state === "ready" && <ul className="flex flex-col gap-4">{items.map((item) => <li key={item.id} className="flex gap-3"><span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-[#3949ab] text-white" aria-hidden>•</span><div className="flex min-w-0 flex-col"><p className="text-base leading-snug text-foreground">{item.action} · {item.resource ?? item.actorType}</p><span className="text-sm text-[#9e9e9e]">{formatDateTime(item.createdAt)}</span></div></li>)}</ul>}
 	</section>;
 }

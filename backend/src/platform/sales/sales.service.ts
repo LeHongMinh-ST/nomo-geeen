@@ -172,7 +172,7 @@ export class SalesService {
 			where: {
 				id,
 				tenantId,
-				channel: 'ORDER',
+				channel: { in: ['ORDER', 'QUICK_SALE'] },
 				deletedAt: null,
 			},
 			include: {
@@ -192,7 +192,7 @@ export class SalesService {
 			where: {
 				id,
 				tenantId,
-				channel: 'ORDER',
+				channel: { in: ['ORDER', 'QUICK_SALE'] },
 				deletedAt: null,
 			},
 			include: {

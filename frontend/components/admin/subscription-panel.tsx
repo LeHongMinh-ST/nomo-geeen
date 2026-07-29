@@ -25,6 +25,7 @@ import {
 	type SubscriptionResult,
 } from "@/lib/admin-api/subscriptions";
 import type { TenantDetail } from "@/lib/admin-api/tenants";
+import { formatDate } from "@/lib/format";
 import { useAdminAuth } from "@/stores/admin-auth-store";
 import { Can } from "./can-permission";
 
@@ -709,9 +710,6 @@ function History({ rows }: { rows: SubscriptionResponse[] }) {
 			</div>
 		</details>
 	);
-}
-function formatDate(value: string) {
-	return new Date(value).toLocaleDateString("vi-VN");
 }
 function quotaLabel(key: string) {
 	return (

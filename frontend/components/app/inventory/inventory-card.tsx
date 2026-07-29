@@ -2,7 +2,7 @@
 
 import { CalendarClock, Warehouse } from "lucide-react";
 import Link from "next/link";
-import { formatVND } from "@/lib/format";
+import { formatDate, formatVND } from "@/lib/format";
 import { expiryTierBadgeClass, expiryTierLabel } from "@/lib/inventory";
 import type { InventoryListItem } from "@/lib/tenant-inventory-api";
 
@@ -75,7 +75,7 @@ export function InventoryCard({ item }: { item: InventoryListItem }) {
 				{item.nextExpiry ? (
 					<p className="text-xs text-[#616161]">
 						HSD gần nhất:{" "}
-						{new Date(item.nextExpiry).toLocaleDateString("vi-VN")}
+						{formatDate(item.nextExpiry)}
 					</p>
 				) : null}
 

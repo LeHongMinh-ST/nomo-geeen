@@ -13,6 +13,7 @@ import { useState } from "react";
 import type { AdminPublicShape } from "@/lib/admin-api/admin-users";
 import type { RolePublicShape } from "@/lib/admin-api/roles";
 import { labelRoleCode } from "@/lib/admin-labels";
+import { formatDateTime } from "@/lib/format";
 import { Can } from "./can-permission";
 import {
 	AdminUserEditorForm,
@@ -153,14 +154,14 @@ export function AdminUserDetailPanel({
 								<span className="text-muted-foreground">Đăng nhập cuối</span>
 								<span className="text-xs text-muted-foreground">
 									{admin.lastLoginAt
-										? new Date(admin.lastLoginAt).toLocaleString("vi-VN")
+										? formatDateTime(admin.lastLoginAt)
 										: "Chưa đăng nhập"}
 								</span>
 							</li>
 							<li className="flex justify-between">
 								<span className="text-muted-foreground">Tạo lúc</span>
 								<span className="text-xs text-muted-foreground">
-									{new Date(admin.createdAt).toLocaleString("vi-VN")}
+									{formatDateTime(admin.createdAt)}
 								</span>
 							</li>
 						</ul>

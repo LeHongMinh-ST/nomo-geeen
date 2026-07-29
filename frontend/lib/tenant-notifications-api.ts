@@ -1,4 +1,5 @@
 import { userFetch } from "@/lib/user-fetch";
+import { formatDate } from "@/lib/format";
 
 export type NotificationType =
 	| "DEBT_DUE"
@@ -102,6 +103,7 @@ export function notificationTypeLabel(type: NotificationType): string {
 }
 
 export function formatNotificationTime(iso: string): string {
+	// Relative labels are intentional; absolute fallback uses the shared formatter.
 	const date = new Date(iso);
 	if (Number.isNaN(date.getTime())) return "";
 	const now = Date.now();
@@ -113,9 +115,5 @@ export function formatNotificationTime(iso: string): string {
 	if (diffMs < hour) return `${Math.floor(diffMs / minute)} phút trước`;
 	if (diffMs < day) return `${Math.floor(diffMs / hour)} giờ trước`;
 	if (diffMs < 7 * day) return `${Math.floor(diffMs / day)} ngày trước`;
-	return date.toLocaleDateString("vi-VN", {
-		day: "2-digit",
-		month: "2-digit",
-		year: "numeric",
-	});
+	return formatDate(iso);
 }

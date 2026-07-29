@@ -3,7 +3,7 @@
 import { ArrowLeft, Package, Phone, UserRound, XCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
-import { formatDate, formatVND } from "@/lib/format";
+import { formatDate, formatDateTime, formatVND } from "@/lib/format";
 import { mapSalesApiError } from "@/lib/sales-api-error";
 import {
 	cancelOrder,
@@ -11,6 +11,7 @@ import {
 	getOrder,
 	type SalesOrderDetail,
 } from "@/lib/tenant-sales-api";
+import { OrderInvoiceActions, OrderInvoicePrint } from "./order-invoice";
 
 const statusLabel: Record<string, string> = {
 	DRAFT: "Nháp",
@@ -50,6 +51,7 @@ export function OrderDetail({ id }: { id: string }) {
 	const [loading, setLoading] = useState(true);
 	const [confirm, setConfirm] = useState(false);
 	const [submitting, setSubmitting] = useState(false);
+	const canManageLifecycle = order?.channel === "ORDER";
 
 	const load = useCallback(async () => {
 		setLoading(true);
@@ -154,14 +156,19 @@ export function OrderDetail({ id }: { id: string }) {
 				</div>
 			) : null}
 			<header>
-				<h1 className="text-2xl font-bold">
-					{order.docNo}{" "}
-					<span
-						className={`rounded-full px-3 py-1 text-sm ${statusClass[order.status] ?? ""}`}
-					>
-						{statusLabel[order.status] ?? order.status}
-					</span>
-				</h1>
+				<div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+					<h1 className="text-2xl font-bold">
+						{order.docNo}{" "}
+						<span
+							className={`rounded-full px-3 py-1 text-sm ${statusClass[order.status] ?? ""}`}
+						>
+							{statusLabel[order.status] ?? order.status}
+						</span>
+					</h1>
+					<div className="hidden sm:block sm:w-[300px]">
+						<OrderInvoiceActions order={order} />
+					</div>
+				</div>
 				<p className="text-base text-[#616161]">
 					Ngày tạo {formatDate(order.createdAt)} ·{" "}
 					{order.paymentMethod
@@ -169,6 +176,9 @@ export function OrderDetail({ id }: { id: string }) {
 						: "Chưa thanh toán"}
 				</p>
 			</header>
+			<div className="sm:hidden">
+				<OrderInvoiceActions order={order} />
+			</div>
 			<section className="rounded border p-5">
 				<h2 className="font-semibold">Khách hàng</h2>
 				<div className="mt-3 flex items-center gap-3">
@@ -214,9 +224,31 @@ export function OrderDetail({ id }: { id: string }) {
 					Tổng cộng <span>{formatVND(order.total)}₫</span>
 				</div>
 				<div className="mt-2 text-sm text-[#616161]">
-					Đã thanh toán: {formatVND(order.amountPaid)}₫ · Công nợ:{" "}
-					{formatVND(order.debtAmount)}₫
+					<div className="flex flex-wrap gap-x-4 gap-y-1">
+						<span>Đã thanh toán: {formatVND(order.amountPaid)}₫</span>
+						<span>Trả lại: {formatVND(order.changeAmount)}₫</span>
+						<span>Công nợ: {formatVND(order.debtAmount)}₫</span>
+					</div>
 				</div>
+			</section>
+			<section className="rounded border p-5">
+				<h2 className="font-semibold">Mốc thời gian</h2>
+				<dl className="mt-3 grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-base">
+					<dt className="text-[#616161]">Tạo đơn</dt>
+					<dd>{formatDateTime(order.createdAt)}</dd>
+					{order.soldAt ? (
+						<>
+							<dt className="text-[#616161]">Bán lúc</dt>
+							<dd>{formatDateTime(order.soldAt)}</dd>
+						</>
+					) : null}
+					{order.completedAt ? (
+						<>
+							<dt className="text-[#616161]">Hoàn tất</dt>
+							<dd>{formatDateTime(order.completedAt)}</dd>
+						</>
+					) : null}
+				</dl>
 			</section>
 			{order.note && (
 				<section className="rounded border p-4">
@@ -224,7 +256,7 @@ export function OrderDetail({ id }: { id: string }) {
 					<p>{order.note}</p>
 				</section>
 			)}
-			{order.status === "DRAFT" ? (
+			{canManageLifecycle && order.status === "DRAFT" ? (
 				<button
 					type="button"
 					disabled={submitting}
@@ -234,7 +266,7 @@ export function OrderDetail({ id }: { id: string }) {
 					Hoàn thành đơn
 				</button>
 			) : null}
-			{order.status !== "CANCELLED" &&
+			{canManageLifecycle && order.status !== "CANCELLED" &&
 				(confirm ? (
 					<div className="flex gap-3">
 						<p className="flex-1">
@@ -266,6 +298,7 @@ export function OrderDetail({ id }: { id: string }) {
 						Hủy đơn
 					</button>
 				))}
+			<OrderInvoicePrint order={order} />
 		</div>
 	);
 }

@@ -17,6 +17,7 @@ import type {
 	TenantStatus,
 	TenantType,
 } from "@/lib/admin-api/tenants";
+import { formatDateTime } from "@/lib/format";
 import { Can } from "./can-permission";
 import { SubscriptionPanel } from "./subscription-panel";
 
@@ -271,7 +272,7 @@ export function TenantDetailPanel({
 						</ul>
 						<p className="mt-3 text-[11px] text-muted-foreground">
 							Cập nhật:{" "}
-							{new Date(localTenant.updatedAt).toLocaleString("vi-VN")}
+							{formatDateTime(localTenant.updatedAt)}
 						</p>
 					</div>
 

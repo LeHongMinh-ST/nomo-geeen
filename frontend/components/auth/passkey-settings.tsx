@@ -21,6 +21,7 @@ import {
 	revokePasskey,
 } from "@/lib/user-auth-api";
 import { useUserAuth } from "@/stores/user-auth-store";
+import { formatDateTime } from "@/lib/format";
 
 type Options = { challengeId: string; options: unknown; expiresAt: number };
 type PasskeyItem = {
@@ -40,10 +41,7 @@ function passkeyIcon(label: string | null) {
 
 function formatDate(value: string | null) {
 	if (!value) return "Chưa sử dụng";
-	return new Intl.DateTimeFormat("vi-VN", {
-		dateStyle: "medium",
-		timeStyle: "short",
-	}).format(new Date(value));
+	return formatDateTime(value);
 }
 
 export function PasskeySettings() {

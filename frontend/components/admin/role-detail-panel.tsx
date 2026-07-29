@@ -16,6 +16,7 @@ import type {
 	RolePublicShape,
 } from "@/lib/admin-api/roles";
 import { cn } from "@/lib/utils";
+import { formatDate } from "@/lib/format";
 import { Can } from "./can-permission";
 import { RoleEditorForm, type UpdateSubmit } from "./role-editor-form";
 
@@ -279,7 +280,7 @@ function formatRelative(iso: string): string {
 	if (hr < 24) return `${hr} giờ trước`;
 	const day = Math.floor(hr / 24);
 	if (day < 7) return `${day} ngày trước`;
-	return new Date(iso).toLocaleDateString("vi-VN");
+	return formatDate(iso);
 }
 
 export function RoleDetailEmpty() {
