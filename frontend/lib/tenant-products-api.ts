@@ -84,7 +84,7 @@ export function mapTenantProduct(
 		manufacturerId: row.manufacturerId ?? undefined,
 		manufacturerLabel: manufacturer?.name,
 		baseUnit: unit?.name ?? "—",
-		baseUnitId: row.baseUnitId,
+		baseUnitId: row.baseUnitId ?? undefined,
 		conversions: (row.conversions ?? []).map((conversion) => ({
 			unitId: conversion.unitId,
 			factor: conversion.factor,
