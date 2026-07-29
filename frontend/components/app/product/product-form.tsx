@@ -24,7 +24,11 @@ import {
 	resolveEnabledBusinessGroups,
 	resolveLegacyProductKind,
 } from "@/lib/product-kind-form";
-import type { Product, UnitConversion } from "@/lib/products";
+import type {
+	Product,
+	ProductConversionKind,
+	UnitConversion,
+} from "@/lib/products";
 import {
 	createTenantProduct,
 	getProductLookups,
@@ -42,6 +46,23 @@ import {
 
 type FormMode = "create" | "edit";
 
+type FormConversion = Omit<UnitConversion, "factor" | "kind"> & {
+	rowId: string;
+	factor: number | "";
+	kind: ProductConversionKind;
+};
+
+let conversionRowSequence = 0;
+
+const conversionKindOptions: Array<{
+	value: ProductConversionKind;
+	label: string;
+}> = [
+	{ value: "PURCHASE", label: "Nhập hàng" },
+	{ value: "SALE", label: "Bán hàng" },
+	{ value: "BOTH", label: "Cả hai" },
+];
+
 type FormState = {
 	name: string;
 	sku: string;
@@ -49,7 +70,7 @@ type FormState = {
 	brandName: string;
 	manufacturerName: string;
 	baseUnit: string;
-	conversions: UnitConversion[];
+	conversions: FormConversion[];
 	stock: string;
 	lowStockThreshold: string;
 	activeIngredient: string;
@@ -136,7 +157,12 @@ function toFormState(p?: Product): FormState {
 		brandName: p?.brandLabel ?? "",
 		manufacturerName: p?.manufacturerLabel ?? "",
 		baseUnit: p?.baseUnitId ?? "",
-		conversions: p?.conversions ?? [],
+		conversions: (p?.conversions ?? []).map((conversion, index) => ({
+			...conversion,
+			rowId: `${conversion.unitId ?? "conversion"}-${index}`,
+			factor: conversion.factor,
+			kind: conversion.kind ?? "BOTH",
+		})),
 		stock: p ? String(p.stock) : "",
 		lowStockThreshold: p ? String(p.lowStockThreshold) : "",
 		activeIngredient: p?.agro?.activeIngredient ?? "",
@@ -320,12 +346,19 @@ export function ProductForm({
 	}
 
 	function addConversion() {
+		conversionRowSequence += 1;
 		set("conversions", [
 			...form.conversions,
-			{ unit: "", unitId: "", factor: 1 },
+			{
+				rowId: `new-${conversionRowSequence}`,
+				unit: "",
+				unitId: "",
+				factor: "",
+				kind: "BOTH",
+			},
 		]);
 	}
-	function updateConversion(i: number, patch: Partial<UnitConversion>) {
+	function updateConversion(i: number, patch: Partial<FormConversion>) {
 		set(
 			"conversions",
 			form.conversions.map((c, idx) => (idx === i ? { ...c, ...patch } : c)),
@@ -366,6 +399,7 @@ export function ProductForm({
 			form.conversions.some(
 				(conversion) =>
 					!conversion.unitId ||
+					conversion.factor === "" ||
 					!Number.isFinite(conversion.factor) ||
 					conversion.factor < 1,
 			)
@@ -384,7 +418,7 @@ export function ProductForm({
 			manufacturerName: form.manufacturerName.trim() || undefined,
 			conversions: form.conversions.map((conversion) => ({
 				unitId: conversion.unitId as string,
-				factor: conversion.factor,
+				factor: conversion.factor as number,
 				kind: conversion.kind ?? "BOTH",
 			})),
 			isLocked: form.locked,
@@ -528,7 +562,11 @@ export function ProductForm({
 
 			{/* Section 2: Đơn vị & quy đổi — hoàn thiện sau khi tạo sản phẩm */}
 			{mode === "edit" ? (
-				<Section icon={Layers} tile="#5cad45" title="Đơn vị & quy đổi">
+				<Section
+					icon={Layers}
+					tile="#5cad45"
+					title="Quy cách đóng gói & quy đổi"
+				>
 					<Field label="Đơn vị tồn kho gốc (Base Unit)" required>
 						<Select
 							value={form.baseUnit}
@@ -548,13 +586,15 @@ export function ProductForm({
 							Đơn vị quy đổi
 						</span>
 						<p className="text-sm text-[#616161]">
-							Nhập theo đơn vị lớn, tự quy đổi ra{" "}
-							{selectedUnitName || "đơn vị gốc"}. VD: 1 Bao = 50 Kg.
+							Khai báo một đơn vị tương đương bao nhiêu đơn vị tồn kho.
 						</p>
 
 						{form.conversions.map((c, i) => (
-							// biome-ignore lint/suspicious/noArrayIndexKey: dòng nhập tạm, không có id ổn định
-							<div key={i} className="flex items-center gap-2">
+							<div
+								key={c.rowId}
+								className="grid grid-cols-[auto_minmax(0,1fr)_auto_auto_minmax(0,1fr)_minmax(0,1fr)_auto] items-center gap-2"
+							>
+								<span className="text-base text-[#616161]">1</span>
 								<Select
 									value={c.unitId ?? ""}
 									onChange={(value) =>
@@ -589,13 +629,28 @@ export function ProductForm({
 									value={c.factor}
 									aria-label={`Hệ số quy đổi ${i + 1}`}
 									onChange={(e) =>
-										updateConversion(i, { factor: Number(e.target.value) })
+										updateConversion(i, {
+											factor:
+												e.target.value === "" ? "" : Number(e.target.value),
+										})
 									}
 									className={`${inputClass} w-24 text-right`}
 								/>
-								<span className="w-16 shrink-0 text-sm text-[#616161]">
+								<span className="text-sm text-[#616161]">
 									{selectedUnitName || "gốc"}
 								</span>
+								<Select
+									value={c.kind}
+									onChange={(value) =>
+										updateConversion(i, {
+											kind: value as ProductConversionKind,
+										})
+									}
+									options={conversionKindOptions}
+									placeholder="Áp dụng khi"
+									ariaLabel={`Áp dụng quy đổi ${i + 1}`}
+									className="min-w-28"
+								/>
 								<button
 									type="button"
 									aria-label="Xóa dòng quy đổi"

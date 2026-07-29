@@ -3,7 +3,7 @@ import type {
 	ProductKindId,
 	TenantBusinessGroup,
 } from "@/lib/product-kind-form";
-import type { Product } from "@/lib/products";
+import type { Product, ProductConversionKind } from "@/lib/products";
 import { userFetch } from "@/lib/user-fetch";
 import { useUserAuth } from "@/stores/user-auth-store";
 
@@ -31,7 +31,7 @@ export type TenantProduct = {
 	conversions?: Array<{
 		unitId: string;
 		factor: number;
-		kind: "PURCHASE" | "BOTH";
+		kind: ProductConversionKind;
 		unit: string;
 	}>;
 };
@@ -61,7 +61,7 @@ export type ProductInput = {
 	conversions?: Array<{
 		unitId: string;
 		factor: number;
-		kind?: "PURCHASE" | "BOTH";
+		kind?: ProductConversionKind;
 	}>;
 };
 

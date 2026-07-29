@@ -7,12 +7,14 @@ import type { BusinessGroupId, ProductKindId } from "@/lib/product-kind-form";
 
 export type StockStatus = "in-stock" | "low-stock" | "out-of-stock";
 
+export type ProductConversionKind = "PURCHASE" | "SALE" | "BOTH";
+
 /** Đơn vị quy đổi ra Base Unit (base_spec §5.1). */
 export type UnitConversion = {
 	/** Tên đơn vị (Thùng, Bao, Chai...). */
 	unit: string;
 	unitId?: string;
-	kind?: "PURCHASE" | "BOTH";
+	kind?: ProductConversionKind;
 	/** Số Base Unit tương ứng 1 đơn vị này. */
 	factor: number;
 };

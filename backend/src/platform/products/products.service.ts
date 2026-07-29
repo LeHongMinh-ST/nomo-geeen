@@ -137,9 +137,6 @@ export class ProductsService {
 				createdAt: true,
 				updatedAt: true,
 				conversions: {
-					where: {
-						kind: { in: [ConversionKind.PURCHASE, ConversionKind.BOTH] },
-					},
 					select: {
 						unitId: true,
 						factorToBase: true,

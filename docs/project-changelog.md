@@ -225,3 +225,9 @@ Format theo [Keep a Changelog](https://keepachangelog.com/), tuân thủ [Semant
 ## 2026-07-29 — Quick-sale draft safety
 
 - Reset idempotency key khi payload giỏ thay đổi và dọn draft khi logout, mất session hoặc chuyển tài khoản.
+
+## 2026-07-29 — Product conversion UX
+
+### Changed
+
+- **Quy cách đóng gói & quy đổi sản phẩm** — form chỉnh sửa giải thích rõ chiều quy đổi `1 đơn vị quy đổi = hệ số đơn vị tồn kho`, bắt buộc nhập hệ số mới, chống trùng đơn vị và cho phép áp dụng khi nhập hàng, bán hàng hoặc cả hai; mặc định tương thích là `Cả hai`.

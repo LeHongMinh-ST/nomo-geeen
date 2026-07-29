@@ -32,6 +32,8 @@ const lookups = {
 	manufacturers: [],
 	units: [
 		{ id: "unit", code: "KG", name: "Kg" },
+		{ id: "package", code: "GOI", name: "Gói" },
+		{ id: "bottle", code: "CHAI", name: "Chai" },
 		{ id: "box", code: "BOX", name: "Bao" },
 	],
 };
@@ -42,7 +44,7 @@ const productFixture: Product = {
 	sku: "TEST-01",
 	categoryId: "category",
 	baseUnit: "Kg",
-	baseUnitId: undefined,
+	baseUnitId: "unit",
 	conversions: [],
 	costPrice: 10,
 	salePrice: 20,
@@ -118,11 +120,13 @@ describe("ProductForm ProductKind flow", () => {
 		render(<ProductForm mode="create" lookups={lookups} />);
 
 		await waitFor(() =>
-			expect(screen.getByRole("combobox", { name: "Nhóm ngành hàng" })).toHaveValue(
-				"ANIMAL_FEED",
-			),
+			expect(
+				screen.getByRole("combobox", { name: "Nhóm ngành hàng" }),
+			).toHaveValue("ANIMAL_FEED"),
 		);
-		expect(screen.getByRole("combobox", { name: "Nhóm ngành hàng" })).toBeInTheDocument();
+		expect(
+			screen.getByRole("combobox", { name: "Nhóm ngành hàng" }),
+		).toBeInTheDocument();
 		expect(screen.queryByLabelText("Loại sản phẩm")).not.toBeInTheDocument();
 	});
 
@@ -256,8 +260,132 @@ describe("ProductForm ProductKind flow", () => {
 		expect(screen.queryByLabelText("Loại sản phẩm")).not.toBeInTheDocument();
 		expect(screen.getByLabelText("Hoạt chất")).toHaveValue("Amoxicillin");
 		expect(screen.getByLabelText("Dạng bào chế")).toHaveValue("Tiêm");
-		expect(screen.getByText("Đơn vị & quy đổi")).toBeInTheDocument();
+		expect(screen.getByText("Quy cách đóng gói & quy đổi")).toBeInTheDocument();
 		expect(screen.getByText("Tồn kho")).toBeInTheDocument();
+	});
+
+	it("explains conversion direction and defaults existing rows to BOTH", () => {
+		render(
+			<ProductForm
+				mode="edit"
+				product={{
+					...productFixture,
+					conversions: [{ unitId: "package", unit: "Gói", factor: 12 }],
+				}}
+				lookups={lookups}
+			/>,
+		);
+
+		expect(
+			screen.getByText(
+				"Khai báo một đơn vị tương đương bao nhiêu đơn vị tồn kho.",
+			),
+		).toBeInTheDocument();
+		expect(screen.getByText("1")).toBeInTheDocument();
+		expect(screen.getByLabelText("Hệ số quy đổi 1")).toHaveValue(12);
+		expect(screen.getByLabelText("Áp dụng quy đổi 1")).toHaveValue("BOTH");
+		expect(
+			within(screen.getByLabelText("Áp dụng quy đổi 1")).getByRole("option", {
+				name: "Nhập hàng",
+			}),
+		).toBeInTheDocument();
+	});
+
+	it("requires a factor after adding a conversion and does not save an empty value", async () => {
+		render(
+			<ProductForm
+				mode="edit"
+				product={{
+					...productFixture,
+					businessGroup: "CROP_INPUTS",
+					productKind: "PESTICIDE",
+					attrs: {
+						activeIngredient: "Fipronil",
+						concentration: "800 g/kg",
+						phiDays: "7",
+						reiDays: "1",
+					},
+				}}
+				lookups={lookups}
+			/>,
+		);
+		fireEvent.click(screen.getByRole("button", { name: "Thêm quy đổi" }));
+		expect(screen.getByLabelText("Hệ số quy đổi 1")).toHaveValue(null);
+		expect(screen.getByLabelText("Áp dụng quy đổi 1")).toHaveValue("BOTH");
+		fireEvent.submit(
+			screen
+				.getAllByRole("button", { name: "Lưu thay đổi" })[0]
+				.closest("form") as HTMLFormElement,
+		);
+
+		await waitFor(() =>
+			expect(
+				screen.getByText(
+					"Vui lòng chọn đơn vị quy đổi và nhập hệ số lớn hơn 0.",
+				),
+			).toBeInTheDocument(),
+		);
+		expect(updateTenantProduct).not.toHaveBeenCalled();
+	});
+
+	it("maps the selected conversion kind and prevents duplicate units", async () => {
+		updateTenantProduct.mockResolvedValue({});
+		render(
+			<ProductForm
+				mode="edit"
+				product={{
+					...productFixture,
+					businessGroup: "CROP_INPUTS",
+					productKind: "PESTICIDE",
+					attrs: {
+						activeIngredient: "Fipronil",
+						concentration: "800 g/kg",
+						phiDays: "7",
+						reiDays: "1",
+					},
+				}}
+				lookups={lookups}
+			/>,
+		);
+		fireEvent.click(screen.getByRole("button", { name: "Thêm quy đổi" }));
+		fireEvent.change(screen.getByLabelText("Đơn vị quy đổi 1"), {
+			target: { value: "package" },
+		});
+		fireEvent.change(screen.getByLabelText("Hệ số quy đổi 1"), {
+			target: { value: "12" },
+		});
+		fireEvent.change(screen.getByLabelText("Áp dụng quy đổi 1"), {
+			target: { value: "SALE" },
+		});
+		fireEvent.click(screen.getByRole("button", { name: "Thêm quy đổi" }));
+		const secondUnit = screen.getByLabelText("Đơn vị quy đổi 2");
+		expect(
+			within(secondUnit).queryByRole("option", { name: "Gói" }),
+		).not.toBeInTheDocument();
+		fireEvent.change(secondUnit, { target: { value: "bottle" } });
+		fireEvent.change(screen.getByLabelText("Hệ số quy đổi 2"), {
+			target: { value: "24" },
+		});
+		fireEvent.change(screen.getByLabelText("Áp dụng quy đổi 2"), {
+			target: { value: "PURCHASE" },
+		});
+		fireEvent.submit(
+			screen
+				.getAllByRole("button", { name: "Lưu thay đổi" })[0]
+				.closest("form") as HTMLFormElement,
+		);
+
+		await waitFor(() =>
+			expect(updateTenantProduct).toHaveBeenCalledWith(
+				"product-1",
+				expect.objectContaining({
+					conversions: [
+						{ unitId: "package", factor: 12, kind: "SALE" },
+						{ unitId: "bottle", factor: 24, kind: "PURCHASE" },
+					],
+				}),
+			),
+		);
 	});
 
 	it("limits base unit options to Gói, Chai, and kg and preserves allowed edit value", () => {
