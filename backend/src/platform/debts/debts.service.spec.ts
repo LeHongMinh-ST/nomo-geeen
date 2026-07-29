@@ -9,6 +9,12 @@ describe('DebtsService', () => {
 					.mockResolvedValue({ id: 'customer-1', balance: 1000n }),
 				updateMany: jest.fn().mockResolvedValue({ count: 1 }),
 			},
+			sale: {
+				findMany: jest
+					.fn()
+					.mockResolvedValue([{ id: 'sale-1', debtAmount: 1000n }]),
+				updateMany: jest.fn().mockResolvedValue({ count: 1 }),
+			},
 			paymentVoucher: {
 				findFirst: jest.fn().mockResolvedValue(null),
 				create: jest.fn().mockResolvedValue({
@@ -48,6 +54,29 @@ describe('DebtsService', () => {
 			where: { id: 'customer-1', tenantId: 'tenant-1', balance: { gte: 400n } },
 			data: { balance: { decrement: 400n } },
 		});
+		expect(tx.sale.updateMany).toHaveBeenCalledWith({
+			where: {
+				id: 'sale-1',
+				tenantId: 'tenant-1',
+				customerId: 'customer-1',
+				status: 'COMPLETED',
+				debtAmount: { gte: 400n },
+			},
+			data: {
+				amountPaid: { increment: 400n },
+				debtAmount: { decrement: 400n },
+			},
+		});
+		expect(tx.paymentVoucher.create).toHaveBeenCalledWith(
+			expect.objectContaining({
+				data: expect.objectContaining({
+					refSaleId: 'sale-1',
+					lines: {
+						create: [{ method: 'CASH', amount: 400n, refSaleId: 'sale-1' }],
+					},
+				}),
+			}),
+		);
 		expect(tx.debtLedger.create).toHaveBeenCalledWith(
 			expect.objectContaining({
 				data: expect.objectContaining({
@@ -246,6 +275,10 @@ describe('DebtsService', () => {
 					.fn()
 					.mockResolvedValue({ id: 'customer-1', balance: 1000n }),
 				updateMany: jest.fn().mockResolvedValue({ count: 1 }),
+			},
+			sale: {
+				findMany: jest.fn().mockResolvedValue([]),
+				updateMany: jest.fn(),
 			},
 			paymentVoucher: {
 				findFirst: jest.fn().mockResolvedValue(null),

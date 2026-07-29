@@ -222,6 +222,45 @@ export class DebtsService {
 						});
 			if (changed.count !== 1)
 				throw new ConflictException('Debt balance changed; retry');
+			const allocations: Array<{ saleId: string; amount: bigint }> = [];
+			if (type === DebtPartyType.CUSTOMER) {
+				const sales = await tx.sale.findMany({
+					where: {
+						tenantId,
+						customerId: dto.partyId,
+						status: 'COMPLETED',
+						deletedAt: null,
+						debtAmount: { gt: 0n },
+					},
+					orderBy: [{ soldAt: 'asc' }, { createdAt: 'asc' }, { id: 'asc' }],
+					select: { id: true, debtAmount: true },
+				});
+				let remaining = amount;
+				for (const sale of sales) {
+					if (remaining <= 0n) break;
+					const allocated =
+						remaining < sale.debtAmount ? remaining : sale.debtAmount;
+					const saleChanged = await tx.sale.updateMany({
+						where: {
+							id: sale.id,
+							tenantId,
+							customerId: dto.partyId,
+							status: 'COMPLETED',
+							debtAmount: { gte: allocated },
+						},
+						data: {
+							amountPaid: { increment: allocated },
+							debtAmount: { decrement: allocated },
+						},
+					});
+					if (saleChanged.count !== 1)
+						throw new ConflictException('Sale debt changed; retry');
+					allocations.push({ saleId: sale.id, amount: allocated });
+					remaining -= allocated;
+				}
+			}
+			const unallocated =
+				amount - allocations.reduce((sum, item) => sum + item.amount, 0n);
 			const voucher = await tx.paymentVoucher.create({
 				data: {
 					tenantId,
@@ -237,7 +276,22 @@ export class DebtsService {
 					createdBy: userId,
 					customerId: type === 'CUSTOMER' ? dto.partyId : undefined,
 					supplierId: type === 'SUPPLIER' ? dto.partyId : undefined,
-					lines: { create: { method: dto.method, amount } },
+					refSaleId:
+						unallocated === 0n && allocations.length === 1
+							? allocations[0].saleId
+							: undefined,
+					lines: {
+						create: [
+							...allocations.map((allocation) => ({
+								method: dto.method,
+								amount: allocation.amount,
+								refSaleId: allocation.saleId,
+							})),
+							...(unallocated > 0n
+								? [{ method: dto.method, amount: unallocated }]
+								: []),
+						],
+					},
 				},
 			});
 			const ledger = await tx.debtLedger.create({

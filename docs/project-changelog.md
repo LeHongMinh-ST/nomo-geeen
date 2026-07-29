@@ -9,6 +9,7 @@ Format theo [Keep a Changelog](https://keepachangelog.com/), tuân thủ [Semant
 ## [Unreleased]
 
 ### Added
+- **Customer debt receipt allocation** — customer receipts now update the settlement fields of completed outstanding sales oldest-first in the same transaction as the customer balance, payment voucher, and debt ledger; voucher lines preserve each sale allocation.
 - **Order detail invoice actions** — `/don-ban-hang/:id` now presents a canonical order detail with mobile-first `Tải hóa đơn` and `In hóa đơn` actions. The client builds a narrow receipt-style invoice from `SalesOrderDetail`, supports browser print with app chrome hidden and a downloadable PDF with embedded Vietnamese font, without adding a new backend invoice contract. Order timeline values use the shared `dd/MM/yyyy HH:mm` display format.
 - **Quick product creation** — tạo sản phẩm chỉ cần thông tin cơ bản; `baseUnitId`, tồn kho và quy đổi có thể bổ sung sau trong màn sửa. Sản phẩm chưa có đơn vị chưa được bán.
 - **Product creation base-unit validation (superseded by quick product creation)** — khi tạo sản phẩm, form tự chọn đơn vị tồn kho hợp lệ đầu tiên (Gói/Chai/kg) trước khi gửi API; thêm regression test cho payload `baseUnitId`.
