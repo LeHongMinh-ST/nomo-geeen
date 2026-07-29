@@ -66,6 +66,18 @@ describe('product contract', () => {
 		).toThrow('attrs.activeIngredient is required for VET_DRUG');
 	});
 
+	it('allows creating a product before specialist attrs are completed', () => {
+		expect(() =>
+			validateProductContract(
+				ProductKind.PESTICIDE,
+				BusinessGroup.CROP_INPUTS,
+				{},
+				false,
+				false,
+			),
+		).not.toThrow();
+	});
+
 	it('supports mixed and specialist tenant profiles', () => {
 		expect(() =>
 			assertSelectableBusinessGroup(BusinessGroup.CROP_INPUTS, [

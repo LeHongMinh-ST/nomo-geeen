@@ -179,6 +179,7 @@ export function validateProductContract(
 	businessGroup?: BusinessGroup | null,
 	attrs?: unknown,
 	attrsSupplied = false,
+	requireRequiredAttrs = true,
 ) {
 	if (!productKind && !businessGroup) return;
 	if (!productKind || !businessGroup) {
@@ -199,12 +200,14 @@ export function validateProductContract(
 		throw new BadRequestException('attrs must be an object');
 	}
 	const attrRecord = attrs as Record<string, unknown> | undefined;
-	for (const key of REQUIRED_ATTRS[productKind] ?? []) {
-		const value = attrRecord?.[key];
-		if (typeof value !== 'string' || !value.trim()) {
-			throw new BadRequestException(
-				`attrs.${key} is required for ${productKind}`,
-			);
+	if (requireRequiredAttrs) {
+		for (const key of REQUIRED_ATTRS[productKind] ?? []) {
+			const value = attrRecord?.[key];
+			if (typeof value !== 'string' || !value.trim()) {
+				throw new BadRequestException(
+					`attrs.${key} is required for ${productKind}`,
+				);
+			}
 		}
 	}
 	// Specialized rules apply only to caller-supplied attrs so updates that omit

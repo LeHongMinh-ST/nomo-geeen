@@ -301,7 +301,8 @@ export class ProductsService {
 			dto.productKind,
 			dto.businessGroup,
 			dto.attrs,
-			true,
+			false,
+			false,
 		);
 
 		return this.prisma.$transaction(async (tx) => {
@@ -421,6 +422,9 @@ export class ProductsService {
 					((dto.productKind !== undefined &&
 						dto.productKind !== current.productKind) ||
 						specializedAttrsPresent),
+				dto.attrs !== undefined ||
+					(dto.productKind !== undefined &&
+						dto.productKind !== current.productKind),
 			);
 			if (nextGroup)
 				await this.assertBusinessGroupAccess(tenantId, nextGroup, tx);
