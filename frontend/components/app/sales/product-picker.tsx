@@ -1,8 +1,8 @@
 "use client";
 
 import { Package, ScanLine, Search, X } from "lucide-react";
+import dynamic from "next/dynamic";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ScanSheet } from "@/components/app/sales/scan-sheet";
 import { formatVND } from "@/lib/format";
 import {
 	getStockStatus,
@@ -11,8 +11,7 @@ import {
 	stockStatusLabel,
 } from "@/lib/products";
 import {
-	getProductLookups,
-	listTenantProducts,
+	getTenantProductCatalog,
 	mapTenantProduct,
 } from "@/lib/tenant-products-api";
 import { matchesVietnamese } from "@/lib/vietnamese-search";
@@ -22,6 +21,12 @@ import { matchesVietnamese } from "@/lib/vietnamese-search";
  * Gõ tên / SKU / mã vạch → danh sách gợi ý xổ xuống; chọn để thêm vào giỏ.
  * Nút quét mở ScanSheet (camera preview + nhập mã tay). Dùng chung Bán nhanh + Đơn.
  */
+const LazyScanSheet = dynamic(
+	() =>
+		import("@/components/app/sales/scan-sheet").then((mod) => mod.ScanSheet),
+	{ ssr: false },
+);
+
 export function ProductPicker({
 	onSelect,
 	placeholder = "Tìm sản phẩm, quét mã...",
@@ -50,11 +55,10 @@ export function ProductPicker({
 			setLoading(true);
 			setError(null);
 			try {
-				const [rows, catalog] = await Promise.all([
-					listTenantProducts(),
-					getProductLookups(),
-				]);
-				setProducts(rows.map((row) => mapTenantProduct(row, catalog)));
+				const catalog = await getTenantProductCatalog();
+				setProducts(
+					catalog.products.map((row) => mapTenantProduct(row, catalog.lookups)),
+				);
 			} catch {
 				setError("Không thể tải sản phẩm. Vui lòng thử lại.");
 			} finally {
@@ -205,14 +209,16 @@ export function ProductPicker({
 				<ScanLine className="size-5.5" aria-hidden />
 			</button>
 
-			<ScanSheet
-				open={scanOpen}
-				onClose={() => setScanOpen(false)}
-				products={products}
-				keepOpen
-				allowOutOfStock={allowOutOfStock}
-				onFound={(product) => pick(product)}
-			/>
+			{scanOpen ? (
+				<LazyScanSheet
+					open
+					onClose={() => setScanOpen(false)}
+					products={products}
+					keepOpen
+					allowOutOfStock={allowOutOfStock}
+					onFound={(product) => pick(product)}
+				/>
+			) : null}
 		</div>
 	);
 }

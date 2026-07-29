@@ -1,14 +1,22 @@
 "use client";
 
 import { ScanLine } from "lucide-react";
+import dynamic from "next/dynamic";
 import { useState } from "react";
-import { BarcodeScannerSheet } from "@/components/app/shared/barcode-scanner-sheet";
 
 /**
  * Ô nhập mã vạch + nút quét (DESIGN.md §15.1) — dùng trong các form/field có
  * barcode (vd. Thêm sản phẩm). Mobile/tablet hiện nút quét cạnh ô nhập; desktop
  * dùng máy quét cắm ngoài gõ thẳng vào ô.
  */
+const LazyBarcodeScannerSheet = dynamic(
+	() =>
+		import("@/components/app/shared/barcode-scanner-sheet").then(
+			(mod) => mod.BarcodeScannerSheet,
+		),
+	{ ssr: false },
+);
+
 export function BarcodeInput({
 	value,
 	onChange,
@@ -51,14 +59,16 @@ export function BarcodeInput({
 				</button>
 			</div>
 
-			<BarcodeScannerSheet
-				open={scanOpen}
-				onClose={() => setScanOpen(false)}
-				onCode={(code) => {
-					onChange(code);
-					setScanOpen(false);
-				}}
-			/>
+			{scanOpen ? (
+				<LazyBarcodeScannerSheet
+					open
+					onClose={() => setScanOpen(false)}
+					onCode={(code) => {
+						onChange(code);
+						setScanOpen(false);
+					}}
+				/>
+			) : null}
 		</>
 	);
 }

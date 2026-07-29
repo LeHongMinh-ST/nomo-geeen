@@ -13,10 +13,17 @@ import {
 	TrendingDown,
 	TrendingUp,
 } from "lucide-react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { DashboardSkeleton } from "@/components/app/dashboard-skeleton";
-import { RevenueChart } from "@/components/app/revenue-chart";
+
+const RevenueChart = dynamic(
+	() =>
+		import("@/components/app/revenue-chart").then((mod) => mod.RevenueChart),
+	{ ssr: false, loading: () => <div className="h-44" aria-hidden /> },
+);
+
 import { formatVND } from "@/lib/format";
 import { USER_TILE_BLUE, USER_TILE_GREEN } from "@/lib/navigation";
 import { mapTenantApiError } from "@/lib/sales-api-error";

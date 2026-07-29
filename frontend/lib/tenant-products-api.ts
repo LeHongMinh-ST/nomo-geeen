@@ -5,13 +5,14 @@ import type {
 } from "@/lib/product-kind-form";
 import type { Product } from "@/lib/products";
 import { userFetch } from "@/lib/user-fetch";
+import { useUserAuth } from "@/stores/user-auth-store";
 
 export type TenantProduct = {
 	id: string;
 	sku: string;
 	name: string;
 	barcode: string | null;
-	baseUnitId: string;
+	baseUnitId: string | null;
 	brandId: string | null;
 	manufacturerId: string | null;
 	costPrice: string;
@@ -45,7 +46,7 @@ export type ProductInput = {
 	sku?: string;
 	name: string;
 	barcode?: string;
-	baseUnitId: string;
+	baseUnitId?: string;
 	brandId?: string;
 	manufacturerId?: string;
 	brandName?: string;
@@ -106,6 +107,93 @@ export function mapTenantProduct(
 	};
 }
 
+const PRODUCT_CACHE_TTL_MS = 30_000;
+const PRODUCT_CACHE_MAX_STALE_MS = 5 * 60_000;
+type ProductCatalog = { products: TenantProduct[]; lookups: ProductLookups };
+type ProductCacheEntry = {
+	value: ProductCatalog;
+	expiresAt: number;
+	staleUntil: number;
+	refresh?: Promise<ProductCatalog>;
+};
+const productCache = new Map<string, ProductCacheEntry>();
+const productCacheEpochs = new Map<string, number>();
+
+function productCacheEpoch(key: string): number {
+	return productCacheEpochs.get(key) ?? 0;
+}
+
+function storeProductCatalog(
+	key: string,
+	epoch: number,
+	value: ProductCatalog,
+): void {
+	if (productCacheEpoch(key) !== epoch) return;
+	productCache.set(key, {
+		value,
+		expiresAt: Date.now() + PRODUCT_CACHE_TTL_MS,
+		staleUntil: Date.now() + PRODUCT_CACHE_MAX_STALE_MS,
+	});
+}
+
+function productCacheKey(): string {
+	const auth = useUserAuth.getState();
+	return auth.user?.tenantId ?? auth.accessToken ?? "anonymous";
+}
+
+async function fetchProductCatalog(): Promise<ProductCatalog> {
+	const [products, lookups] = await Promise.all([
+		listTenantProducts(),
+		getProductLookups(),
+	]);
+	return { products, lookups };
+}
+
+export function clearTenantProductCache(): void {
+	const key = productCacheKey();
+	productCacheEpochs.set(key, productCacheEpoch(key) + 1);
+	productCache.delete(key);
+}
+
+/** Short TTL cache for picker data; stale entries render immediately and refresh once in background. */
+export function getTenantProductCatalog(): Promise<ProductCatalog> {
+	const key = productCacheKey();
+	const epoch = productCacheEpoch(key);
+	const now = Date.now();
+	const cached = productCache.get(key);
+	if (cached && cached.expiresAt > now) return Promise.resolve(cached.value);
+	if (cached && cached.staleUntil > now) {
+		if (!cached.refresh) {
+			const refresh = fetchProductCatalog()
+				.then((value) => {
+					storeProductCatalog(key, epoch, value);
+					return value;
+				})
+				.catch(() => cached.value)
+				.finally(() => {
+					const current = productCache.get(key);
+					if (current?.refresh === refresh) current.refresh = undefined;
+				});
+			cached.refresh = refresh;
+		}
+		return Promise.resolve(cached.value);
+	}
+	const refresh = cached?.refresh ?? fetchProductCatalog();
+	productCache.set(key, {
+		value: cached?.value ?? {
+			products: [],
+			lookups: { brands: [], manufacturers: [], units: [] },
+		},
+		expiresAt: 0,
+		staleUntil: 0,
+		refresh,
+	});
+	return refresh.then((value) => {
+		storeProductCatalog(key, epoch, value);
+		return value;
+	});
+}
+
 const base = "/tenant/products";
 
 export function listTenantProducts(): Promise<TenantProduct[]> {
@@ -146,6 +234,9 @@ export function createTenantProduct(
 	return userFetch<TenantProduct>(base, {
 		method: "POST",
 		body: JSON.stringify(input),
+	}).then((result) => {
+		clearTenantProductCache();
+		return result;
 	});
 }
 
@@ -156,6 +247,9 @@ export function updateTenantProduct(
 	return userFetch<TenantProduct>(`${base}/${id}`, {
 		method: "PATCH",
 		body: JSON.stringify(input),
+	}).then((result) => {
+		clearTenantProductCache();
+		return result;
 	});
 }
 
@@ -164,5 +258,8 @@ export function deleteTenantProduct(
 ): Promise<{ id: string; deleted: boolean }> {
 	return userFetch<{ id: string; deleted: boolean }>(`${base}/${id}`, {
 		method: "DELETE",
+	}).then((result) => {
+		clearTenantProductCache();
+		return result;
 	});
 }

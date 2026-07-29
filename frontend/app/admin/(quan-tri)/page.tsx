@@ -11,8 +11,17 @@ import {
 	Wallet,
 } from "lucide-react";
 import type { Metadata } from "next";
+import dynamic from "next/dynamic";
 import Link from "next/link";
-import { PlatformChart } from "@/components/admin/platform-chart";
+
+const PlatformChart = dynamic(
+	() =>
+		import("@/components/admin/platform-chart").then(
+			(mod) => mod.PlatformChart,
+		),
+	{ loading: () => <div className="h-48" aria-hidden /> },
+);
+
 import { DashboardActivityPreview } from "@/components/admin/dashboard-activity-preview";
 import { formatVND } from "@/lib/format";
 

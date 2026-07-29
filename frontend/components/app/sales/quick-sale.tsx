@@ -10,7 +10,7 @@ import {
 	Trash2,
 	Wallet,
 } from "lucide-react";
-import { useState } from "react";
+import { memo, useCallback, useMemo, useState } from "react";
 import { CounterSearch } from "@/components/app/sales/counter-search";
 import { CustomerPicker } from "@/components/app/sales/customer-picker";
 import { PaymentSheet } from "@/components/app/sales/payment-sheet";
@@ -26,6 +26,7 @@ import {
 } from "@/lib/orders";
 import type { Product } from "@/lib/products";
 import { mapSalesApiError } from "@/lib/sales-api-error";
+import { clearTenantProductCache } from "@/lib/tenant-products-api";
 import { createQuickSale } from "@/lib/tenant-sales-api";
 import { useQuickSaleStore } from "@/stores/quick-sale-store";
 
@@ -55,60 +56,78 @@ export function QuickSale() {
 	const [submitting, setSubmitting] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 
-	const subtotal = lines.reduce((sum, l) => sum + lineTotal(l), 0);
-	const itemCount = lines.reduce((sum, l) => sum + l.qty, 0);
+	const subtotal = useMemo(
+		() => lines.reduce((sum, l) => sum + lineTotal(l), 0),
+		[lines],
+	);
+	const itemCount = useMemo(
+		() => lines.reduce((sum, l) => sum + l.qty, 0),
+		[lines],
+	);
 
-	function addProduct(product: Product, quantity = 1) {
-		const safeQuantity = Math.max(1, Math.round(quantity));
-		setLines((current) => {
-			const existing = current.find((l) => l.productId === product.id);
-			if (existing) {
-				return current.map((l) =>
-					l.productId === product.id
-						? {
-								...l,
-								qty: l.qty + safeQuantity,
-								price: resolveTierPrice(product, l.qty + safeQuantity),
-							}
-						: l,
-				);
-			}
-			return [
-				...current,
-				{
-					productId: product.id,
-					unitId: product.baseUnitId,
-					name: product.name,
-					unit: product.baseUnit,
-					qty: safeQuantity,
-					price: resolveTierPrice(product, safeQuantity),
-					phiDays: product.agro?.phi,
-					reiHours: product.agro?.rei,
-				},
-			];
-		});
-	}
+	const addProduct = useCallback(
+		(product: Product, quantity = 1) => {
+			const safeQuantity = Math.max(1, Math.round(quantity));
+			setLines((current) => {
+				const existing = current.find((l) => l.productId === product.id);
+				if (existing) {
+					return current.map((l) =>
+						l.productId === product.id
+							? {
+									...l,
+									qty: l.qty + safeQuantity,
+									price: resolveTierPrice(product, l.qty + safeQuantity),
+								}
+							: l,
+					);
+				}
+				return [
+					...current,
+					{
+						productId: product.id,
+						unitId: product.baseUnitId,
+						name: product.name,
+						unit: product.baseUnit,
+						qty: safeQuantity,
+						price: resolveTierPrice(product, safeQuantity),
+						phiDays: product.agro?.phi,
+						reiHours: product.agro?.rei,
+					},
+				];
+			});
+		},
+		[setLines],
+	);
 
-	function changeQty(productId: string, delta: number) {
-		setLines((current) =>
-			current.flatMap((l) => {
-				if (l.productId !== productId) return [l];
-				const qty = l.qty + delta;
-				if (qty <= 0) return [];
-				return [{ ...l, qty, price: repriceLine(l, qty) }];
-			}),
-		);
-	}
+	const changeQty = useCallback(
+		(productId: string, delta: number) => {
+			setLines((current) =>
+				current.flatMap((l) => {
+					if (l.productId !== productId) return [l];
+					const qty = l.qty + delta;
+					if (qty <= 0) return [];
+					return [{ ...l, qty, price: repriceLine(l, qty) }];
+				}),
+			);
+		},
+		[setLines],
+	);
 
-	function setPrice(productId: string, price: number) {
-		setLines((current) =>
-			current.map((l) => (l.productId === productId ? { ...l, price } : l)),
-		);
-	}
+	const setPrice = useCallback(
+		(productId: string, price: number) => {
+			setLines((current) =>
+				current.map((l) => (l.productId === productId ? { ...l, price } : l)),
+			);
+		},
+		[setLines],
+	);
 
-	function removeLine(productId: string) {
-		setLines((current) => current.filter((l) => l.productId !== productId));
-	}
+	const removeLine = useCallback(
+		(productId: string) => {
+			setLines((current) => current.filter((l) => l.productId !== productId));
+		},
+		[setLines],
+	);
 
 	async function finish(method: PaymentMethod, amountPaid: number) {
 		if (submitting || lines.length === 0) return;
@@ -136,6 +155,7 @@ export function QuickSale() {
 				...handbookMeta,
 			});
 			setToast({ method, total: result.total });
+			clearTenantProductCache();
 			clearDraft();
 			setPayOpen(false);
 			window.setTimeout(() => setToast(null), 3200);
@@ -227,10 +247,9 @@ export function QuickSale() {
 								<CartLine
 									key={l.productId}
 									line={l}
-									onInc={() => changeQty(l.productId, 1)}
-									onDec={() => changeQty(l.productId, -1)}
-									onPrice={(price) => setPrice(l.productId, price)}
-									onRemove={() => removeLine(l.productId)}
+									onChangeQty={changeQty}
+									onSetPrice={setPrice}
+									onRemoveLine={removeLine}
 								/>
 							))}
 						</div>
@@ -359,18 +378,16 @@ function ActionButtons({
 	);
 }
 
-function CartLine({
+const CartLine = memo(function CartLine({
 	line,
-	onInc,
-	onDec,
-	onPrice,
-	onRemove,
+	onChangeQty,
+	onSetPrice,
+	onRemoveLine,
 }: {
 	line: OrderLine;
-	onInc: () => void;
-	onDec: () => void;
-	onPrice: (price: number) => void;
-	onRemove: () => void;
+	onChangeQty: (productId: string, delta: number) => void;
+	onSetPrice: (productId: string, price: number) => void;
+	onRemoveLine: (productId: string) => void;
 }) {
 	return (
 		<div className="flex flex-col gap-3 rounded-[16px] border border-border bg-card p-4 shadow-card">
@@ -384,7 +401,7 @@ function CartLine({
 				</div>
 				<button
 					type="button"
-					onClick={onRemove}
+					onClick={() => onRemoveLine(line.productId)}
 					aria-label="Bỏ khỏi đơn"
 					className="flex size-9 shrink-0 items-center justify-center rounded-[8px] text-[#9e9e9e] transition-colors hover:bg-[#fdecea] hover:text-destructive"
 				>
@@ -397,7 +414,7 @@ function CartLine({
 				<div className="flex items-center gap-2">
 					<button
 						type="button"
-						onClick={onDec}
+						onClick={() => onChangeQty(line.productId, -1)}
 						aria-label="Giảm"
 						className="flex size-11 items-center justify-center rounded-[10px] border border-border bg-card text-foreground transition-colors hover:bg-[#f5f5f5] active:bg-[#eeeeee]"
 					>
@@ -408,7 +425,7 @@ function CartLine({
 					</span>
 					<button
 						type="button"
-						onClick={onInc}
+						onClick={() => onChangeQty(line.productId, 1)}
 						aria-label="Tăng"
 						className="flex size-11 items-center justify-center rounded-[10px] border border-border bg-card text-foreground transition-colors hover:bg-[#f5f5f5] active:bg-[#eeeeee]"
 					>
@@ -423,7 +440,10 @@ function CartLine({
 							inputMode="numeric"
 							value={formatVND(line.price)}
 							onChange={(e) =>
-								onPrice(Number(e.target.value.replace(/\D/g, "")) || 0)
+								onSetPrice(
+									line.productId,
+									Number(e.target.value.replace(/\D/g, "")) || 0,
+								)
 							}
 							aria-label="Đơn giá"
 							className="w-24 rounded-[8px] border border-border bg-white px-2 py-1 text-right text-base font-medium text-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/25"
@@ -434,4 +454,4 @@ function CartLine({
 			</div>
 		</div>
 	);
-}
+});

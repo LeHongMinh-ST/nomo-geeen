@@ -18,6 +18,20 @@ import {
 import { useQuickSaleDraftStream } from "@/lib/use-tenant-quick-sale-draft-stream";
 import { useUserAuth } from "@/stores/user-auth-store";
 
+export function canApplyQuickSaleDraftResponse(
+	currentDraftId: string | null,
+	currentGeneration: number,
+	expectedDraftId: string,
+	expectedGeneration: number,
+	nextDraftId: string | null,
+): boolean {
+	return (
+		currentDraftId === expectedDraftId &&
+		currentGeneration === expectedGeneration &&
+		nextDraftId === expectedDraftId
+	);
+}
+
 export type QuickSaleDraftStatus =
 	| "idle"
 	| "loading"
@@ -71,11 +85,15 @@ export function useQuickSaleDraft(options: UseQuickSaleDraftOptions = {}) {
 	const accessToken = useUserAuth((state) => state.accessToken);
 	const [session, setSession] = useState<QuickSaleDraftSession>(idleSession);
 	const idempotencyKeysRef = useRef<Map<string, string>>(new Map());
+	const currentDraftIdRef = useRef<string | null>(null);
+	const draftGenerationRef = useRef(0);
 	const pendingJoinRef = useRef<string | null>(
 		options.initialJoinToken ?? null,
 	);
 
 	const replaceDraft = useCallback((next: QuickSaleDraft | null) => {
+		currentDraftIdRef.current = next?.id ?? null;
+		draftGenerationRef.current += 1;
 		setSession((prev) => ({
 			draft: next,
 			status: next ? "ready" : prev.status,
@@ -140,21 +158,69 @@ export function useQuickSaleDraft(options: UseQuickSaleDraftOptions = {}) {
 		};
 	}, [accessToken, options.autoCreate, replaceDraft]);
 
-	// SSE: refetch the canonical draft on every event.
+	// Coalesce bursts from cross-device edits; each refresh still applies the canonical server snapshot.
 	const draftId = session.draft?.id ?? null;
+	const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+	const refreshInFlightRef = useRef(false);
+	const refreshQueuedRef = useRef(false);
+
+	const refreshDraftFromStream = useCallback(async () => {
+		if (!accessToken || !draftId) return;
+		if (refreshInFlightRef.current) {
+			refreshQueuedRef.current = true;
+			return;
+		}
+		const expectedDraftId = draftId;
+		const expectedGeneration = draftGenerationRef.current;
+		refreshInFlightRef.current = true;
+		try {
+			const next = await getCurrentDraft();
+			if (
+				canApplyQuickSaleDraftResponse(
+					currentDraftIdRef.current,
+					draftGenerationRef.current,
+					expectedDraftId,
+					expectedGeneration,
+					next?.id ?? null,
+				)
+			)
+				replaceDraft(next);
+		} catch {
+			// Keep last-known state; the stream will retry.
+		} finally {
+			refreshInFlightRef.current = false;
+			if (
+				refreshQueuedRef.current &&
+				currentDraftIdRef.current === expectedDraftId
+			) {
+				refreshQueuedRef.current = false;
+				void refreshDraftFromStream();
+			} else {
+				refreshQueuedRef.current = false;
+			}
+		}
+	}, [accessToken, draftId, replaceDraft]);
+
+	const scheduleStreamRefresh = useCallback(() => {
+		if (refreshTimerRef.current) return;
+		refreshTimerRef.current = setTimeout(() => {
+			refreshTimerRef.current = null;
+			void refreshDraftFromStream();
+		}, 100);
+	}, [refreshDraftFromStream]);
+
+	useEffect(
+		() => () => {
+			if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
+		},
+		[],
+	);
+
+	// SSE: refetch the canonical draft after a short coalescing window.
 	useQuickSaleDraftStream(draftId, accessToken, {
 		onEvent: (event) => {
 			if (event.type === "heartbeat" || event.type === "connected") return;
-			if (!accessToken || !draftId) return;
-			void getCurrentDraft()
-				.then((next) => {
-					if (next && next.id === draftId) {
-						replaceDraft(next);
-					}
-				})
-				.catch(() => {
-					// Keep last-known state; SSE will retry.
-				});
+			scheduleStreamRefresh();
 		},
 		onError: () => {
 			setSession((prev) =>
@@ -167,11 +233,6 @@ export function useQuickSaleDraft(options: UseQuickSaleDraftOptions = {}) {
 			);
 		},
 	});
-
-	const stableAccessToken = accessToken;
-	useEffect(() => {
-		if (!stableAccessToken) return;
-	}, [stableAccessToken]);
 
 	const ensureKey = useCallback((scope: string) => {
 		const existing = idempotencyKeysRef.current.get(scope);
@@ -261,8 +322,23 @@ export function useQuickSaleDraft(options: UseQuickSaleDraftOptions = {}) {
 	}, [session.draft, replaceDraft]);
 
 	const refresh = useCallback(async () => {
+		const expectedDraftId = currentDraftIdRef.current;
+		const expectedGeneration = draftGenerationRef.current;
 		const next = await getCurrentDraft();
-		if (next) replaceDraft(next);
+		if (
+			expectedDraftId &&
+			canApplyQuickSaleDraftResponse(
+				currentDraftIdRef.current,
+				draftGenerationRef.current,
+				expectedDraftId,
+				expectedGeneration,
+				next?.id ?? null,
+			)
+		) {
+			replaceDraft(next);
+		} else if (!expectedDraftId && currentDraftIdRef.current === null) {
+			replaceDraft(next);
+		}
 	}, [replaceDraft]);
 
 	return useMemo(
