@@ -26,7 +26,7 @@ import {
 	assertSaleRegulatoryDates,
 } from './sale-eligibility-policy';
 
-type QuickSaleResponse = {
+export type QuickSaleResponse = {
 	id: string;
 	docNo: string;
 	status: 'COMPLETED';
@@ -481,7 +481,9 @@ export class SalesService {
 							})
 						: null;
 					if (dto.diseaseId && !disease)
-						throw new UnprocessableEntityException({ reason: 'INVALID_HANDBOOK_ENTRY' });
+						throw new UnprocessableEntityException({
+							reason: 'INVALID_HANDBOOK_ENTRY',
+						});
 					const lines = dto.lines.map((line) => {
 						const product = byId.get(line.productId);
 						assertProductSaleEligible(product);
@@ -548,8 +550,12 @@ export class SalesService {
 							customerPhoneSnapshot: customer?.phone,
 							diseaseId: disease?.id,
 							diseaseNameSnapshot: disease?.name,
-							consultContext: dto.consultContext as Prisma.InputJsonValue | undefined,
-							suggestedQtyMeta: dto.suggestedQtyMeta as Prisma.InputJsonValue | undefined,
+							consultContext: dto.consultContext as
+								| Prisma.InputJsonValue
+								| undefined,
+							suggestedQtyMeta: dto.suggestedQtyMeta as
+								| Prisma.InputJsonValue
+								| undefined,
 							warehouseId: warehouse[0].id,
 							subtotal,
 							discountAmount: discount,
@@ -1062,8 +1068,20 @@ export class SalesService {
 					}
 					const disease = dto.diseaseId
 						? await tx.disease.findFirst({
-								where: { id: dto.diseaseId, tenantId, deletedAt: null, isActive: true },
-								select: { id: true, name: true, consultFields: { where: { tenantId, isEnabled: true }, select: { fieldKey: true, fieldType: true } } },
+								where: {
+									id: dto.diseaseId,
+									tenantId,
+									deletedAt: null,
+									isActive: true,
+								},
+								select: {
+									id: true,
+									name: true,
+									consultFields: {
+										where: { tenantId, isEnabled: true },
+										select: { fieldKey: true, fieldType: true },
+									},
+								},
 							})
 						: null;
 					if (dto.diseaseId && !disease) {
@@ -1073,10 +1091,24 @@ export class SalesService {
 						});
 					}
 					if (disease && dto.consultContext) {
-						const allowed = new Map(disease.consultFields.map((field) => [field.fieldKey, field.fieldType]));
+						const allowed = new Map(
+							disease.consultFields.map((field) => [
+								field.fieldKey,
+								field.fieldType,
+							]),
+						);
 						for (const [key, value] of Object.entries(dto.consultContext)) {
-							if (!allowed.has(key) || (value !== null && typeof value !== 'string' && typeof value !== 'number' && typeof value !== 'boolean')) {
-								throw new UnprocessableEntityException({ reason: 'VALIDATION_ERROR', message: 'Consult context is invalid' });
+							if (
+								!allowed.has(key) ||
+								(value !== null &&
+									typeof value !== 'string' &&
+									typeof value !== 'number' &&
+									typeof value !== 'boolean')
+							) {
+								throw new UnprocessableEntityException({
+									reason: 'VALIDATION_ERROR',
+									message: 'Consult context is invalid',
+								});
 							}
 						}
 					}
@@ -1260,7 +1292,9 @@ export class SalesService {
 							createdBy: userId,
 							diseaseId: disease?.id,
 							diseaseNameSnapshot: disease?.name,
-							consultContext: handbookContext as Prisma.InputJsonValue | undefined,
+							consultContext: handbookContext as
+								| Prisma.InputJsonValue
+								| undefined,
 							suggestedQtyMeta: qtyMeta as Prisma.InputJsonValue | undefined,
 							completedAt: new Date(),
 							lines: {
@@ -1420,9 +1454,13 @@ export class SalesService {
 			.sort();
 		const payment = this.toPrismaPayment(dto.paymentMethod);
 		const requestedPaid = BigInt(dto.amountPaid);
-		const requestedContext = dto.consultContext || dto.suggestedProductsMeta
-			? { ...(dto.consultContext ?? {}), __suggestedProductsMeta: dto.suggestedProductsMeta ?? [] }
-			: undefined;
+		const requestedContext =
+			dto.consultContext || dto.suggestedProductsMeta
+				? {
+						...(dto.consultContext ?? {}),
+						__suggestedProductsMeta: dto.suggestedProductsMeta ?? [],
+					}
+				: undefined;
 		// The stored qty metadata carries server-added protocol keys, so compare the
 		// caller-supplied part and the protocol id separately.
 		const storedQtyMeta = (existing.suggestedQtyMeta ?? null) as Record<
@@ -1445,7 +1483,8 @@ export class SalesService {
 			existing.customerId === (dto.customerId ?? null) &&
 			(existing.diseaseId ?? null) === (dto.diseaseId ?? null) &&
 			storedProtocolId === (dto.protocolId ?? null) &&
-			JSON.stringify(existing.consultContext ?? null) === JSON.stringify(requestedContext ?? null) &&
+			JSON.stringify(existing.consultContext ?? null) ===
+				JSON.stringify(requestedContext ?? null) &&
 			JSON.stringify(
 				storedCallerQtyMeta && Object.keys(storedCallerQtyMeta).length
 					? storedCallerQtyMeta

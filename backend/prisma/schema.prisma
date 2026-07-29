@@ -188,6 +188,11 @@ enum AuditAction {
   HANDBOOK_PROTOCOL_UPDATE
   PERMISSION_DENIED
   LIVESTOCK_STATE_CHANGE
+  // server-side QuickSale draft (multi-device sync)
+  QUICK_SALE_DRAFT_CREATE
+  QUICK_SALE_DRAFT_UPDATE
+  QUICK_SALE_DRAFT_CLOSE
+  QUICK_SALE_DRAFT_CHECKOUT
 }
 
 enum NotificationType {
@@ -254,6 +259,8 @@ model Tenant {
   debtLedgers        DebtLedger[]
   paymentVouchers    PaymentVoucher[]
   diseases           Disease[]
+  // Server-side quick-sale drafts kept per tenant (multi-device sync via SSE)
+  quickSaleDrafts    QuickSaleDraft[]
   tenantSettings     TenantSettings?
   quotaCounters      TenantQuotaCounter[]
   businessGroups     TenantBusinessGroup[]
@@ -519,6 +526,9 @@ model User {
   notifications  Notification[]
   notificationReads NotificationRead[]
   passkeys Passkey[]
+  ownedQuickSaleDrafts QuickSaleDraft[] @relation("QuickSaleDraftOwner")
+  addedQuickSaleDraftLines QuickSaleDraftLine[]
+  closedQuickSaleDrafts QuickSaleDraft[] @relation("QuickSaleDraftCloser")
 
   @@unique([tenantId, username])
   @@index([tenantId, status])
@@ -1044,6 +1054,7 @@ model Product {
   purchaseReturnLines PurchaseReturnLine[]
   purchaseLines   PurchaseLine[]
   saleLines       SaleLine[]
+  quickSaleDraftLines QuickSaleDraftLine[]
   diseasePins     DiseaseProductPin[]
   diseaseFallbacksAsPrimary DiseaseProductFallback[] @relation("FallbackPrimary")
   diseaseFallbacksAsAlt     DiseaseProductFallback[] @relation("FallbackAlt")
@@ -1825,3 +1836,86 @@ model TenantSettings {
 
   @@map("tenant_settings")
 }
+
+// ============================================================
+// QUICK SALE DRAFT (multi-device sync via SSE)
+// ============================================================
+//
+// Persistent POS counter draft kept on the server. The desktop "owns" the
+// draft (creates it, displays the joinToken for the phone to enter, and
+// receives cart changes through SSE). The phone joins the same draft via
+// joinToken as long as it is in the same tenant (and same permissions). All
+// mutations carry an idempotency key so a retried scan/click never applies
+// twice. There is no terminal status — the row is hard-deleted on explicit
+// close or successful checkout.
+
+model QuickSaleDraft {
+  id                    String    @id @default(uuid())
+  tenantId              String
+  ownerUserId           String
+  joinToken             String    // 10-char nanoid, opaque, single-use per tenant
+  customerId            String?
+  handbookMeta          Json?     // diseaseId/protocolId/consultContext snapshot
+  warehouseId           String?
+  lastTouchedAt         DateTime  @default(now())
+  expiresAt             DateTime  // lastTouchedAt + 20m (lazy sweep)
+  closedAt              DateTime? // set when explicitly closed (not checkout)
+  closedByUserId        String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  tenant            Tenant                    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  owner             User                      @relation("QuickSaleDraftOwner", fields: [ownerUserId], references: [id])
+  closer            User?                     @relation("QuickSaleDraftCloser", fields: [closedByUserId], references: [id], onDelete: SetNull)
+  lines             QuickSaleDraftLine[]
+  mutations         QuickSaleDraftMutation[]
+
+  // `joinToken` is unique inside a tenant. Two active drafts MUST NOT share
+  // the same token, otherwise a phone join could land on the wrong cart.
+  @@unique([tenantId, joinToken])
+  @@index([tenantId, ownerUserId, closedAt])
+  @@index([tenantId, expiresAt])
+  @@map("quick_sale_draft")
+}
+
+model QuickSaleDraftLine {
+  id                 String   @id @default(uuid())
+  tenantId           String
+  draftId            String
+  productId          String
+  productNameSnapshot String
+  unitId             String
+  unitNameSnapshot   String
+  qty                Decimal  @db.Decimal(18, 6)
+  unitPrice          BigInt
+  addedByUserId      String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  draft   QuickSaleDraft @relation(fields: [draftId], references: [id], onDelete: Cascade)
+  product Product       @relation(fields: [productId], references: [id])
+  addedBy User?         @relation(fields: [addedByUserId], references: [id], onDelete: SetNull)
+
+  // One cart line per product — adding the same product again bumps qty
+  // (server keeps last-write-wins with `updatedAt`).
+  @@unique([draftId, productId])
+  @@index([tenantId, draftId])
+  @@map("quick_sale_draft_line")
+}
+
+model QuickSaleDraftMutation {
+  id             String   @id @default(uuid())
+  tenantId       String
+  draftId        String
+  idempotencyKey String
+  kind           String   // 'add' | 'set-qty' | 'remove' | 'set-customer'
+  responseJson   Json     // canonical response snapshot returned to the client
+  createdAt      DateTime @default(now())
+
+  draft QuickSaleDraft @relation(fields: [draftId], references: [id], onDelete: Cascade)
+
+  @@unique([draftId, idempotencyKey])
+  @@index([tenantId, draftId, createdAt])
+  @@map("quick_sale_draft_mutation")
+}
+
