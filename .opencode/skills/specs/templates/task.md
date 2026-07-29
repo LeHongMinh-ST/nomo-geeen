@@ -60,6 +60,8 @@
 This section is both the task-level test plan and the proof checklist. Keep it short, exact, and executable.
 Select the proof by task risk; do not run every test type for every task.
 
+Verification: PENDING
+
 - Logic/data/validator task: include unit tests.
 - Stateful UI/component task: include component or integration tests.
 - Cross-module/API/state flow task: include integration tests.
@@ -94,4 +96,4 @@ Select the proof by task risk; do not run every test type for every task.
 > **Parallel marker**: Append `(P)` to the title if this task can run concurrently with another (usually when serving different requirements).
 > **Test note**: If a test coverage sub-task can be deferred post-MVP, mark it with `- [ ]*`.
 > **Requirement mapping**: Every sub-task MUST end with `_Requirements: X.X_`. No mapping = invalid task file.
-> **Evidence rule**: No `## Evidence` section = invalid task file. Existing specs may use `## Task Test Plan & Verification Evidence` or legacy `## Verification & Evidence`; agents must support all three headings.
+> **Evidence rule**: No `## Evidence` section = invalid task file. Use `## Evidence` (legacy heading aliases still parse).

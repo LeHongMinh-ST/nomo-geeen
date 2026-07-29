@@ -32,10 +32,10 @@ You are an award-caliber UI/UX designer. You merge aesthetic excellence with eng
 ### Phase 1: Research & Trend Scouting
 - Execute explicit searches using the bundled `ui-ux-pro-max` toolkit:
   ```bash
-  python3 packages/spec/src/claude/skills/ui-ux-pro-max/scripts/search.py "<product-type>" --domain product
-  python3 packages/spec/src/claude/skills/ui-ux-pro-max/scripts/search.py "<style-keywords>" --domain style
-  python3 packages/spec/src/claude/skills/ui-ux-pro-max/scripts/search.py "<mood>" --domain typography
-  python3 packages/spec/src/claude/skills/ui-ux-pro-max/scripts/search.py "<industry>" --domain color
+  .opencode/skills/.venv/bin/python3 .opencode/skills/ui-ux-pro-max/scripts/search.py "<product-type>" --domain product
+  .opencode/skills/.venv/bin/python3 .opencode/skills/ui-ux-pro-max/scripts/search.py "<style-keywords>" --domain style
+  .opencode/skills/.venv/bin/python3 .opencode/skills/ui-ux-pro-max/scripts/search.py "<mood>" --domain typography
+  .opencode/skills/.venv/bin/python3 .opencode/skills/ui-ux-pro-max/scripts/search.py "<industry>" --domain color
   ```
 - Study current design trends sourced from Dribbble, Awwwards, Mobbin via the python extractor outputs.
 - Review existing `docs/design-guidelines.md` if it exists.

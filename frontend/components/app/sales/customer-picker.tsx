@@ -50,38 +50,40 @@ export function CustomerPicker({
 
 	return (
 		<>
-			<div className={`flex w-full items-center gap-2 lg:max-w-[420px] ${hideInlineSearch ? "hidden" : ""}`}>
-				<Search className="size-5 shrink-0 text-[#9e9e9e]" aria-hidden />
-				<input
-					value={inlineQuery}
-					onChange={(event) => {
-						setInlineQuery(event.target.value);
-						setOpen(true);
-					}}
-					onFocus={() => setOpen(true)}
-					onKeyDown={(event) => {
-						if (event.key === "Enter") {
-							event.preventDefault();
+			{!hideInlineSearch ? (
+				<div className="flex w-full items-center gap-2 lg:max-w-[420px]">
+					<Search className="size-5 shrink-0 text-[#9e9e9e]" aria-hidden />
+					<input
+						value={inlineQuery}
+						onChange={(event) => {
+							setInlineQuery(event.target.value);
 							setOpen(true);
-						}
-					}}
-					role="combobox"
-					aria-expanded={open}
-					aria-controls="customer-picker-options"
-					aria-hidden={open}
-					disabled={open}
-					tabIndex={open ? -1 : 0}
-					aria-label="Tìm khách hàng ngay trong form"
-					placeholder="Tìm tên hoặc số điện thoại..."
-					className="h-12 min-w-0 flex-1 rounded-[10px] border border-border bg-white px-3 text-base text-foreground placeholder:text-[#9e9e9e] focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/25"
-				/>
-			</div>
+						}}
+						onFocus={() => setOpen(true)}
+						onKeyDown={(event) => {
+							if (event.key === "Enter") {
+								event.preventDefault();
+								setOpen(true);
+							}
+						}}
+						role="combobox"
+						aria-expanded={open}
+						aria-controls="customer-picker-options"
+						aria-hidden={open}
+						disabled={open}
+						tabIndex={open ? -1 : 0}
+						aria-label="Tìm khách hàng ngay trong form"
+						placeholder="Tìm tên hoặc số điện thoại..."
+						className="h-12 min-w-0 flex-1 rounded-[10px] border border-border bg-white px-3 text-base text-foreground placeholder:text-[#9e9e9e] focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/25"
+					/>
+				</div>
+			) : null}
 			<button
 				ref={triggerRef}
 				type="button"
 				onClick={() => setOpen(true)}
 				aria-haspopup="dialog"
-				className="flex min-h-12 items-center gap-2 rounded-full border border-border bg-card pl-2 pr-3.5 text-base font-semibold text-foreground transition-colors duration-200 ease-out hover:bg-[#f5f5f5]"
+				className="flex min-h-12 self-start items-center gap-2 rounded-full border border-border bg-card pl-2 pr-3.5 text-base font-semibold text-foreground transition-colors duration-200 ease-out hover:bg-[#f5f5f5]"
 			>
 				<span className="flex size-8 items-center justify-center rounded-full bg-accent text-accent-foreground">
 					<UserRound className="size-4.5" aria-hidden />
@@ -209,7 +211,9 @@ function CustomerSheet({
 		...results,
 	];
 	const hasExactMatch = results.some(
-		(customer) => customer.name.trim().toLocaleLowerCase() === query.trim().toLocaleLowerCase(),
+		(customer) =>
+			customer.name.trim().toLocaleLowerCase() ===
+			query.trim().toLocaleLowerCase(),
 	);
 	const createInline = async () => {
 		if (!query.trim() || results.length > 0 || creating) return;
@@ -365,7 +369,7 @@ function CustomerSheet({
 							),
 						)
 					)}
-						{!loading && !error && query.trim() && !hasExactMatch ? (
+					{!loading && !error && query.trim() && !hasExactMatch ? (
 						<div className="mb-2 rounded-[12px] border border-[#dcebd7] bg-[#f3f8f1] p-3">
 							<p className="mb-2 text-base font-semibold text-foreground">
 								Chưa có khách phù hợp. Nhập số điện thoại nếu có.

@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "packageName": "@haposoft/cafekit",
+  "version": "0.15.1",
+  "platform": "codex",
+  "platformName": "Codex CLI",
+  "installedAt": "2026-07-29T11:35:51.464Z",
+  "lastInstalledAt": "2026-07-29T11:47:43.056Z",
+  "installCommand": "npx @haposoft/cafekit@0.15.1"
+}

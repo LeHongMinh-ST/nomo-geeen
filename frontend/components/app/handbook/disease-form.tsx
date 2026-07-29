@@ -320,7 +320,7 @@ export function DiseaseForm({
 			</div>
 
 			{/* Hành động — mobile dính đáy full-width */}
-			<div className="fixed inset-x-0 bottom-nav-safe z-40 border-t border-border bg-card p-3 lg:hidden">
+			<div className="fixed inset-x-0 bottom-nav-safe z-40 border-t border-border bg-card p-3 lg:hidden mb-0">
 				<button
 					type="submit"
 					disabled={saving}

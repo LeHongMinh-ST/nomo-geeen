@@ -130,7 +130,7 @@ export function InventoryList() {
 					</span>
 				</div>
 				<p className="text-base text-[#616161]">
-					Số lượng tồn và giá vốn theo dữ liệu tenant.
+					Số lượng tồn và giá vốn theo dữ liệu cửa hàng.
 				</p>
 			</div>
 			<div className="grid grid-cols-2 gap-3 lg:grid-cols-4">

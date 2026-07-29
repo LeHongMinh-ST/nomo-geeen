@@ -52,6 +52,19 @@ describe("CustomerPicker", () => {
 		vi.mocked(getCustomer).mockReset().mockResolvedValue(customers[0]);
 	});
 
+	it("can hide the inline search while keeping the customer trigger", () => {
+		render(<CustomerPicker onChange={vi.fn()} hideInlineSearch />);
+
+		expect(
+			screen.queryByRole("combobox", {
+				name: "Tìm khách hàng ngay trong form",
+			}),
+		).not.toBeInTheDocument();
+		expect(screen.getByRole("button", { name: /Khách lẻ/ })).toHaveClass(
+			"self-start",
+		);
+	});
+
 	it("loads customers, selects and clears walk-in", async () => {
 		const onChange = vi.fn();
 		render(<CustomerPicker onChange={onChange} />);

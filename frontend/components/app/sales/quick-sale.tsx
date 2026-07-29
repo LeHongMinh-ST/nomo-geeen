@@ -286,7 +286,7 @@ export function QuickSale() {
 			</div>
 
 			{/* Thanh tổng + hành động dính đáy — mobile/tablet */}
-			<div className="fixed inset-x-0 bottom-nav-safe z-30 flex flex-col gap-2.5 border-t border-border bg-card px-4 py-3 shadow-[0_-4px_20px_rgba(0,0,0,0.06)] lg:hidden">
+			<div className="fixed mb-0 inset-x-0 bottom-nav-safe z-30 flex flex-col gap-2.5 border-t border-border bg-card px-4 py-3 shadow-[0_-4px_20px_rgba(0,0,0,0.06)] lg:hidden">
 				<SummaryRow itemCount={itemCount} total={subtotal} />
 				<ActionButtons
 					disabled={empty}

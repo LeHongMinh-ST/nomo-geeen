@@ -13,20 +13,20 @@
   },
   "paths": {
     "docs": "docs",
-    "specs": "specs"
+    "specs": "specs",
+    "plans": "plans"
   },
   "spec": {
     "scaffold_guard": true,
-    "completion_gate": true
+    "completion_gate": true,
+    "tollgate": true
+  },
+  "develop": {
+    "parallel": true
   },
   "locale": {
     "thinkingLanguage": null,
     "responseLanguage": "Tiếng Việt"
-  },
-  "skills": {
-    "research": {
-      "useGemini": true
-    }
   },
   "usage": {
     "enabled": true

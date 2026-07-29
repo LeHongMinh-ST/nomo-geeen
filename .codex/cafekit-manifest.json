@@ -1,0 +1,190 @@
+{
+  "schemaVersion": 1,
+  "version": "0.15.1",
+  "files": {
+    ".agents/skills/develop/references/parallel-waves.md": {
+      "sha256": "e87aa889c78e62069745c841faf78abe8f71d9c93537e5edc778fa018fb586ed",
+      "version": "0.15.1"
+    },
+    ".codex/agents/test_runner.toml": {
+      "sha256": "427c3e869b7a6084c1c45a6572577635b07e4f3bd30fc34f33c25fb27b08b326",
+      "version": "0.15.1"
+    },
+    ".codex/agents/code_auditor.toml": {
+      "sha256": "71a8b4bf1930dda1e0477363508d3513f71218ab5aa488ca849020f5c14cd072",
+      "version": "0.15.1"
+    },
+    ".codex/agents/god_developer.toml": {
+      "sha256": "8c0bf4f265da13c2cad4a925a923784b22fb6ad11538ad4e2b62dbbf384fa7b2",
+      "version": "0.15.1"
+    },
+    ".codex/agents/docs_keeper.toml": {
+      "sha256": "a230937586ee4d15b38a8f4b44e31ae6657681b5d6f3e86b3744727a6f6122e8",
+      "version": "0.15.1"
+    },
+    ".codex/agents/git_ops.toml": {
+      "sha256": "533eb6cd4704f5f952783bcf35c985c9b3fe28d2c5da08380185b9609a9fa8fc",
+      "version": "0.15.1"
+    },
+    ".codex/agents/project_manager.toml": {
+      "sha256": "4c584dc9f45aecbd0ff32abf5dd2df85f1fdc87204d5672c2eddf5a0186ac914",
+      "version": "0.15.1"
+    },
+    ".codex/agents/spec_maker.toml": {
+      "sha256": "71b3b86f9cbe87203729814c9950eb0b29af623678169f206323b5f60b96d24e",
+      "version": "0.15.1"
+    },
+    ".codex/agents/ui_ux_designer.toml": {
+      "sha256": "1de8b783a3b61995f16b71a7aa9f3eefabc278d715a3186d7a333b4ca77630cf",
+      "version": "0.15.1"
+    },
+    ".codex/references/debugger/condition-based-waiting.md": {
+      "sha256": "4b9f7e32eeb82867379e32979f0522d2452c4b7feee97b9f428e726005c56447",
+      "version": "0.15.1"
+    },
+    ".codex/references/debugger/core-philosophy.md": {
+      "sha256": "1f9b99b4df8087f07b94cd6e8e038325cc83ee18c8d044581344ab424a4cb1e1",
+      "version": "0.15.1"
+    },
+    ".codex/references/debugger/docs-research.md": {
+      "sha256": "30fcb3401c3a09f943e65bc2c95d99df4a04cf39622e8d908ab61d7a04ce5636",
+      "version": "0.15.1"
+    },
+    ".codex/references/debugger/frontend-verification.md": {
+      "sha256": "e5e3a334c5e6855480fcadef67ebc249db8e220b1721dc6963ca5f7e32b3fd84",
+      "version": "0.15.1"
+    },
+    ".codex/references/debugger/log-ci-analysis.md": {
+      "sha256": "9687b324c798f692dc11ba60233fa3841da01e1eb6c1816ff82372ed0577cb5f",
+      "version": "0.15.1"
+    },
+    ".codex/references/debugger/parallel-agent-hydration.md": {
+      "sha256": "853ef82f04fc8db9d271abf15870d39f4453eb6346461706d072f83dc172e581",
+      "version": "0.15.1"
+    },
+    ".codex/references/debugger/performance-diagnostics.md": {
+      "sha256": "06be81ecf9644a56a005d7d4a4d2d489f94715ae9971797e28ee3d3b44533313",
+      "version": "0.15.1"
+    },
+    ".codex/references/debugger/problem-solving.md": {
+      "sha256": "32b29e6a2bc4a35f2bdea4552841e7964d4f301fc991715602e6a69ec86358b9",
+      "version": "0.15.1"
+    },
+    ".codex/references/debugger/repomix-guidelines.md": {
+      "sha256": "7a031f5fe86893fbf3e4d67d88dd8f3d6dc8c04e36fbcb775e0bd8dfa69a9d8f",
+      "version": "0.15.1"
+    },
+    ".codex/references/debugger/root-cause-tracing.md": {
+      "sha256": "3116a37b9455635ce72ec7b2b0b8fbc58e379c58874f1894eb9f26c58afb679c",
+      "version": "0.15.1"
+    },
+    ".codex/references/debugger/side-effect-gate.md": {
+      "sha256": "c38cc466480116238aa9d10b7099a6a9c24df3ef80f20cc5ab60dd806089297f",
+      "version": "0.15.1"
+    },
+    ".codex/references/debugger/verification-protocol.md": {
+      "sha256": "5c2aa1c6448eeb322f592d3a2ea9a0ca100551cd0c91aa9e5e83d6babf0652d5",
+      "version": "0.15.1"
+    },
+    ".codex/scripts/generate-skill-catalog.cjs": {
+      "sha256": "23a8e06193f0f51a766d654e8160cde42d531554f13956e2eae924b57d4d311e",
+      "version": "0.15.1"
+    },
+    ".codex/scripts/spec-ground.cjs": {
+      "sha256": "060ec3acc427bd73266423540ab2c62e24a41a964118ac50ae7b22ea4611cc86",
+      "version": "0.15.1"
+    },
+    ".codex/scripts/spec-scaffold.cjs": {
+      "sha256": "e5273fd92f523c1b3c88f9846246a08a909bb32ba30690d240d92eec48e64930",
+      "version": "0.15.1"
+    },
+    ".codex/scripts/validate-docs-reconstruct.cjs": {
+      "sha256": "d4aa49a5eb2d59815296d93acccea9ca125ebd14df9d4c434691063c12f22522",
+      "version": "0.15.1"
+    },
+    ".codex/scripts/validate-docs.cjs": {
+      "sha256": "d017d75cf15bb1fa3a216e2871665a8299377cd51d1bef2b7ae1b46ea204c88e",
+      "version": "0.15.1"
+    },
+    ".codex/scripts/validate-spec-output.cjs": {
+      "sha256": "67aa36ede77a45fd725edc0c39d7ecd023327651445bf041812283d129693488",
+      "version": "0.15.1"
+    },
+    ".codex/.gitignore": {
+      "sha256": "3ec86d7a67f86c8fc22262a7bb025f78f2f9918c6a35049c966280ca204cb65f",
+      "version": "0.15.1"
+    },
+    ".codex/runtime.json": {
+      "sha256": "05c04635186ac4f2d981e13bd8f88062aab53929fc726a782708a3f0383098ab",
+      "version": "0.15.1"
+    },
+    ".agents/.gitignore": {
+      "sha256": "f1ea5eeb3759fc73371c4ea0e60fd7f9679d6056a76f2ef7b66c450ba0e55482",
+      "version": "0.15.1"
+    },
+    ".codex/hooks/lib/hook-context.cjs": {
+      "sha256": "71c177861a1399d85ee7e2166edb78963cd171e7577a63d27d484b03123a5222",
+      "version": "0.15.1"
+    },
+    ".codex/hooks/lib/inspect-paths.cjs": {
+      "sha256": "798fcef48ae840577286b67d5f68ea6379e3d67d1ce0bc3eab0b27ea2f00a8bc",
+      "version": "0.15.1"
+    },
+    ".codex/hooks/lib/privacy-state.cjs": {
+      "sha256": "7c9fc8d76b607f2ab06743060b34e71bd7e09f448388a33645e5575e7e850bef",
+      "version": "0.15.1"
+    },
+    ".codex/hooks/lib/spec-receipt.cjs": {
+      "sha256": "e72c4ec3ccf43ce378910260347f99f7b80166b014211a29ec0efe64b72b4251",
+      "version": "0.15.1"
+    },
+    ".codex/hooks/lib/spec-utils.cjs": {
+      "sha256": "983d712a3ef6d285217ab0f91eed325d51b9f644d9dd944db0a13a2fbf21dfaa",
+      "version": "0.15.1"
+    },
+    ".codex/hooks/lib/state-store.cjs": {
+      "sha256": "9f3698a4eab95fe6f783b1d41588b10bb36f403c4d4eb16e793728bb1e669efe",
+      "version": "0.15.1"
+    },
+    ".codex/hooks/privacy-approval.cjs": {
+      "sha256": "829197015c39fc04783ec36ea3864be5ff5f7f8a181b39edc2b8ac67cad49e2c",
+      "version": "0.15.1"
+    },
+    ".codex/hooks/spec-gate.cjs": {
+      "sha256": "c573117c63fb4b5efa5dc759579e4d20f8f316e25b114a30b52f63e52113d0ff",
+      "version": "0.15.1"
+    },
+    ".codex/rules/ai-dev-rules.md": {
+      "sha256": "2bc343e9d3465b3d664c09c9b3e23b2996c4dd45dceedc1aab129b857be7f976",
+      "version": "0.15.1"
+    },
+    ".codex/rules/hook-protocols.md": {
+      "sha256": "720935fb5c7b0bc205dbd69379a4ef0ef9507020e94f299f2ddf40607510e2f4",
+      "version": "0.15.1"
+    },
+    ".codex/rules/manage-docs.md": {
+      "sha256": "b16c29b0a5479f70b28e028caa75fab2fcafdb93d7fde07c19dc0ab52d8942e5",
+      "version": "0.15.1"
+    },
+    ".codex/rules/orchestrator.md": {
+      "sha256": "a46386e5c1014e75c3829d4eddd0c9b6bd199ec09c9c922667b03a0452767f67",
+      "version": "0.15.1"
+    },
+    ".codex/rules/skill-domain-routing.md": {
+      "sha256": "488b2928f0f878ef5df31e92fe6ba71ef874895cb987137fefdf21eb06f558cc",
+      "version": "0.15.1"
+    },
+    ".codex/rules/skill-workflow-routing.md": {
+      "sha256": "b9a3b4290da50e4c8dc4832ce3746cad3921725d971d8c464a7a8276a60baf5f",
+      "version": "0.15.1"
+    },
+    ".codex/rules/state-sync.md": {
+      "sha256": "837a14a0ba3fce8b44ccff11fd57938a4fed58741cd88563e8b512eb6c1baa0e",
+      "version": "0.15.1"
+    },
+    ".codex/rules/workflow.md": {
+      "sha256": "ead0a272d1ed7fb322ba09037865c4bc698217fc4d4239406ca024be052cf6d6",
+      "version": "0.15.1"
+    }
+  }
+}

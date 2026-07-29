@@ -5,7 +5,7 @@ user-invocable: true
 when_to_use: "Invoke to implement specs and tasks end-to-end after scope is clear."
 category: utilities
 keywords: [implementation, specs, build, orchestration]
-argument-hint: "[feature-name|specs-directory-path] [task-file] [--flash] [--no-notes]"
+argument-hint: "[feature-name|specs-directory-path] [task-file] [--flash] [--parallel [N]] [--no-notes]"
 metadata:
   author: haposoft
   version: "1.0.0"
@@ -48,6 +48,27 @@ Triggered by `/hapo:develop <feature>` or `/hapo:develop specs/<feature>`.
 - STOP the overall run on the first blocked task, unresolved gate failure, or missing proof.
 - In `--flash` mode, missing full test proof does not stop the loop; record `FLASH_UNVERIFIED` and continue to the next unblocked task.
 
+### 2b. Parallel Wave Mode (opt-in)
+Triggered by adding `--parallel [N]` to Full-Spec mode. Load `references/parallel-waves.md` and follow it exactly — it is the operating procedure (wave planning, dispatch, merge, cleanup).
+
+Contracts: WAVE_CONFIG
+
+<!-- contract:WAVE_CONFIG -->
+```jsonc
+// .opencode/runtime.json — develop parallel toggle (missing key = allowed)
+"develop": {
+  "parallel": true   // false = --parallel refused, sequential run + notice
+}
+// Flag: /hapo:develop <feature> --parallel [N]   (N = wave cap, 1..5, default 3)
+```
+
+- Preconditions first: if `runtime.json` sets `develop.parallel: false`, refuse `--parallel`, name the key, and run the sequential loop. If the work context is not a git repository or worktree isolation is unavailable, state the reason and fall back sequential (see parallel-waves.md §1).
+- Waves are computed from `task_registry.dependencies` with the single-writer-per-file rule; wave cap = N (1..5, default 3).
+- Dispatch one `god-developer` per wave task — worktree isolation, background, self-contained prompt per `rules/orchestrator.md`, plus the mandatory lines in parallel-waves.md §3 (commit mandate; never edit `spec.json`/`tasks/*.md`; never touch files outside the task's `Related Files`).
+- Quality gate (Stage A+B, unchanged) runs inside each task's worktree BEFORE merge; merge = sequential `git cherry-pick` of agent commits with explicit worktree/branch cleanup (spike-verified — see parallel-waves.md §5); post-merge integration check gates the next wave.
+- The orchestrator is the single writer of spec state: registry/task-md/receipts update after each cherry-pick, exactly as in sequential mode.
+- Without `--parallel`, nothing in this section applies — the sequential Full-Spec loop below is unchanged.
+
 ### 3. Flash Mode
 Triggered by adding `--flash` to either specific-task or full-spec mode.
 
@@ -76,7 +97,7 @@ DO NOT write implementation code until an approved spec exists.
 
 <DEFINITION-OF-DONE>
 A task is NOT done because code compiles or a placeholder renders.
-A task is done only when the task file's Completion Criteria AND Evidence section are satisfied with real execution proof. Existing specs may use `Task Test Plan & Verification Evidence` or legacy `Verification & Evidence`; treat those as the same contract.
+A task is done only when the task file's Completion Criteria AND `## Evidence` (legacy heading aliases still parse) are satisfied with real execution proof.
 `--flash` is the only exception: it records fast implementation closeout with `FLASH_UNVERIFIED`, not full Definition of Done.
 </DEFINITION-OF-DONE>
 
@@ -95,7 +116,7 @@ You MUST implement all scoped behavior for the active task, MUST NOT add out-of-
 | Thought (Excuse) | Reality (Rule) |
 |-------------------|----------------|
 | "No need to scout first" | Coding without knowing the architecture is blind. ALWAYS call the `inspector` agent to scan files. |
-| "Review process is too tedious, let me just finish it myself" | The system needs an audit trail through agents. ALWAYS delegate via `Task` tool. |
+| "Review process is too tedious, let me just finish it myself" | The system needs an audit trail through agents. ALWAYS delegate via the `Agent` tool. |
 
 ## Absolute Workflow
 
@@ -132,7 +153,7 @@ flowchart TD
   - Objective + Constraints
   - Related Files
   - Completion Criteria
-  - Evidence (or `Task Test Plan & Verification Evidence` / legacy `Verification & Evidence`)
+  - `## Evidence` (legacy heading aliases still parse)
   - Exact executable verification commands named in the task
   - Requirement IDs referenced by the task
   - Named technologies, frameworks, protocols, and data stores that the task/spec explicitly requires
@@ -192,7 +213,7 @@ The moment you finish coding, DO NOT proceed further. Switch to `references/qual
 If `--flash` is active, use **Step 4F: Flash Gate** instead of the full automatic review loop.
 
 - Passing Step 4 requires ALL of the following:
-  1. Automated verification passes, including preflight compile/typecheck/build health and every exact command named in the task's `Evidence` section (or `Task Test Plan & Verification Evidence` / legacy `Verification & Evidence`)
+  1. Automated verification passes, including preflight compile/typecheck/build health and every exact command named in the task's `## Evidence` (legacy heading aliases still parse)
   2. Spec compliance review passes: every scoped requirement and active task criterion is implemented, with no extras and no omissions
   3. Code quality review passes
   4. Task evidence passes (artifacts/runtime surfaces/reachability/negative-path checks from the task file are proven)

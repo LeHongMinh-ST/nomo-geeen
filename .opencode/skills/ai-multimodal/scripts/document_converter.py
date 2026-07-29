@@ -92,7 +92,7 @@ def find_project_root() -> Path:
 
     # Look for .git or .claude directory
     for parent in [script_dir] + list(script_dir.parents):
-        if (parent / '.git').exists() or (parent / '.claude').exists():
+        if (parent / '.git').exists() or (parent / '.opencode').exists():
             return parent
 
     return script_dir

@@ -152,7 +152,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 				</div>
 
 				{/* Bottom nav — chỉ mobile */}
-				<nav className="pb-safe fixed inset-x-0 bottom-0 z-40 grid h-[68px] grid-cols-5 items-center border-t border-border bg-white [height:calc(68px+env(safe-area-inset-bottom,0px))] lg:hidden">
+				<nav className="pb-safe fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 items-center border-t border-border bg-white [height:calc(68px+env(safe-area-inset-bottom,0px))] lg:hidden">
 					{bottomNavItems.slice(0, 2).map((item) => (
 						<BottomLink
 							key={item.href}

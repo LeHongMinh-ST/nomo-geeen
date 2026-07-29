@@ -217,7 +217,11 @@ export function OrderForm() {
 				<h2 className="text-sm font-semibold uppercase tracking-wide text-[#9e9e9e]">
 					Khách hàng
 				</h2>
-				<CustomerPicker value={customerId} onChange={setCustomerId} />
+				<CustomerPicker
+					value={customerId}
+					onChange={setCustomerId}
+					hideInlineSearch
+				/>
 			</section>
 
 			{/* Thêm hàng */}
