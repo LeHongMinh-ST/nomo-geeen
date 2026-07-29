@@ -209,3 +209,11 @@ Format theo [Keep a Changelog](https://keepachangelog.com/), tuân thủ [Semant
 ## 2026-07-28 — Mobile PWA pull-to-refresh
 
 - Thêm kéo xuống để tải lại cho standalone mobile PWA; không bật trên desktop, mobile browser thường hoặc vùng form/danh sách cuộn.
+
+## 2026-07-29 — Quick-sale cart draft
+
+- Lưu draft giỏ hàng bán nhanh bằng Zustand khi điều hướng sang màn hình khác; xóa sau thanh toán thành công hoặc nút Xóa giỏ hàng.
+
+## 2026-07-29 — Quick-sale draft safety
+
+- Reset idempotency key khi payload giỏ thay đổi và dọn draft khi logout, mất session hoặc chuyển tài khoản.

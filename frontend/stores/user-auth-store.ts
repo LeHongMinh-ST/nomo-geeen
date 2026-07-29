@@ -11,6 +11,9 @@ import {
 	type TenantAuthUser,
 	updateCurrentProfile,
 } from "@/lib/user-auth-api";
+import { useQuickSaleStore } from "@/stores/quick-sale-store";
+
+const clearQuickSaleDraft = () => useQuickSaleStore.getState().clearDraft();
 
 type UserAuthState = {
 	user: TenantAuthUser | null;
@@ -45,6 +48,7 @@ export const useUserAuth = create<UserAuthState>((set, get) => ({
 			const user = await getCurrentUser(response.accessToken);
 			set({ user, accessToken: response.accessToken, hasHydrated: true });
 		} catch {
+			clearQuickSaleDraft();
 			set({ user: null, accessToken: null, hasHydrated: true });
 		} finally {
 			set({ loading: false });
@@ -54,6 +58,7 @@ export const useUserAuth = create<UserAuthState>((set, get) => ({
 		set({ loading: true });
 		try {
 			const response = await loginUser({ identifier, password });
+			clearQuickSaleDraft();
 			set({
 				user: response.user,
 				accessToken: response.accessToken,
@@ -67,6 +72,7 @@ export const useUserAuth = create<UserAuthState>((set, get) => ({
 		set({ loading: true });
 		try {
 			const result = await passkeyAuthenticationVerify(challengeId, response);
+			clearQuickSaleDraft();
 			set({
 				user: result.user,
 				accessToken: result.accessToken,
@@ -80,6 +86,7 @@ export const useUserAuth = create<UserAuthState>((set, get) => ({
 		set({ loading: true });
 		try {
 			const response = await registerUser(input);
+			clearQuickSaleDraft();
 			set({
 				user: response.user,
 				accessToken: response.accessToken,
@@ -117,9 +124,12 @@ export const useUserAuth = create<UserAuthState>((set, get) => ({
 			try {
 				await logoutUser(token);
 			} catch {}
+		clearQuickSaleDraft();
 		set({ user: null, accessToken: null, hasHydrated: true, loading: false });
 	},
-	clear: () =>
-		set({ user: null, accessToken: null, hasHydrated: true, loading: false }),
+	clear: () => {
+		clearQuickSaleDraft();
+		set({ user: null, accessToken: null, hasHydrated: true, loading: false });
+	},
 	setAccessToken: (accessToken) => set({ accessToken }),
 }));

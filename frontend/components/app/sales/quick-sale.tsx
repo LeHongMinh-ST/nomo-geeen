@@ -27,6 +27,7 @@ import {
 import type { Product } from "@/lib/products";
 import { mapSalesApiError } from "@/lib/sales-api-error";
 import { createQuickSale } from "@/lib/tenant-sales-api";
+import { useQuickSaleStore } from "@/stores/quick-sale-store";
 
 /**
  * Màn Bán nhanh (DESIGN.md §15) — tối ưu một tay trên điện thoại.
@@ -37,21 +38,22 @@ import { createQuickSale } from "@/lib/tenant-sales-api";
 type Toast = { method: PaymentMethod; total: number } | null;
 
 export function QuickSale() {
-	const [customerId, setCustomerId] = useState<string | undefined>();
-	const [lines, setLines] = useState<OrderLine[]>([]);
+	const customerId = useQuickSaleStore((state) => state.customerId);
+	const lines = useQuickSaleStore((state) => state.lines);
+	const handbookMeta = useQuickSaleStore((state) => state.handbookMeta);
+	const idempotencyKey = useQuickSaleStore((state) => state.idempotencyKey);
+	const setCustomerId = useQuickSaleStore((state) => state.setCustomerId);
+	const setLines = useQuickSaleStore((state) => state.setLines);
+	const setHandbookMeta = useQuickSaleStore((state) => state.setHandbookMeta);
+	const setIdempotencyKey = useQuickSaleStore(
+		(state) => state.setIdempotencyKey,
+	);
+	const clearDraft = useQuickSaleStore((state) => state.clearDraft);
 	const [payOpen, setPayOpen] = useState(false);
 	const [needCustomer, setNeedCustomer] = useState(false);
 	const [toast, setToast] = useState<Toast>(null);
 	const [submitting, setSubmitting] = useState(false);
 	const [error, setError] = useState<string | null>(null);
-	const [idempotencyKey, setIdempotencyKey] = useState<string | null>(null);
-	const [handbookMeta, setHandbookMeta] = useState<{
-		diseaseId?: string;
-		protocolId?: string;
-		consultContext?: Record<string, unknown>;
-		suggestedProductsMeta?: Array<Record<string, unknown>>;
-		suggestedQtyMeta?: Record<string, unknown>;
-	}>({});
 
 	const subtotal = lines.reduce((sum, l) => sum + lineTotal(l), 0);
 	const itemCount = lines.reduce((sum, l) => sum + l.qty, 0);
@@ -134,10 +136,8 @@ export function QuickSale() {
 				...handbookMeta,
 			});
 			setToast({ method, total: result.total });
-			setLines([]);
+			clearDraft();
 			setPayOpen(false);
-			setIdempotencyKey(null);
-			setHandbookMeta({});
 			window.setTimeout(() => setToast(null), 3200);
 		} catch (cause) {
 			const status =
@@ -189,6 +189,18 @@ export function QuickSale() {
 
 			<div className="grid items-start gap-5 pb-[calc(184px+env(safe-area-inset-bottom,0px))] lg:grid-cols-[minmax(0,1fr)_360px] lg:pb-0">
 				<div className="min-w-0 space-y-4">
+					{!empty ? (
+						<div className="flex justify-end">
+							<button
+								type="button"
+								onClick={clearDraft}
+								className="flex min-h-11 items-center gap-2 rounded-[10px] px-3 text-sm font-semibold text-destructive transition-colors hover:bg-[#fdecea]"
+							>
+								<Trash2 className="size-4" aria-hidden />
+								Xóa giỏ hàng
+							</button>
+						</div>
+					) : null}
 					<CounterSearch
 						onSelectProduct={addProduct}
 						onChangeMeta={(meta) =>
@@ -229,14 +241,14 @@ export function QuickSale() {
 					<div className="mb-4 hidden items-center gap-2 border-b border-border pb-4 lg:flex">
 						<span className="flex size-10 items-center justify-center rounded-[10px] bg-[#f3f8f1] text-primary">
 							<ReceiptText className="size-5" aria-hidden />
-					</span>
-					<div>
-						<h2 className="text-lg font-bold text-foreground">
-							Đơn hàng mới
-						</h2>
-						<p className="text-sm text-[#6b716b]">
-							{itemCount} món trong đơn
-						</p>
+						</span>
+						<div>
+							<h2 className="text-lg font-bold text-foreground">
+								Đơn hàng mới
+							</h2>
+							<p className="text-sm text-[#6b716b]">
+								{itemCount} món trong đơn
+							</p>
 						</div>
 					</div>
 					<div className="mb-4 space-y-2">
