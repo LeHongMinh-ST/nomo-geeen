@@ -61,6 +61,7 @@ const FEATURES = [
 	{ code: 'barcode', name: 'Ma vach' },
 	{ code: 'quantity_tier_pricing', name: 'Gia theo bac so luong' },
 	{ code: 'advanced_mode', name: 'Che do nang cao (da kho, RBAC day du)' },
+	{ code: 'product_group:crop_seedlings', name: 'Nhom hang cay trong' },
 	{ code: 'product_group:human_drugs', name: 'Nhom hang thuoc dung cho nguoi' },
 	{ code: 'product_group:veterinary_drugs', name: 'Nhom hang thuoc thu y' },
 	{ code: 'product_group:animal_feed', name: 'Nhom hang thuc an chan nuoi' },

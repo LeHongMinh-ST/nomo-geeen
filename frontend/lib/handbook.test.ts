@@ -4,6 +4,7 @@ import {
 	getHandbookCategory,
 	HANDBOOK_CATEGORY_CATALOG,
 	handbookCategoryLabel,
+	handbookCategoriesForBusinessGroups,
 	mapLegacyAgriDomain,
 	mapLegacyHandbookField,
 	SELECTABLE_HANDBOOK_CATEGORY_IDS,
@@ -51,6 +52,15 @@ describe("HandbookCategory contract", () => {
 		for (const id of SELECTABLE_HANDBOOK_CATEGORY_IDS) {
 			expect(getHandbookCategory(id).selectable).toBe(true);
 		}
+	});
+
+	it("maps only enabled business groups to handbook categories", () => {
+		expect(handbookCategoriesForBusinessGroups(["CROP_INPUTS"])).toEqual([
+			"CROP_PROTECTION_AND_FERTILIZER",
+		]);
+		expect(
+			handbookCategoriesForBusinessGroups(["CROP_INPUTS", "VETERINARY_DRUGS"]),
+		).toEqual(["CROP_PROTECTION_AND_FERTILIZER", "VETERINARY_DRUGS"]);
 	});
 
 	it("maps unknown/null/deprecated IDs to Chưa phân loại without inventing a core category", () => {

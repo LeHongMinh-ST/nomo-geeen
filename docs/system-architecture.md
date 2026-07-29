@@ -151,7 +151,11 @@ The repository contains local runtime/package configuration and migrations, but 
 - Product kind changes in edit mode require explicit confirmation when specialist attributes would
   be discarded; the mobile sticky save action remains part of the same form boundary.
 
-- Package entitlements determine enabled business groups and are consumed by ProductForm; tenant users cannot toggle package access from settings.
+- Package entitlements and tenant-level saved switches determine enabled business groups. ProductForm,
+  ProductList, Handbook category options, and the business-group settings screen consume the same
+  `/tenant/products/business-groups` response. The basic package exposes only `CROP_INPUTS`; other
+  groups require their `product_group:*` entitlement and can then be enabled/disabled without
+  deleting existing records. Backend create/update checks both entitlement and the saved switch.
 
 ## Supplier and purchase batch metadata
 
@@ -198,9 +202,9 @@ The repository contains local runtime/package configuration and migrations, but 
 ## Fixed product catalog and package access
 
 - Product categories are no longer part of tenant product create/update/lookups or product-list filters; the legacy database columns remain only for backward-compatible records.
-- `BusinessGroup` is the fixed product catalog. Default access is `CROP_INPUTS` (thuốc bảo vệ thực vật + phân bón) and `CROP_SEEDLINGS` (cây trồng).
-- `HUMAN_DRUGS`, `VETERINARY_DRUGS`, and `ANIMAL_FEED` require package features `product_group:human_drugs`, `product_group:veterinary_drugs`, and `product_group:animal_feed`; backend checks these entitlements on create/update.
-- Starter seeds the default groups, Professional adds veterinary drugs and animal feed, and Enterprise adds human drugs.
+- `BusinessGroup` is the fixed product catalog. Basic access is only `CROP_INPUTS` (thuốc bảo vệ thực vật + phân bón).
+- `CROP_SEEDLINGS`, `HUMAN_DRUGS`, `VETERINARY_DRUGS`, and `ANIMAL_FEED` require their matching `product_group:*` package features; backend checks entitlement plus the tenant switch on create/update.
+- The effective group response marks unavailable groups and prevents their switches/select options from being used; existing records remain preserved when a group is disabled.
 ## Go-live runtime wiring
 
 - `GET /health/ready` kiểm tra `SELECT 1` qua Prisma/Postgres và `PING` Redis. Postgres lỗi trả HTTP 503/status `down`; Redis lỗi giữ HTTP 200 nhưng status `degraded` để single-instance vẫn phục vụ SSE local.

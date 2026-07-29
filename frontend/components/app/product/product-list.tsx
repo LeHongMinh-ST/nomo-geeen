@@ -15,7 +15,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ListFilterBar } from "@/components/app/shared/list-filter-bar";
 import { ListSkeleton } from "@/components/app/shared/list-skeleton";
 import { formatVND } from "@/lib/format";
-import { businessGroupLabel } from "@/lib/product-kind-form";
+import {
+	BUSINESS_GROUP_CATALOG,
+	businessGroupLabel,
+	resolveEnabledBusinessGroups,
+	type BusinessGroupId,
+} from "@/lib/product-kind-form";
 import {
 	brandName,
 	getStockStatus,
@@ -27,6 +32,7 @@ import {
 import {
 	deleteTenantProduct,
 	getProductLookups,
+	getTenantBusinessGroups,
 	listTenantProducts,
 	mapTenantProduct,
 	type ProductLookups,
@@ -41,6 +47,7 @@ import { ProductCard } from "./product-card";
  */
 
 type StatusFilter = "all" | StockStatus;
+type BusinessGroupFilter = "all" | BusinessGroupId | "ungrouped";
 
 const statusFilters: { value: StatusFilter; label: string }[] = [
 	{ value: "all", label: "Tất cả" },
@@ -57,8 +64,15 @@ const MOBILE_BATCH = 8;
 export function ProductList() {
 	const [items, setItems] = useState<Product[]>([]);
 	const [lookups, setLookups] = useState<ProductLookups | null>(null);
+	const [enabledGroups, setEnabledGroups] = useState<
+		(typeof BUSINESS_GROUP_CATALOG)[number][]
+	>(
+		BUSINESS_GROUP_CATALOG.filter((group) => group.id === "CROP_INPUTS"),
+	);
 	const [query, setQuery] = useState("");
 	const [status, setStatus] = useState<StatusFilter>("all");
+	const [businessGroup, setBusinessGroup] =
+		useState<BusinessGroupFilter>("all");
 	const [confirmId, setConfirmId] = useState<string | null>(null);
 	const [menuId, setMenuId] = useState<string | null>(null);
 	// Desktop: trang hiện tại. Mobile: số thẻ đang hiển thị.
@@ -71,11 +85,18 @@ export function ProductList() {
 		setLoading(true);
 		setError(null);
 		try {
-			const [rows, catalog] = await Promise.all([
+			const [rows, catalog, groupSettings] = await Promise.all([
 				listTenantProducts(),
 				getProductLookups(),
+				getTenantBusinessGroups(),
 			]);
 			setLookups(catalog);
+			setEnabledGroups(
+				resolveEnabledBusinessGroups(
+					groupSettings.configured,
+					groupSettings.groups,
+				),
+			);
 			setItems(rows.map((row) => mapTenantProduct(row, catalog)));
 		} catch {
 			setError("Không thể tải danh sách sản phẩm. Vui lòng thử lại.");
@@ -88,10 +109,32 @@ export function ProductList() {
 		void load();
 	}, [load]);
 
+	const businessGroupFilters = useMemo(() => {
+		const hasUngrouped = items.some((product) => !product.businessGroup);
+
+		return [
+			{ value: "all", label: "Tất cả" },
+			...enabledGroups.map((group) => ({
+				value: group.id,
+				label: group.label,
+			})),
+			...(hasUngrouped
+				? [{ value: "ungrouped", label: "Chưa phân loại" }]
+				: []),
+		];
+	}, [enabledGroups, items]);
+
 	const filtered = useMemo(() => {
 		const q = query.trim().toLowerCase();
 		return items.filter((p) => {
 			if (status !== "all" && getStockStatus(p) !== status) return false;
+			if (
+				businessGroup !== "all" &&
+				(businessGroup === "ungrouped"
+					? p.businessGroup
+					: p.businessGroup !== businessGroup)
+			)
+				return false;
 			if (!q) return true;
 			return (
 				p.name.toLowerCase().includes(q) ||
@@ -99,14 +142,14 @@ export function ProductList() {
 				(p.barcode?.includes(q) ?? false)
 			);
 		});
-	}, [items, query, status]);
+	}, [businessGroup, items, query, status]);
 
 	// Đổi bộ lọc/tìm kiếm → về trang đầu và thu gọn lại danh sách mobile.
 	// biome-ignore lint/correctness/useExhaustiveDependencies: reset khi tiêu chí lọc đổi
 	useEffect(() => {
 		setPage(1);
 		setMobileCount(MOBILE_BATCH);
-	}, [query, status]);
+	}, [businessGroup, query, status]);
 
 	const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
 	const safePage = Math.min(page, pageCount);
@@ -209,6 +252,14 @@ export function ProductList() {
 						value: status,
 						options: statusFilters,
 						onChange: (v) => setStatus(v as StatusFilter),
+					},
+					{
+						key: "business-group",
+						label: "Ngành hàng",
+						value: businessGroup,
+						options: businessGroupFilters,
+						onChange: (v) =>
+							setBusinessGroup(v as BusinessGroupFilter),
 					},
 				]}
 			/>

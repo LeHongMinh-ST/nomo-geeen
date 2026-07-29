@@ -91,7 +91,7 @@ describe("BusinessGroupSettings", () => {
 		).toBeInTheDocument();
 	});
 
-	it("treats an unconfigured shop as all groups enabled", async () => {
+	it("treats an unconfigured shop as basic crop-inputs only", async () => {
 		getTenantBusinessGroups.mockResolvedValue({
 			configured: false,
 			groups: [],
@@ -104,8 +104,8 @@ describe("BusinessGroupSettings", () => {
 				"false",
 			),
 		);
-		expect(switchFor("Cây trồng")).toHaveAttribute("aria-checked", "true");
-		expect(screen.getAllByText("Chưa có sản phẩm nào")).toHaveLength(5);
+		expect(switchFor("Cây trồng")).toHaveAttribute("aria-checked", "false");
+		expect(screen.getAllByText("Chưa có trong gói dịch vụ")).toHaveLength(4);
 	});
 
 	it("saves the toggled set and confirms success", async () => {

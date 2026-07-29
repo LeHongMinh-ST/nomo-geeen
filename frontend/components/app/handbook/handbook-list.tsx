@@ -9,6 +9,7 @@ import { LoadMoreSentinel } from "@/components/app/shared/load-more-sentinel";
 import {
 	categoryBadgeClass,
 	categoryLabel,
+	handbookCategoriesForBusinessGroups,
 	type Disease,
 	HANDBOOK_CATEGORY_CATALOG,
 	type HandbookCategoryId,
@@ -17,6 +18,7 @@ import {
 	typeLabel,
 } from "@/lib/handbook";
 import { listHandbookEntries, toDisease } from "@/lib/tenant-handbook-api";
+import { getTenantBusinessGroups } from "@/lib/tenant-products-api";
 import { matchesVietnamese } from "@/lib/vietnamese-search";
 import { DiseaseCard } from "./disease-card";
 
@@ -27,14 +29,6 @@ import { DiseaseCard } from "./disease-card";
  */
 
 type CategoryFilter = "all" | HandbookCategoryId;
-
-const categoryFilters: { value: CategoryFilter; label: string }[] = [
-	{ value: "all", label: "Tất cả" },
-	...HANDBOOK_CATEGORY_CATALOG.filter((c) => c.selectable).map((c) => ({
-		value: c.id as CategoryFilter,
-		label: c.label,
-	})),
-];
 
 const PAGE_SIZE = 10;
 const MOBILE_BATCH = 8;
@@ -48,14 +42,32 @@ export function HandbookList() {
 	const [loadError, setLoadError] = useState<string | null>(null);
 	const [loading, setLoading] = useState(true);
 	const [reloadKey, setReloadKey] = useState(0);
+	const [categoryFilters, setCategoryFilters] = useState<
+		{ value: CategoryFilter; label: string }[]
+	>([{ value: "all", label: "Tất cả" }]);
 
 	useEffect(() => {
 		void reloadKey;
 		let cancelled = false;
 		setLoading(true);
-		listHandbookEntries({ page: 1, pageSize: 50 })
-			.then((res) => {
+		Promise.all([
+			listHandbookEntries({ page: 1, pageSize: 50 }),
+			getTenantBusinessGroups(),
+		])
+			.then(([res, groups]) => {
 				if (cancelled) return;
+				const enabled = groups.configured
+					? groups.groups
+							.filter((group) => group.enabled && group.available !== false)
+							.map((group) => group.businessGroup)
+					: ["CROP_INPUTS"];
+				const allowed = new Set(handbookCategoriesForBusinessGroups(enabled));
+				setCategoryFilters([
+					{ value: "all", label: "Tất cả" },
+					...HANDBOOK_CATEGORY_CATALOG.filter(
+						(c) => c.selectable && allowed.has(c.id),
+					).map((c) => ({ value: c.id as CategoryFilter, label: c.label })),
+				]);
 				if (res.items.length > 0) {
 					setEntries(res.items.map(toDisease));
 					setLoadError(null);

@@ -213,6 +213,7 @@ const KIND_BY_ID = new Map(PRODUCT_KIND_CATALOG.map((kind) => [kind.id, kind]));
 export type TenantBusinessGroup = {
 	businessGroup: string;
 	enabled: boolean;
+	available?: boolean;
 };
 
 export function getProductKindsForGroup(group: BusinessGroupId) {
@@ -271,7 +272,9 @@ export function filterEnabledBusinessGroups(
 	groups: readonly TenantBusinessGroup[],
 ): (typeof BUSINESS_GROUP_CATALOG)[number][] {
 	const enabled = new Set(
-		groups.filter((group) => group.enabled).map((group) => group.businessGroup),
+		groups
+			.filter((group) => group.enabled && group.available !== false)
+			.map((group) => group.businessGroup),
 	);
 	return BUSINESS_GROUP_CATALOG.filter((group) => enabled.has(group.id));
 }
@@ -282,9 +285,7 @@ export function resolveEnabledBusinessGroups(
 ): (typeof BUSINESS_GROUP_CATALOG)[number][] {
 	return configured
 		? filterEnabledBusinessGroups(groups)
-		: BUSINESS_GROUP_CATALOG.filter(
-				(group) => group.id === "CROP_INPUTS" || group.id === "CROP_SEEDLINGS",
-			);
+		: BUSINESS_GROUP_CATALOG.filter((group) => group.id === "CROP_INPUTS");
 }
 
 const LEGACY_KIND_ALIASES: Record<string, ProductKindId> = {

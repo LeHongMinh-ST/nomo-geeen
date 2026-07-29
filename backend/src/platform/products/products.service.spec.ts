@@ -18,11 +18,18 @@ describe('ProductsService', () => {
 				groupBy: jest.fn().mockResolvedValue([]),
 			},
 			stock: { groupBy: jest.fn(), aggregate: jest.fn() },
-			tenantBusinessGroup: { findMany: jest.fn(), upsert: jest.fn() },
+			tenantBusinessGroup: {
+				findMany: jest.fn(),
+				findUnique: jest.fn(),
+				upsert: jest.fn(),
+			},
 		} as unknown as Prisma.TransactionClient;
 		const service = new ProductsService(
 			prisma as never,
-			{ assertFeature: jest.fn() } as never,
+			{
+				assertFeature: jest.fn(),
+				getEffectiveEntitlement: jest.fn().mockResolvedValue({ featureCodes: [] }),
+			} as never,
 			{ reserve: jest.fn() } as never,
 			{ writeInTx: jest.fn() } as never,
 		);

@@ -56,8 +56,14 @@ describe("ProductForm ProductKind flow", () => {
 		createTenantProduct.mockReset();
 		updateTenantProduct.mockReset();
 		getTenantBusinessGroups.mockResolvedValue({
-			configured: false,
-			groups: [],
+			configured: true,
+			groups: [
+				"CROP_INPUTS",
+				"CROP_SEEDLINGS",
+				"ANIMAL_FEED",
+				"VETERINARY_DRUGS",
+				"HUMAN_DRUGS",
+			].map((businessGroup) => ({ businessGroup, enabled: true })),
 		});
 	});
 
@@ -88,9 +94,14 @@ describe("ProductForm ProductKind flow", () => {
 		).not.toBeInTheDocument();
 	});
 
-	it("auto-selects the only kind and hides the kind selector", () => {
+	it("auto-selects the only kind and hides the kind selector", async () => {
 		render(<ProductForm mode="create" lookups={lookups} />);
 
+		await waitFor(() =>
+			expect(
+				screen.getByRole("combobox", { name: "Nhóm ngành hàng" }),
+			).toBeInTheDocument(),
+		);
 		fireEvent.change(screen.getByLabelText("Nhóm ngành hàng"), {
 			target: { value: "ANIMAL_FEED" },
 		});
@@ -99,7 +110,7 @@ describe("ProductForm ProductKind flow", () => {
 		expect(screen.getAllByText("Thức ăn chăn nuôi")).toHaveLength(1);
 	});
 
-	it("renders one purchased group as a fixed value without a chevron", async () => {
+	it("renders one purchased group as a select with the enabled option", async () => {
 		getTenantBusinessGroups.mockResolvedValue({
 			configured: true,
 			groups: [{ businessGroup: "ANIMAL_FEED", enabled: true }],
@@ -107,16 +118,11 @@ describe("ProductForm ProductKind flow", () => {
 		render(<ProductForm mode="create" lookups={lookups} />);
 
 		await waitFor(() =>
-			expect(screen.getByLabelText("Nhóm ngành hàng")).toHaveTextContent(
-				"Thức ăn chăn nuôi",
+			expect(screen.getByRole("combobox", { name: "Nhóm ngành hàng" })).toHaveValue(
+				"ANIMAL_FEED",
 			),
 		);
-		expect(screen.getByLabelText("Nhóm ngành hàng")).not.toHaveAttribute(
-			"aria-expanded",
-		);
-		expect(
-			screen.queryByRole("combobox", { name: "Nhóm ngành hàng" }),
-		).not.toBeInTheDocument();
+		expect(screen.getByRole("combobox", { name: "Nhóm ngành hàng" })).toBeInTheDocument();
 		expect(screen.queryByLabelText("Loại sản phẩm")).not.toBeInTheDocument();
 	});
 
@@ -133,6 +139,11 @@ describe("ProductForm ProductKind flow", () => {
 	it("does not require specialist attrs during create", async () => {
 		createTenantProduct.mockResolvedValue({ id: "created" });
 		render(<ProductForm mode="create" lookups={lookups} />);
+		await waitFor(() =>
+			expect(
+				screen.getByRole("combobox", { name: "Nhóm ngành hàng" }),
+			).toBeInTheDocument(),
+		);
 		fireEvent.change(screen.getByLabelText("Nhóm ngành hàng"), {
 			target: { value: "CROP_INPUTS" },
 		});
@@ -150,6 +161,11 @@ describe("ProductForm ProductKind flow", () => {
 	it("does not require a base unit when creating", async () => {
 		createTenantProduct.mockResolvedValue({ id: "created" });
 		render(<ProductForm mode="create" lookups={lookups} />);
+		await waitFor(() =>
+			expect(
+				screen.getByRole("combobox", { name: "Nhóm ngành hàng" }),
+			).toBeInTheDocument(),
+		);
 		fireEvent.change(screen.getByLabelText("Nhóm ngành hàng"), {
 			target: { value: "CROP_INPUTS" },
 		});
@@ -175,6 +191,11 @@ describe("ProductForm ProductKind flow", () => {
 	it("submits canonical group, kind, and normalized attrs", async () => {
 		createTenantProduct.mockResolvedValue({ id: "created" });
 		render(<ProductForm mode="create" lookups={lookups} />);
+		await waitFor(() =>
+			expect(
+				screen.getByRole("combobox", { name: "Nhóm ngành hàng" }),
+			).toBeInTheDocument(),
+		);
 		fireEvent.change(screen.getByLabelText("Nhóm ngành hàng"), {
 			target: { value: "CROP_INPUTS" },
 		});
@@ -214,7 +235,7 @@ describe("ProductForm ProductKind flow", () => {
 		expect(screen.queryByText("Danh mục")).not.toBeInTheDocument();
 	});
 
-	it("hydrates edit group, kind, and attrs", () => {
+	it("hydrates edit group, kind, and attrs", async () => {
 		render(
 			<ProductForm
 				mode="edit"
@@ -227,8 +248,10 @@ describe("ProductForm ProductKind flow", () => {
 				lookups={lookups}
 			/>,
 		);
-		expect(screen.getByLabelText("Nhóm ngành hàng")).toHaveValue(
-			"VETERINARY_DRUGS",
+		await waitFor(() =>
+			expect(screen.getByLabelText("Nhóm ngành hàng")).toHaveValue(
+				"VETERINARY_DRUGS",
+			),
 		);
 		expect(screen.queryByLabelText("Loại sản phẩm")).not.toBeInTheDocument();
 		expect(screen.getByLabelText("Hoạt chất")).toHaveValue("Amoxicillin");
@@ -331,7 +354,7 @@ describe("ProductForm ProductKind flow", () => {
 		).not.toBeInTheDocument();
 	});
 
-	it("uses the deterministic crop legacy fallback in edit mode", () => {
+	it("uses the deterministic crop legacy fallback in edit mode", async () => {
 		render(
 			<ProductForm
 				mode="edit"
@@ -343,6 +366,8 @@ describe("ProductForm ProductKind flow", () => {
 				lookups={lookups}
 			/>,
 		);
-		expect(screen.getByLabelText("Loại sản phẩm")).toHaveValue("CROP_SEED");
+		await waitFor(() =>
+			expect(screen.getByLabelText("Loại sản phẩm")).toHaveValue("CROP_SEED"),
+		);
 	});
 });

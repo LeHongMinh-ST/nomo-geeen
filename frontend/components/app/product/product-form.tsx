@@ -171,7 +171,8 @@ export function ProductForm({
 	const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 	const [enabledGroups, setEnabledGroups] = useState<
 		(typeof BUSINESS_GROUP_CATALOG)[number][]
-	>([...BUSINESS_GROUP_CATALOG]);
+	>(BUSINESS_GROUP_CATALOG.filter((group) => group.id === "CROP_INPUTS"));
+	const [groupsLoaded, setGroupsLoaded] = useState(false);
 	const allowedUnits = (lookups?.units ?? [])
 		.filter((unit) => {
 			const normalizedName = unit.name.trim().toLocaleLowerCase();
@@ -203,18 +204,20 @@ export function ProductForm({
 
 	useEffect(() => {
 		void getTenantBusinessGroups()
-			.then((result) =>
+			.then((result) => {
 				setEnabledGroups(
 					resolveEnabledBusinessGroups(result.configured, result.groups),
-				),
-			)
-			.catch(() =>
-				setError("Không thể tải nhóm ngành sản phẩm. Vui lòng thử lại."),
-			);
+				);
+				setGroupsLoaded(true);
+			})
+			.catch(() => {
+				setGroupsLoaded(true);
+				setError("Không thể tải nhóm ngành sản phẩm. Vui lòng thử lại.");
+			});
 	}, []);
 
 	useEffect(() => {
-		if (enabledGroups.length !== 1) return;
+		if (!groupsLoaded || enabledGroups.length !== 1) return;
 		const group = enabledGroups[0];
 		const kinds = getProductKindsForGroup(group.id);
 		setForm((current) => ({
@@ -229,7 +232,7 @@ export function ProductForm({
 						? kinds[0].id
 						: "",
 		}));
-	}, [enabledGroups]);
+	}, [enabledGroups, groupsLoaded]);
 
 	useEffect(() => {
 		if (!form.baseUnit) return;
@@ -411,26 +414,19 @@ export function ProductForm({
 		>
 			<Section icon={FlaskConical} tile="#5cad45" title="Phân loại sản phẩm">
 				<Field label="Nhóm ngành hàng" required>
-					{enabledGroups.length === 1 ? (
-						<FixedValue
-							ariaLabel="Nhóm ngành hàng"
-							value={enabledGroups[0].label}
-						/>
-					) : (
-						<Select
-							value={form.businessGroup}
-							onChange={(value) => setBusinessGroup(value as BusinessGroupId)}
-							placeholder="Chọn nhóm ngành hàng"
-							ariaLabel="Nhóm ngành hàng"
-							ariaInvalid={Boolean(fieldErrors.businessGroup)}
-							ariaDescribedBy="business-group-error"
-							options={enabledGroups.map((group) => ({
-								value: group.id,
-								label: group.label,
-							}))}
-							required
-						/>
-					)}
+					<Select
+						value={form.businessGroup}
+						onChange={(value) => setBusinessGroup(value as BusinessGroupId)}
+						placeholder="Chọn nhóm ngành hàng"
+						ariaLabel="Nhóm ngành hàng"
+						ariaInvalid={Boolean(fieldErrors.businessGroup)}
+						ariaDescribedBy="business-group-error"
+						options={enabledGroups.map((group) => ({
+							value: group.id,
+							label: group.label,
+						}))}
+						required
+					/>
 					<InlineFieldError
 						id="business-group-error"
 						message={fieldErrors.businessGroup}
@@ -845,23 +841,6 @@ function Select({
 				aria-hidden
 			/>
 		</div>
-	);
-}
-
-function FixedValue({
-	ariaLabel,
-	value,
-}: {
-	ariaLabel: string;
-	value: string;
-}) {
-	return (
-		<input
-			readOnly
-			aria-label={ariaLabel}
-			value={value}
-			className={`${inputClass} flex items-center bg-[#f8f9f8] text-foreground`}
-		/>
 	);
 }
 

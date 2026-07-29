@@ -178,25 +178,39 @@ export class ProductsService {
 		return { brands, manufacturers, units };
 	}
 	async businessGroups(tenantId: string) {
-		const [entitlement, counts] = await Promise.all([
+		const [entitlement, configuredGroups, counts] = await Promise.all([
 			typeof this.entitlements.getEffectiveEntitlement === 'function'
 				? this.entitlements.getEffectiveEntitlement(tenantId)
 				: Promise.resolve({ featureCodes: [] as string[] }),
+			this.prisma.tenantBusinessGroup.findMany({
+				where: { tenantId },
+				select: { businessGroup: true, enabled: true },
+			}),
 			this.countActiveProductsByGroup(this.prisma, tenantId),
 		]);
-		const enabled = new Set<BusinessGroup>(DEFAULT_BUSINESS_GROUPS);
+		const available = new Set<BusinessGroup>(DEFAULT_BUSINESS_GROUPS);
 		for (const group of Object.keys(
 			BUSINESS_GROUP_FEATURES,
 		) as BusinessGroup[]) {
 			const feature = BUSINESS_GROUP_FEATURES[group];
 			if (feature && entitlement.featureCodes.includes(feature))
-				enabled.add(group);
+				available.add(group);
 		}
+		const configured = new Map(
+			configuredGroups.map((group) => [group.businessGroup, group.enabled]),
+		);
 		const groups = BUSINESS_GROUP_CATALOG.map(({ id: businessGroup }) => ({
 			businessGroup,
-			enabled: enabled.has(businessGroup),
+			available: available.has(businessGroup),
+			enabled:
+				available.has(businessGroup) &&
+				(configured.get(businessGroup) ?? true),
 		}));
-		return { configured: true, groups, productCounts: counts };
+		return {
+			configured: configuredGroups.length > 0,
+			groups,
+			productCounts: counts,
+		};
 	}
 
 	async updateBusinessGroups(
@@ -208,11 +222,17 @@ export class ProductsService {
 		// An empty set would lock the shop out of creating any product, because
 		// assertSelectableBusinessGroup rejects every group once rows exist.
 		if (enabled.size === 0)
-			throw new UnprocessableEntityException({
+		throw new UnprocessableEntityException({
 				reason: 'NO_ENABLED_BUSINESS_GROUP',
 				message: 'At least one business group must stay enabled',
-			});
+		});
+		for (const group of enabled) {
+			if (!Object.values(BusinessGroup).includes(group))
+				throw new BadRequestException('This product group is not available');
+		}
 		return this.prisma.$transaction(async (tx) => {
+			for (const group of enabled)
+				await this.assertBusinessGroupEntitlement(tenantId, group, tx);
 			for (const businessGroup of Object.values(BusinessGroup)) {
 				await tx.tenantBusinessGroup.upsert({
 					where: { tenantId_businessGroup: { tenantId, businessGroup } },
@@ -609,12 +629,33 @@ export class ProductsService {
 		group: BusinessGroup,
 		client: Prisma.TransactionClient,
 	) {
+		await this.assertBusinessGroupEntitlement(tenantId, group, client);
+		await this.assertManualBusinessGroupEnabled(tenantId, group, client);
+	}
+
+	private async assertBusinessGroupEntitlement(
+		tenantId: string,
+		group: BusinessGroup,
+		client: Prisma.TransactionClient,
+	) {
 		if ((DEFAULT_BUSINESS_GROUPS as readonly BusinessGroup[]).includes(group))
 			return;
 		const feature = BUSINESS_GROUP_FEATURES[group];
-		if (!feature)
-			throw new BadRequestException('This product group is not available');
+		if (!feature) throw new BadRequestException('This product group is not available');
 		await this.entitlements.assertFeature(tenantId, feature, client);
+	}
+
+	private async assertManualBusinessGroupEnabled(
+		tenantId: string,
+		group: BusinessGroup,
+		client: Prisma.TransactionClient,
+	) {
+		const configured = await client.tenantBusinessGroup.findUnique({
+			where: { tenantId_businessGroup: { tenantId, businessGroup: group } },
+			select: { enabled: true },
+		});
+		if (configured && !configured.enabled)
+			throw new BadRequestException('businessGroup is not enabled for this tenant');
 	}
 
 	private async validateReference(

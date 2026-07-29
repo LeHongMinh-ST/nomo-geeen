@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { ProtocolEditor } from "@/components/app/handbook/protocol-editor";
 import {
 	categoryLabel,
+	handbookCategoriesForBusinessGroups,
 	type Disease,
 	type DiseaseType,
 	type HandbookCategoryId,
@@ -20,7 +21,10 @@ import {
 	toApiDiseaseType,
 	updateHandbookEntry,
 } from "@/lib/tenant-handbook-api";
-import { listTenantProducts } from "@/lib/tenant-products-api";
+import {
+	getTenantBusinessGroups,
+	listTenantProducts,
+} from "@/lib/tenant-products-api";
 
 /**
  * Form Thêm/Sửa mục Sổ tay (base_spec §21.2, DESIGN.md §8, §24 — trang riêng).
@@ -29,10 +33,6 @@ import { listTenantProducts } from "@/lib/tenant-products-api";
  */
 
 type FormMode = "create" | "edit";
-
-const categoryOptions: HandbookCategoryId[] = [
-	...SELECTABLE_HANDBOOK_CATEGORY_IDS,
-];
 
 const typeOptions: DiseaseType[] = ["disease", "pest", "weed", "epidemic"];
 
@@ -114,13 +114,24 @@ export function DiseaseForm({
 	const [products, setProducts] = useState<Array<{ id: string; name: string }>>(
 		[],
 	);
+	const [categoryOptions, setCategoryOptions] = useState<HandbookCategoryId[]>(
+		[...SELECTABLE_HANDBOOK_CATEGORY_IDS].filter(
+			(category) => category === "CROP_PROTECTION_AND_FERTILIZER",
+		),
+	);
 	const [saving, setSaving] = useState(false);
 
 	useEffect(() => {
-		listTenantProducts()
-			.then((rows) =>
-				setProducts(rows.map((row) => ({ id: row.id, name: row.name }))),
-			)
+		Promise.all([listTenantProducts(), getTenantBusinessGroups()])
+			.then(([rows, groups]) => {
+				setProducts(rows.map((row) => ({ id: row.id, name: row.name })));
+				const enabled = groups.configured
+					? groups.groups
+							.filter((group) => group.enabled && group.available !== false)
+							.map((group) => group.businessGroup)
+					: ["CROP_INPUTS"];
+				setCategoryOptions(handbookCategoriesForBusinessGroups(enabled));
+			})
 			.catch(() => setProducts([]));
 	}, []);
 
@@ -194,21 +205,26 @@ export function DiseaseForm({
 				</Field>
 
 				<Field label="Danh mục" required>
-					<div className="grid grid-cols-1 gap-1 rounded-[12px] bg-[#f0f2f1] p-1 sm:grid-cols-2">
-						{categoryOptions.map((c) => (
-							<button
-								key={c}
-								type="button"
-								onClick={() => set("category", c)}
-								className={`min-h-12 rounded-[9px] px-2 py-2 text-left text-sm font-semibold transition-colors duration-200 ease-out ${
-									form.category === c
-										? "bg-card text-primary shadow-[0_1px_3px_rgba(0,0,0,0.08)]"
-										: "text-[#616161] hover:text-foreground"
-								}`}
-							>
-								{categoryLabel[c]}
-							</button>
-						))}
+					<div className="relative">
+						<select
+							value={form.category}
+							required
+							onChange={(e) =>
+								set("category", e.target.value as HandbookCategoryId)
+							}
+							className={`${inputClass} appearance-none pr-10`}
+							aria-label="Danh mục"
+						>
+							{categoryOptions.map((category) => (
+								<option key={category} value={category}>
+									{categoryLabel[category]}
+								</option>
+							))}
+						</select>
+						<ChevronDown
+							className="pointer-events-none absolute right-3.5 top-1/2 size-4.5 -translate-y-1/2 text-[#9e9e9e]"
+							aria-hidden
+						/>
 					</div>
 				</Field>
 

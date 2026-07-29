@@ -11,10 +11,10 @@ export const BUSINESS_GROUP_CATALOG = [
 
 export const DEFAULT_BUSINESS_GROUPS = [
 	BusinessGroup.CROP_INPUTS,
-	BusinessGroup.CROP_SEEDLINGS,
 ] as const;
 
 export const BUSINESS_GROUP_FEATURES: Partial<Record<BusinessGroup, string>> = {
+	[BusinessGroup.CROP_SEEDLINGS]: 'product_group:crop_seedlings',
 	[BusinessGroup.HUMAN_DRUGS]: 'product_group:human_drugs',
 	[BusinessGroup.VETERINARY_DRUGS]: 'product_group:veterinary_drugs',
 	[BusinessGroup.ANIMAL_FEED]: 'product_group:animal_feed',

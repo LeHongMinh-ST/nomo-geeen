@@ -34,6 +34,25 @@ export const SELECTABLE_HANDBOOK_CATEGORY_IDS =
 		(category) => category.id,
 	);
 
+const BUSINESS_GROUP_TO_HANDBOOK_CATEGORY: Record<string, HandbookCategoryId> = {
+	CROP_INPUTS: "CROP_PROTECTION_AND_FERTILIZER",
+	CROP_SEEDLINGS: "CROP_SEEDLINGS",
+	ANIMAL_FEED: "ANIMAL_FEED",
+	VETERINARY_DRUGS: "VETERINARY_DRUGS",
+	LIVESTOCK: "LIVESTOCK",
+};
+
+export function handbookCategoriesForBusinessGroups(
+	groups: readonly string[],
+): HandbookCategoryId[] {
+	const enabled = new Set(groups);
+	return SELECTABLE_HANDBOOK_CATEGORY_IDS.filter((category) =>
+		[...enabled].some(
+			(group) => BUSINESS_GROUP_TO_HANDBOOK_CATEGORY[group] === category,
+		),
+	);
+}
+
 const categoryById = Object.fromEntries(
 	HANDBOOK_CATEGORY_CATALOG.map((category) => [category.id, category]),
 ) as Record<HandbookCategoryId, HandbookCategoryOption>;

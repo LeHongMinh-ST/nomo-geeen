@@ -37,6 +37,7 @@ export function BusinessGroupSettings() {
 	const canView = Boolean(user?.permissions.includes("product:view"));
 	const canEdit = Boolean(user?.permissions.includes("product:edit"));
 	const [enabled, setEnabled] = useState<Set<BusinessGroupId>>(new Set());
+	const [available, setAvailable] = useState<Set<BusinessGroupId>>(new Set());
 	const [counts, setCounts] = useState<Record<string, number>>({});
 	const [loading, setLoading] = useState(true);
 	const [saving, setSaving] = useState(false);
@@ -52,6 +53,15 @@ export function BusinessGroupSettings() {
 					resolveEnabledBusinessGroups(result.configured, result.groups).map(
 						(group) => group.id,
 					),
+				),
+			);
+			setAvailable(
+				new Set(
+					result.configured
+						? result.groups
+								.filter((group) => group.available !== false)
+								.map((group) => group.businessGroup as BusinessGroupId)
+						: ["CROP_INPUTS" as BusinessGroupId],
 				),
 			);
 			setCounts(result.productCounts ?? {});
@@ -92,6 +102,7 @@ export function BusinessGroupSettings() {
 	const allOff = enabled.size === 0;
 
 	function toggle(id: BusinessGroupId) {
+		if (!available.has(id)) return;
 		setEnabled((current) => {
 			const next = new Set(current);
 			if (next.has(id)) next.delete(id);
@@ -150,6 +161,7 @@ export function BusinessGroupSettings() {
 				<div className="overflow-hidden rounded-[16px] border border-border bg-card shadow-card">
 					{BUSINESS_GROUP_CATALOG.map((group) => {
 						const on = enabled.has(group.id);
+						const purchasable = available.has(group.id);
 						const count = counts[group.id] ?? 0;
 						return (
 							<div
@@ -161,7 +173,9 @@ export function BusinessGroupSettings() {
 										{group.label}
 									</span>
 									<span className="text-sm text-[#616161]">
-										{count > 0
+										{!purchasable
+											? "Chưa có trong gói dịch vụ"
+											: count > 0
 											? `Đang có ${count} sản phẩm`
 											: "Chưa có sản phẩm nào"}
 									</span>
@@ -171,7 +185,7 @@ export function BusinessGroupSettings() {
 									role="switch"
 									aria-checked={on}
 									aria-label={group.label}
-									disabled={!canEdit || saving}
+										disabled={!canEdit || saving || !purchasable}
 									onClick={() => toggle(group.id)}
 									className={`relative h-7 w-12 shrink-0 rounded-full transition-colors duration-200 ease-out disabled:opacity-50 ${
 										on ? "bg-primary" : "bg-[#e0e0e0]"
