@@ -1134,7 +1134,7 @@ async function seedBvtvRelations(tenantId: string): Promise<void> {
 	const purchaseLines = ['TBV-001', 'TBV-002', 'TBV-003'].flatMap((sku) => {
 		const product = productBySku.get(sku);
 		const batch = batches.get(sku);
-		if (!product || !batch) return [];
+		if (!product || !batch || !product.baseUnitId) return [];
 		const qty = Math.min(10, batch.qty);
 		return [
 			{
@@ -1453,7 +1453,7 @@ async function seedBvtvRelations(tenantId: string): Promise<void> {
 	}
 	const saleProduct = productBySku.get('TBV-001');
 	const saleBatch = batches.get('TBV-001');
-	if (saleProduct && saleBatch) {
+	if (saleProduct && saleBatch && saleProduct.baseUnitId) {
 		const qty = 2;
 		const lineTotal = saleProduct.salePrice * BigInt(qty);
 		const sale = await prisma.sale.upsert({

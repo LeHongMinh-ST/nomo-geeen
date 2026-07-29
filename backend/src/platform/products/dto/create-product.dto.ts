@@ -21,8 +21,9 @@ export class CreateProductDto {
 	@IsString()
 	@IsNotEmpty()
 	name!: string;
+	@IsOptional()
 	@IsUUID('4')
-	baseUnitId!: string;
+	baseUnitId?: string;
 	@Type(() => Number)
 	@IsInt()
 	@Min(0)

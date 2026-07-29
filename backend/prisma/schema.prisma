@@ -1014,7 +1014,7 @@ model Product {
   brandId          String?
   manufacturerId   String?
   defaultSupplierId String?
-  baseUnitId       String
+  baseUnitId       String?
   domain           AgriDomain?
   productKind      ProductKind   @default(OTHER)
   businessGroup    BusinessGroup?
@@ -1044,7 +1044,7 @@ model Product {
   brand           Brand?                   @relation(fields: [brandId], references: [id], onDelete: SetNull)
   manufacturer    Manufacturer?            @relation(fields: [manufacturerId], references: [id], onDelete: SetNull)
   defaultSupplier Supplier?                @relation(fields: [defaultSupplierId], references: [id], onDelete: SetNull)
-  baseUnit        Unit                     @relation(fields: [baseUnitId], references: [id])
+  baseUnit        Unit?          @relation(fields: [baseUnitId], references: [id])
   conversions     ProductUnitConversion[]
   priceTiers      ProductPriceTier[]
   customerPrices  CustomerProductPrice[]

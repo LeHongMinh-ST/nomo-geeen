@@ -42,7 +42,7 @@ const productFixture: Product = {
 	sku: "TEST-01",
 	categoryId: "category",
 	baseUnit: "Kg",
-	baseUnitId: "unit",
+	baseUnitId: undefined,
 	conversions: [],
 	costPrice: 10,
 	salePrice: 20,
@@ -145,6 +145,31 @@ describe("ProductForm ProductKind flow", () => {
 				.closest("form") as HTMLFormElement,
 		);
 		await waitFor(() => expect(createTenantProduct).toHaveBeenCalled());
+	});
+
+	it("does not require a base unit when creating", async () => {
+		createTenantProduct.mockResolvedValue({ id: "created" });
+		render(<ProductForm mode="create" lookups={lookups} />);
+		fireEvent.change(screen.getByLabelText("Nhóm ngành hàng"), {
+			target: { value: "CROP_INPUTS" },
+		});
+		fireEvent.change(screen.getByLabelText("Loại sản phẩm"), {
+			target: { value: "PESTICIDE" },
+		});
+		fireEvent.change(
+			screen.getByPlaceholderText("VD: Phân bón NPK Đầu Trâu 20-20-15"),
+			{ target: { value: "NPK 15" } },
+		);
+		fireEvent.submit(
+			screen
+				.getAllByRole("button", { name: "Thêm sản phẩm" })[0]
+				.closest("form") as HTMLFormElement,
+		);
+		await waitFor(() =>
+			expect(createTenantProduct).toHaveBeenCalledWith(
+				expect.objectContaining({ baseUnitId: undefined }),
+			),
+		);
 	});
 
 	it("submits canonical group, kind, and normalized attrs", async () => {

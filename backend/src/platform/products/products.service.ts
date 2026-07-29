@@ -37,7 +37,7 @@ type ProductRow = {
 	sku: string;
 	name: string;
 	barcode: string | null;
-	baseUnitId: string;
+	baseUnitId: string | null;
 	brandId: string | null;
 	manufacturerId: string | null;
 	domain: string | null;
@@ -292,11 +292,16 @@ export class ProductsService {
 			if (dto.businessGroup)
 				await this.assertBusinessGroupAccess(tenantId, dto.businessGroup, tx);
 			await this.counters.reserve(tx, tenantId, 'maxProducts', 1n);
-			const unit = await tx.unit.findFirst({
-				where: { id: dto.baseUnitId, tenantId, deletedAt: null },
-				select: { id: true },
-			});
-			if (!unit) throw new NotFoundException('Base unit not found');
+			const unit = dto.baseUnitId
+				? await tx.unit.findFirst({
+						where: { id: dto.baseUnitId, tenantId, deletedAt: null },
+						select: { id: true },
+					})
+				: null;
+			if (dto.baseUnitId && !unit)
+				throw new NotFoundException('Base unit not found');
+			if (dto.conversions?.length && !unit)
+				throw new BadRequestException('Base unit is required for conversions');
 
 			try {
 				const created = await tx.product.create({
@@ -305,7 +310,7 @@ export class ProductsService {
 						sku,
 						name,
 						barcode: dto.barcode?.trim() || null,
-						baseUnitId: unit.id,
+						baseUnitId: unit?.id ?? null,
 						brandId: await this.resolveNamedReference(
 							tx,
 							'brand',
@@ -330,13 +335,14 @@ export class ProductsService {
 					},
 					select: { id: true, sku: true, name: true, baseUnitId: true },
 				});
-				await this.syncConversions(
-					tx,
-					tenantId,
-					created.id,
-					unit.id,
-					dto.conversions,
-				);
+				if (unit)
+					await this.syncConversions(
+						tx,
+						tenantId,
+						created.id,
+						unit.id,
+						dto.conversions,
+					);
 				if (actor)
 					await this.audit.writeInTx(tx, {
 						tenantId,
@@ -476,13 +482,20 @@ export class ProductsService {
 					},
 					select: this.productSelect(),
 				});
-				await this.syncConversions(
-					tx,
-					tenantId,
-					product.id,
-					dto.baseUnitId ?? product.baseUnitId,
-					dto.conversions,
-				);
+				if (dto.conversions !== undefined) {
+					const nextBaseUnitId = dto.baseUnitId ?? product.baseUnitId;
+					if (!nextBaseUnitId)
+						throw new BadRequestException(
+							'Base unit is required for conversions',
+						);
+					await this.syncConversions(
+						tx,
+						tenantId,
+						product.id,
+						nextBaseUnitId,
+						dto.conversions,
+					);
+				}
 				const stock = await tx.stock.aggregate({
 					where: { tenantId, productId: product.id },
 					_sum: { qty: true },

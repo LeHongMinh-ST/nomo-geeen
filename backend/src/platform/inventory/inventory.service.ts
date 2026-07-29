@@ -224,8 +224,8 @@ export class InventoryService {
 			product: {
 				name: string;
 				sku: string;
-				baseUnitId: string;
-				baseUnit: { name: string };
+				baseUnitId: string | null;
+				baseUnit: { name: string } | null;
 				batches: Array<{
 					id: string;
 					tenantId: string;
@@ -257,7 +257,7 @@ export class InventoryService {
 			sku: row.product.sku,
 			warehouseId: row.warehouseId,
 			baseUnitId: row.product.baseUnitId,
-			baseUnit: row.product.baseUnit.name,
+			baseUnit: row.product.baseUnit?.name ?? '—',
 			qty: row.qty.toString(),
 			avgCost: row.avgCost.toString(),
 			updatedAt: row.updatedAt,

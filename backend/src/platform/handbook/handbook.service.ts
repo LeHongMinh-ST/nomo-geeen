@@ -12,26 +12,26 @@ import {
 } from '@prisma/client';
 import { AuditLogger } from '../audit/audit-logger.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { toSquareMeters } from './area-conversion';
 import {
 	CreateHandbookEntryDto,
 	DiseaseTypeInput,
 	HandbookQueryDto,
 	UpdateHandbookEntryDto,
 } from './dto/handbook.dto';
+import type { QuickSuggestionsQueryDto } from './dto/protocol.dto';
 import {
 	HANDBOOK_CATEGORY_CATALOG,
 	handbookCategoryLabel,
 	isSelectableHandbookCategory,
 	mapLegacyAgriDomain,
 } from './handbook-category';
+import { HandbookProtocolService } from './handbook-protocol.service';
+import { evaluateProtocol } from './protocol-availability';
 import {
 	normalizeSearchList,
 	normalizeVietnameseSearch,
 } from './vietnamese-search';
-import { toSquareMeters } from './area-conversion';
-import { HandbookProtocolService } from './handbook-protocol.service';
-import { evaluateProtocol } from './protocol-availability';
-import type { QuickSuggestionsQueryDto } from './dto/protocol.dto';
 
 type DiseaseRow = {
 	id: string;
@@ -179,9 +179,18 @@ export class HandbookService {
 		const disease = await this.prisma.disease.findFirst({
 			where: { id, tenantId, deletedAt: null, isActive: true },
 			include: {
-				ingredients: { orderBy: { sortOrder: 'asc' }, select: { activeIngredient: true } },
-				pins: { orderBy: { sortOrder: 'asc' }, select: { productId: true, isExcluded: true } },
-				consultFields: { where: { tenantId, isEnabled: true }, orderBy: { sortOrder: 'asc' } },
+				ingredients: {
+					orderBy: { sortOrder: 'asc' },
+					select: { activeIngredient: true },
+				},
+				pins: {
+					orderBy: { sortOrder: 'asc' },
+					select: { productId: true, isExcluded: true },
+				},
+				consultFields: {
+					where: { tenantId, isEnabled: true },
+					orderBy: { sortOrder: 'asc' },
+				},
 				protocols: {
 					orderBy: [
 						{ isDefault: 'desc' },
@@ -209,25 +218,85 @@ export class HandbookService {
 		});
 		if (!disease) throw new NotFoundException('Handbook entry not found');
 		const warehouse = await this.prisma.warehouse.findFirst({
-			where: { tenantId, isDefault: true, deletedAt: null }, select: { id: true },
+			where: { tenantId, isDefault: true, deletedAt: null },
+			select: { id: true },
 		});
 		const products = await this.prisma.product.findMany({
 			where: { tenantId, deletedAt: null },
-			include: { baseUnit: { select: { id: true, name: true } }, stocks: warehouse ? { where: { warehouseId: warehouse.id }, select: { qty: true } } : false },
+			include: {
+				baseUnit: { select: { id: true, name: true } },
+				stocks: warehouse
+					? { where: { warehouseId: warehouse.id }, select: { qty: true } }
+					: false,
+			},
 		});
-		const excluded = new Set(disease.pins.filter((p) => p.isExcluded).map((p) => p.productId));
-		const pinned = new Map(disease.pins.filter((p) => !p.isExcluded).map((p, i) => [p.productId, i]));
-		const ingredients = disease.ingredients.map((i) => i.activeIngredient.toLowerCase());
-		const terms = [disease.name, ...(Array.isArray(disease.aliases) ? disease.aliases.filter((a): a is string => typeof a === 'string') : [])].map((v) => v.toLowerCase());
-		const suggestions = products.filter((p) => !excluded.has(p.id)).map((p) => {
-			const text = [p.name, p.activeIngredient ?? '', ...(Array.isArray(p.pestTags) ? p.pestTags.filter((v): v is string => typeof v === 'string') : [])].join(' ').toLowerCase();
-			const pinRank = pinned.get(p.id);
-			const ingredientMatch = !!p.activeIngredient && ingredients.some((i) => p.activeIngredient!.toLowerCase().includes(i));
-			const tagMatch = terms.some((term) => text.includes(term));
-			const availableQty = Number(p.stocks?.[0]?.qty ?? 0);
-			const available = p.status === 'ACTIVE' && !p.isLocked && !p.isRecalled && availableQty > 0;
-			return { productId: p.id, name: p.name, unitId: p.baseUnit.id, unit: p.baseUnit.name, unitPrice: Number(p.salePrice), availableQty, available, reason: pinRank !== undefined ? 'OWNER_PIN' : ingredientMatch ? 'ACTIVE_INGREDIENT' : 'TARGET_MATCH', warnings: [], matched: pinRank !== undefined || ingredientMatch || tagMatch, rank: pinRank !== undefined ? pinRank : ingredientMatch ? 100 : 200 };
-		}).filter((item) => item.matched).sort((a, b) => a.rank - b.rank || Number(b.available) - Number(a.available) || a.productId.localeCompare(b.productId)).map(({ rank: _rank, matched: _matched, ...item }) => item);
+		const excluded = new Set(
+			disease.pins.filter((p) => p.isExcluded).map((p) => p.productId),
+		);
+		const pinned = new Map(
+			disease.pins.filter((p) => !p.isExcluded).map((p, i) => [p.productId, i]),
+		);
+		const ingredients = disease.ingredients.map((i) =>
+			i.activeIngredient.toLowerCase(),
+		);
+		const terms = [
+			disease.name,
+			...(Array.isArray(disease.aliases)
+				? disease.aliases.filter((a): a is string => typeof a === 'string')
+				: []),
+		].map((v) => v.toLowerCase());
+		const suggestions = products
+			.filter((p) => !excluded.has(p.id) && p.baseUnit !== null)
+			.map((p) => {
+				const text = [
+					p.name,
+					p.activeIngredient ?? '',
+					...(Array.isArray(p.pestTags)
+						? p.pestTags.filter((v): v is string => typeof v === 'string')
+						: []),
+				]
+					.join(' ')
+					.toLowerCase();
+				const pinRank = pinned.get(p.id);
+				const ingredientMatch =
+					!!p.activeIngredient &&
+					ingredients.some((i) =>
+						p.activeIngredient!.toLowerCase().includes(i),
+					);
+				const tagMatch = terms.some((term) => text.includes(term));
+				const availableQty = Number(p.stocks?.[0]?.qty ?? 0);
+				const available =
+					p.status === 'ACTIVE' &&
+					!p.isLocked &&
+					!p.isRecalled &&
+					availableQty > 0;
+				return {
+					productId: p.id,
+					name: p.name,
+					unitId: p.baseUnit?.id ?? '',
+					unit: p.baseUnit?.name ?? '',
+					unitPrice: Number(p.salePrice),
+					availableQty,
+					available,
+					reason:
+						pinRank !== undefined
+							? 'OWNER_PIN'
+							: ingredientMatch
+								? 'ACTIVE_INGREDIENT'
+								: 'TARGET_MATCH',
+					warnings: [],
+					matched: pinRank !== undefined || ingredientMatch || tagMatch,
+					rank: pinRank !== undefined ? pinRank : ingredientMatch ? 100 : 200,
+				};
+			})
+			.filter((item) => item.matched)
+			.sort(
+				(a, b) =>
+					a.rank - b.rank ||
+					Number(b.available) - Number(a.available) ||
+					a.productId.localeCompare(b.productId),
+			)
+			.map(({ rank: _rank, matched: _matched, ...item }) => item);
 		const productById = new Map(products.map((p) => [p.id, p]));
 		const area = this.resolveArea(query);
 		const protocols = disease.protocols.map((protocol) =>
@@ -255,7 +324,7 @@ export class HandbookService {
 							mixing: item.mixing,
 							usage: item.usage,
 							sortOrder: item.sortOrder,
-							product: product
+							product: product?.baseUnit
 								? {
 										id: product.id,
 										unitId: product.baseUnit.id,
@@ -282,7 +351,15 @@ export class HandbookService {
 		);
 
 		return {
-			disease: { id: disease.id, name: disease.name, category: disease.handbookCategory, symptom: disease.symptom, aliases: disease.aliases, note: disease.note, formulaExpr: disease.formulaExpr },
+			disease: {
+				id: disease.id,
+				name: disease.name,
+				category: disease.handbookCategory,
+				symptom: disease.symptom,
+				aliases: disease.aliases,
+				note: disease.note,
+				formulaExpr: disease.formulaExpr,
+			},
 			consultFields: disease.consultFields,
 			suggestions,
 			area: area.echo,

@@ -376,7 +376,7 @@ export function ProductForm({
 			sku: form.sku || undefined,
 			name: form.name,
 			barcode: form.barcode || undefined,
-			baseUnitId: form.baseUnit,
+			baseUnitId: form.baseUnit || undefined,
 			brandName: form.brandName.trim() || undefined,
 			manufacturerName: form.manufacturerName.trim() || undefined,
 			conversions: form.conversions.map((conversion) => ({
