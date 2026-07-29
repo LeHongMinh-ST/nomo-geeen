@@ -88,7 +88,7 @@ export default function LoginPage() {
 								Phần mềm bán hàng
 							</p>
 							<h1 className="max-w-md text-4xl font-bold leading-tight tracking-tight text-foreground">
-								Bán vật tư nông nghiệp, gọn trong lòng bàn tay.
+								Bán hàng, quản lý gọn trong lòng bàn tay.
 							</h1>
 							<p className="max-w-md text-base leading-relaxed text-muted-foreground">
 								Một chỗ cho bán hàng, kho và công nợ — to, rõ, dễ dùng trên điện
