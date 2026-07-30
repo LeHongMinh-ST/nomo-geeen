@@ -1,5 +1,6 @@
 /* Conservative PWA cache: immutable Next assets plus public GET fallbacks only. */
-const VERSION = "nomo-v4";
+// Bump when the application bundle changes so old PWA asset caches are removed.
+const VERSION = "nomo-v5";
 const ASSETS = [VERSION, "assets"].join("-");
 const RUNTIME = [VERSION, "runtime"].join("-");
 const NETWORK_TIMEOUT_MS = 3000;

@@ -17,6 +17,36 @@ export function ServiceWorkerRegister() {
 		}
 
 		let refreshing = false;
+		const recoveryKey = "nomo-runtime-cache-recovery";
+		const shouldRecover = (value: unknown) => {
+			const message =
+				value instanceof Error ? value.message : String(value ?? "");
+			return /module factory is not available|ChunkLoadError|Loading chunk|dynamically imported module/i.test(
+				message,
+			);
+		};
+		const recoverFromStaleRuntime = (value: unknown) => {
+			if (!shouldRecover(value)) return;
+			const lastRecovery = Number(sessionStorage.getItem(recoveryKey) ?? 0);
+			if (Date.now() - lastRecovery < 15_000) return;
+			sessionStorage.setItem(recoveryKey, String(Date.now()));
+			void Promise.all([
+				navigator.serviceWorker
+					.getRegistrations()
+					.then((registrations) =>
+						Promise.all(registrations.map((registration) => registration.unregister())),
+					),
+				caches
+					.keys()
+					.then((keys) => Promise.all(keys.map((key) => caches.delete(key)))),
+			]).finally(() => window.location.reload());
+		};
+		const onWindowError = (event: ErrorEvent) =>
+			recoverFromStaleRuntime(event.error ?? event.message);
+		const onUnhandledRejection = (event: PromiseRejectionEvent) =>
+			recoverFromStaleRuntime(event.reason);
+		window.addEventListener("error", onWindowError, true);
+		window.addEventListener("unhandledrejection", onUnhandledRejection);
 		const onControllerChange = () => {
 			if (refreshing) return;
 			refreshing = true;
@@ -28,8 +58,8 @@ export function ServiceWorkerRegister() {
 		);
 
 		const onLoad = () => {
-			navigator.serviceWorker
-				.register("/sw.js")
+				navigator.serviceWorker
+					.register("/sw.js", { updateViaCache: "none" })
 				.then((reg) => {
 					// Nếu có bản SW đang chờ, yêu cầu kích hoạt ngay.
 					if (reg.waiting) reg.waiting.postMessage("SKIP_WAITING");
@@ -54,6 +84,11 @@ export function ServiceWorkerRegister() {
 
 		return () => {
 			window.removeEventListener("load", onLoad);
+			window.removeEventListener("error", onWindowError, true);
+			window.removeEventListener(
+				"unhandledrejection",
+				onUnhandledRejection,
+			);
 			navigator.serviceWorker.removeEventListener(
 				"controllerchange",
 				onControllerChange,
