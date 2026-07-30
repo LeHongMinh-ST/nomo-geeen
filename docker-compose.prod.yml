@@ -76,7 +76,7 @@ services:
     environment:
       NODE_ENV: production
       PORT: 3001
-      NODE_OPTIONS: --max-old-space-size=512
+      NODE_OPTIONS: --max-old-space-size=1536
       DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-nomogreen}?schema=public
       REDIS_URL: redis://redis:6379
       JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:?JWT_ACCESS_SECRET is required}
@@ -110,7 +110,7 @@ services:
       resources:
         limits:
           cpus: "1.0"
-          memory: 768M
+          memory: 2G
         reservations:
           cpus: "0.25"
           memory: 256M
