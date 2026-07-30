@@ -116,6 +116,7 @@ Format theo [Keep a Changelog](https://keepachangelog.com/), tuân thủ [Semant
 - **Tenant auth acceptance coverage** — added deterministic Postgres/Redis tenant lifecycle E2E and re-ran admin auth plus tenant product regressions: 5 suites / 19 tests passing.
 
 ### Fixed
+- **Prisma Client watch-mode drift** — backend `start:dev` và `start:debug` giờ regenerate Prisma Client trước khi Nest watch khởi động, tránh lỗi TypeScript do generated client không theo kịp `schema.prisma`.
 - **Quick-sale bottom action overlap** — đặt thanh tổng tiền/thanh toán mobile lên `bottom-nav-safe` để không bị bottom navigation che mất.
 - **Quick-sale iPhone footer gap** — kéo nền thanh tổng tiền xuyên qua safe-area phía dưới, để bottom nav phủ lên lớp nền footer và không còn lộ customer picker giữa nút thanh toán với menu mobile.
 - **Handbook empty state mobile CTA duplication** — ẩn nút “Thêm sổ tay” trong empty state trên mobile, giữ lại FAB “Thêm” duy nhất; desktop vẫn hiển thị CTA trong empty state.
