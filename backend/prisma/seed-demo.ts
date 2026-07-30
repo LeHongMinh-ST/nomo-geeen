@@ -13,12 +13,13 @@
 import { PrismaPg } from '@prisma/adapter-pg';
 import { type Prisma, PrismaClient } from '@prisma/client';
 import * as argon2 from 'argon2';
+import { existsSync } from 'node:fs';
 import {
 	normalizeSearchList,
 	normalizeVietnameseSearch,
 } from '../src/platform/handbook/vietnamese-search';
 
-process.loadEnvFile?.('.env');
+if (existsSync('.env')) process.loadEnvFile?.('.env');
 
 const prisma = new PrismaClient({
 	adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }),

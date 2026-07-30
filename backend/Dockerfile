@@ -29,6 +29,7 @@ RUN apk add --no-cache libstdc++ openssl \
 COPY --from=builder --chown=nestjs:nodejs /app/node_modules ./node_modules
 COPY --from=builder --chown=nestjs:nodejs /app/dist ./dist
 COPY --from=builder --chown=nestjs:nodejs /app/prisma ./prisma
+COPY --from=builder --chown=nestjs:nodejs /app/src ./src
 COPY --from=builder --chown=nestjs:nodejs /app/prisma.config.ts ./prisma.config.ts
 USER nestjs
 

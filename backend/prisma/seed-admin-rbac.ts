@@ -12,13 +12,14 @@
 
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '@prisma/client';
+import { existsSync } from 'node:fs';
 import {
 	ADMIN_PERMISSION_PREFIX,
 	SUPER_ADMIN_ROLE_CODE,
 } from '../src/platform/admin-users/admin.constants';
 
 // Prisma 7: nap .env thu cong (config loader khong tu nap cho ts-node seed).
-process.loadEnvFile?.('.env');
+if (existsSync('.env')) process.loadEnvFile?.('.env');
 
 const prisma = new PrismaClient({
 	adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }),

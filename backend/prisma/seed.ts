@@ -4,13 +4,14 @@
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '@prisma/client';
 import * as argon2 from 'argon2';
+import { existsSync } from 'node:fs';
 import {
 	normalizeSearchList,
 	normalizeVietnameseSearch,
 } from '../src/platform/handbook/vietnamese-search';
 
 // Prisma 7: nap .env thu cong (config loader khong tu nap cho ts-node seed).
-process.loadEnvFile?.('.env');
+if (existsSync('.env')) process.loadEnvFile?.('.env');
 
 // Runtime PrismaClient dung driver adapter @prisma/adapter-pg (schema.prisma khong co url).
 const prisma = new PrismaClient({
