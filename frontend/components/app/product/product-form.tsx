@@ -540,8 +540,7 @@ export function ProductForm({
 						className={inputClass}
 					/>
 				</Field>
-
-				</Section>
+			</Section>
 
 			{/* Section 2: Đơn vị & quy đổi — hoàn thiện sau khi tạo sản phẩm */}
 			{mode === "edit" ? (
@@ -575,7 +574,7 @@ export function ProductForm({
 						{form.conversions.map((c, i) => (
 							<div
 								key={c.rowId}
-								className="grid grid-cols-[auto_minmax(0,1fr)_auto_auto_minmax(0,1fr)_minmax(0,1fr)_auto] items-center gap-2"
+								className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 sm:grid-cols-[auto_minmax(0,1fr)_auto_auto_minmax(0,1fr)_minmax(0,1fr)_auto]"
 							>
 								<span className="text-base text-[#616161]">1</span>
 								<Select
@@ -602,7 +601,7 @@ export function ProductForm({
 										.map((unit) => ({ value: unit.id, label: unit.name }))}
 									ariaLabel={`Đơn vị quy đổi ${i + 1}`}
 									ariaInvalid={!c.unitId}
-									className="flex-1"
+									className="col-start-2 min-w-0 sm:col-start-auto sm:flex-1"
 								/>
 								<span className="text-base text-[#616161]">=</span>
 								<input
@@ -617,9 +616,9 @@ export function ProductForm({
 												e.target.value === "" ? "" : Number(e.target.value),
 										})
 									}
-									className={`${inputClass} w-24 text-right`}
+									className={`${inputClass} col-start-2 w-full min-w-0 text-right sm:col-start-auto sm:w-24`}
 								/>
-								<span className="text-sm text-[#616161]">
+								<span className="col-start-3 min-w-0 text-sm text-[#616161] sm:col-start-auto">
 									{selectedUnitName || "gốc"}
 								</span>
 								<Select
@@ -632,7 +631,7 @@ export function ProductForm({
 									options={conversionKindOptions}
 									placeholder="Áp dụng khi"
 									ariaLabel={`Áp dụng quy đổi ${i + 1}`}
-									className="min-w-28"
+									className="col-start-2 min-w-0 sm:col-start-auto sm:min-w-28"
 								/>
 								<button
 									type="button"
