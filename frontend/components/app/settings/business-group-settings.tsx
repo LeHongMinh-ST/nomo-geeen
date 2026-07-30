@@ -234,7 +234,7 @@ export function BusinessGroupSettings() {
 					type="button"
 					onClick={() => void save()}
 					disabled={allOff || saving || loading}
-					className="hidden flex h-12 w-full items-center justify-center rounded-[10px] bg-primary text-base font-semibold text-white transition-all duration-200 ease-out hover:bg-[#5cad45] active:translate-y-px active:bg-[#3f8530] disabled:cursor-not-allowed disabled:opacity-50 md:h-11"
+					className="flex h-12 w-full items-center justify-center rounded-[10px] bg-primary text-base font-semibold text-white transition-all duration-200 ease-out hover:bg-[#5cad45] active:translate-y-px active:bg-[#3f8530] disabled:cursor-not-allowed disabled:opacity-50 md:h-11"
 				>
 					{saving ? "Đang lưu…" : "Lưu thay đổi"}
 				</button>

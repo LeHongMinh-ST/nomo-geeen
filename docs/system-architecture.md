@@ -160,6 +160,8 @@ The repository contains local runtime/package configuration and migrations, but 
   `/tenant/products/business-groups` response. The basic package exposes only `CROP_INPUTS`; other
   groups require their `product_group:*` entitlement and can then be enabled/disabled without
   deleting existing records. Backend create/update checks both entitlement and the saved switch.
+  The settings screen keeps toggles local until the visible `Lưu thay đổi` action sends the PATCH,
+  then reapplies the server response so the persisted state is the UI source of truth.
 
 ## Supplier and purchase batch metadata
 

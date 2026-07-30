@@ -114,7 +114,9 @@ describe("BusinessGroupSettings", () => {
 
 		fireEvent.click(switchFor("Cây trồng"));
 		expect(switchFor("Cây trồng")).toHaveAttribute("aria-checked", "true");
-		fireEvent.click(screen.getByRole("button", { name: "Lưu thay đổi" }));
+		const save = screen.getByRole("button", { name: "Lưu thay đổi" });
+		expect(save).not.toHaveClass("hidden");
+		fireEvent.click(save);
 
 		await waitFor(() =>
 			expect(updateTenantBusinessGroups).toHaveBeenCalledTimes(1),
