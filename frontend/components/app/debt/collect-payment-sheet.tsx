@@ -237,9 +237,9 @@ export function CollectPaymentSheet({
 											<Image
 												src={quickLink}
 												alt="Mã VietQR thu nợ"
-												className="size-44 rounded-[12px] bg-white object-contain"
-												width={176}
-												height={176}
+														className="size-64 rounded-[12px] bg-white object-contain"
+														width={256}
+														height={256}
 												unoptimized
 											/>
 											<p className="text-center text-base text-[#616161]">
