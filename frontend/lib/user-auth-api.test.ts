@@ -2,6 +2,14 @@ import { describe, expect, it, vi } from "vitest";
 import { createUserApiError, getVietQrBanks } from "./user-auth-api";
 
 describe("createUserApiError", () => {
+	it("explains missing tenant subscription and points to admin support", () => {
+		const error = createUserApiError(403, { reason: "NO_SUBSCRIPTION" });
+
+		expect(error.message).toBe(
+			"Cửa hàng chưa được cấp gói dịch vụ. Vui lòng liên hệ quản trị viên để được hỗ trợ.",
+		);
+	});
+
 	it("preserves NestJS message for field-level form mapping", () => {
 		const error = createUserApiError(400, {
 			message: "attrs.activeIngredient is required for PESTICIDE",

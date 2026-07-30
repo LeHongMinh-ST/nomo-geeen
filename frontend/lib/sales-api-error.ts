@@ -46,6 +46,10 @@ export type SalesApiErrorReason =
 	| "PURCHASE_NOT_RETURNABLE"
 	| "VALIDATION_ERROR"
 	| "NETWORK_ERROR"
+	| "NO_SUBSCRIPTION"
+	| "SUBSCRIPTION_EXPIRED"
+	| "SUBSCRIPTION_CANCELLED"
+	| "ENTITLEMENT_UNAVAILABLE"
 	| "ALREADY_COMPLETED"
 	| string;
 
@@ -128,6 +132,14 @@ const REASON_MESSAGES: Record<string, string> = {
 	VALIDATION_ERROR: "Thông tin chưa hợp lệ. Vui lòng kiểm tra lại.",
 	NETWORK_ERROR:
 		"Không thể kết nối máy chủ. Vui lòng kiểm tra mạng và thử lại.",
+	NO_SUBSCRIPTION:
+		"Cửa hàng chưa được cấp gói dịch vụ. Vui lòng liên hệ quản trị viên để được hỗ trợ.",
+	SUBSCRIPTION_EXPIRED:
+		"Gói dịch vụ của cửa hàng đã hết hạn. Vui lòng liên hệ quản trị viên để được gia hạn.",
+	SUBSCRIPTION_CANCELLED:
+		"Gói dịch vụ của cửa hàng đã bị hủy. Vui lòng liên hệ quản trị viên để được hỗ trợ.",
+	ENTITLEMENT_UNAVAILABLE:
+		"Chưa thể kiểm tra gói dịch vụ. Vui lòng thử lại hoặc liên hệ quản trị viên.",
 };
 
 function extractReason(error: unknown): string | undefined {

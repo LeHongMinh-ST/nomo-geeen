@@ -1,3 +1,5 @@
+import { mapTenantApiError } from "./sales-api-error";
+
 export type TenantAuthUser = {
 	id: string;
 	tenantId: string;
@@ -46,7 +48,15 @@ export type UserApiError = Error & {
 const API_BASE =
 	process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:3001";
 
-function messageForStatus(status: number): string {
+function messageForStatus(status: number, reason?: string): string {
+	if (
+		reason === "NO_SUBSCRIPTION" ||
+		reason === "SUBSCRIPTION_EXPIRED" ||
+		reason === "SUBSCRIPTION_CANCELLED" ||
+		reason === "ENTITLEMENT_UNAVAILABLE"
+	) {
+		return mapTenantApiError({ reason });
+	}
 	if (status === 400) return "Thông tin chưa hợp lệ, vui lòng kiểm tra lại.";
 	if (status === 401)
 		return "Thông tin đăng nhập không đúng hoặc phiên đã hết hạn.";
@@ -62,12 +72,13 @@ export function createUserApiError(
 	status: number,
 	body?: { reason?: string; message?: string | string[] },
 ): UserApiError {
+	const reason = body?.reason;
 	const serverMessage = Array.isArray(body?.message)
 		? body.message.join("; ")
 		: body?.message;
-	return Object.assign(new Error(messageForStatus(status)), {
+	return Object.assign(new Error(messageForStatus(status, reason)), {
 		status,
-		reason: body?.reason,
+		reason,
 		serverMessage,
 	});
 }

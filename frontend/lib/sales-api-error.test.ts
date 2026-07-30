@@ -5,6 +5,10 @@ const FALLBACK = "Không thể hoàn tất đơn. Giỏ hàng vẫn được gi�
 
 const MAPPED_REASONS = [
 	["PRODUCT_LOCKED", "Sản phẩm đang bị khóa, không thể bán."],
+	[
+		"NO_SUBSCRIPTION",
+		"Cửa hàng chưa được cấp gói dịch vụ. Vui lòng liên hệ quản trị viên để được hỗ trợ.",
+	],
 	["PRODUCT_RECALLED", "Sản phẩm đã thu hồi, không thể bán."],
 	["PRODUCT_INACTIVE", "Sản phẩm ngừng kinh doanh, không thể bán."],
 	["PRODUCT_UNSELLABLE", "Sản phẩm không hợp lệ hoặc không bán được."],

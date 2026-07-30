@@ -7,6 +7,7 @@
 //   - tenant da co -> giu nguyen, chi bo sung user/unit/kho/danh muc/san pham con thieu (upsert).
 //   - user upsert theo (tenantId, username): KHONG ghi de passwordHash cu.
 //   - unit/warehouse upsert theo (tenantId, code); product upsert theo (tenantId, sku); stock theo (warehouseId, productId).
+//   - moi tenant demo duoc gan goi enterprise ACTIVE va full tenant permissions cho OWNER/MANAGER/STAFF.
 //
 // Argon2id khop PasswordService (src/platform/auth/password.service.ts).
 
@@ -1104,6 +1105,52 @@ async function ensureUser(
 			createdByType: 'USER',
 		},
 	});
+}
+
+async function ensureDemoEntitlements(
+	tenantId: string,
+	roleIds: readonly string[],
+): Promise<void> {
+	const enterprise = await prisma.plan.findUniqueOrThrow({
+		where: { code: 'enterprise' },
+		select: { id: true },
+	});
+	const subscription = await prisma.subscription.findFirst({
+		where: { tenantId, status: { not: 'CANCELLED' } },
+		orderBy: { updatedAt: 'desc' },
+		select: { id: true },
+	});
+	const subscriptionData = {
+		planId: enterprise.id,
+		status: 'ACTIVE' as const,
+		trialEndsAt: null,
+		endDate: null,
+		reason: 'Seed demo enterprise full access',
+	};
+	if (subscription) {
+		await prisma.subscription.update({
+			where: { id: subscription.id },
+			data: subscriptionData,
+		});
+	} else {
+		await prisma.subscription.create({
+			data: { tenantId, ...subscriptionData },
+		});
+	}
+
+	const permissions = await prisma.permission.findMany({
+		where: { code: { not: { startsWith: 'admin.' } } },
+		select: { id: true },
+	});
+	for (const roleId of roleIds) {
+		await prisma.rolePermission.createMany({
+			data: permissions.map(({ id: permissionId }) => ({
+				roleId,
+				permissionId,
+			})),
+			skipDuplicates: true,
+		});
+	}
 }
 
 async function seedBvtvRelations(tenantId: string): Promise<void> {
@@ -2774,6 +2821,7 @@ async function seedTenant(t: DemoTenant): Promise<void> {
 		select: { id: true, code: true },
 	});
 	const roleIdByCode = new Map(roles.map((r) => [r.code, r.id]));
+	await ensureDemoEntitlements(tenantId, roles.map((role) => role.id));
 
 	// 3) users (owner da co neu vua provision; upsert phan con lai + owner cho tenant cu)
 	for (const u of t.users) {

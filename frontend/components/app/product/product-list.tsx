@@ -110,7 +110,14 @@ export function ProductList() {
 	}, [load]);
 
 	const businessGroupFilters = useMemo(() => {
-		const hasUngrouped = items.some((product) => !product.businessGroup);
+		const enabledGroupIds = new Set<string>(
+			enabledGroups.map((group) => group.id),
+		);
+		const visibleItems = items.filter(
+			(product) =>
+				!product.businessGroup || enabledGroupIds.has(product.businessGroup),
+		);
+		const hasUngrouped = visibleItems.some((product) => !product.businessGroup);
 
 		return [
 			{ value: "all", label: "Tất cả" },
@@ -124,9 +131,19 @@ export function ProductList() {
 		];
 	}, [enabledGroups, items]);
 
+	const visibleItems = useMemo(() => {
+		const enabledGroupIds = new Set<string>(
+			enabledGroups.map((group) => group.id),
+		);
+		return items.filter(
+			(product) =>
+				!product.businessGroup || enabledGroupIds.has(product.businessGroup),
+		);
+	}, [enabledGroups, items]);
+
 	const filtered = useMemo(() => {
 		const q = query.trim().toLowerCase();
-		return items.filter((p) => {
+		return visibleItems.filter((p) => {
 			if (status !== "all" && getStockStatus(p) !== status) return false;
 			if (
 				businessGroup !== "all" &&
@@ -142,7 +159,7 @@ export function ProductList() {
 				(p.barcode?.includes(q) ?? false)
 			);
 		});
-	}, [businessGroup, items, query, status]);
+	}, [businessGroup, query, status, visibleItems]);
 
 	// Đổi bộ lọc/tìm kiếm → về trang đầu và thu gọn lại danh sách mobile.
 	// biome-ignore lint/correctness/useExhaustiveDependencies: reset khi tiêu chí lọc đổi
@@ -206,7 +223,7 @@ export function ProductList() {
 							Sản phẩm
 						</h1>
 						<span className="rounded-full bg-[#e3f2fd] px-2.5 py-0.5 text-sm font-semibold text-[#1565c0]">
-							{items.length}
+							{visibleItems.length}
 						</span>
 					</div>
 					<p className="text-base text-[#616161]">
@@ -266,7 +283,7 @@ export function ProductList() {
 
 			{/* Kết quả */}
 			{filtered.length === 0 ? (
-				<EmptyState hasProducts={items.length > 0} />
+				<EmptyState hasProducts={visibleItems.length > 0} />
 			) : (
 				<>
 					{/* Mobile — card list + tải dần khi cuộn */}
