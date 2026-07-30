@@ -6,6 +6,7 @@ import {
 	listTenantNotifications,
 	markAllTenantNotificationsRead,
 	markTenantNotificationRead,
+	notificationHref,
 	notificationTypeLabel,
 	syncTenantNotifications,
 } from "./tenant-notifications-api";
@@ -47,6 +48,10 @@ describe("tenant notifications api", () => {
 		expect(notificationTypeLabel("LOW_STOCK")).toBe("Tồn kho");
 		expect(notificationTypeLabel("NEAR_EXPIRED")).toBe("Hạn dùng");
 		expect(notificationTypeLabel("SYSTEM")).toBe("Hệ thống");
+		expect(notificationHref("DEBT_DUE")).toBe("/cong-no");
+		expect(notificationHref("LOW_STOCK")).toBe("/ton-kho");
+		expect(notificationHref("NEAR_EXPIRED")).toBe("/ton-kho");
+		expect(notificationHref("SYSTEM")).toBe("/thong-bao");
 		const recent = new Date(Date.now() - 2 * 60_000).toISOString();
 		expect(formatNotificationTime(recent)).toBe("2 phút trước");
 		expect(formatNotificationTime("bad")).toBe("");

@@ -1,12 +1,14 @@
 "use client";
 
 import { AlertTriangle, Bell, Clock3, Package, Wallet } from "lucide-react";
+import { useRouter } from "next/navigation";
 import type {
 	NotificationType,
 	TenantNotification,
 } from "@/lib/tenant-notifications-api";
 import {
 	formatNotificationTime,
+	notificationHref,
 	notificationTypeLabel,
 } from "@/lib/tenant-notifications-api";
 
@@ -47,18 +49,23 @@ export function NotificationList({
 	onMarkRead: (id: string) => void;
 	compact?: boolean;
 }) {
+	const router = useRouter();
+
 	return (
 		<ul className={compact ? "flex flex-col" : "flex flex-col gap-2"}>
 			{items.map((item) => {
 				const Icon = typeIcon(item.type);
 				const unread = !item.readAt;
+				const destination = notificationHref(item.type);
+				const destinationLabel = notificationTypeLabel(item.type);
 				return (
 					<li key={item.id}>
 						<button
 							type="button"
-							disabled={Boolean(item.readAt) || busyId === item.id}
+							disabled={busyId === item.id}
 							onClick={() => {
 								if (!item.readAt) onMarkRead(item.id);
+								router.push(destination);
 							}}
 							className={`flex w-full min-h-12 items-start gap-3 text-left transition-colors duration-150 ease-out ${
 								compact
@@ -67,8 +74,8 @@ export function NotificationList({
 							} ${unread ? "" : "opacity-80"} disabled:cursor-default`}
 							aria-label={
 								unread
-									? `Đánh dấu đã đọc: ${item.title}`
-									: `Đã đọc: ${item.title}`
+									? `Đánh dấu đã đọc: ${item.title}. Mở ${destinationLabel}`
+									: `Mở ${destinationLabel}: ${item.title}`
 							}
 						>
 							<span

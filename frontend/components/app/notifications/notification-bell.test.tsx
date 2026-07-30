@@ -24,6 +24,8 @@ vi.mock("@/lib/tenant-notifications-api", () => ({
 	}),
 	notificationTypeLabel: (type: string) => type,
 	formatNotificationTime: () => "vừa xong",
+	notificationHref: (type: string) =>
+		type === "DEBT_DUE" ? "/cong-no" : type === "SYSTEM" ? "/thong-bao" : "/ton-kho",
 }));
 
 vi.mock("@/lib/use-tenant-notification-stream", () => ({
@@ -55,6 +57,11 @@ vi.mock("next/link", () => ({
 			{children}
 		</a>
 	),
+}));
+
+const pushMock = vi.fn();
+vi.mock("next/navigation", () => ({
+	useRouter: () => ({ push: pushMock }),
 }));
 
 const unreadMock = vi.mocked(getTenantNotificationUnreadCount);
@@ -154,5 +161,24 @@ describe("NotificationBell", () => {
 		await waitFor(() => {
 			expect(screen.getAllByText("Hàng sắp hết").length).toBeGreaterThan(0);
 		});
+	});
+
+	it("opens each notification on its business screen", async () => {
+		pushMock.mockReset();
+		listMock.mockResolvedValue({
+			items: [
+				{ ...sample.items[0], type: "DEBT_DUE", title: "Công nợ" },
+				{ ...sample.items[0], id: "n3", type: "NEAR_EXPIRED", title: "Hạn dùng" },
+			],
+			unreadCount: 2,
+		});
+		render(<NotificationBell />);
+		fireEvent.click(screen.getByRole("button", { name: /Thông báo/i }));
+		await waitFor(() => expect(screen.getAllByText("Công nợ").length).toBeGreaterThan(0));
+
+		fireEvent.click(screen.getAllByRole("button", { name: /Công nợ/i })[0]);
+		fireEvent.click(screen.getAllByRole("button", { name: /Hạn dùng/i })[0]);
+		expect(pushMock).toHaveBeenNthCalledWith(1, "/cong-no");
+		expect(pushMock).toHaveBeenNthCalledWith(2, "/ton-kho");
 	});
 });

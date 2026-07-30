@@ -9,6 +9,8 @@ Format theo [Keep a Changelog](https://keepachangelog.com/), tuân thủ [Semant
 ## [Unreleased]
 
 ### Added
+- **Demo handbook by store profile** — `seed-demo` now enables business groups per demo store, assigns `Product.businessGroup` consistently, seeds disease entries by relevant SKU, and creates product-backed recommended protocols. Crop, livestock, aquaculture, seedling, and fertilizer/plant-protection entries are no longer shared indiscriminately across stores.
+- **Notification deep links** — click từng thông báo mở đúng màn hình nghiệp vụ theo loại: công nợ → `/cong-no`, tồn thấp/HSD → `/ton-kho`, hệ thống → `/thong-bao`; thông báo chưa đọc được gửi đánh dấu đã đọc đồng thời khi điều hướng.
 - **Bank account settings reachability** — thêm mục `Thông tin cửa hàng` vào nhóm `Cửa hàng` trong trang Thiết lập, mở được form cấu hình tài khoản nhận chuyển khoản trên desktop và mobile.
 - Admin management surface completion: added /admin/transactions and /admin/status routes, guarded read-only endpoints, global admin search, persisted notification read-state, and canonical reset-password permission checks.
 - **Package-driven business groups** — basic tenants expose only `Thuốc bảo vệ thực vật + Phân bón`; add-on `product_group:*` entitlements control other groups. The saved tenant switch is now applied by the backend and shared by product create/edit/list filters, Handbook category options, and settings; disabled groups preserve existing records but cannot be selected for new writes.

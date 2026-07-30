@@ -102,6 +102,19 @@ export function notificationTypeLabel(type: NotificationType): string {
 	}
 }
 
+/** Màn hình nghiệp vụ tương ứng khi người dùng mở một thông báo. */
+export function notificationHref(type: NotificationType): string {
+	switch (type) {
+		case "DEBT_DUE":
+			return "/cong-no";
+		case "LOW_STOCK":
+		case "NEAR_EXPIRED":
+			return "/ton-kho";
+		default:
+			return "/thong-bao";
+	}
+}
+
 export function formatNotificationTime(iso: string): string {
 	// Relative labels are intentional; absolute fallback uses the shared formatter.
 	const date = new Date(iso);

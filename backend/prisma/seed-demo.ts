@@ -11,14 +11,20 @@
 //
 // Argon2id khop PasswordService (src/platform/auth/password.service.ts).
 
-import { PrismaPg } from '@prisma/adapter-pg';
-import { type Prisma, PrismaClient } from '@prisma/client';
-import * as argon2 from 'argon2';
 import { existsSync } from 'node:fs';
+import { PrismaPg } from '@prisma/adapter-pg';
+import {
+	BusinessGroup,
+	type Prisma,
+	PrismaClient,
+	ProductKind,
+} from '@prisma/client';
+import * as argon2 from 'argon2';
 import {
 	normalizeSearchList,
 	normalizeVietnameseSearch,
 } from '../src/platform/handbook/vietnamese-search';
+import { resolveBusinessGroup } from '../src/platform/products/product-contract';
 
 if (existsSync('.env')) process.loadEnvFile?.('.env');
 
@@ -58,6 +64,7 @@ interface DemoTenant {
 	tenantType: 'HOUSEHOLD' | 'RETAIL_DEALER';
 	users: DemoUser[];
 	productSkus?: readonly string[];
+	enabledBusinessGroups?: readonly BusinessGroup[];
 }
 
 // 3 cua hang demo. Owner = user dau tien (dung de provision khi tenant chua ton tai).
@@ -66,6 +73,12 @@ const TENANTS: DemoTenant[] = [
 		slug: 'nong-xanh',
 		name: 'Cửa hàng Nông Xanh',
 		tenantType: 'HOUSEHOLD',
+		enabledBusinessGroups: [
+			BusinessGroup.CROP_INPUTS,
+			BusinessGroup.CROP_SEEDLINGS,
+			BusinessGroup.ANIMAL_FEED,
+			BusinessGroup.VETERINARY_DRUGS,
+		],
 		users: [
 			{
 				username: 'chutam',
@@ -94,6 +107,7 @@ const TENANTS: DemoTenant[] = [
 		slug: 'nong-xanh-bvtv',
 		name: 'Đại lý Thuốc BVTV Nông Xanh',
 		tenantType: 'RETAIL_DEALER',
+		enabledBusinessGroups: [BusinessGroup.CROP_INPUTS],
 		productSkus: [
 			'TBV-001',
 			'TBV-002',
@@ -150,6 +164,12 @@ const TENANTS: DemoTenant[] = [
 		slug: 'an-nong',
 		name: 'Đại lý An Nông',
 		tenantType: 'RETAIL_DEALER',
+		enabledBusinessGroups: [
+			BusinessGroup.CROP_INPUTS,
+			BusinessGroup.CROP_SEEDLINGS,
+			BusinessGroup.ANIMAL_FEED,
+			BusinessGroup.VETERINARY_DRUGS,
+		],
 		users: [
 			{
 				username: 'chuan',
@@ -178,6 +198,10 @@ const TENANTS: DemoTenant[] = [
 		slug: 'xanh-mien-tay',
 		name: 'Vật tư Nông nghiệp Xanh Miền Tây',
 		tenantType: 'RETAIL_DEALER',
+		enabledBusinessGroups: [
+			BusinessGroup.CROP_INPUTS,
+			BusinessGroup.CROP_SEEDLINGS,
+		],
 		productSkus: [
 			'PB-001',
 			'PB-002',
@@ -218,6 +242,11 @@ const TENANTS: DemoTenant[] = [
 		slug: 'thuy-san-song-xanh',
 		name: 'Đại lý Thủy sản Sông Xanh',
 		tenantType: 'RETAIL_DEALER',
+		enabledBusinessGroups: [
+			BusinessGroup.CROP_INPUTS,
+			BusinessGroup.ANIMAL_FEED,
+			BusinessGroup.VETERINARY_DRUGS,
+		],
 		productSkus: [
 			'TS-001',
 			'TY-001',
@@ -1149,6 +1178,21 @@ async function ensureDemoEntitlements(
 				permissionId,
 			})),
 			skipDuplicates: true,
+		});
+	}
+}
+
+/** Đồng bộ danh mục nghiệp vụ bật theo đặc trưng từng cửa hàng demo. */
+async function ensureDemoBusinessGroups(
+	tenantId: string,
+	enabledGroups: readonly BusinessGroup[],
+): Promise<void> {
+	const enabled = new Set(enabledGroups);
+	for (const businessGroup of Object.values(BusinessGroup)) {
+		await prisma.tenantBusinessGroup.upsert({
+			where: { tenantId_businessGroup: { tenantId, businessGroup } },
+			create: { tenantId, businessGroup, enabled: enabled.has(businessGroup) },
+			update: { enabled: enabled.has(businessGroup) },
 		});
 	}
 }
@@ -2296,10 +2340,271 @@ async function seedDemoRelations(
 	);
 }
 
+type DemoHandbookSeed = {
+	name: string;
+	aliases: string[];
+	domain: 'CROP' | 'LIVESTOCK' | 'AQUACULTURE';
+	category:
+		| 'CROP_PROTECTION_AND_FERTILIZER'
+		| 'CROP_SEEDLINGS'
+		| 'ANIMAL_FEED'
+		| 'VETERINARY_DRUGS'
+		| 'UNCATEGORIZED';
+	target: string;
+	type: 'DISEASE' | 'PEST' | 'WEED' | 'OTHER';
+	symptom: string;
+	productSkus: string[];
+	doseUnit: 'ml' | 'g';
+};
+
+/** Bệnh/sổ tay mẫu được pin theo đúng SKU đang có, không lấy sản phẩm ngẫu nhiên. */
+const DEMO_HANDBOOK: DemoHandbookSeed[] = [
+	{
+		name: 'Đạo ôn',
+		aliases: ['cháy lá'],
+		domain: 'CROP',
+		category: 'CROP_PROTECTION_AND_FERTILIZER',
+		target: 'Lúa',
+		type: 'DISEASE',
+		symptom: 'Vết bệnh hình thoi, tâm xám tro, lá cháy khô hoặc bông lép.',
+		productSkus: ['TBV-007', 'TBV-017', 'PB-003'],
+		doseUnit: 'g',
+	},
+	{
+		name: 'Rầy nâu',
+		aliases: ['rầy', 'cháy rầy'],
+		domain: 'CROP',
+		category: 'CROP_PROTECTION_AND_FERTILIZER',
+		target: 'Lúa',
+		type: 'PEST',
+		symptom: 'Rầy chích hút gốc lúa, cây vàng lụi từng chòm.',
+		productSkus: ['TBV-004', 'TBV-013', 'PB-008'],
+		doseUnit: 'g',
+	},
+	{
+		name: 'Sâu cuốn lá',
+		aliases: ['sâu cuốn lá nhỏ'],
+		domain: 'CROP',
+		category: 'CROP_PROTECTION_AND_FERTILIZER',
+		target: 'Lúa',
+		type: 'PEST',
+		symptom: 'Sâu cuốn lá thành ống, ăn phần thịt lá.',
+		productSkus: ['TBV-005', 'TBV-010', 'PB-003'],
+		doseUnit: 'ml',
+	},
+	{
+		name: 'Cỏ dại ruộng cạn',
+		aliases: ['cỏ dại'],
+		domain: 'CROP',
+		category: 'CROP_PROTECTION_AND_FERTILIZER',
+		target: 'Cây trồng cạn',
+		type: 'WEED',
+		symptom: 'Cỏ mọc dày tranh dinh dưỡng và che sáng cây non.',
+		productSkus: ['TBV-003', 'TBV-009'],
+		doseUnit: 'ml',
+	},
+	{
+		name: 'Vàng lá gân xanh',
+		aliases: ['vàng lá', 'greening'],
+		domain: 'CROP',
+		category: 'CROP_PROTECTION_AND_FERTILIZER',
+		target: 'Cam quýt',
+		type: 'DISEASE',
+		symptom: 'Lá vàng loang lổ nhưng gân còn xanh, cây suy dần.',
+		productSkus: ['TBV-011', 'TBV-018', 'PB-008'],
+		doseUnit: 'ml',
+	},
+	{
+		name: 'Sương mai',
+		aliases: ['mốc sương'],
+		domain: 'CROP',
+		category: 'CROP_PROTECTION_AND_FERTILIZER',
+		target: 'Rau màu',
+		type: 'DISEASE',
+		symptom: 'Mặt trên lá đốm vàng, mặt dưới có mốc trắng xám.',
+		productSkus: ['TBV-006', 'TBV-015'],
+		doseUnit: 'g',
+	},
+	{
+		name: 'Khô vằn',
+		aliases: ['đốm vằn'],
+		domain: 'CROP',
+		category: 'CROP_PROTECTION_AND_FERTILIZER',
+		target: 'Lúa',
+		type: 'DISEASE',
+		symptom: 'Vết bệnh hình bầu dục ở bẹ lá, lan nhanh khi ruộng rậm.',
+		productSkus: ['TBV-014', 'TBV-007'],
+		doseUnit: 'ml',
+	},
+	{
+		name: 'Bạc lá lúa',
+		aliases: ['cháy bìa lá'],
+		domain: 'CROP',
+		category: 'CROP_PROTECTION_AND_FERTILIZER',
+		target: 'Lúa',
+		type: 'DISEASE',
+		symptom: 'Bìa lá úng xanh rồi bạc trắng, vết bệnh kéo dài theo gân.',
+		productSkus: ['TBV-012', 'TBV-006'],
+		doseUnit: 'g',
+	},
+	{
+		name: 'Thối rễ cây trồng',
+		aliases: ['nấm rễ'],
+		domain: 'CROP',
+		category: 'CROP_PROTECTION_AND_FERTILIZER',
+		target: 'Rau màu và cây có múi',
+		type: 'DISEASE',
+		symptom: 'Rễ nâu đen, cây héo dù đất còn ẩm, sinh trưởng kém.',
+		productSkus: ['TBV-018', 'PB-007'],
+		doseUnit: 'g',
+	},
+	{
+		name: 'Nhện đỏ',
+		aliases: ['nhện đỏ hai chấm'],
+		domain: 'CROP',
+		category: 'CROP_PROTECTION_AND_FERTILIZER',
+		target: 'Rau màu và cây ăn trái',
+		type: 'PEST',
+		symptom: 'Lá lấm tấm vàng, mặt dưới có tơ mịn và nhện nhỏ.',
+		productSkus: ['TBV-016', 'PB-008'],
+		doseUnit: 'ml',
+	},
+	{
+		name: 'Bọ trĩ',
+		aliases: ['bọ trĩ hoa'],
+		domain: 'CROP',
+		category: 'CROP_PROTECTION_AND_FERTILIZER',
+		target: 'Rau màu',
+		type: 'PEST',
+		symptom: 'Đọt non biến dạng, hoa rụng, lá có vệt bạc.',
+		productSkus: ['TBV-010', 'TBV-011'],
+		doseUnit: 'ml',
+	},
+	{
+		name: 'Cầu trùng gà',
+		aliases: ['cầu trùng'],
+		domain: 'LIVESTOCK',
+		category: 'VETERINARY_DRUGS',
+		target: 'Gà',
+		type: 'DISEASE',
+		symptom: 'Gà ủ rũ, tiêu chảy, phân có máu và chậm lớn.',
+		productSkus: ['AN-002', 'TY-001'],
+		doseUnit: 'ml',
+	},
+	{
+		name: 'Tụ huyết trùng gia súc',
+		aliases: ['tụ trùng'],
+		domain: 'LIVESTOCK',
+		category: 'VETERINARY_DRUGS',
+		target: 'Heo, trâu bò',
+		type: 'DISEASE',
+		symptom: 'Sốt cao, sưng hầu, khó thở và diễn biến cấp tính.',
+		productSkus: ['AN-001', 'TY-001'],
+		doseUnit: 'ml',
+	},
+	{
+		name: 'Viêm phổi heo',
+		aliases: ['hô hấp heo'],
+		domain: 'LIVESTOCK',
+		category: 'VETERINARY_DRUGS',
+		target: 'Heo',
+		type: 'DISEASE',
+		symptom: 'Heo ho, khó thở, sốt và giảm ăn.',
+		productSkus: ['AN-001', 'TY-001'],
+		doseUnit: 'ml',
+	},
+	{
+		name: 'Dịch tả lợn',
+		aliases: ['dịch tả heo'],
+		domain: 'LIVESTOCK',
+		category: 'VETERINARY_DRUGS',
+		target: 'Lợn',
+		type: 'DISEASE',
+		symptom: 'Sốt cao, bỏ ăn, da đỏ tím; cần cách ly và báo thú y.',
+		productSkus: ['AN-001', 'TY-001'],
+		doseUnit: 'ml',
+	},
+	{
+		name: 'Đốm trắng ở tôm',
+		aliases: ['đốm trắng', 'WSSV'],
+		domain: 'AQUACULTURE',
+		category: 'UNCATEGORIZED',
+		target: 'Tôm',
+		type: 'DISEASE',
+		symptom: 'Tôm giảm ăn, bơi lờ đờ, vỏ xuất hiện đốm trắng.',
+		productSkus: ['TS-001', 'TS-002', 'TS-003'],
+		doseUnit: 'g',
+	},
+	{
+		name: 'Hoại tử gan tụy cấp',
+		aliases: ['AHPND', 'gan tụy cấp'],
+		domain: 'AQUACULTURE',
+		category: 'UNCATEGORIZED',
+		target: 'Tôm',
+		type: 'DISEASE',
+		symptom: 'Tôm bỏ ăn, ruột rỗng, gan tụy nhạt màu và teo nhỏ.',
+		productSkus: ['TS-001', 'TS-003'],
+		doseUnit: 'g',
+	},
+	{
+		name: 'Xuất huyết ở cá',
+		aliases: ['đỏ thân', 'đỏ mình'],
+		domain: 'AQUACULTURE',
+		category: 'UNCATEGORIZED',
+		target: 'Cá',
+		type: 'DISEASE',
+		symptom: 'Cá xuất huyết ngoài da, lờ đờ, bỏ ăn và chết rải rác.',
+		productSkus: ['TS-001', 'TS-003'],
+		doseUnit: 'g',
+	},
+	{
+		name: 'Chọn giống lúa vụ Đông Xuân',
+		aliases: ['giống lúa ĐX'],
+		domain: 'CROP',
+		category: 'CROP_SEEDLINGS',
+		target: 'Lúa',
+		type: 'OTHER',
+		symptom: 'Chọn giống theo mùa vụ, đất đai và thời gian sinh trưởng.',
+		productSkus: ['HG-001'],
+		doseUnit: 'g',
+	},
+	{
+		name: 'Bệnh sương mai dưa leo',
+		aliases: ['mốc sương dưa leo'],
+		domain: 'CROP',
+		category: 'CROP_SEEDLINGS',
+		target: 'Dưa leo',
+		type: 'DISEASE',
+		symptom: 'Lá có đốm vàng, mặt dưới mốc xám khi ruộng ẩm kéo dài.',
+		productSkus: ['HG-002', 'TBV-006'],
+		doseUnit: 'g',
+	},
+];
+
+function handbookCategoryEnabled(
+	category: DemoHandbookSeed['category'],
+	enabled: Set<BusinessGroup>,
+): boolean {
+	if (category === 'CROP_PROTECTION_AND_FERTILIZER')
+		return enabled.has(BusinessGroup.CROP_INPUTS);
+	if (category === 'CROP_SEEDLINGS')
+		return enabled.has(BusinessGroup.CROP_SEEDLINGS);
+	if (category === 'ANIMAL_FEED') return enabled.has(BusinessGroup.ANIMAL_FEED);
+	if (category === 'VETERINARY_DRUGS')
+		return enabled.has(BusinessGroup.VETERINARY_DRUGS);
+	return (
+		enabled.has(BusinessGroup.ANIMAL_FEED) ||
+		enabled.has(BusinessGroup.VETERINARY_DRUGS)
+	);
+}
+
 async function seedDemoHandbook(
 	tenantId: string,
 	tenant: DemoTenant,
 ): Promise<void> {
+	const enabled = new Set(
+		tenant.enabledBusinessGroups ?? [BusinessGroup.CROP_INPUTS],
+	);
 	const products = await prisma.product.findMany({
 		where: {
 			tenantId,
@@ -2311,62 +2616,44 @@ async function seedDemoHandbook(
 		select: { id: true, sku: true, domain: true, activeIngredient: true },
 		orderBy: { sku: 'asc' },
 	});
-	const groups = [
-		{
-			domain: 'CROP',
-			name: 'Tư vấn sâu bệnh cây trồng',
-			target: 'Lúa và rau màu',
-			category: 'CROP_PROTECTION_AND_FERTILIZER',
-			type: 'DISEASE',
-			symptom: 'Lá vàng, đốm bệnh hoặc cây sinh trưởng kém.',
-			doseUnit: 'ml',
-		},
-		{
-			domain: 'LIVESTOCK',
-			name: 'Tiêu chảy ở vật nuôi',
-			target: 'Heo và gà',
-			category: 'VETERINARY_DRUGS',
-			type: 'DISEASE',
-			symptom: 'Vật nuôi bỏ ăn, phân lỏng, mất nước.',
-			doseUnit: 'ml',
-		},
-		{
-			domain: 'AQUACULTURE',
-			name: 'Đốm trắng ở thủy sản',
-			target: 'Tôm cá',
-			category: 'UNCATEGORIZED',
-			type: 'DISEASE',
-			symptom: 'Con giống giảm ăn, bơi lờ đờ, có dấu hiệu bệnh ngoài da.',
-			doseUnit: 'g',
-		},
-	] as const;
-	for (const group of groups) {
-		const candidates = products
-			.filter((product) => product.domain === group.domain)
-			.slice(0, 3);
+	const productBySku = new Map(
+		products.map((product) => [product.sku, product]),
+	);
+	let seeded = 0;
+	for (const item of DEMO_HANDBOOK) {
+		if (!handbookCategoryEnabled(item.category, enabled)) continue;
+		const candidates = item.productSkus
+			.map((sku) => productBySku.get(sku))
+			.filter((product): product is (typeof products)[number] =>
+				Boolean(product),
+			);
 		if (!candidates.length) continue;
 		const existing = await prisma.disease.findFirst({
-			where: { tenantId, name: group.name, deletedAt: null },
+			where: { tenantId, name: item.name, deletedAt: null },
 			select: { id: true },
 		});
-		const disease =
-			existing ??
-			(await prisma.disease.create({
-				data: {
-					tenantId,
-					name: group.name,
-					nameSearch: normalizeVietnameseSearch(group.name),
-					aliases: [],
-					aliasesSearch: '',
-					domain: group.domain,
-					handbookCategory: group.category,
-					target: group.target,
-					type: group.type,
-					symptom: group.symptom,
-					note: 'Dữ liệu sổ tay phục vụ demo.',
-				},
-				select: { id: true },
-			}));
+		const data = {
+			name: item.name,
+			nameSearch: normalizeVietnameseSearch(item.name),
+			aliases: item.aliases,
+			aliasesSearch: normalizeSearchList(item.aliases),
+			domain: item.domain,
+			handbookCategory: item.category,
+			target: item.target,
+			type: item.type,
+			symptom: item.symptom,
+			note: 'Dữ liệu sổ tay theo danh mục và mặt hàng của cửa hàng demo.',
+		};
+		const disease = existing
+			? await prisma.disease.update({
+					where: { id: existing.id },
+					data,
+					select: { id: true },
+				})
+			: await prisma.disease.create({
+					data: { tenantId, ...data },
+					select: { id: true },
+				});
 		await prisma.diseaseProductPin.deleteMany({
 			where: { tenantId, diseaseId: disease.id },
 		});
@@ -2378,7 +2665,6 @@ async function seedDemoHandbook(
 				sortOrder: index,
 				isExcluded: false,
 			})),
-			skipDuplicates: true,
 		});
 		await prisma.diseaseProtocol.deleteMany({
 			where: { tenantId, diseaseId: disease.id },
@@ -2397,16 +2683,20 @@ async function seedDemoHandbook(
 						productId: product.id,
 						activeIngredient: product.activeIngredient,
 						doseAmount: index + 1,
-						doseUnit: group.doseUnit,
+						doseUnit: item.doseUnit,
 						perAreaAmount: 1,
-						perAreaUnit: group.domain === 'CROP' ? 'HA' : 'M2',
+						perAreaUnit: item.domain === 'CROP' ? 'HA' : 'M2',
 						usage: 'Tham khảo nhãn sản phẩm và tình trạng thực tế.',
 						sortOrder: index,
 					})),
 				},
 			},
 		});
+		seeded += 1;
 	}
+	console.log(
+		`  [SO TAY] tenant=${tenant.slug}, entries=${seeded}, enabled=${[...enabled].join(',')}`,
+	);
 }
 
 // findFirst-then-create cho model khong co unique (tenantId, name).
@@ -2691,7 +2981,23 @@ const HANDBOOK_PROTOCOLS: Record<string, ProtocolSeed[]> = {
  * Idempotent: xoa sach protocol cu cua benh roi ghi lai. Benh chua ton tai (chua chay
  * `pnpm db:seed`) thi bo qua va bao so luong o cuoi.
  */
-async function seedHandbookProtocols(tenantId: string): Promise<void> {
+async function seedHandbookProtocols(
+	tenantId: string,
+	tenant: DemoTenant,
+): Promise<void> {
+	const enabled = new Set(
+		tenant.enabledBusinessGroups ?? [BusinessGroup.CROP_INPUTS],
+	);
+	const productSkus = new Set(
+		(tenant.productSkus ?? PRODUCTS.map((product) => product.sku)).map(String),
+	);
+	const activeDiseaseNames = new Set(
+		DEMO_HANDBOOK.filter(
+			(item) =>
+				handbookCategoryEnabled(item.category, enabled) &&
+				item.productSkus.some((sku) => productSkus.has(sku)),
+		).map((item) => item.name),
+	);
 	const skus = [
 		...new Set(
 			Object.values(HANDBOOK_PROTOCOLS).flatMap((protocols) =>
@@ -2710,6 +3016,7 @@ async function seedHandbookProtocols(tenantId: string): Promise<void> {
 	let protocolCount = 0;
 	let skipped = 0;
 	for (const [diseaseName, protocols] of Object.entries(HANDBOOK_PROTOCOLS)) {
+		if (!activeDiseaseNames.has(diseaseName)) continue;
 		const disease = await prisma.disease.findFirst({
 			where: { tenantId, name: diseaseName, deletedAt: null },
 			select: { id: true },
@@ -2821,7 +3128,14 @@ async function seedTenant(t: DemoTenant): Promise<void> {
 		select: { id: true, code: true },
 	});
 	const roleIdByCode = new Map(roles.map((r) => [r.code, r.id]));
-	await ensureDemoEntitlements(tenantId, roles.map((role) => role.id));
+	await ensureDemoEntitlements(
+		tenantId,
+		roles.map((role) => role.id),
+	);
+	await ensureDemoBusinessGroups(
+		tenantId,
+		t.enabledBusinessGroups ?? [BusinessGroup.CROP_INPUTS],
+	);
 
 	// 3) users (owner da co neu vua provision; upsert phan con lai + owner cho tenant cu)
 	for (const u of t.users) {
@@ -2911,11 +3225,10 @@ async function seedTenant(t: DemoTenant): Promise<void> {
 			domain: p.domain as Prisma.ProductUncheckedCreateInput['domain'],
 			productKind:
 				p.productKind as Prisma.ProductUncheckedCreateInput['productKind'],
-			businessGroup: ['PESTICIDE', 'FERTILIZER', 'BIOLOGICAL_PRODUCT'].includes(
-				p.productKind,
-			)
-				? 'CROP_INPUTS'
-				: null,
+			businessGroup: resolveBusinessGroup(
+				p.productKind as ProductKind,
+				p.domain,
+			),
 			activeIngredient: p.activeIngredient ?? null,
 			concentration: p.concentration ?? null,
 			netContent: spec?.netContent ?? null,
@@ -2971,7 +3284,7 @@ async function seedTenant(t: DemoTenant): Promise<void> {
 	await seedDemoRelations(tenantId, t);
 	if (t.slug === 'nong-xanh-bvtv') await seedBvtvRelations(tenantId);
 	await seedDemoHandbook(tenantId, t);
-	await seedHandbookProtocols(tenantId);
+	await seedHandbookProtocols(tenantId, t);
 	const ownerUser = await prisma.user.findFirstOrThrow({
 		where: { tenantId, username: owner.username },
 		select: { id: true },

@@ -22,6 +22,8 @@ vi.mock("@/lib/tenant-notifications-api", () => ({
 	}),
 	notificationTypeLabel: (type: string) => type,
 	formatNotificationTime: () => "vừa xong",
+	notificationHref: (type: string) =>
+		type === "DEBT_DUE" ? "/cong-no" : type === "SYSTEM" ? "/thong-bao" : "/ton-kho",
 }));
 
 vi.mock("@/stores/user-auth-store", () => ({
@@ -33,7 +35,7 @@ vi.mock("@/stores/user-auth-store", () => ({
 }));
 
 vi.mock("next/navigation", () => ({
-	useRouter: () => ({ back: vi.fn() }),
+	useRouter: () => ({ back: vi.fn(), push: vi.fn() }),
 }));
 
 const listMock = vi.mocked(listTenantNotifications);
