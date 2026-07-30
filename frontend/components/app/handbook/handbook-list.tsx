@@ -45,6 +45,9 @@ export function HandbookList() {
 	const [categoryFilters, setCategoryFilters] = useState<
 		{ value: CategoryFilter; label: string }[]
 	>([{ value: "all", label: "Tất cả" }]);
+	const [enabledCategories, setEnabledCategories] = useState<HandbookCategoryId[]>(
+		["CROP_PROTECTION_AND_FERTILIZER"],
+	);
 
 	useEffect(() => {
 		void reloadKey;
@@ -62,6 +65,7 @@ export function HandbookList() {
 							.map((group) => group.businessGroup)
 					: ["CROP_INPUTS"];
 				const allowed = new Set(handbookCategoriesForBusinessGroups(enabled));
+				setEnabledCategories([...allowed]);
 				setCategoryFilters([
 					{ value: "all", label: "Tất cả" },
 					...HANDBOOK_CATEGORY_CATALOG.filter(
@@ -92,9 +96,17 @@ export function HandbookList() {
 		};
 	}, [reloadKey]);
 
+	const visibleEntries = useMemo(() => {
+		const allowed = new Set(enabledCategories);
+		return entries.filter(
+			(entry) =>
+				entry.category === "UNCATEGORIZED" || allowed.has(entry.category),
+		);
+	}, [enabledCategories, entries]);
+
 	const filtered = useMemo(() => {
 		const q = query.trim();
-		return entries.filter((d) => {
+		return visibleEntries.filter((d) => {
 			if (category !== "all" && d.category !== category) return false;
 			if (!q) return true;
 			return matchesVietnamese(
@@ -107,7 +119,7 @@ export function HandbookList() {
 				q,
 			);
 		});
-	}, [query, category, entries]);
+	}, [query, category, visibleEntries]);
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: reset khi tiêu chí lọc đổi
 	useEffect(() => {
@@ -134,7 +146,7 @@ export function HandbookList() {
 							Sổ tay
 						</h1>
 						<span className="rounded-full bg-[#e3f2fd] px-2.5 py-0.5 text-sm font-semibold text-[#1565c0]">
-							{entries.length}
+							{visibleEntries.length}
 						</span>
 					</div>
 					<p className="text-base text-[#616161]">
@@ -198,7 +210,7 @@ export function HandbookList() {
 
 			{/* Kết quả */}
 			{filtered.length === 0 ? (
-				<EmptyState hasEntries={entries.length > 0} />
+				<EmptyState hasEntries={visibleEntries.length > 0} />
 			) : (
 				<>
 					{/* Mobile — card list + tải dần */}

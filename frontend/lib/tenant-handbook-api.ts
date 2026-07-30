@@ -38,7 +38,6 @@ export type Protocol = {
 
 export type ProtocolItemInput = {
 	productId?: string;
-	activeIngredient?: string;
 	doseAmount: number;
 	doseUnit: string;
 	perAreaAmount: number;
@@ -253,7 +252,10 @@ export function getQuickHandbookSuggestions(
 	);
 }
 
-export function replaceHandbookProtocols(id: string, protocols: ProtocolInput[]) {
+export function replaceHandbookProtocols(
+	id: string,
+	protocols: ProtocolInput[],
+) {
 	return userFetch<{ protocols: Protocol[] }>(`${base}/${id}/protocols`, {
 		method: "PUT",
 		body: JSON.stringify({ protocols }),

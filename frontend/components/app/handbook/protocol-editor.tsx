@@ -1,6 +1,7 @@
 "use client";
 
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Search, Trash2, X } from "lucide-react";
+import { useEffect, useState } from "react";
 import {
 	AREA_UNIT_OPTIONS,
 	type AreaUnitId,
@@ -10,7 +11,6 @@ import {
 
 function emptyItem(): ProtocolItemInput {
 	return {
-		activeIngredient: "",
 		doseAmount: 0,
 		doseUnit: "ml",
 		perAreaAmount: 1000,
@@ -88,9 +88,7 @@ export function ProtocolEditor({
 						</div>
 						<button
 							type="button"
-							onClick={() =>
-								onChange(protocols.filter((_, i) => i !== pIndex))
-							}
+							onClick={() => onChange(protocols.filter((_, i) => i !== pIndex))}
 							aria-label={`Xoá bộ thuốc ${pIndex + 1}`}
 							className="mt-7 flex size-11 shrink-0 items-center justify-center rounded-lg border border-border bg-white text-[#c62828]"
 						>
@@ -128,23 +126,15 @@ export function ProtocolEditor({
 										>
 											Sản phẩm
 										</label>
-										<select
+										<ProductSearch
 											id={`item-product-${pIndex}-${iIndex}`}
-											value={item.productId ?? ""}
-											onChange={(event) =>
-												patchItem(pIndex, iIndex, {
-													productId: event.target.value || undefined,
-												})
+											products={products}
+											productId={item.productId}
+											onChange={(productId) =>
+												patchItem(pIndex, iIndex, { productId })
 											}
-											className={`mt-1 ${inputClass}`}
-										>
-											<option value="">— Chỉ ghi hoạt chất —</option>
-											{products.map((product) => (
-												<option key={product.id} value={product.id}>
-													{product.name}
-												</option>
-											))}
-										</select>
+											ariaLabel={`Tìm thuốc cho dòng ${iIndex + 1}`}
+										/>
 									</div>
 									<button
 										type="button"
@@ -158,26 +148,6 @@ export function ProtocolEditor({
 									>
 										<Trash2 className="size-4" aria-hidden />
 									</button>
-								</div>
-
-								<div>
-									<label
-										htmlFor={`item-ingredient-${pIndex}-${iIndex}`}
-										className="text-sm font-medium"
-									>
-										Hoạt chất {item.productId ? "(tuỳ chọn)" : "(bắt buộc)"}
-									</label>
-									<input
-										id={`item-ingredient-${pIndex}-${iIndex}`}
-										value={item.activeIngredient ?? ""}
-										onChange={(event) =>
-											patchItem(pIndex, iIndex, {
-												activeIngredient: event.target.value,
-											})
-										}
-										placeholder="Ví dụ: Tricyclazole 75%"
-										className={`mt-1 ${inputClass}`}
-									/>
 								</div>
 
 								<div className="grid grid-cols-2 gap-2">
@@ -306,7 +276,9 @@ export function ProtocolEditor({
 						<button
 							type="button"
 							onClick={() =>
-								patchProtocol(pIndex, { items: [...protocol.items, emptyItem()] })
+								patchProtocol(pIndex, {
+									items: [...protocol.items, emptyItem()],
+								})
 							}
 							className="flex min-h-11 items-center justify-center gap-1 rounded-lg border border-dashed border-primary text-sm font-semibold text-primary"
 						>
@@ -319,12 +291,102 @@ export function ProtocolEditor({
 
 			<button
 				type="button"
-				onClick={() => onChange([...protocols, emptyProtocol(protocols.length)])}
+				onClick={() =>
+					onChange([...protocols, emptyProtocol(protocols.length)])
+				}
 				className="flex min-h-11 items-center justify-center gap-1 rounded-lg border border-dashed border-border text-sm font-semibold text-[#616161]"
 			>
 				<Plus className="size-4" aria-hidden />
 				Thêm bộ thuốc thay thế
 			</button>
+		</div>
+	);
+}
+
+function ProductSearch({
+	id,
+	products,
+	productId,
+	onChange,
+	ariaLabel,
+}: {
+	id: string;
+	products: Array<{ id: string; name: string }>;
+	productId?: string;
+	onChange: (productId: string | undefined) => void;
+	ariaLabel: string;
+}) {
+	const selected = products.find((product) => product.id === productId);
+	const [query, setQuery] = useState(selected?.name ?? "");
+	const [open, setOpen] = useState(false);
+
+	useEffect(() => {
+		setQuery(selected?.name ?? "");
+	}, [selected?.name]);
+
+	const normalizedQuery = query.trim().toLocaleLowerCase("vi");
+	const results = products
+		.filter((product) =>
+			product.name.toLocaleLowerCase("vi").includes(normalizedQuery),
+		)
+		.slice(0, 8);
+
+	return (
+		<div className="relative mt-1">
+			<div className="relative">
+				<Search
+					className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[#9e9e9e]"
+					aria-hidden
+				/>
+				<input
+					id={id}
+					value={query}
+					onChange={(event) => {
+						setQuery(event.target.value);
+						setOpen(true);
+						if (event.target.value !== selected?.name) onChange(undefined);
+					}}
+					onFocus={() => setOpen(true)}
+					onBlur={() => window.setTimeout(() => setOpen(false), 120)}
+					placeholder="Tìm tên thuốc trong danh mục..."
+					aria-label={ariaLabel}
+					className={`w-full ${inputClass} pl-9 pr-10`}
+				/>
+				{query ? (
+					<button
+						type="button"
+						aria-label={`Xóa ${ariaLabel}`}
+						onMouseDown={(event) => event.preventDefault()}
+						onClick={() => {
+							setQuery("");
+							onChange(undefined);
+						}}
+						className="absolute right-2 top-1/2 flex size-8 -translate-y-1/2 items-center justify-center rounded-md text-[#9e9e9e] hover:bg-[#f5f5f5]"
+					>
+						<X className="size-4" aria-hidden />
+					</button>
+				) : null}
+			</div>
+			{open && results.length > 0 ? (
+				<ul className="absolute inset-x-0 top-[calc(100%+4px)] z-20 max-h-56 overflow-auto rounded-lg border border-border bg-white p-1 shadow-lg">
+					{results.map((product) => (
+						<li key={product.id}>
+							<button
+								type="button"
+								onMouseDown={(event) => event.preventDefault()}
+								onClick={() => {
+									setQuery(product.name);
+									onChange(product.id);
+									setOpen(false);
+								}}
+								className="flex min-h-10 w-full items-center px-3 text-left text-sm hover:bg-[#e8f5e9]"
+							>
+								{product.name}
+							</button>
+						</li>
+					))}
+				</ul>
+			) : null}
 		</div>
 	);
 }

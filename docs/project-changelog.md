@@ -9,6 +9,7 @@ Format theo [Keep a Changelog](https://keepachangelog.com/), tuân thủ [Semant
 ## [Unreleased]
 
 ### Added
+- **Handbook protocol UX** — bỏ phần `Gợi ý thuốc & kinh nghiệm` trùng lặp trong form; bộ thuốc khuyến nghị chỉ chọn thuốc có thật trong danh mục bằng ô tìm kiếm, không còn lưu hoạt chất rời. Chi tiết bệnh hiển thị đúng các sản phẩm thuộc bộ thuốc đã chọn.
 - **Lưu thay đổi nhóm kinh doanh** — hiển thị lại nút lưu trên màn hình bật/tắt nhóm; trước đó class `hidden` khiến toggle chỉ đổi state local và không gửi PATCH lên backend.
 - **Demo handbook by store profile** — `seed-demo` now enables business groups per demo store, assigns `Product.businessGroup` consistently, seeds disease entries by relevant SKU, and creates product-backed recommended protocols. Crop, livestock, aquaculture, seedling, and fertilizer/plant-protection entries are no longer shared indiscriminately across stores.
 - **Notification deep links** — click từng thông báo mở đúng màn hình nghiệp vụ theo loại: công nợ → `/cong-no`, tồn thấp/HSD → `/ton-kho`, hệ thống → `/thong-bao`; thông báo chưa đọc được gửi đánh dấu đã đọc đồng thời khi điều hướng.

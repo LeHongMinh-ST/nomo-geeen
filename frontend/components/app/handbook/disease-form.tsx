@@ -6,10 +6,10 @@ import { useEffect, useState } from "react";
 import { ProtocolEditor } from "@/components/app/handbook/protocol-editor";
 import {
 	categoryLabel,
-	handbookCategoriesForBusinessGroups,
 	type Disease,
 	type DiseaseType,
 	type HandbookCategoryId,
+	handbookCategoriesForBusinessGroups,
 	SELECTABLE_HANDBOOK_CATEGORY_IDS,
 	typeLabel,
 } from "@/lib/handbook";
@@ -43,8 +43,6 @@ type FormState = {
 	type: DiseaseType;
 	symptom: string;
 	aliases: string[];
-	recommendedIngredients: string[];
-	note: string;
 };
 
 function toFormState(d?: Disease): FormState {
@@ -55,12 +53,10 @@ function toFormState(d?: Disease): FormState {
 		type: d?.type ?? "disease",
 		symptom: d?.symptom ?? "",
 		aliases: d?.aliases ?? [],
-		recommendedIngredients: d?.recommendedIngredients ?? [],
-		note: d?.note ?? "",
 	};
 }
 
-/** Server rejects a drug line with neither product nor ingredient; drop blanks first. */
+/** Chỉ lưu các dòng đã chọn sản phẩm trong danh mục của tenant. */
 function toProtocolPayload(protocols: ProtocolInput[]): ProtocolInput[] {
 	return protocols
 		.map((protocol) => ({
@@ -68,12 +64,9 @@ function toProtocolPayload(protocols: ProtocolInput[]): ProtocolInput[] {
 			name: protocol.name.trim(),
 			note: protocol.note?.trim() || undefined,
 			items: protocol.items
-				.filter(
-					(item) => item.productId || (item.activeIngredient ?? "").trim(),
-				)
+				.filter((item) => item.productId)
 				.map((item) => ({
 					...item,
-					activeIngredient: item.activeIngredient?.trim() || undefined,
 					doseUnit: item.doseUnit.trim(),
 					mixing: item.mixing?.trim() || undefined,
 					usage: item.usage?.trim() || undefined,
@@ -101,7 +94,6 @@ export function DiseaseForm({
 			isActive: protocol.isActive,
 			items: protocol.items.map((item) => ({
 				productId: item.productId ?? undefined,
-				activeIngredient: item.activeIngredient ?? "",
 				doseAmount: item.doseAmount,
 				doseUnit: item.doseUnit,
 				perAreaAmount: item.perAreaAmount,
@@ -157,9 +149,7 @@ export function DiseaseForm({
 			subject: form.subject.trim() || undefined,
 			type: toApiDiseaseType(form.type),
 			symptom: form.symptom.trim() || undefined,
-			note: form.note.trim() || undefined,
 			aliases: form.aliases,
-			recommendedIngredients: form.recommendedIngredients,
 		};
 		try {
 			const entryId =
@@ -279,32 +269,7 @@ export function DiseaseForm({
 				/>
 			</Section>
 
-			{/* Section 2: Gợi ý & kinh nghiệm */}
-			<Section
-				icon={FlaskConical}
-				tile="#5cad45"
-				title="Gợi ý thuốc & kinh nghiệm"
-			>
-				<TagInput
-					label="Hoạt chất khuyến nghị"
-					placeholder="Gõ rồi Enter để thêm (VD: Fipronil)"
-					values={form.recommendedIngredients}
-					onChange={(v) => set("recommendedIngredients", v)}
-					hint="Sản phẩm có hoạt chất trùng sẽ tự động vào danh sách gợi ý."
-				/>
-
-				<Field label="Lưu ý">
-					<textarea
-						value={form.note}
-						onChange={(e) => set("note", e.target.value)}
-						placeholder="Ghi chú kinh nghiệm, cảnh báo an toàn..."
-						rows={2}
-						className={textareaClass}
-					/>
-				</Field>
-			</Section>
-
-			{/* Section 3: Bộ thuốc khuyến nghị */}
+			{/* Section 2: Bộ thuốc khuyến nghị */}
 			<Section icon={FlaskConical} tile="#5cad45" title="Bộ thuốc khuyến nghị">
 				<p className="text-sm text-[#616161]">
 					Mỗi bộ thuốc gồm nhiều thuốc với liều theo diện tích. Thêm bộ thuốc

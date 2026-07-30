@@ -7,12 +7,10 @@ import {
 	Leaf,
 	Lightbulb,
 	Pencil,
-	Pill,
 	Stethoscope,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-import { formatDate, formatVND } from "@/lib/format";
+import { formatDate } from "@/lib/format";
 import {
 	categoryBadgeClass,
 	categoryLabel,
@@ -23,9 +21,7 @@ import {
 import {
 	AREA_UNIT_OPTIONS,
 	type AreaUnitId,
-	getQuickHandbookSuggestions,
 	type Protocol,
-	type QuickHandbookSuggestion,
 } from "@/lib/tenant-handbook-api";
 
 function areaUnitLabel(unit: AreaUnitId): string {
@@ -38,35 +34,8 @@ export function DiseaseDetail({
 }: {
 	disease: Disease;
 	protocols?: Protocol[];
-	}) {
+}) {
 	const router = useRouter();
-	const [suggestions, setSuggestions] = useState<QuickHandbookSuggestion[]>([]);
-	const [loading, setLoading] = useState(true);
-	const [error, setError] = useState<string | null>(null);
-
-	useEffect(() => {
-		let cancelled = false;
-		setLoading(true);
-		getQuickHandbookSuggestions(disease.id)
-			.then((response) => {
-				if (!cancelled) {
-					setSuggestions(response.suggestions);
-					setError(null);
-				}
-			})
-			.catch(() => {
-				if (!cancelled) {
-					setSuggestions([]);
-					setError("Không tải được gợi ý thuốc từ máy chủ.");
-				}
-			})
-			.finally(() => {
-				if (!cancelled) setLoading(false);
-			});
-		return () => {
-			cancelled = true;
-		};
-	}, [disease.id]);
 
 	return (
 		<div className="mx-auto flex w-full max-w-2xl flex-col gap-5 pb-28 lg:mx-0 lg:pb-0">
@@ -163,10 +132,7 @@ export function DiseaseDetail({
 										className="rounded-[10px] bg-[#fafafa] p-3 text-sm"
 									>
 										<p className="font-semibold">
-											{index + 1}. {item.productName ?? item.activeIngredient}
-											{item.productName && item.activeIngredient
-												? ` (${item.activeIngredient})`
-												: ""}
+											{index + 1}. {item.productName ?? "Sản phẩm chưa chọn"}
 										</p>
 										<p className="text-[#2e7d32]">
 											Liều: {item.doseAmount} {item.doseUnit} /{" "}
@@ -198,58 +164,6 @@ export function DiseaseDetail({
 					<InfoBlock icon={Lightbulb} label="Lưu ý" text={disease.note} />
 				</section>
 			) : null}
-
-			<section className="flex flex-col gap-3 rounded-[16px] border border-border bg-card p-5 shadow-card">
-				<div className="flex items-center gap-2">
-					<Pill className="size-5 text-[#2e7d32]" aria-hidden />
-					<h2 className="text-base font-semibold">Thuốc gợi ý</h2>
-					<span className="rounded-full bg-[#e8f5e9] px-2.5 py-0.5 text-sm font-semibold text-[#2e7d32]">
-						{suggestions.length}
-					</span>
-				</div>
-				{loading ? (
-					<p className="py-6 text-center text-base text-[#616161]">
-						Đang tải gợi ý thuốc…
-					</p>
-				) : error ? (
-					<p className="rounded-lg bg-[#ffebee] px-3 py-3 text-base text-[#c62828]">
-						{error}
-					</p>
-				) : suggestions.length === 0 ? (
-					<p className="py-6 text-center text-base text-[#616161]">
-						Chưa có thuốc phù hợp trong kho.
-					</p>
-				) : (
-					<ul className="flex flex-col gap-2.5">
-						{suggestions.map((suggestion) => (
-							<li
-								key={suggestion.productId}
-								className="flex items-center gap-3 rounded-[12px] border border-border p-3"
-							>
-								<span className="flex size-11 shrink-0 items-center justify-center rounded-[10px] bg-[#eceff1]">
-									<Pill className="size-5 text-[#5cad45]" aria-hidden />
-								</span>
-								<div className="min-w-0 flex-1">
-									<span className="block truncate text-base font-semibold">
-										{suggestion.name}
-									</span>
-									<div className="flex flex-wrap gap-x-2 text-sm text-[#616161]">
-										<span>
-											{suggestion.available
-												? `Còn ${suggestion.availableQty} ${suggestion.unit}`
-												: "Hết hàng"}
-										</span>
-										<span>
-											{formatVND(suggestion.unitPrice)}₫/{suggestion.unit}
-										</span>
-										<span>{suggestion.reason}</span>
-									</div>
-								</div>
-							</li>
-						))}
-					</ul>
-				)}
-			</section>
 
 			<p className="flex items-center gap-1.5 px-1 text-sm text-[#9e9e9e]">
 				<CalendarClock className="size-4" aria-hidden />
