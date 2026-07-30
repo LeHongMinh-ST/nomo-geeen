@@ -16,7 +16,7 @@ interface PrismaMock {
 		deleteMany: AnyMock;
 	};
 	quickSaleDraftMutation: {
-		findUnique: AnyMock;
+		findFirst: AnyMock;
 		upsert: AnyMock;
 	};
 	product: {
@@ -45,7 +45,7 @@ function buildPrisma(): PrismaMock {
 			deleteMany: jest.fn().mockResolvedValue({ count: 1 }),
 		},
 		quickSaleDraftMutation: {
-			findUnique: jest.fn(),
+			findFirst: jest.fn(),
 			upsert: jest.fn().mockResolvedValue({}),
 		},
 		product: { findFirst: jest.fn() },
@@ -163,7 +163,7 @@ describe('QuickSaleDraftService', () => {
 				subtotal: 0,
 				lines: [],
 			};
-			prisma.quickSaleDraftMutation.findUnique.mockResolvedValueOnce({
+			prisma.quickSaleDraftMutation.findFirst.mockResolvedValueOnce({
 				responseJson: replaySnapshot,
 			});
 			const service = new QuickSaleDraftService(
@@ -192,10 +192,40 @@ describe('QuickSaleDraftService', () => {
 			expect(prisma.quickSaleDraftLine.upsert).not.toHaveBeenCalled();
 		});
 
+		it('does not replay a mutation from another tenant', async () => {
+			const prisma = buildPrisma();
+			const deps = buildDeps(prisma);
+			prisma.quickSaleDraftMutation.findFirst.mockResolvedValueOnce(null);
+			prisma.quickSaleDraft.findFirst.mockResolvedValueOnce(null);
+			const service = new QuickSaleDraftService(
+				deps.prisma as never,
+				deps.audit as never,
+				deps.events as never,
+				deps.sales as never,
+			);
+
+			await expect(
+				service.addOrMergeLine(
+					'tenant-1',
+					'owner-1',
+					'OWNER',
+					'foreign-draft',
+					{ productId: 'p-1', qty: 1, idempotencyKey: 'k-foreign' },
+				),
+			).rejects.toThrow('Draft not found');
+			expect(prisma.quickSaleDraftMutation.findFirst).toHaveBeenCalledWith({
+				where: {
+					tenantId: 'tenant-1',
+					draftId: 'foreign-draft',
+					idempotencyKey: 'k-foreign',
+				},
+			});
+		});
+
 		it('rejects an unknown product within the tenant', async () => {
 			const prisma = buildPrisma();
 			const deps = buildDeps(prisma);
-			prisma.quickSaleDraftMutation.findUnique.mockResolvedValueOnce(null);
+			prisma.quickSaleDraftMutation.findFirst.mockResolvedValueOnce(null);
 			prisma.quickSaleDraft.findFirst.mockResolvedValueOnce(
 				quickSaleDraftRow({ id: 'draft-1' }),
 			);
@@ -239,7 +269,7 @@ describe('QuickSaleDraftService', () => {
 		it('rejects an inactive draft', async () => {
 			const prisma = buildPrisma();
 			const deps = buildDeps(prisma);
-			prisma.quickSaleDraftMutation.findUnique.mockResolvedValueOnce(null);
+			prisma.quickSaleDraftMutation.findFirst.mockResolvedValueOnce(null);
 			prisma.quickSaleDraft.findFirst.mockResolvedValueOnce(
 				quickSaleDraftRow({
 					id: 'draft-1',
@@ -281,7 +311,7 @@ describe('QuickSaleDraftService', () => {
 		it('upserts the line and emits SSE event on success', async () => {
 			const prisma = buildPrisma();
 			const deps = buildDeps(prisma);
-			prisma.quickSaleDraftMutation.findUnique.mockResolvedValueOnce(null);
+			prisma.quickSaleDraftMutation.findFirst.mockResolvedValueOnce(null);
 			prisma.quickSaleDraft.findFirst.mockResolvedValueOnce(
 				quickSaleDraftRow({ id: 'draft-1' }),
 			);

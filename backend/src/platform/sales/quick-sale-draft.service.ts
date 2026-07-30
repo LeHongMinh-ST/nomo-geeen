@@ -555,10 +555,8 @@ export class QuickSaleDraftService implements OnModuleInit {
 		mutate: (draft: DraftWithLines) => Promise<DraftWithLines | void>,
 	): Promise<QuickSaleDraftResponse> {
 		// Idempotency replay: short-circuit on persisted mutation snapshot.
-		const replay = await this.prisma.quickSaleDraftMutation.findUnique({
-			where: {
-				draftId_idempotencyKey: { draftId, idempotencyKey },
-			},
+		const replay = await this.prisma.quickSaleDraftMutation.findFirst({
+			where: { tenantId, draftId, idempotencyKey },
 		});
 		if (replay) {
 			const snap = this.parseResponseSnapshot(replay.responseJson);
