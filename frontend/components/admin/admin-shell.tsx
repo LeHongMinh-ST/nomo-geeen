@@ -1,24 +1,39 @@
 "use client";
 
-import { Bell, ChevronDown, LogOut, Menu, Search, X } from "lucide-react";
+import {
+	Bell,
+	ChevronDown,
+	Loader2,
+	LogOut,
+	Menu,
+	Search,
+	X,
+} from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
-import { SUPER_ADMIN_ROLE_CODE } from "@/lib/admin-rbac";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { adminFetch } from "@/lib/admin-api/fetch";
+import {
+	type AdminNotificationView,
+	listAdminNotifications,
+	markAdminNotificationRead,
+	markAllAdminNotificationsRead,
+	unreadAdminNotificationsCount,
+} from "@/lib/admin-api/notifications";
 import { adminNavGroups } from "@/lib/admin-navigation";
+import { SUPER_ADMIN_ROLE_CODE } from "@/lib/admin-rbac";
 import { useAdminAuth } from "@/stores/admin-auth-store";
 
-/**
- * Khung khu quản trị nội bộ: sidebar (desktop) + drawer (mobile) + topbar.
- * Identity Slate (#546e7a) để phân biệt rõ với app chủ cửa hàng (Brand Green).
- * Điều hướng theo DESIGN.md §10.2/§10.3; icon tile màu module accent (§3).
- *
- * Redirect-if-unauthenticated do AuthGuard xử lý (wrap layout). Shell chỉ
- * render UI, gọi store.logout() để clear khi user bấm đăng xuất.
- */
-
 const ADMIN_SLATE = "#546e7a";
+
+type SearchResult = {
+	type: "tenant" | "admin-user" | "invoice";
+	id: string;
+	label: string;
+	subLabel?: string;
+	href: string;
+};
 
 function isActive(pathname: string, href: string) {
 	if (href === "/admin") return pathname === "/admin";
@@ -30,9 +45,18 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
 	const router = useRouter();
 	const admin = useAdminAuth((s) => s.admin);
 	const logout = useAdminAuth((s) => s.logout);
+	const accessToken = useAdminAuth((s) => s.accessToken);
 	const [drawerOpen, setDrawerOpen] = useState(false);
 	const [menuOpen, setMenuOpen] = useState(false);
 	const menuRef = useRef<HTMLDivElement>(null);
+
+	// Search state
+	const [searchQuery, setSearchQuery] = useState("");
+	const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
+	const [searchOpen, setSearchOpen] = useState(false);
+	const [searchLoading, setSearchLoading] = useState(false);
+	const searchInputRef = useRef<HTMLInputElement>(null);
+	const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
 	const initials = admin?.fullName
 		? admin.fullName
@@ -60,6 +84,152 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
 			document.removeEventListener("keydown", handleKeyDown);
 		};
 	}, [menuOpen]);
+
+	// Search effect with debounce
+	useEffect(() => {
+		if (!searchQuery.trim() || searchQuery.length < 2) {
+			setSearchResults([]);
+			setSearchOpen(false);
+			return;
+		}
+		if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+		searchDebounceRef.current = setTimeout(async () => {
+			setSearchLoading(true);
+			try {
+				if (accessToken) {
+					const results = await adminFetch<SearchResult[]>(
+						`/admin/search?q=${encodeURIComponent(searchQuery)}`,
+						{
+							accessToken,
+						},
+					);
+					setSearchResults(results);
+					setSearchOpen(results.length > 0);
+				}
+			} catch {
+				setSearchResults([]);
+				setSearchOpen(false);
+			} finally {
+				setSearchLoading(false);
+			}
+		}, 250);
+		return () => {
+			if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+		};
+	}, [searchQuery, accessToken]);
+
+	const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+		const value = e.target.value;
+		setSearchQuery(value);
+	};
+
+	const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+		if (e.key === "Escape") {
+			setSearchQuery("");
+			setSearchResults([]);
+			setSearchOpen(false);
+			searchInputRef.current?.blur();
+		} else if (e.key === "Enter" && searchResults.length > 0) {
+			router.push(searchResults[0].href);
+			setSearchQuery("");
+			setSearchResults([]);
+			setSearchOpen(false);
+		}
+	};
+
+	const handleSearchBlur = () => {
+		// Delay to allow click on result
+		setTimeout(() => setSearchOpen(false), 200);
+	};
+
+	const handleResultClick = (href: string) => {
+		router.push(href);
+		setSearchQuery("");
+		setSearchResults([]);
+		setSearchOpen(false);
+	};
+
+	// Notifications state
+	const [notifications, setNotifications] = useState<AdminNotificationView[]>(
+		[],
+	);
+	const [unreadCount, setUnreadCount] = useState(0);
+	const [notificationsOpen, setNotificationsOpen] = useState(false);
+	const [notificationsLoading, setNotificationsLoading] = useState(false);
+	const notificationsDropdownRef = useRef<HTMLDivElement>(null);
+
+	// Load notifications on mount and when accessToken changes
+	// biome-ignore lint/correctness/useExhaustiveDependencies: notification loaders are memoized for the current access token.
+	useEffect(() => {
+		if (!accessToken) return;
+		loadNotifications();
+		loadUnreadCount();
+	}, [accessToken]);
+
+	const loadNotifications = useCallback(async () => {
+		if (!accessToken) return;
+		setNotificationsLoading(true);
+		try {
+			const result = await listAdminNotifications(accessToken, {
+				pageSize: 20,
+			});
+			setNotifications(result.items);
+		} catch {
+			setNotifications([]);
+		} finally {
+			setNotificationsLoading(false);
+		}
+	}, [accessToken]);
+
+	const loadUnreadCount = useCallback(async () => {
+		if (!accessToken) return;
+		try {
+			const result = await unreadAdminNotificationsCount(accessToken);
+			setUnreadCount(result.count);
+		} catch {
+			setUnreadCount(0);
+		}
+	}, [accessToken]);
+
+	const handleMarkRead = useCallback(
+		async (notificationId: string) => {
+			if (!accessToken) return;
+			try {
+				await markAdminNotificationRead(accessToken, notificationId);
+				await loadNotifications();
+				await loadUnreadCount();
+			} catch {
+				// ignore
+			}
+		},
+		[accessToken, loadNotifications, loadUnreadCount],
+	);
+
+	const handleMarkAllRead = useCallback(async () => {
+		if (!accessToken) return;
+		try {
+			await markAllAdminNotificationsRead(accessToken);
+			await loadNotifications();
+			await loadUnreadCount();
+		} catch {
+			// ignore
+		}
+	}, [accessToken, loadNotifications, loadUnreadCount]);
+
+	// Close dropdowns on outside click
+	useEffect(() => {
+		if (!notificationsOpen) return;
+		function handlePointerDown(event: PointerEvent) {
+			if (
+				notificationsDropdownRef.current &&
+				!notificationsDropdownRef.current.contains(event.target as Node)
+			) {
+				setNotificationsOpen(false);
+			}
+		}
+		document.addEventListener("pointerdown", handlePointerDown);
+		return () => document.removeEventListener("pointerdown", handlePointerDown);
+	}, [notificationsOpen]);
 
 	async function handleLogout() {
 		setMenuOpen(false);
@@ -141,23 +311,142 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
 							aria-hidden
 						/>
 						<input
+							ref={searchInputRef}
 							type="search"
+							value={searchQuery}
+							onChange={handleSearchChange}
+							onKeyDown={handleSearchKeyDown}
+							onFocus={() => searchResults.length > 0 && setSearchOpen(true)}
+							onBlur={handleSearchBlur}
 							placeholder="Tìm cửa hàng, người dùng, giao dịch..."
 							className="h-11 w-full rounded-[10px] border border-border bg-white pl-10 pr-4 text-base text-foreground placeholder:text-[#9e9e9e] focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/25"
 						/>
+						{searchLoading && (
+							<div className="absolute right-3 top-1/2 -translate-y-1/2">
+								<Search
+									className="size-4.5 animate-spin text-[#9e9e9e]"
+									aria-hidden
+								/>
+							</div>
+						)}
+						{searchOpen && searchResults.length > 0 && (
+							<div
+								role="listbox"
+								className="absolute left-0 right-0 top-full z-40 mt-2 overflow-hidden rounded-[10px] border border-border bg-card shadow-lg"
+							>
+								{searchResults.map((result) => (
+									<button
+										key={result.id}
+										type="button"
+										role="option"
+										onClick={() => handleResultClick(result.href)}
+										className="w-full flex items-center gap-3 px-3 py-2.5 text-left text-sm transition-colors hover:bg-accent focus:outline-none focus:bg-accent"
+									>
+										<span className="flex min-w-0 flex-col">
+											<span className="truncate font-medium text-foreground">
+												{result.label}
+											</span>
+											{result.subLabel && (
+												<span className="truncate text-xs text-muted-foreground">
+													{result.subLabel}
+												</span>
+											)}
+										</span>
+										<span className="ml-auto text-xs text-muted-foreground capitalize">
+											{result.type}
+										</span>
+									</button>
+								))}
+							</div>
+						)}
 					</div>
 
 					<div className="ml-auto flex items-center gap-2 lg:gap-3">
-						{/* Chuông thông báo */}
-						<button
-							type="button"
-							aria-label="Thông báo"
-							className="relative flex size-11 items-center justify-center rounded-[10px] text-[#616161] transition-colors duration-200 ease-out hover:bg-[#f5f5f5]"
-						>
-							<Bell className="size-5.5" aria-hidden />
-							<span className="absolute right-2.5 top-2.5 size-2 rounded-full bg-destructive" />
-						</button>
+						{/* Chuông thông báo — real admin notifications */}
+						<div className="relative" ref={notificationsDropdownRef}>
+							<button
+								type="button"
+								aria-label="Thông báo"
+								onClick={() => setNotificationsOpen((open) => !open)}
+								aria-expanded={notificationsOpen}
+								aria-haspopup="menu"
+								className="relative flex size-11 items-center justify-center rounded-[10px] text-[#616161] transition-colors duration-200 ease-out hover:bg-[#f5f5f5]"
+							>
+								<Bell className="size-5.5" aria-hidden />
+								{unreadCount > 0 && (
+									<span className="absolute right-2.5 top-2.5 size-2 rounded-full bg-destructive" />
+								)}
+							</button>
 
+							{notificationsOpen && (
+								<div
+									role="menu"
+									className="absolute right-0 top-full z-40 mt-2 w-80 overflow-hidden rounded-[10px] border border-border bg-card shadow-lg"
+								>
+									<div className="flex items-center justify-between px-4 py-3 border-b border-border">
+										<h3 className="font-semibold">Thông báo</h3>
+										{unreadCount > 0 && (
+											<button
+												type="button"
+												onClick={handleMarkAllRead}
+												className="text-xs text-primary hover:underline"
+											>
+												Đánh dấu tất cả đã đọc
+											</button>
+										)}
+									</div>
+									{notificationsLoading ? (
+										<div className="flex items-center justify-center py-8">
+											<Loader2
+												className="size-5 animate-spin text-muted-foreground"
+												aria-hidden
+											/>
+										</div>
+									) : notifications.length === 0 ? (
+										<div className="px-4 py-6 text-center text-sm text-muted-foreground">
+											Không có thông báo
+										</div>
+									) : (
+										<div className="max-h-96 overflow-y-auto">
+											{notifications.map((notification) => (
+												<button
+													key={notification.id}
+													type="button"
+													role="menuitem"
+													onClick={() => handleMarkRead(notification.id)}
+													className={`w-full flex items-start gap-3 px-4 py-3 text-left text-sm transition-colors ${
+														notification.readAt
+															? "hover:bg-accent/50"
+															: "bg-primary/5 hover:bg-primary/10"
+													}`}
+												>
+													<div className="flex min-w-0 flex-col">
+														<span
+															className={`truncate font-medium ${notification.readAt ? "text-foreground" : "font-semibold text-foreground"}`}
+														>
+															{notification.title}
+														</span>
+														{notification.body && (
+															<span className="truncate text-xs text-muted-foreground">
+																{notification.body}
+															</span>
+														)}
+														<span className="mt-1 text-xs text-muted-foreground">
+															{new Date(notification.createdAt).toLocaleString(
+																"vi-VN",
+															)}
+														</span>
+													</div>
+													{!notification.readAt && (
+														<span className="mt-1 size-2 rounded-full bg-primary shrink-0" />
+													)}
+												</button>
+											))}
+										</div>
+									)}
+								</div>
+							)}
+						</div>
 						{/* Avatar + vai trò — dropdown Thông tin / Đăng xuất */}
 						<div className="relative pl-1" ref={menuRef}>
 							<button

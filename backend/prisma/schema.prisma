@@ -411,8 +411,38 @@ model PlatformAdmin {
   assignedTickets SupportTicket[]
   ticketMessages  TicketMessage[]
   roleAssignments AdminRoleAssignment[]
+  notificationReads AdminNotificationRead[]
 
   @@map("platform_admin")
+}
+
+// Admin-scoped notifications for platform admins (global, not tenant-scoped).
+model AdminNotification {
+  id        String   @id @default(uuid())
+  type      String   // e.g., SYSTEM_ALERT, BILLING_OVERDUE, TENANT_SUSPENDED
+  title     String
+  body      String?
+  createdAt DateTime @default(now())
+
+  reads AdminNotificationRead[]
+
+  @@index([createdAt])
+  @@map("admin_notification")
+}
+
+// Per-admin read state for admin notifications.
+model AdminNotificationRead {
+  id               String   @id @default(uuid())
+  notificationId   String
+  adminId          String
+  readAt           DateTime @default(now())
+
+  notification AdminNotification @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+  admin        PlatformAdmin     @relation(fields: [adminId], references: [id], onDelete: Cascade)
+
+  @@unique([notificationId, adminId])
+  @@index([adminId, readAt])
+  @@map("admin_notification_read")
 }
 
 // M:N link table between PlatformAdmin and admin-side roles (R5/R8, F-02).

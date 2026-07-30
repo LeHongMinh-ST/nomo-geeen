@@ -37,7 +37,8 @@ type AdminResource =
 	| 'billing'
 	| 'audit'
 	| 'report'
-	| 'support';
+	| 'support'
+	| 'system';
 
 type AdminAction =
 	| 'view'
@@ -87,6 +88,7 @@ const PERMISSIONS: Array<{ resource: AdminResource; actions: AdminAction[] }> =
 		{ resource: 'audit', actions: ['view'] },
 		{ resource: 'report', actions: ['view', 'export'] },
 		{ resource: 'support', actions: ['view', 'edit', 'reply'] },
+		{ resource: 'system', actions: ['view'] },
 	];
 
 const BILLING_PERMISSIONS = [
@@ -111,6 +113,7 @@ const RESOURCE_LABEL_VI: Record<string, string> = {
 	audit: 'Nhật ký hoạt động',
 	report: 'Báo cáo',
 	support: 'Hỗ trợ',
+	system: 'Hệ thống',
 	plan: 'Gói dịch vụ',
 	subscription: 'Gói đăng ký',
 };
@@ -162,6 +165,7 @@ const PERMISSION_LABEL_OVERRIDE: Record<string, string> = {
 	'admin.support:view': 'Xem yêu cầu hỗ trợ',
 	'admin.support:edit': 'Sửa yêu cầu hỗ trợ',
 	'admin.support:reply': 'Phản hồi hỗ trợ',
+	'admin.system:view': 'Xem tình trạng hệ thống',
 	'admin.plan:view': 'Xem gói dịch vụ',
 	'admin.plan:edit': 'Sửa gói dịch vụ',
 	'admin.plan:activate': 'Kích hoạt gói dịch vụ',

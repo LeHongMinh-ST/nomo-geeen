@@ -13,7 +13,7 @@ export default function AdminUserResetPasswordPage() {
 	const router = useRouter();
 	const params = useParams<{ id: string }>();
 	const id = params?.id ?? "";
-	const allowed = useHasPermission("admin.user:reset-password");
+	const allowed = useHasPermission("admin.user:reset_password");
 	const hasHydrated = useAdminAuth((s) => s.hasHydrated);
 	const { admin, loading, submitting, error, handleSubmit } =
 		useAdminUserResetPassword(id);

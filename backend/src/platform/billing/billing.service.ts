@@ -17,6 +17,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import type { CancelSubscriptionDto } from './dto/cancel-subscription.dto';
 import { type CreatePlanDto, PlanQueryDto } from './dto/create-plan.dto';
 import type { CreateSubscriptionDto } from './dto/create-subscription.dto';
+import { InvoiceTransactionQueryDto } from './dto/invoice-transaction-query.dto';
 import type { RenewSubscriptionDto } from './dto/renew-subscription.dto';
 import { SubscriptionQueryDto } from './dto/subscription-query.dto';
 import { trimManualValue } from './dto/subscription-validation';
@@ -91,6 +92,32 @@ export interface SubscriptionResponse {
 export interface SubscriptionResult {
 	current: SubscriptionResponse | null;
 	history: SubscriptionResponse[];
+	page: number;
+	pageSize: number;
+	total: number;
+}
+
+export interface InvoiceTransactionResponse {
+	id: string;
+	invoiceNumber: string;
+	tenantId: string;
+	tenantName: string;
+	tenantSlug: string;
+	amount: string;
+	status: string;
+	paymentStatus: string;
+	paymentMethod: string | null;
+	paidAt: string | null;
+	issuedAt: string | null;
+	dueAt: string | null;
+	periodStart: string | null;
+	periodEnd: string | null;
+	createdAt: string;
+	updatedAt: string;
+}
+
+export interface ListInvoiceTransactionsResult {
+	items: InvoiceTransactionResponse[];
 	page: number;
 	pageSize: number;
 	total: number;
@@ -793,6 +820,106 @@ export class BillingService {
 				maxStorageBytes: row.maxStorageBytes.toString(),
 			},
 			featureCodes: row.features.map(({ feature }) => feature.code).sort(),
+			createdAt: row.createdAt.toISOString(),
+			updatedAt: row.updatedAt.toISOString(),
+		};
+	}
+
+	async listInvoiceTransactions(
+		query: InvoiceTransactionQueryDto = new InvoiceTransactionQueryDto(),
+	): Promise<ListInvoiceTransactionsResult> {
+		const page = Math.max(1, query.page ?? 1);
+		const pageSize = Math.min(100, Math.max(1, query.pageSize ?? 20));
+
+		const where: Record<string, unknown> = {};
+
+		if (query.q) {
+			const searchTerm = query.q.trim();
+			where.OR = [
+				{ invoiceNumber: { contains: searchTerm, mode: 'insensitive' } },
+				{ tenant: { name: { contains: searchTerm, mode: 'insensitive' } } },
+				{ tenant: { slug: { contains: searchTerm, mode: 'insensitive' } } },
+			];
+		}
+
+		if (query.status) {
+			where.status = query.status;
+		}
+
+		if (query.paymentStatus) {
+			where.payments = {
+				some: { status: query.paymentStatus },
+			};
+		}
+
+		if (query.tenantId) {
+			where.tenantId = query.tenantId;
+		}
+
+		if (query.from || query.to) {
+			where.createdAt = {};
+			if (query.from)
+				(where.createdAt as Record<string, Date>).gte = new Date(query.from);
+			if (query.to)
+				(where.createdAt as Record<string, Date>).lte = new Date(query.to);
+		}
+
+		const [rows, total] = await Promise.all([
+			this.prisma.invoice.findMany({
+				where,
+				include: {
+					tenant: { select: { id: true, name: true, slug: true } },
+					payments: {
+						select: { status: true, method: true, paidAt: true },
+						orderBy: { createdAt: 'desc' },
+					},
+				},
+				orderBy: { createdAt: 'desc' },
+				skip: (page - 1) * pageSize,
+				take: pageSize,
+			}),
+			this.prisma.invoice.count({ where }),
+		]);
+
+		const items = rows.map((row) => this.toInvoiceTransactionResponse(row));
+		return { items, page, pageSize, total };
+	}
+
+	private toInvoiceTransactionResponse(row: {
+		id: string;
+		invoiceNumber: string;
+		tenantId: string;
+		tenant: { id: string; name: string; slug: string };
+		amount: bigint;
+		status: string;
+		payments: Array<{
+			status: string;
+			method: string | null;
+			paidAt: Date | null;
+		}>;
+		issuedAt: Date | null;
+		dueAt: Date | null;
+		periodStart: Date | null;
+		periodEnd: Date | null;
+		createdAt: Date;
+		updatedAt: Date;
+	}): InvoiceTransactionResponse {
+		const latestPayment = row.payments[0] ?? null;
+		return {
+			id: row.id,
+			invoiceNumber: row.invoiceNumber,
+			tenantId: row.tenantId,
+			tenantName: row.tenant.name,
+			tenantSlug: row.tenant.slug,
+			amount: row.amount.toString(),
+			status: row.status,
+			paymentStatus: latestPayment?.status ?? 'PENDING',
+			paymentMethod: latestPayment?.method ?? null,
+			paidAt: latestPayment?.paidAt?.toISOString() ?? null,
+			issuedAt: row.issuedAt?.toISOString() ?? null,
+			dueAt: row.dueAt?.toISOString() ?? null,
+			periodStart: row.periodStart?.toISOString() ?? null,
+			periodEnd: row.periodEnd?.toISOString() ?? null,
 			createdAt: row.createdAt.toISOString(),
 			updatedAt: row.updatedAt.toISOString(),
 		};

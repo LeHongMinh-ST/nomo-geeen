@@ -77,6 +77,9 @@ The admin read boundary is `GET /admin/audit-logs` for bounded, stable newest-fi
 
 The admin permission catalog is exposed at `/admin/settings/permissions` and gated by `admin.permission:view`. It is read-only and presents only `admin.*` permissions; permission assignment remains role-based.
 
+
+The admin billing boundary now includes read-only invoice transactions at GET /admin/transactions, readiness status at GET /admin/status, scoped global search (tenant/admin user/invoice), and persisted admin notifications (list, unread count, read, read-all). These endpoints use existing access-token and permission guards; AdminShell consumes them through typed admin API clients. Reset-password checks the canonical admin.user:reset_password permission.
+
 ## Known current-state limitations
 
 - Audit query and detail boundaries are available; there is no audit retention policy or audit export endpoint.

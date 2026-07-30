@@ -15,8 +15,17 @@ import { RequirePermission } from '../auth/decorators/require-permission.decorat
 import { AccessTokenGuard } from '../auth/guards/access-token.guard';
 import { PermissionGuard } from '../auth/guards/permission.guard';
 import type { AdminIdentity } from '../auth/token.service';
+import { HealthService } from '../health/health.service';
+import { AdminNotificationsController } from './admin-notifications.controller';
+import {
+	type AdminNotificationListResult,
+	AdminNotificationsService,
+	type AdminNotificationView,
+} from './admin-notifications.service';
 import {
 	BillingService,
+	type InvoiceTransactionResponse,
+	type ListInvoiceTransactionsResult,
 	type ListPlansResult,
 	type PlanAuditContext,
 	type PlanResponse,
@@ -26,6 +35,7 @@ import {
 import { CancelSubscriptionDto } from './dto/cancel-subscription.dto';
 import { CreatePlanDto, PlanQueryDto } from './dto/create-plan.dto';
 import { CreateSubscriptionDto } from './dto/create-subscription.dto';
+import { InvoiceTransactionQueryDto } from './dto/invoice-transaction-query.dto';
 import { RenewSubscriptionDto } from './dto/renew-subscription.dto';
 import { SubscriptionQueryDto } from './dto/subscription-query.dto';
 import { PlanActivationDto, UpdatePlanDto } from './dto/update-plan.dto';
@@ -142,6 +152,38 @@ export class BillingController {
 			actorRoleCode: req.user.roleCodes?.join(',') ?? null,
 			ipAddress: req.ip,
 			userAgent: req.get('user-agent') ?? undefined,
+		};
+	}
+}
+
+@Controller('admin/transactions')
+@UseGuards(AccessTokenGuard, PermissionGuard)
+export class TransactionsController {
+	constructor(private readonly service: BillingService) {}
+
+	@Get()
+	@RequirePermission('admin.billing:view')
+	list(
+		@Query() query: InvoiceTransactionQueryDto,
+	): Promise<ListInvoiceTransactionsResult> {
+		return this.service.listInvoiceTransactions(query);
+	}
+}
+
+@Controller('admin/status')
+@UseGuards(AccessTokenGuard, PermissionGuard)
+export class AdminStatusController {
+	constructor(private readonly health: HealthService) {}
+
+	@Get()
+	@RequirePermission('admin.system:view')
+	async status() {
+		const result = await this.health.ready();
+		return {
+			overall: result.status,
+			database: result.checks.database,
+			redis: result.checks.redis,
+			timestamp: result.timestamp,
 		};
 	}
 }

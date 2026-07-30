@@ -14,11 +14,11 @@ import type { AdminPublicShape } from "@/lib/admin-api/admin-users";
 import type { RolePublicShape } from "@/lib/admin-api/roles";
 import { labelRoleCode } from "@/lib/admin-labels";
 import { formatDateTime } from "@/lib/format";
-import { Can } from "./can-permission";
 import {
 	AdminUserEditorForm,
 	type UpdateSubmit,
 } from "./admin-user-editor-form";
+import { Can } from "./can-permission";
 
 const STATUS_LABEL: Record<AdminPublicShape["status"], string> = {
 	ACTIVE: "Hoạt động",
@@ -182,7 +182,7 @@ export function AdminUserDetailPanel({
 
 					{!isSelf ? (
 						<>
-							<Can permission="admin.user:reset-password">
+							<Can permission="admin.user:reset_password">
 								<Link
 									href={`/admin/admin-users/${admin.id}/reset-password`}
 									className="inline-flex h-11 w-full items-center justify-center gap-1.5 rounded-[10px] border border-border bg-card text-sm font-semibold hover:bg-soft"
