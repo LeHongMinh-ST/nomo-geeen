@@ -37,4 +37,8 @@ describe("filterSellableProducts", () => {
 			"p1",
 		]);
 	});
+
+	it("keeps out-of-stock products when purchasing", () => {
+		expect(filterSellableProducts([{ ...base, stock: 0 }], "", true)).toHaveLength(1);
+	});
 });

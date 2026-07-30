@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
 	createTenantSupplier,
+	getTenantSupplier,
 	listTenantSuppliers,
 	type TenantSupplier,
 } from "@/lib/tenant-suppliers-api";
@@ -10,6 +11,7 @@ import { SupplierPicker } from "../supplier-picker";
 vi.mock("@/lib/tenant-suppliers-api", () => ({
 	listTenantSuppliers: vi.fn(),
 	createTenantSupplier: vi.fn(),
+	getTenantSupplier: vi.fn(),
 	supplierTypeLabel: (value: string | null) => value ?? "Chưa phân loại",
 }));
 vi.mock("@/lib/use-scroll-lock", () => ({ useScrollLock: vi.fn() }));
@@ -40,6 +42,7 @@ describe("SupplierPicker", () => {
 				total: 1,
 			});
 		vi.mocked(createTenantSupplier).mockReset();
+		vi.mocked(getTenantSupplier).mockReset();
 	});
 
 	it("lists suppliers and selects an existing one", async () => {
@@ -50,6 +53,16 @@ describe("SupplierPicker", () => {
 		fireEvent.click(screen.getByText("Vật tư Bình Điền"));
 		expect(onChange).toHaveBeenCalledWith("sup-1");
 		expect(createTenantSupplier).not.toHaveBeenCalled();
+	});
+
+	it("shows the selected supplier after the parent value changes", async () => {
+		const onChange = vi.fn();
+		vi.mocked(getTenantSupplier).mockResolvedValue(existing);
+		const { rerender } = render(<SupplierPicker onChange={onChange} />);
+		rerender(<SupplierPicker value="sup-1" onChange={onChange} />);
+		expect(
+			await screen.findByRole("button", { name: /Vật tư Bình Điền/ }),
+		).toBeInTheDocument();
 	});
 
 	it("creates a new supplier through the inline form", async () => {

@@ -4,6 +4,7 @@ import { Check, ChevronDown, Search, Truck, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import {
 	createTenantSupplier,
+	getTenantSupplier,
 	listTenantSuppliers,
 	supplierTypeLabel,
 	type TenantSupplier,
@@ -29,10 +30,8 @@ export function SupplierPicker({
 			setSelected(undefined);
 			return;
 		}
-		listTenantSuppliers({ search: value, pageSize: 20 })
-			.then((response) =>
-				setSelected(response.items.find((item) => item.id === value)),
-			)
+		getTenantSupplier(value)
+			.then((supplier) => setSelected(supplier))
 			.catch(() => setSelected(undefined));
 	}, [value]);
 
