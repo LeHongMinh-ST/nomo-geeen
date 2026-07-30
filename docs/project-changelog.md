@@ -232,3 +232,9 @@ Format theo [Keep a Changelog](https://keepachangelog.com/), tuân thủ [Semant
 ### Changed
 
 - **Quy cách đóng gói & quy đổi sản phẩm** — form chỉnh sửa giải thích rõ chiều quy đổi `1 đơn vị quy đổi = hệ số đơn vị tồn kho`, bắt buộc nhập hệ số mới, chống trùng đơn vị và cho phép áp dụng khi nhập hàng, bán hàng hoặc cả hai; mặc định tương thích là `Cả hai`.
+## 2026-07-30 — VietQR chuyển khoản theo cửa hàng
+
+- Thêm cấu hình ngân hàng, số tài khoản và tên chủ tài khoản trong hồ sơ tenant; backend validate, map profile và lưu qua migration Prisma.
+- Trang Thông tin cửa hàng tải danh sách ngân hàng VietQR, có nhập mã thủ công khi API không khả dụng.
+- PaymentSheet gộp QR vào Chuyển khoản, hiển thị Quick Link VietQR theo số tiền đơn và chặn xác nhận khi chưa cấu hình tài khoản.
+- Thêm test tập trung cho mapping/validation bank và parser danh sách VietQR.

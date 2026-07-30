@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import {
+	BadRequestException,
 	forwardRef,
 	HttpException,
 	HttpStatus,
@@ -17,6 +18,11 @@ import type { TenantRegisterDto } from './dto/tenant-register.dto';
 import type { UpdateTenantProfileDto } from './dto/update-tenant-profile.dto';
 import { DECOY_HASH, PasswordService } from './password.service';
 import { RefreshTokenStore, remainingTtlSec } from './refresh-token.store';
+import {
+	mapTenantBankConfig,
+	type TenantBankSettingsRow,
+	validateBankConfigInput,
+} from './tenant-bank-config';
 import {
 	type AccessClaims,
 	TenantAuthResponse,
@@ -394,14 +400,34 @@ export class TenantAuthService {
 		}
 	}
 
+	private readonly bankSettingsSelect = {
+		address: true,
+		bankId: true,
+		bankName: true,
+		bankShortName: true,
+		bankAccountNumber: true,
+		bankAccountName: true,
+	} as const;
+
+	private toProfileResponse(
+		user: NonNullable<Awaited<ReturnType<TenantAuthService['findActiveUser']>>>,
+		settings: (TenantBankSettingsRow & { address: string | null }) | null,
+	) {
+		return {
+			user: this.toPublicUser(user),
+			address: settings?.address ?? '',
+			bank: mapTenantBankConfig(settings),
+		};
+	}
+
 	async profile(userId: string, tenantId: string) {
 		const user = await this.findActiveUser(userId, tenantId);
 		if (!user) throw new UnauthorizedException('User not found');
 		const settings = await this.prisma.tenantSettings.findUnique({
 			where: { tenantId },
-			select: { address: true },
+			select: this.bankSettingsSelect,
 		});
-		return { user: this.toPublicUser(user), address: settings?.address ?? '' };
+		return this.toProfileResponse(user, settings);
 	}
 
 	async updateProfile(
@@ -411,6 +437,49 @@ export class TenantAuthService {
 	) {
 		const current = await this.findActiveUser(userId, tenantId);
 		if (!current) throw new UnauthorizedException('User not found');
+
+		const bankTouched =
+			dto.bankId !== undefined ||
+			dto.bankName !== undefined ||
+			dto.bankShortName !== undefined ||
+			dto.bankAccountNumber !== undefined ||
+			dto.bankAccountName !== undefined;
+
+		let nextBank: TenantBankSettingsRow | undefined;
+		if (bankTouched) {
+			const existing = await this.prisma.tenantSettings.findUnique({
+				where: { tenantId },
+				select: {
+					bankId: true,
+					bankName: true,
+					bankShortName: true,
+					bankAccountNumber: true,
+					bankAccountName: true,
+				},
+			});
+			const validated = validateBankConfigInput({
+				bankId: dto.bankId !== undefined ? dto.bankId : existing?.bankId,
+				bankName:
+					dto.bankName !== undefined ? dto.bankName : existing?.bankName,
+				bankShortName:
+					dto.bankShortName !== undefined
+						? dto.bankShortName
+						: existing?.bankShortName,
+				bankAccountNumber:
+					dto.bankAccountNumber !== undefined
+						? dto.bankAccountNumber
+						: existing?.bankAccountNumber,
+				bankAccountName:
+					dto.bankAccountName !== undefined
+						? dto.bankAccountName
+						: existing?.bankAccountName,
+			});
+			if (!validated.ok) {
+				throw new BadRequestException(validated.message);
+			}
+			nextBank = validated.value;
+		}
+
 		await this.audit.run(
 			{
 				tenantId,
@@ -432,8 +501,15 @@ export class TenantAuthService {
 				});
 				await tx.tenantSettings.upsert({
 					where: { tenantId },
-					create: { tenantId, address: dto.address ?? null },
-					update: { address: dto.address ?? null },
+					create: {
+						tenantId,
+						address: dto.address ?? null,
+						...(nextBank ?? {}),
+					},
+					update: {
+						address: dto.address ?? null,
+						...(nextBank ?? {}),
+					},
 				});
 				return true;
 			},
@@ -442,12 +518,9 @@ export class TenantAuthService {
 		if (!updated) throw new UnauthorizedException('User not found');
 		const settings = await this.prisma.tenantSettings.findUnique({
 			where: { tenantId },
-			select: { address: true },
+			select: this.bankSettingsSelect,
 		});
-		return {
-			user: this.toPublicUser(updated),
-			address: settings?.address ?? '',
-		};
+		return this.toProfileResponse(updated, settings);
 	}
 
 	async changePassword(

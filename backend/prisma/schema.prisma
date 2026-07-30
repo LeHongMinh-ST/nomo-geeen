@@ -1860,6 +1860,12 @@ model TenantSettings {
   defaultPaymentMethod       PaymentMethod?
   receiptFooter              String?
   lowStockThresholdDefault   Decimal? @db.Decimal(18, 6)
+  /// VietQR bank id/bin/code used in img.vietqr.io Quick Link.
+  bankId                     String?
+  bankName                   String?
+  bankShortName              String?
+  bankAccountNumber          String?
+  bankAccountName            String?
   updatedAt                  DateTime @updatedAt
 
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)

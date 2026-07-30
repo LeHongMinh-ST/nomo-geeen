@@ -1,7 +1,8 @@
 "use client";
 
 import type { LucideIcon } from "lucide-react";
-import { Banknote, Check, QrCode, Smartphone, X } from "lucide-react";
+import { Banknote, Check, Smartphone, X } from "lucide-react";
+import Image from "next/image";
 import { useEffect, useState } from "react";
 import {
 	type DebtAccount,
@@ -10,11 +11,13 @@ import {
 } from "@/lib/debts";
 import { formatVND } from "@/lib/format";
 import { useScrollLock } from "@/lib/use-scroll-lock";
+import { getCurrentProfile, type TenantProfile } from "@/lib/user-auth-api";
+import { useUserAuth } from "@/stores/user-auth-store";
 
 /**
  * Sheet thu/trả công nợ (DESIGN.md §16, §24) — trượt từ dưới.
  * Hỗ trợ trả nhiều lần: nhập số tiền thu, tự tính số còn lại sau thu.
- * Chọn hình thức (Tiền mặt / Chuyển khoản / QR).
+ * Chọn hình thức (Tiền mặt / Chuyển khoản). Dữ liệu QR lịch sử vẫn giữ ở contract.
  */
 
 const methods: {
@@ -24,7 +27,6 @@ const methods: {
 }[] = [
 	{ value: "cash", label: "Tiền mặt", icon: Banknote },
 	{ value: "transfer", label: "Chuyển khoản", icon: Smartphone },
-	{ value: "qr", label: "Quét QR", icon: QrCode },
 ];
 
 export function CollectPaymentSheet({
@@ -40,9 +42,12 @@ export function CollectPaymentSheet({
 	const open = account !== null;
 	const isReceivable = account?.direction === "receivable";
 	const outstanding = account ? debtOutstanding(account) : 0;
+	const accessToken = useUserAuth((state) => state.accessToken);
 
 	const [method, setMethod] = useState<DebtPaymentMethod>("cash");
 	const [amount, setAmount] = useState("");
+	const [profile, setProfile] = useState<TenantProfile | null>(null);
+	const [profileLoading, setProfileLoading] = useState(false);
 
 	// Reset mỗi lần mở tài khoản mới.
 	// biome-ignore lint/correctness/useExhaustiveDependencies: chỉ reset khi đổi tài khoản
@@ -50,8 +55,16 @@ export function CollectPaymentSheet({
 		if (account) {
 			setMethod("cash");
 			setAmount("");
+			setProfile(null);
+			if (account.direction === "receivable" && accessToken) {
+				setProfileLoading(true);
+				void getCurrentProfile(accessToken)
+					.then(setProfile)
+					.catch(() => setProfile(null))
+					.finally(() => setProfileLoading(false));
+			}
 		}
-	}, [account?.id]);
+	}, [accessToken, account?.id]);
 
 	useScrollLock(open);
 
@@ -71,6 +84,13 @@ export function CollectPaymentSheet({
 	const remaining = outstanding - amountNum;
 	const valid = amountNum > 0;
 	const collectVerb = isReceivable ? "Thu" : "Trả";
+	const bank = profile?.bank;
+	const canConfirm =
+		valid && (method !== "transfer" || !isReceivable || Boolean(bank));
+	const quickLink =
+		bank && account
+			? `https://img.vietqr.io/image/${encodeURIComponent(bank.bankId)}-${encodeURIComponent(bank.accountNumber)}-compact2.png?amount=${amountNum}&addInfo=${encodeURIComponent(`Thu no ${account.id} - ${account.name}`)}&accountName=${encodeURIComponent(bank.accountName)}`
+			: null;
 
 	return (
 		<div
@@ -183,7 +203,7 @@ export function CollectPaymentSheet({
 
 					{/* Hình thức thanh toán */}
 					<p className="mb-2 text-sm font-semibold text-[#616161]">Hình thức</p>
-					<div className="mb-2 grid grid-cols-3 gap-2">
+					<div className="mb-2 grid grid-cols-2 gap-2">
 						{methods.map((m) => {
 							const active = method === m.value;
 							return (
@@ -203,13 +223,54 @@ export function CollectPaymentSheet({
 							);
 						})}
 					</div>
+					{method === "transfer" ? (
+						<div className="mb-2 flex flex-col items-center gap-3 rounded-[12px] border border-dashed border-border bg-[#fafafa] py-6">
+							{isReceivable ? (
+								<>
+									{profileLoading ? (
+										<p className="text-base text-[#616161]">
+											Đang tải thông tin ngân hàng...
+										</p>
+									) : null}
+									{bank && quickLink ? (
+										<>
+											<Image
+												src={quickLink}
+												alt="Mã VietQR thu nợ"
+												className="size-44 rounded-[12px] bg-white object-contain"
+												width={176}
+												height={176}
+												unoptimized
+											/>
+											<p className="text-center text-base text-[#616161]">
+												{bank.bankName}
+												<br />
+												{bank.accountNumber} · {bank.accountName}
+												<br />
+												{formatVND(amountNum)}₫
+											</p>
+										</>
+									) : (
+										<p className="text-center text-base text-destructive">
+											Chưa cấu hình tài khoản nhận chuyển khoản. Hãy cập nhật
+											trong Thông tin cửa hàng.
+										</p>
+									)}
+								</>
+							) : (
+								<p className="text-base text-[#616161]">
+									Xác nhận khi đã chuyển khoản {formatVND(amountNum)}₫
+								</p>
+							)}
+						</div>
+					) : null}
 				</div>
 
 				{/* Nút xác nhận — dính đáy sheet */}
 				<div className="pb-safe border-t border-border bg-card px-4 py-3">
 					<button
 						type="button"
-						disabled={!valid}
+						disabled={!canConfirm}
 						onClick={() => onConfirm(amountNum, method)}
 						className="flex h-14 w-full items-center justify-center gap-2 rounded-[10px] bg-primary text-lg font-bold text-white transition-colors duration-200 ease-out hover:bg-[#5cad45] active:bg-[#3f8530] disabled:cursor-not-allowed disabled:bg-[#a5d6a7]"
 					>

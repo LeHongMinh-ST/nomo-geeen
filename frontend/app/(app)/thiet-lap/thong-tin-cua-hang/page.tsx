@@ -1,8 +1,12 @@
 "use client";
-import { Building2, MapPin, Phone, Store } from "lucide-react";
+import { Building2, CreditCard, MapPin, Phone, Store } from "lucide-react";
 import { useEffect, useState } from "react";
 import { SettingHeader } from "@/components/app/setting-header";
-import { getCurrentProfile } from "@/lib/user-auth-api";
+import {
+	getCurrentProfile,
+	getVietQrBanks,
+	type VietQrBank,
+} from "@/lib/user-auth-api";
 import { useUserAuth } from "@/stores/user-auth-store";
 
 export default function ThongTinCuaHangPage() {
@@ -11,6 +15,13 @@ export default function ThongTinCuaHangPage() {
 	const updateProfile = useUserAuth((state) => state.updateProfile);
 	const [phone, setPhone] = useState("");
 	const [address, setAddress] = useState("");
+	const [bankId, setBankId] = useState("");
+	const [bankName, setBankName] = useState("");
+	const [bankShortName, setBankShortName] = useState("");
+	const [bankAccountNumber, setBankAccountNumber] = useState("");
+	const [bankAccountName, setBankAccountName] = useState("");
+	const [banks, setBanks] = useState<VietQrBank[]>([]);
+	const [banksLoading, setBanksLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	const [saved, setSaved] = useState(false);
 	useEffect(() => {
@@ -19,6 +30,11 @@ export default function ThongTinCuaHangPage() {
 			.then((profile) => {
 				setPhone(profile.user.phone ?? "");
 				setAddress(profile.address);
+				setBankId(profile.bank?.bankId ?? "");
+				setBankName(profile.bank?.bankName ?? "");
+				setBankShortName(profile.bank?.bankShortName ?? "");
+				setBankAccountNumber(profile.bank?.accountNumber ?? "");
+				setBankAccountName(profile.bank?.accountName ?? "");
 			})
 			.catch((cause) =>
 				setError(
@@ -27,6 +43,11 @@ export default function ThongTinCuaHangPage() {
 						: "Không thể tải thông tin cửa hàng.",
 				),
 			);
+		setBanksLoading(true);
+		void getVietQrBanks()
+			.then(setBanks)
+			.catch(() => setBanks([]))
+			.finally(() => setBanksLoading(false));
 	}, [accessToken]);
 	async function save(event: React.FormEvent<HTMLFormElement>) {
 		event.preventDefault();
@@ -39,6 +60,11 @@ export default function ThongTinCuaHangPage() {
 				phone: phone.trim() || undefined,
 				email: user.email ?? undefined,
 				address: address.trim() || undefined,
+				bankId: bankId.trim() || null,
+				bankName: bankName.trim() || null,
+				bankShortName: bankShortName.trim() || null,
+				bankAccountNumber: bankAccountNumber.trim() || null,
+				bankAccountName: bankAccountName.trim() || null,
 			});
 			setSaved(true);
 		} catch (cause) {
@@ -87,6 +113,76 @@ export default function ThongTinCuaHangPage() {
 						/>
 					</div>
 				</label>
+				<div className="flex flex-col gap-4 border-t border-border pt-4">
+					<div>
+						<h2 className="flex items-center gap-2 text-base font-semibold">
+							<CreditCard className="size-5 text-primary" aria-hidden /> Thông
+							tin nhận chuyển khoản
+						</h2>
+						<p className="mt-1 text-sm text-muted">
+							Dùng để tạo mã VietQR khi thu tiền.
+						</p>
+					</div>
+					<label className="flex flex-col gap-2 text-base font-medium">
+						Ngân hàng
+						<select
+							value={bankId}
+							onChange={(event) => {
+								const bank = banks.find(
+									(item) =>
+										item.bin === event.target.value ||
+										item.id === event.target.value,
+								);
+								setBankId(event.target.value);
+								if (bank) {
+									setBankName(bank.name);
+									setBankShortName(bank.shortName);
+								}
+							}}
+							className="h-12 rounded-[10px] border border-border bg-white px-3 text-base"
+						>
+							<option value="">Chọn ngân hàng hoặc nhập mã bên dưới</option>
+							{banks.map((bank) => (
+								<option key={`${bank.bin}-${bank.id}`} value={bank.bin}>
+									{bank.name} ({bank.shortName})
+								</option>
+							))}
+						</select>
+						{banksLoading ? (
+							<span className="text-sm text-muted">
+								Đang tải danh sách ngân hàng...
+							</span>
+						) : null}
+					</label>
+					<label className="flex flex-col gap-2 text-base font-medium">
+						Mã ngân hàng (VietQR)
+						<input
+							value={bankId}
+							onChange={(event) => setBankId(event.target.value)}
+							placeholder="VD: 970415 hoặc VCB"
+							className="h-12 rounded-[10px] border border-border px-3 text-base"
+						/>
+					</label>
+					<div className="grid gap-4 sm:grid-cols-2">
+						<label className="flex flex-col gap-2 text-base font-medium">
+							Số tài khoản
+							<input
+								inputMode="numeric"
+								value={bankAccountNumber}
+								onChange={(event) => setBankAccountNumber(event.target.value)}
+								className="h-12 rounded-[10px] border border-border px-3 text-base"
+							/>
+						</label>
+						<label className="flex flex-col gap-2 text-base font-medium">
+							Tên chủ tài khoản
+							<input
+								value={bankAccountName}
+								onChange={(event) => setBankAccountName(event.target.value)}
+								className="h-12 rounded-[10px] border border-border px-3 text-base"
+							/>
+						</label>
+					</div>
+				</div>
 				<label className="flex flex-col gap-2 text-base font-medium">
 					Địa chỉ
 					<div className="relative">

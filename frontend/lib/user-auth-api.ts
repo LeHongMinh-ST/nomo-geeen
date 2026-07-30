@@ -15,6 +15,21 @@ export type TenantAuthUser = {
 export type TenantProfile = {
 	user: TenantAuthUser;
 	address: string;
+	bank: {
+		bankId: string;
+		bankName: string;
+		bankShortName: string;
+		accountNumber: string;
+		accountName: string;
+	} | null;
+};
+
+export type VietQrBank = {
+	id: string;
+	name: string;
+	shortName: string;
+	code: string;
+	bin: string;
 };
 
 export type TenantAuthResponse = {
@@ -133,9 +148,43 @@ export function getCurrentProfile(accessToken: string): Promise<TenantProfile> {
 	});
 }
 
+export async function getVietQrBanks(): Promise<VietQrBank[]> {
+	const response = await fetch("https://api.vietqr.io/v2/banks");
+	if (!response.ok) throw new Error("Không thể tải danh sách ngân hàng.");
+	const body = (await response.json()) as {
+		code?: string;
+		data?: Array<Partial<VietQrBank>>;
+	};
+	if (body.code !== "00" || !Array.isArray(body.data))
+		throw new Error("Danh sách ngân hàng không hợp lệ.");
+	return body.data.flatMap((bank) => {
+		const identifier = bank.id ?? bank.bin ?? bank.code;
+		if (!bank.name || !identifier) return [];
+		return [
+			{
+				id: String(identifier),
+				name: bank.name,
+				shortName: bank.shortName ?? bank.code ?? bank.name,
+				code: String(bank.code ?? bank.id ?? bank.bin ?? identifier),
+				bin: String(bank.bin ?? bank.id ?? bank.code ?? identifier),
+			},
+		];
+	});
+}
+
 export function updateCurrentProfile(
 	accessToken: string,
-	input: { fullName: string; phone?: string; email?: string; address?: string },
+	input: {
+		fullName: string;
+		phone?: string;
+		email?: string;
+		address?: string;
+		bankId?: string | null;
+		bankName?: string | null;
+		bankShortName?: string | null;
+		bankAccountNumber?: string | null;
+		bankAccountName?: string | null;
+	},
 ): Promise<TenantProfile> {
 	return requestJson<TenantProfile>("/auth/profile", {
 		method: "PATCH",
