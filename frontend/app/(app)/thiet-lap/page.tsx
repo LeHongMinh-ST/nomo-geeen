@@ -2,6 +2,7 @@
 
 import type { LucideIcon } from "lucide-react";
 import {
+	Building2,
 	Camera,
 	ChevronRight,
 	Layers,
@@ -121,6 +122,13 @@ const settingGroups: {
 	{
 		heading: "Cửa hàng",
 		items: [
+			{
+				icon: Building2,
+				label: "Thông tin cửa hàng",
+				desc: "Thông tin liên hệ và tài khoản nhận chuyển khoản",
+				tile: "#1a6fa8",
+				href: "/thiet-lap/thong-tin-cua-hang",
+			},
 			{
 				icon: Layers,
 				label: "Nhóm kinh doanh",

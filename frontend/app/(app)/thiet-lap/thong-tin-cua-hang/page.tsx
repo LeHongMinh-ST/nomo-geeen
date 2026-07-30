@@ -89,7 +89,7 @@ export default function ThongTinCuaHangPage() {
 					<span className="text-base font-semibold">
 						{user?.tenantName ?? "Đang tải..."}
 					</span>
-					<p className="text-sm text-muted">
+					<p className="text-sm text-[#616161]">
 						Tên cửa hàng lấy từ hồ sơ tenant.
 					</p>
 				</div>
@@ -102,7 +102,7 @@ export default function ThongTinCuaHangPage() {
 					Số điện thoại cửa hàng
 					<div className="relative">
 						<Phone
-							className="pointer-events-none absolute left-3.5 top-1/2 size-4.5 -translate-y-1/2 text-muted"
+							className="pointer-events-none absolute left-3.5 top-1/2 size-4.5 -translate-y-1/2 text-[#9e9e9e]"
 							aria-hidden
 						/>
 						<input
@@ -119,7 +119,7 @@ export default function ThongTinCuaHangPage() {
 							<CreditCard className="size-5 text-primary" aria-hidden /> Thông
 							tin nhận chuyển khoản
 						</h2>
-						<p className="mt-1 text-sm text-muted">
+						<p className="mt-1 text-sm text-[#616161]">
 							Dùng để tạo mã VietQR khi thu tiền.
 						</p>
 					</div>
@@ -149,7 +149,7 @@ export default function ThongTinCuaHangPage() {
 							))}
 						</select>
 						{banksLoading ? (
-							<span className="text-sm text-muted">
+								<span className="text-sm text-[#616161]">
 								Đang tải danh sách ngân hàng...
 							</span>
 						) : null}
@@ -187,7 +187,7 @@ export default function ThongTinCuaHangPage() {
 					Địa chỉ
 					<div className="relative">
 						<MapPin
-							className="pointer-events-none absolute left-3.5 top-1/2 size-4.5 -translate-y-1/2 text-muted"
+								className="pointer-events-none absolute left-3.5 top-1/2 size-4.5 -translate-y-1/2 text-[#9e9e9e]"
 							aria-hidden
 						/>
 						<input

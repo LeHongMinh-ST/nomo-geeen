@@ -9,6 +9,7 @@ Format theo [Keep a Changelog](https://keepachangelog.com/), tuân thủ [Semant
 ## [Unreleased]
 
 ### Added
+- **Bank account settings reachability** — thêm mục `Thông tin cửa hàng` vào nhóm `Cửa hàng` trong trang Thiết lập, mở được form cấu hình tài khoản nhận chuyển khoản trên desktop và mobile.
 - Admin management surface completion: added /admin/transactions and /admin/status routes, guarded read-only endpoints, global admin search, persisted notification read-state, and canonical reset-password permission checks.
 - **Package-driven business groups** — basic tenants expose only `Thuốc bảo vệ thực vật + Phân bón`; add-on `product_group:*` entitlements control other groups. The saved tenant switch is now applied by the backend and shared by product create/edit/list filters, Handbook category options, and settings; disabled groups preserve existing records but cannot be selected for new writes.
 - **Customer debt receipt allocation** — customer receipts now update the settlement fields of completed outstanding sales oldest-first in the same transaction as the customer balance, payment voucher, and debt ledger; voucher lines preserve each sale allocation.
