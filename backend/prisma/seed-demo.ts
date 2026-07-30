@@ -176,6 +176,18 @@ const TENANTS: DemoTenant[] = [
 		slug: 'xanh-mien-tay',
 		name: 'Vật tư Nông nghiệp Xanh Miền Tây',
 		tenantType: 'RETAIL_DEALER',
+		productSkus: [
+			'PB-001',
+			'PB-002',
+			'PB-004',
+			'PB-005',
+			'PB-006',
+			'PB-007',
+			'HG-001',
+			'HG-002',
+			'VT-001',
+			'VT-002',
+		],
 		users: [
 			{
 				username: 'chubay',
@@ -197,6 +209,44 @@ const TENANTS: DemoTenant[] = [
 				fullName: 'Em Sơn',
 				email: 'son@xanhmientay.vn',
 				phone: '0913000003',
+			},
+		],
+	},
+	{
+		slug: 'thuy-san-song-xanh',
+		name: 'Đại lý Thủy sản Sông Xanh',
+		tenantType: 'RETAIL_DEALER',
+		productSkus: [
+			'TS-001',
+			'TY-001',
+			'AN-001',
+			'AN-002',
+			'TS-002',
+			'TS-003',
+			'VT-001',
+			'VT-002',
+		],
+		users: [
+			{
+				username: 'chusx',
+				role: 'OWNER',
+				fullName: 'Anh Khoa',
+				email: 'khoa@songxanh.vn',
+				phone: '0915000001',
+			},
+			{
+				username: 'quanly.sx',
+				role: 'MANAGER',
+				fullName: 'Chị Vy',
+				email: 'vy@songxanh.vn',
+				phone: '0915000002',
+			},
+			{
+				username: 'nhanvien.sx',
+				role: 'STAFF',
+				fullName: 'Anh Tín',
+				email: 'tin@songxanh.vn',
+				phone: '0915000003',
 			},
 		],
 	},
@@ -891,6 +941,58 @@ const PRODUCTS: DemoProduct[] = [
 		sale: 15000,
 		stock: 300,
 	},
+	{
+		sku: 'AN-001',
+		name: 'Thức ăn heo tăng trọng 25kg',
+		productKind: 'ANIMAL_FEED',
+		domain: 'LIVESTOCK',
+		unit: 'BAO',
+		category: 'Thú y - Thủy sản',
+		brand: 'Khác',
+		manufacturer: null,
+		cost: 320000,
+		sale: 390000,
+		stock: 45,
+	},
+	{
+		sku: 'AN-002',
+		name: 'Thức ăn gà đẻ trứng 25kg',
+		productKind: 'ANIMAL_FEED',
+		domain: 'LIVESTOCK',
+		unit: 'BAO',
+		category: 'Thú y - Thủy sản',
+		brand: 'Khác',
+		manufacturer: null,
+		cost: 285000,
+		sale: 350000,
+		stock: 40,
+	},
+	{
+		sku: 'TS-002',
+		name: 'Thức ăn tôm công nghiệp 40% đạm (25kg)',
+		productKind: 'AQUA_FEED',
+		domain: 'AQUACULTURE',
+		unit: 'BAO',
+		category: 'Thú y - Thủy sản',
+		brand: 'Khác',
+		manufacturer: null,
+		cost: 520000,
+		sale: 620000,
+		stock: 35,
+	},
+	{
+		sku: 'TS-003',
+		name: 'Khoáng tạt xử lý ao nuôi (gói 1kg)',
+		productKind: 'AQUA_DRUG',
+		domain: 'AQUACULTURE',
+		unit: 'GOI',
+		category: 'Thú y - Thủy sản',
+		brand: 'Khác',
+		manufacturer: null,
+		cost: 70000,
+		sale: 105000,
+		stock: 80,
+	},
 ];
 
 // --- Helpers idempotent ---
@@ -1010,11 +1112,6 @@ async function seedBvtvRelations(tenantId: string): Promise<void> {
 	const owner = await prisma.user.findFirstOrThrow({
 		where: { tenantId, username: 'chubvtv' },
 	});
-	const units = await prisma.unit.findMany({
-		where: { tenantId },
-		select: { id: true, code: true },
-	});
-	const unitByCode = new Map(units.map((unit) => [unit.code, unit.id]));
 	const products = await prisma.product.findMany({
 		where: {
 			tenantId,
@@ -1609,6 +1706,661 @@ async function seedBvtvRelations(tenantId: string): Promise<void> {
 	);
 }
 
+/**
+ * Luồng dữ liệu demo dùng chung cho mọi cửa hàng: nhập hàng -> tồn/lô -> bán hàng
+ * -> thu tiền/công nợ. Mọi chứng từ có mã cố định để seed chạy lại không nhân bản.
+ */
+async function seedDemoRelations(
+	tenantId: string,
+	tenant: DemoTenant,
+): Promise<void> {
+	const warehouse = await prisma.warehouse.findFirstOrThrow({
+		where: { tenantId, code: 'DEFAULT' },
+	});
+	const owner = await prisma.user.findFirstOrThrow({
+		where: { tenantId, role: { code: 'OWNER' } },
+		select: { id: true },
+	});
+	// Xóa ledger do chính luồng demo tạo ra trước khi ghi lại snapshot mới.
+	await prisma.debtLedger.deleteMany({
+		where: { tenantId, note: { startsWith: 'Seed demo -' } },
+	});
+	const products = await prisma.product.findMany({
+		where: {
+			tenantId,
+			deletedAt: null,
+			...(tenant.productSkus
+				? { sku: { in: tenant.productSkus as string[] } }
+				: {}),
+		},
+		select: {
+			id: true,
+			sku: true,
+			name: true,
+			baseUnitId: true,
+			salePrice: true,
+			costPrice: true,
+		},
+		orderBy: { sku: 'asc' },
+	});
+	if (!products.length) return;
+
+	const suppliers = [] as Array<{ id: string; code: string }>;
+	for (let index = 0; index < 3; index += 1) {
+		const supplier = await prisma.supplier.upsert({
+			where: { tenantId_code: { tenantId, code: `NPP-DEMO-${index + 1}` } },
+			update: { name: `Nhà phân phối Demo ${index + 1}`, status: 'ACTIVE' },
+			create: {
+				tenantId,
+				code: `NPP-DEMO-${index + 1}`,
+				name: `Nhà phân phối Demo ${index + 1}`,
+				supplierType:
+					index === 0 ? 'CROP_PROTECTION' : index === 1 ? 'FERTILIZER' : 'BOTH',
+				contactName: `Nguyễn Văn ${String.fromCharCode(65 + index)}`,
+				phone: `09070000${index + 1}`,
+				province: ['Cần Thơ', 'Đồng Tháp', 'Long An'][index],
+				status: 'ACTIVE',
+				paymentTerms: index === 0 ? '30 ngày' : '15 ngày',
+			},
+			select: { id: true, code: true },
+		});
+		suppliers.push(supplier);
+	}
+
+	const customers = [] as Array<{ id: string; name: string }>;
+	for (let index = 0; index < 6; index += 1) {
+		const phone = `090800${String(index + 1).padStart(4, '0')}`;
+		const existingCustomer = await prisma.customer.findFirst({
+			where: { tenantId, phone },
+			select: { id: true, name: true },
+		});
+		const customer =
+			existingCustomer ??
+			(await prisma.customer.create({
+				data: {
+					tenantId,
+					code: `KH-DEMO-${String(index + 1).padStart(3, '0')}`,
+					name: `Khách demo ${index + 1}`,
+					nameSearch: `khach demo ${index + 1}`,
+					phone,
+					address: [
+						'Vĩnh Long',
+						'Tiền Giang',
+						'An Giang',
+						'Bến Tre',
+						'Sóc Trăng',
+						'Kiên Giang',
+					][index],
+					type: index % 3 === 0 ? 'FARM' : 'FARMER',
+					productionProfile: {
+						areaHa: index + 1,
+						crop: index % 2 ? 'Rau màu' : 'Lúa',
+					},
+					debtLimit: 30000000n,
+				},
+			}));
+		if (existingCustomer)
+			await prisma.customer.update({
+				where: { id: existingCustomer.id },
+				data: { name: `Khách demo ${index + 1}`, balance: 0n },
+			});
+		customers.push(customer);
+	}
+
+	const batchBySku = new Map<string, { id: string }>();
+	const saleQtyBySku = new Map<string, number>();
+	for (const [index, product] of products.entries()) {
+		const source = PRODUCTS.find((item) => item.sku === product.sku);
+		const saleQty = Math.max(
+			1,
+			Math.min(3, Math.floor((source?.stock ?? 10) / 20)),
+		);
+		saleQtyBySku.set(product.sku, saleQty);
+		const batch = await prisma.productBatch.upsert({
+			where: {
+				tenantId_productId_warehouseId_batchCode: {
+					tenantId,
+					productId: product.id,
+					warehouseId: warehouse.id,
+					batchCode: `DEMO-${tenant.slug.toUpperCase()}-${product.sku}`,
+				},
+			},
+			update: {
+				qtyOnHand: source?.stock ?? 10,
+				purchaseCost: product.costPrice,
+				salePrice: product.salePrice,
+				expiresAt: new Date('2027-12-31T00:00:00.000Z'),
+			},
+			create: {
+				tenantId,
+				productId: product.id,
+				warehouseId: warehouse.id,
+				batchCode: `DEMO-${tenant.slug.toUpperCase()}-${product.sku}`,
+				manufacturedAt: new Date('2026-01-15T00:00:00.000Z'),
+				expiresAt: new Date('2027-12-31T00:00:00.000Z'),
+				qtyOnHand: source?.stock ?? 10,
+				purchaseCost: product.costPrice,
+				salePrice: product.salePrice,
+			},
+			select: { id: true },
+		});
+		batchBySku.set(product.sku, batch);
+		await prisma.stock.upsert({
+			where: {
+				warehouseId_productId: {
+					warehouseId: warehouse.id,
+					productId: product.id,
+				},
+			},
+			update: { qty: source?.stock ?? 10, avgCost: product.costPrice },
+			create: {
+				tenantId,
+				warehouseId: warehouse.id,
+				productId: product.id,
+				qty: source?.stock ?? 10,
+				avgCost: product.costPrice,
+			},
+		});
+		void index;
+	}
+
+	const purchaseIds: string[] = [];
+	for (let purchaseIndex = 0; purchaseIndex < 3; purchaseIndex += 1) {
+		const selected = products.filter((_, index) => index % 3 === purchaseIndex);
+		const lines = selected.map((product) => {
+			const source = PRODUCTS.find((item) => item.sku === product.sku);
+			const qty = (source?.stock ?? 10) + (saleQtyBySku.get(product.sku) ?? 1);
+			const unitId = product.baseUnitId;
+			const batch = batchBySku.get(product.sku);
+			if (!unitId || !batch)
+				throw new Error(`Thiếu unit hoặc batch demo cho ${product.sku}.`);
+			return {
+				tenantId,
+				productId: product.id,
+				unitId,
+				qty,
+				qtyBase: qty,
+				unitPrice: product.costPrice,
+				salePrice: product.salePrice,
+				lineTotal: product.costPrice * BigInt(qty),
+				batchCode: `DEMO-${tenant.slug.toUpperCase()}-${product.sku}`,
+				batchId: batch.id,
+			};
+		});
+		const total = lines.reduce((sum, line) => sum + line.lineTotal, 0n);
+		const supplier = suppliers[purchaseIndex];
+		const purchasedAt = new Date(
+			Date.now() - (45 - purchaseIndex * 15) * 86400000,
+		);
+		const purchase = await prisma.purchase.upsert({
+			where: {
+				tenantId_docNo: {
+					tenantId,
+					docNo: `PN-DEMO-${String(purchaseIndex + 1).padStart(3, '0')}`,
+				},
+			},
+			update: {
+				supplierId: supplier.id,
+				warehouseId: warehouse.id,
+				status: 'COMPLETED',
+				purchasedAt,
+				subtotal: total,
+				total,
+				amountPaid: 0n,
+				debtAmount: total,
+				completedAt: purchasedAt,
+			},
+			create: {
+				tenantId,
+				docNo: `PN-DEMO-${String(purchaseIndex + 1).padStart(3, '0')}`,
+				idempotencyKey: `seed-demo-${tenant.slug}-purchase-${purchaseIndex + 1}`,
+				supplierId: supplier.id,
+				warehouseId: warehouse.id,
+				status: 'COMPLETED',
+				purchasedAt,
+				subtotal: total,
+				total,
+				paymentMethod: 'CREDIT',
+				debtAmount: total,
+				createdBy: owner.id,
+				completedAt: purchasedAt,
+			},
+			select: { id: true },
+		});
+		purchaseIds.push(purchase.id);
+		await prisma.stockMovement.deleteMany({
+			where: { refType: 'PURCHASE', refId: purchase.id },
+		});
+		await prisma.purchaseLine.deleteMany({
+			where: { purchaseId: purchase.id },
+		});
+		for (const line of lines) {
+			const createdLine = await prisma.purchaseLine.create({
+				data: { ...line, purchaseId: purchase.id },
+			});
+			await prisma.stockMovement.deleteMany({
+				where: {
+					refType: 'PURCHASE',
+					refId: purchase.id,
+					refLineId: createdLine.id,
+				},
+			});
+			await prisma.stockMovement.create({
+				data: {
+					tenantId,
+					warehouseId: warehouse.id,
+					productId: line.productId,
+					batchId: line.batchId,
+					direction: 'IN',
+					qty: line.qtyBase,
+					unitCost: line.unitPrice,
+					reason: 'PURCHASE',
+					refType: 'PURCHASE',
+					refId: purchase.id,
+					refLineId: createdLine.id,
+					occurredAt: purchasedAt,
+					createdBy: owner.id,
+					note: 'Nhập hàng demo',
+				},
+			});
+		}
+		await prisma.debtLedger.deleteMany({
+			where: {
+				tenantId,
+				partyType: 'SUPPLIER',
+				partyId: supplier.id,
+				refType: 'PURCHASE',
+				refId: purchase.id,
+			},
+		});
+		await prisma.debtLedger.create({
+			data: {
+				tenantId,
+				partyType: 'SUPPLIER',
+				partyId: supplier.id,
+				entryType: 'PURCHASE',
+				direction: 'INCREASE',
+				amount: total,
+				balanceAfter: total,
+				refType: 'PURCHASE',
+				refId: purchase.id,
+				occurredAt: purchasedAt,
+				createdBy: owner.id,
+				note: 'Seed demo - công nợ nhập hàng',
+			},
+		});
+		const paid = total / 2n;
+		const voucher = await prisma.paymentVoucher.upsert({
+			where: {
+				tenantId_docNo: {
+					tenantId,
+					docNo: `PC-DEMO-${String(purchaseIndex + 1).padStart(3, '0')}`,
+				},
+			},
+			update: {
+				amount: paid,
+				supplierId: supplier.id,
+				partyId: supplier.id,
+				occurredAt: new Date(purchasedAt.getTime() + 3 * 86400000),
+			},
+			create: {
+				tenantId,
+				docNo: `PC-DEMO-${String(purchaseIndex + 1).padStart(3, '0')}`,
+				idempotencyKey: `seed-demo-${tenant.slug}-payment-${purchaseIndex + 1}`,
+				voucherType: 'PAYMENT',
+				partyType: 'SUPPLIER',
+				partyId: supplier.id,
+				supplierId: supplier.id,
+				refPurchaseId: purchase.id,
+				amount: paid,
+				method: 'BANK_TRANSFER',
+				occurredAt: new Date(purchasedAt.getTime() + 3 * 86400000),
+				createdBy: owner.id,
+				note: 'Thanh toán một phần tiền nhập demo',
+			},
+			select: { id: true },
+		});
+		await prisma.paymentVoucherLine.deleteMany({
+			where: { voucherId: voucher.id },
+		});
+		await prisma.paymentVoucherLine.create({
+			data: {
+				voucherId: voucher.id,
+				method: 'BANK_TRANSFER',
+				amount: paid,
+				refPurchaseId: purchase.id,
+			},
+		});
+		await prisma.debtLedger.create({
+			data: {
+				tenantId,
+				partyType: 'SUPPLIER',
+				partyId: supplier.id,
+				entryType: 'PAYMENT',
+				direction: 'DECREASE',
+				amount: paid,
+				balanceAfter: total - paid,
+				refType: 'PAYMENT',
+				refId: voucher.id,
+				occurredAt: new Date(purchasedAt.getTime() + 3 * 86400000),
+				createdBy: owner.id,
+				note: 'Seed demo - trả nhà cung cấp',
+			},
+		});
+		await prisma.supplier.update({
+			where: { id: supplier.id },
+			data: { balance: total - paid },
+		});
+	}
+
+	let saleNumber = 0;
+	for (const [productIndex, product] of products.entries()) {
+		for (let repeat = 0; repeat < 3; repeat += 1) {
+			saleNumber += 1;
+			const customer = customers[(productIndex + repeat) % customers.length];
+			const qty = 1;
+			const total = product.salePrice * BigInt(qty);
+			const soldAt = new Date(Date.now() - (30 - (saleNumber % 28)) * 86400000);
+			const docNo = `BH-DEMO-${String(saleNumber).padStart(4, '0')}`;
+			const sale = await prisma.sale.upsert({
+				where: { tenantId_docNo: { tenantId, docNo } },
+				update: {
+					customerId: customer.id,
+					warehouseId: warehouse.id,
+					soldAt,
+					subtotal: total,
+					total,
+					amountPaid: repeat === 0 ? total : 0n,
+					debtAmount: repeat === 0 ? 0n : total,
+					completedAt: soldAt,
+				},
+				create: {
+					tenantId,
+					docNo,
+					idempotencyKey: `seed-demo-${tenant.slug}-sale-${saleNumber}`,
+					channel: repeat === 1 ? 'ORDER' : 'QUICK_SALE',
+					status: 'COMPLETED',
+					customerId: customer.id,
+					customerNameSnapshot: customer.name,
+					warehouseId: warehouse.id,
+					subtotal: total,
+					total,
+					amountPaid: repeat === 0 ? total : 0n,
+					debtAmount: repeat === 0 ? 0n : total,
+					paymentMethod: 'CASH',
+					soldAt,
+					createdBy: owner.id,
+					completedAt: soldAt,
+				},
+				select: { id: true },
+			});
+			await prisma.saleLine.deleteMany({ where: { saleId: sale.id } });
+			const batch = batchBySku.get(product.sku);
+			if (!product.baseUnitId || !batch)
+				throw new Error(`Thiếu unit hoặc batch demo cho ${product.sku}.`);
+			const line = await prisma.saleLine.create({
+				data: {
+					tenantId,
+					saleId: sale.id,
+					productId: product.id,
+					productNameSnapshot: product.name,
+					unitId: product.baseUnitId,
+					qty,
+					qtyBase: qty,
+					unitPrice: product.salePrice,
+					lineTotal: total,
+					unitCost: product.costPrice,
+					batchId: batch.id,
+					priceSource: 'RETAIL',
+				},
+			});
+			await prisma.saleLineBatch.deleteMany({ where: { saleLineId: line.id } });
+			await prisma.saleLineBatch.create({
+				data: { saleLineId: line.id, batchId: batch.id, qtyBase: qty },
+			});
+			await prisma.stockMovement.deleteMany({
+				where: { refType: 'SALE', refId: sale.id },
+			});
+			await prisma.stockMovement.create({
+				data: {
+					tenantId,
+					warehouseId: warehouse.id,
+					productId: product.id,
+					batchId: batch.id,
+					direction: 'OUT',
+					qty,
+					unitCost: product.costPrice,
+					reason: 'SALE',
+					refType: 'SALE',
+					refId: sale.id,
+					refLineId: line.id,
+					occurredAt: soldAt,
+					createdBy: owner.id,
+					note: 'Bán hàng demo',
+				},
+			});
+			if (repeat > 0) {
+				await prisma.debtLedger.deleteMany({
+					where: {
+						tenantId,
+						partyType: 'CUSTOMER',
+						partyId: customer.id,
+						refType: 'SALE',
+						refId: sale.id,
+					},
+				});
+				await prisma.debtLedger.create({
+					data: {
+						tenantId,
+						partyType: 'CUSTOMER',
+						partyId: customer.id,
+						entryType: 'SALE',
+						direction: 'INCREASE',
+						amount: total,
+						balanceAfter: total,
+						refType: 'SALE',
+						refId: sale.id,
+						occurredAt: soldAt,
+						createdBy: owner.id,
+						note: 'Seed demo - công nợ bán hàng',
+					},
+				});
+				const received = repeat === 2 ? total / 2n : 0n;
+				if (received > 0n) {
+					const voucher = await prisma.paymentVoucher.upsert({
+						where: {
+							tenantId_docNo: {
+								tenantId,
+								docNo: `PT-DEMO-${String(saleNumber).padStart(4, '0')}`,
+							},
+						},
+						update: {
+							amount: received,
+							customerId: customer.id,
+							partyId: customer.id,
+						},
+						create: {
+							tenantId,
+							docNo: `PT-DEMO-${String(saleNumber).padStart(4, '0')}`,
+							idempotencyKey: `seed-demo-${tenant.slug}-receipt-${saleNumber}`,
+							voucherType: 'RECEIPT',
+							partyType: 'CUSTOMER',
+							partyId: customer.id,
+							customerId: customer.id,
+							refSaleId: sale.id,
+							amount: received,
+							method: 'CASH',
+							occurredAt: new Date(soldAt.getTime() + 2 * 86400000),
+							createdBy: owner.id,
+							note: 'Khách trả một phần công nợ demo',
+						},
+						select: { id: true },
+					});
+					await prisma.paymentVoucherLine.deleteMany({
+						where: { voucherId: voucher.id },
+					});
+					await prisma.paymentVoucherLine.create({
+						data: {
+							voucherId: voucher.id,
+							method: 'CASH',
+							amount: received,
+							refSaleId: sale.id,
+						},
+					});
+					await prisma.debtLedger.create({
+						data: {
+							tenantId,
+							partyType: 'CUSTOMER',
+							partyId: customer.id,
+							entryType: 'RECEIPT',
+							direction: 'DECREASE',
+							amount: received,
+							balanceAfter: total - received,
+							refType: 'RECEIPT',
+							refId: voucher.id,
+							occurredAt: new Date(soldAt.getTime() + 2 * 86400000),
+							createdBy: owner.id,
+							note: 'Seed demo - thu công nợ khách hàng',
+						},
+					});
+				}
+			}
+		}
+	}
+	for (const customer of customers) {
+		const entries = await prisma.debtLedger.findMany({
+			where: { tenantId, partyType: 'CUSTOMER', partyId: customer.id },
+			select: { direction: true, amount: true },
+		});
+		const balance = entries.reduce(
+			(sum, entry) =>
+				sum + (entry.direction === 'INCREASE' ? entry.amount : -entry.amount),
+			0n,
+		);
+		await prisma.customer.update({
+			where: { id: customer.id },
+			data: { balance },
+		});
+	}
+	void purchaseIds;
+	console.log(
+		`  [DEMO] ${tenant.slug}: products=${products.length}, purchases=3, sales=${saleNumber}, customers=${customers.length}, suppliers=${suppliers.length}`,
+	);
+}
+
+async function seedDemoHandbook(
+	tenantId: string,
+	tenant: DemoTenant,
+): Promise<void> {
+	const products = await prisma.product.findMany({
+		where: {
+			tenantId,
+			deletedAt: null,
+			...(tenant.productSkus
+				? { sku: { in: tenant.productSkus as string[] } }
+				: {}),
+		},
+		select: { id: true, sku: true, domain: true, activeIngredient: true },
+		orderBy: { sku: 'asc' },
+	});
+	const groups = [
+		{
+			domain: 'CROP',
+			name: 'Tư vấn sâu bệnh cây trồng',
+			target: 'Lúa và rau màu',
+			category: 'CROP_PROTECTION_AND_FERTILIZER',
+			type: 'DISEASE',
+			symptom: 'Lá vàng, đốm bệnh hoặc cây sinh trưởng kém.',
+			doseUnit: 'ml',
+		},
+		{
+			domain: 'LIVESTOCK',
+			name: 'Tiêu chảy ở vật nuôi',
+			target: 'Heo và gà',
+			category: 'VETERINARY_DRUGS',
+			type: 'DISEASE',
+			symptom: 'Vật nuôi bỏ ăn, phân lỏng, mất nước.',
+			doseUnit: 'ml',
+		},
+		{
+			domain: 'AQUACULTURE',
+			name: 'Đốm trắng ở thủy sản',
+			target: 'Tôm cá',
+			category: 'UNCATEGORIZED',
+			type: 'DISEASE',
+			symptom: 'Con giống giảm ăn, bơi lờ đờ, có dấu hiệu bệnh ngoài da.',
+			doseUnit: 'g',
+		},
+	] as const;
+	for (const group of groups) {
+		const candidates = products
+			.filter((product) => product.domain === group.domain)
+			.slice(0, 3);
+		if (!candidates.length) continue;
+		const existing = await prisma.disease.findFirst({
+			where: { tenantId, name: group.name, deletedAt: null },
+			select: { id: true },
+		});
+		const disease =
+			existing ??
+			(await prisma.disease.create({
+				data: {
+					tenantId,
+					name: group.name,
+					nameSearch: normalizeVietnameseSearch(group.name),
+					aliases: [],
+					aliasesSearch: '',
+					domain: group.domain,
+					handbookCategory: group.category,
+					target: group.target,
+					type: group.type,
+					symptom: group.symptom,
+					note: 'Dữ liệu sổ tay phục vụ demo.',
+				},
+				select: { id: true },
+			}));
+		await prisma.diseaseProductPin.deleteMany({
+			where: { tenantId, diseaseId: disease.id },
+		});
+		await prisma.diseaseProductPin.createMany({
+			data: candidates.map((product, index) => ({
+				tenantId,
+				diseaseId: disease.id,
+				productId: product.id,
+				sortOrder: index,
+				isExcluded: false,
+			})),
+			skipDuplicates: true,
+		});
+		await prisma.diseaseProtocol.deleteMany({
+			where: { tenantId, diseaseId: disease.id },
+		});
+		await prisma.diseaseProtocol.create({
+			data: {
+				tenantId,
+				diseaseId: disease.id,
+				name: 'Phác đồ demo mặc định',
+				note: 'Chọn sản phẩm theo tồn kho và hướng dẫn trên nhãn.',
+				isDefault: true,
+				sortOrder: 0,
+				items: {
+					create: candidates.map((product, index) => ({
+						tenantId,
+						productId: product.id,
+						activeIngredient: product.activeIngredient,
+						doseAmount: index + 1,
+						doseUnit: group.doseUnit,
+						perAreaAmount: 1,
+						perAreaUnit: group.domain === 'CROP' ? 'HA' : 'M2',
+						usage: 'Tham khảo nhãn sản phẩm và tình trạng thực tế.',
+						sortOrder: index,
+					})),
+				},
+			},
+		});
+	}
+}
+
 // findFirst-then-create cho model khong co unique (tenantId, name).
 // --- So tay: bo thuoc khuyen nghi + link benh <-> thuoc ---
 
@@ -2167,7 +2919,9 @@ async function seedTenant(t: DemoTenant): Promise<void> {
 	console.log(
 		`  [${created ? 'MOI ' : 'CO  '}] ${t.name} (slug: ${t.slug}) | users: ${t.users.length} | products: ${productsToSeed.length}`,
 	);
+	await seedDemoRelations(tenantId, t);
 	if (t.slug === 'nong-xanh-bvtv') await seedBvtvRelations(tenantId);
+	await seedDemoHandbook(tenantId, t);
 	await seedHandbookProtocols(tenantId);
 	const ownerUser = await prisma.user.findFirstOrThrow({
 		where: { tenantId, username: owner.username },
