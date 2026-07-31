@@ -84,7 +84,7 @@ export function PurchaseForm() {
 				{
 					productId: product.id,
 					name: product.name,
-					unitId: product.baseUnitId,
+					unitId: conv?.unitId ?? product.baseUnitId,
 					unit: conv?.unit ?? product.baseUnit,
 					factor,
 					qty: 1,
@@ -441,7 +441,7 @@ function PurchaseLineRow({
 					</button>
 				</div>
 
-				{/* Giá vốn nhập tay (unitPrice) + giá bán theo lô (salePrice) — không trộn. */}
+				{/* Tiền hàng dùng cost; salePrice chỉ lưu giá bán áp dụng cho đúng lô. */}
 				<div className="flex flex-col items-end gap-1">
 					<div className="flex items-center gap-1">
 						<input
@@ -452,10 +452,10 @@ function PurchaseLineRow({
 									cost: Number(e.target.value.replace(/\D/g, "")) || 0,
 								})
 							}
-							aria-label="Giá vốn nhập"
+							aria-label={`Giá vốn nhập cho 1 ${line.unit}`}
 							className="w-28 rounded-[8px] border border-border bg-white px-2 py-1 text-right text-base font-medium text-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/25"
 						/>
-						<span className="text-sm text-[#9e9e9e]">₫ vốn</span>
+						<span className="text-sm text-[#9e9e9e]">₫/{line.unit} vốn</span>
 					</div>
 					<div className="flex items-center gap-1">
 						<input
@@ -466,11 +466,19 @@ function PurchaseLineRow({
 									salePrice: Number(e.target.value.replace(/\D/g, "")) || 0,
 								})
 							}
-							aria-label="Giá bán theo lô"
+							aria-label={`Giá bán theo lô cho 1 ${line.unit}`}
+							aria-describedby={`sale-price-help-${line.productId}`}
 							className="w-28 rounded-[8px] border border-border bg-white px-2 py-1 text-right text-base font-medium text-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/25"
 						/>
-						<span className="text-sm text-[#9e9e9e]">₫ bán</span>
+						<span className="text-sm text-[#9e9e9e]">₫/{line.unit} bán lô</span>
 					</div>
+					<p
+						id={`sale-price-help-${line.productId}`}
+						className="max-w-56 text-right text-xs leading-4 text-[#9e9e9e]"
+					>
+						Giá bán áp dụng cho 1 {line.unit} của lô này; không cộng vào tiền
+						hàng nhập.
+					</p>
 					<span className="text-base font-bold text-foreground">
 						{formatVND(purchaseLineTotal(line))}₫
 					</span>

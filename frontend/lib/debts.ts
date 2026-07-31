@@ -46,6 +46,7 @@ export type DebtAccount = {
 	direction: DebtDirection;
 	/** Tên khách / nhà cung cấp. */
 	name: string;
+	createdAt?: string | null;
 	/** SĐT — định danh chính khi ghi nợ (base_spec §18). */
 	phone: string;
 	address?: string;
@@ -158,6 +159,19 @@ export function compareDebtUrgency(a: DebtAccount, b: DebtAccount): number {
 	if (ra <= 1) return (a.dueDate ?? "").localeCompare(b.dueDate ?? "");
 	// Còn hạn: nợ nhiều hơn lên trước.
 	return debtOutstanding(b) - debtOutstanding(a);
+}
+
+/** Danh sách công nợ: đối tác tạo gần nhất luôn đứng trước. */
+export function compareDebtNewest(a: DebtAccount, b: DebtAccount): number {
+	const latest = (account: DebtAccount) => {
+		if (account.createdAt) return account.createdAt;
+		return account.entries.reduce(
+			(max, entry) => (entry.date > max ? entry.date : max),
+			"",
+		);
+	};
+	const result = latest(b).localeCompare(latest(a));
+	return result || b.id.localeCompare(a.id);
 }
 
 /** Thêm một lần thu/trả (cập nhật cục bộ FE — chưa nối API). */

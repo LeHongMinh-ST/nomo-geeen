@@ -1729,6 +1729,42 @@ describe('SalesService', () => {
 		);
 	});
 
+	it('carries the current customer address into the canonical sale detail', async () => {
+		const { service, prisma } = makeService();
+		prisma.sale.findFirst.mockResolvedValue({
+			...orderWithStatus('COMPLETED'),
+			customerId: 'customer-1',
+			customerNameSnapshot: 'Alice snapshot',
+			customerPhoneSnapshot: '0900',
+			customer: {
+				id: 'customer-1',
+				name: 'Alice',
+				phone: '0901',
+				address: 'Ấp Bình Thành',
+			},
+		});
+
+		await expect(
+			service.findOrder('tenant-1', 'order-1'),
+		).resolves.toMatchObject({
+			customer: {
+				id: 'customer-1',
+				name: 'Alice',
+				phone: '0901',
+				address: 'Ấp Bình Thành',
+			},
+		});
+		expect(prisma.sale.findFirst).toHaveBeenCalledWith(
+			expect.objectContaining({
+				include: expect.objectContaining({
+					customer: {
+						select: { id: true, name: true, phone: true, address: true },
+					},
+				}),
+			}),
+		);
+	});
+
 	it('does not enumerate foreign tenant records in detail lookup', async () => {
 		const { service, prisma } = makeService();
 		prisma.sale.findFirst.mockResolvedValue(null);

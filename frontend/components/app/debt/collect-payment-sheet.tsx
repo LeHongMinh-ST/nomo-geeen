@@ -3,7 +3,7 @@
 import type { LucideIcon } from "lucide-react";
 import { Banknote, Check, Smartphone, X } from "lucide-react";
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
 	type DebtAccount,
 	type DebtPaymentMethod,
@@ -37,7 +37,10 @@ export function CollectPaymentSheet({
 	/** Tài khoản đang thu/trả; null = đóng. */
 	account: DebtAccount | null;
 	onClose: () => void;
-	onConfirm: (amount: number, method: DebtPaymentMethod) => void;
+	onConfirm: (
+		amount: number,
+		method: DebtPaymentMethod,
+	) => void | Promise<void>;
 }) {
 	const open = account !== null;
 	const isReceivable = account?.direction === "receivable";
@@ -48,11 +51,15 @@ export function CollectPaymentSheet({
 	const [amount, setAmount] = useState("");
 	const [profile, setProfile] = useState<TenantProfile | null>(null);
 	const [profileLoading, setProfileLoading] = useState(false);
+	const [submitting, setSubmitting] = useState(false);
+	const submittingRef = useRef(false);
 
 	// Reset mỗi lần mở tài khoản mới.
 	// biome-ignore lint/correctness/useExhaustiveDependencies: chỉ reset khi đổi tài khoản
 	useEffect(() => {
 		if (account) {
+			submittingRef.current = false;
+			setSubmitting(false);
 			setMethod("cash");
 			setAmount("");
 			setProfile(null);
@@ -65,6 +72,13 @@ export function CollectPaymentSheet({
 			}
 		}
 	}, [accessToken, account?.id]);
+
+	useEffect(() => {
+		if (!open) {
+			submittingRef.current = false;
+			setSubmitting(false);
+		}
+	}, [open]);
 
 	useScrollLock(open);
 
@@ -91,6 +105,18 @@ export function CollectPaymentSheet({
 		bank && account
 			? `https://img.vietqr.io/image/${encodeURIComponent(bank.bankId)}-${encodeURIComponent(bank.accountNumber)}-compact2.png?amount=${amountNum}&addInfo=${encodeURIComponent(`Thu no ${account.id} - ${account.name}`)}&accountName=${encodeURIComponent(bank.accountName)}`
 			: null;
+
+	async function confirm() {
+		if (!canConfirm || submittingRef.current) return;
+		submittingRef.current = true;
+		setSubmitting(true);
+		try {
+			await onConfirm(amountNum, method);
+		} finally {
+			submittingRef.current = false;
+			setSubmitting(false);
+		}
+	}
 
 	return (
 		<div
@@ -162,14 +188,14 @@ export function CollectPaymentSheet({
 							</div>
 						</div>
 
-						{/* Nút nhanh: một nửa / trả hết */}
+						{/* Nút nhanh: thu/trả một phần hoặc tất toán */}
 						<div className="grid grid-cols-2 gap-2">
 							<button
 								type="button"
 								onClick={() => setAmount(String(Math.round(outstanding / 2)))}
 								className="h-11 rounded-[10px] border border-border bg-card text-sm font-semibold text-foreground transition-colors hover:bg-[#f5f5f5]"
 							>
-								Một nửa
+								{collectVerb} một phần
 							</button>
 							<button
 								type="button"
@@ -237,9 +263,9 @@ export function CollectPaymentSheet({
 											<Image
 												src={quickLink}
 												alt="Mã VietQR thu nợ"
-														className="size-64 rounded-[12px] bg-white object-contain"
-														width={256}
-														height={256}
+												className="size-64 rounded-[12px] bg-white object-contain"
+												width={256}
+												height={256}
 												unoptimized
 											/>
 											<p className="text-center text-base text-[#616161]">
@@ -270,14 +296,17 @@ export function CollectPaymentSheet({
 				<div className="pb-safe border-t border-border bg-card px-4 py-3">
 					<button
 						type="button"
-						disabled={!canConfirm}
-						onClick={() => onConfirm(amountNum, method)}
+						disabled={!canConfirm || submitting}
+						onClick={() => void confirm()}
+						aria-busy={submitting}
 						className="flex h-14 w-full items-center justify-center gap-2 rounded-[10px] bg-primary text-lg font-bold text-white transition-colors duration-200 ease-out hover:bg-[#5cad45] active:bg-[#3f8530] disabled:cursor-not-allowed disabled:bg-[#a5d6a7]"
 					>
 						<Check className="size-6" aria-hidden />
-						{amountNum > 0
-							? `${collectVerb} ${formatVND(amountNum)}₫`
-							: `${collectVerb} tiền`}
+						{submitting
+							? "Đang lưu..."
+							: amountNum > 0
+								? `${collectVerb} ${formatVND(amountNum)}₫`
+								: `${collectVerb} tiền`}
 					</button>
 				</div>
 			</div>

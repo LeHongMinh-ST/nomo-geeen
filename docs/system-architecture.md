@@ -150,9 +150,13 @@ The repository contains local runtime/package configuration and migrations, but 
 
 - `frontend/components/app/product/product-form.tsx` loads tenant-enabled business groups and
   renders the compatible `ProductKind` contract before showing specialist attributes.
-- `frontend/lib/product-kind-form.ts` is the shared frontend contract for kind/group compatibility,
+ - `frontend/lib/product-kind-form.ts` is the shared frontend contract for kind/group compatibility,
   required-attribute validation, payload normalization, and edit hydration. The backend remains the
   authoritative validator for `businessGroup`, `productKind`, and `attrs`.
+ - Fertilizer edit forms require only `attrs.composition`; nitrogen, phosphorus, and potassium
+  percentages remain optional. ProductForm renders server-calculated stock as read-only while the
+  low-stock threshold remains editable. Conversion choices accept `Bao` when the tenant lookup
+  returns it, without expanding the restricted base-unit choices.
 - Product kind changes in edit mode require explicit confirmation when specialist attributes would
   be discarded; the mobile sticky save action remains part of the same form boundary.
 
@@ -168,8 +172,11 @@ The repository contains local runtime/package configuration and migrations, but 
 
 - Supplier records keep `province` separate from free-form `address`; `supplierType` uses the
   `SupplierType` vocabulary (`CROP_PROTECTION`, `FERTILIZER`, `BOTH`) in the application contract.
-- Purchase completion carries `PurchaseLine.manufacturedAt` into `ProductBatch.manufacturedAt`; the
+ - Purchase completion carries `PurchaseLine.manufacturedAt` into `ProductBatch.manufacturedAt`; the
   purchase form displays manufacture date beside expiry date.
+ - Purchase lines use the selected conversion unit and factor when calculating converted cost;
+  `salePrice` is stored separately as the lot sale price and is excluded from inbound totals. The
+  detail view displays conversion quantity and the supplied lot sale price in Vietnamese.
 
 ## Stock batch lifecycle
 

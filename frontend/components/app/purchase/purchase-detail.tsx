@@ -181,11 +181,17 @@ export function PurchaseDetail({ purchaseId }: { purchaseId: string }) {
 										{l.name}
 									</span>
 									<span className="text-sm text-[#9e9e9e]">
-										{formatVND(l.cost)}₫ × {l.qty} {l.unit}` = $
+										{l.qty} {l.unit} × {formatVND(l.cost)}₫/{l.unit} · quy đổi{" "}
 										{new Intl.NumberFormat("vi-VN").format(
 											purchaseLineBaseQty(l),
 										)}{" "}
-										đơn vị gốc`
+										đơn vị gốc
+										{l.salePrice != null ? (
+											<>
+												{" "}
+												· Giá bán theo lô: {formatVND(l.salePrice)}₫/{l.unit}
+											</>
+										) : null}
 									</span>
 									{/* Lô + NSX + HSD */}
 									{l.batch || l.manufacturedAt || l.expiry ? (

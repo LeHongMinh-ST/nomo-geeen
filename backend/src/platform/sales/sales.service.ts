@@ -58,6 +58,7 @@ type NormalizedLine = {
 type OrderWithLines = Prisma.SaleGetPayload<{ include: { lines: true } }>;
 type OrderDetailRecord = Prisma.SaleGetPayload<{
 	include: {
+		customer: { select: { id: true; name: true; phone: true; address: true } };
 		lines: { include: { unit: { select: { id: true; name: true } } } };
 	};
 }>;
@@ -176,6 +177,9 @@ export class SalesService {
 				deletedAt: null,
 			},
 			include: {
+				customer: {
+					select: { id: true, name: true, phone: true, address: true },
+				},
 				lines: { include: { unit: { select: { id: true, name: true } } } },
 			},
 		});
@@ -196,6 +200,9 @@ export class SalesService {
 				deletedAt: null,
 			},
 			include: {
+				customer: {
+					select: { id: true, name: true, phone: true, address: true },
+				},
 				lines: { include: { unit: { select: { id: true, name: true } } } },
 			},
 		});
@@ -307,8 +314,10 @@ export class SalesService {
 			customer: sale.customerId
 				? {
 						id: sale.customerId,
-						name: sale.customerNameSnapshot,
-						phone: sale.customerPhoneSnapshot,
+						name:
+							sale.customer?.name ?? sale.customerNameSnapshot ?? 'Khách lẻ',
+						phone: sale.customer?.phone ?? sale.customerPhoneSnapshot ?? null,
+						address: sale.customer?.address ?? null,
 					}
 				: null,
 			warehouseId: sale.warehouseId,
@@ -586,6 +595,9 @@ export class SalesService {
 							},
 						},
 						include: {
+							customer: {
+								select: { id: true, name: true, phone: true, address: true },
+							},
 							lines: {
 								include: { unit: { select: { id: true, name: true } } },
 							},

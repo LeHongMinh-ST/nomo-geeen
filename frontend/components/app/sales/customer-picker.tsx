@@ -100,6 +100,11 @@ export function CustomerPicker({
 					{selected.balance > 0
 						? ` · Đang nợ ${formatVND(selected.balance)}₫`
 						: " · Không nợ"}
+					{selected.address ? (
+						<p className="mt-1 border-t border-[#dcebd7] pt-1">
+							<strong>Địa chỉ:</strong> {selected.address}
+						</p>
+					) : null}
 					{selected.note ? (
 						<p className="mt-1 border-t border-[#dcebd7] pt-1">
 							<strong>Ghi chú:</strong> {selected.note}

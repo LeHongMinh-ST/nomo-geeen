@@ -6,12 +6,15 @@ import type { QuickHandbookSuggestion } from "@/lib/tenant-handbook-api";
 
 type HandbookMeta = {
 	diseaseId?: string;
+	protocolId?: string;
 	consultContext?: Record<string, unknown>;
 	suggestedProductsMeta?: Array<Record<string, unknown>>;
 	suggestedQtyMeta?: Record<string, unknown>;
 };
 
-function suggestionAsProduct(suggestion: QuickHandbookSuggestion): Product {
+export function handbookSuggestionToProduct(
+	suggestion: QuickHandbookSuggestion,
+): Product {
 	return {
 		id: suggestion.productId,
 		name: suggestion.name,
@@ -37,7 +40,7 @@ export function CounterSearch({
 }) {
 	function addSuggestion(suggestion: QuickHandbookSuggestion, quantity = 1) {
 		if (!suggestion.available) return;
-		onSelectProduct(suggestionAsProduct(suggestion), quantity);
+		onSelectProduct(handbookSuggestionToProduct(suggestion), quantity);
 	}
 
 	return (

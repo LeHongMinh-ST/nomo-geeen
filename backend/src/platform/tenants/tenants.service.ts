@@ -18,6 +18,7 @@ import {
 import { type AuditInput, AuditLogger } from '../audit/audit-logger.service';
 import { PasswordService } from '../auth/password.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { assertPermissionsMatchRoleScope } from '../roles/role-permission-scope';
 import type { CreateTenantDto } from './dto/create-tenant.dto';
 import type { TenantQueryDto } from './dto/tenant-query.dto';
 import type { TenantStatusTransitionDto } from './dto/tenant-status-transition.dto';
@@ -170,10 +171,17 @@ export class TenantsService {
 			where: {
 				tenantId: null,
 				code: { in: PER_TENANT_ROLES.map((r) => r.code) },
+				// Tenant templates must never be admin roles.
+				isAdmin: false,
 			},
 			select: {
 				code: true,
-				permissions: { select: { permissionId: true } },
+				permissions: {
+					select: {
+						permissionId: true,
+						permission: { select: { code: true } },
+					},
+				},
 			},
 		});
 		const templateCodes = new Set(templates.map((template) => template.code));
@@ -184,6 +192,14 @@ export class TenantsService {
 			throw new InternalServerErrorException({
 				reason: 'ROLE_TEMPLATE_MISSING',
 				message: 'System role templates are not configured',
+			});
+		}
+		// Enforce tenant-role scope: templates must not carry admin.* grants.
+		// Seed/provisioning keeps existing behavior when templates are clean.
+		for (const template of templates) {
+			assertPermissionsMatchRoleScope({
+				isAdminRole: false,
+				permissionCodes: template.permissions.map((p) => p.permission.code),
 			});
 		}
 		const grantsByCode = new Map(

@@ -33,7 +33,7 @@ const customers: Customer[] = [
 		code: null,
 		name: "Anh Ba",
 		phone: "0909",
-		address: null,
+		address: "Ấp Bình Thành",
 		note: null,
 		type: "FARMER",
 		balance: 120000,
@@ -75,6 +75,12 @@ describe("CustomerPicker", () => {
 		fireEvent.click(screen.getByRole("button", { name: /Anh Ba/ }));
 		fireEvent.click(screen.getByRole("option", { name: /Khách lẻ/ }));
 		expect(onChange).toHaveBeenLastCalledWith(undefined);
+	});
+
+	it("shows the selected customer address in the sale form", async () => {
+		render(<CustomerPicker value="c1" onChange={vi.fn()} hideInlineSearch />);
+		expect(await screen.findByText("Ấp Bình Thành")).toBeInTheDocument();
+		expect(screen.getByText("Địa chỉ:")).toBeInTheDocument();
 	});
 
 	it("creates a new customer from the inline search flow", async () => {

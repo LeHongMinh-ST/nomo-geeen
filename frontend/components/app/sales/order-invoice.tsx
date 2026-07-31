@@ -1,7 +1,7 @@
 "use client";
 
-import { Download, Printer } from "lucide-react";
 import { jsPDF } from "jspdf";
+import { Download, Printer } from "lucide-react";
 import { formatDateTime, formatVND } from "@/lib/format";
 import type { SalesOrderDetail } from "@/lib/tenant-sales-api";
 
@@ -57,7 +57,7 @@ export function buildInvoiceHtml(order: SalesOrderDetail): string {
 @page{size:80mm auto;margin:5mm}*{box-sizing:border-box}body{margin:0;color:#1b1f1b;font:12px/1.45 Arial,sans-serif}.invoice{width:70mm;margin:0 auto}.center{text-align:center}.brand{font-size:15px;font-weight:700}.title{margin:10px 0 2px;font-size:17px;font-weight:700}.rule{border-top:1px dashed #777;margin:8px 0}.meta{display:grid;grid-template-columns:auto 1fr;gap:2px 6px;margin:8px 0}.meta b{font-weight:700}table{width:100%;border-collapse:collapse;margin-top:8px}th,td{border:1px solid #333;padding:4px 3px;text-align:right;vertical-align:top}th:nth-child(2),td:nth-child(2){text-align:left}th{font-weight:700}td small{display:block;color:#555}.total{border-top:2px solid #1b1f1b;margin-top:8px;padding-top:6px;font-size:15px;font-weight:700}.summary{display:flex;justify-content:space-between;gap:8px;margin-top:3px}.thanks{text-align:center;margin-top:12px}.note{margin-top:8px;font-style:italic}.foot{border-top:1px dashed #777;margin-top:10px;padding-top:8px;font-size:11px}
 </style></head><body><main class="invoice">
 <header class="center"><div class="brand">NomoGreen</div><div>Phần mềm bán hàng vật tư nông nghiệp</div><div class="rule"></div><div class="title">HÓA ĐƠN THANH TOÁN</div><div>Số: <b>${escapeHtml(order.docNo)}</b></div></header>
-<section class="meta"><b>Ngày:</b><span>${invoiceDateHtml(order.soldAt ?? order.createdAt)}</span><b>Khách hàng:</b><span>${escapeHtml(customer)}</span>${order.customer?.phone ? `<b>SĐT:</b><span>${escapeHtml(order.customer.phone)}</span>` : ""}</section>
+<section class="meta"><b>Ngày:</b><span>${invoiceDateHtml(order.soldAt ?? order.createdAt)}</span><b>Khách hàng:</b><span>${escapeHtml(customer)}</span>${order.customer?.phone ? `<b>SĐT:</b><span>${escapeHtml(order.customer.phone)}</span>` : ""}${order.customer?.address ? `<b>Địa chỉ:</b><span>${escapeHtml(order.customer.address)}</span>` : ""}</section>
 <table><thead><tr><th>#</th><th>Tên hàng</th><th>ĐG</th><th>TT</th></tr></thead><tbody>${lines}</tbody></table>
 <section><div class="summary"><span>Tiền hàng</span><b>${moneyHtml(order.subtotal)}</b></div><div class="summary"><span>Chiết khấu</span><b>−${moneyHtml(order.discountAmount)}</b></div><div class="summary total"><span>TỔNG THANH TOÁN</span><span>${moneyHtml(order.total)}</span></div><div class="summary"><span>${escapeHtml(payment)}</span><span>${moneyHtml(order.amountPaid)}</span></div>${order.changeAmount > 0 ? `<div class="summary"><span>Trả lại khách</span><span>${moneyHtml(order.changeAmount)}</span></div>` : ""}${order.debtAmount > 0 ? `<div class="summary"><span>Công nợ</span><b>${moneyHtml(order.debtAmount)}</b></div>` : ""}</section>
 ${order.note ? `<p class="note">Ghi chú: ${escapeHtml(order.note)}</p>` : ""}<p class="thanks">Trân trọng cảm ơn quý khách!</p><footer class="foot">Hóa đơn này được tạo từ dữ liệu đơn hàng trên NomoGreen. Không phải hóa đơn điện tử có mã cơ quan thuế.</footer>
@@ -75,7 +75,9 @@ async function loadInvoiceFont(): Promise<string> {
 	return btoa(binary);
 }
 
-export async function downloadOrderInvoice(order: SalesOrderDetail): Promise<void> {
+export async function downloadOrderInvoice(
+	order: SalesOrderDetail,
+): Promise<void> {
 	const font = await loadInvoiceFont();
 	const rowHeight = order.lines.reduce((height, line) => {
 		return height + (line.productName.length > 22 ? 12 : 8);
@@ -93,9 +95,18 @@ export async function downloadOrderInvoice(order: SalesOrderDetail): Promise<voi
 	const left = 6;
 	const right = 74;
 	let y = 10;
-	const line = (text: string, size = 8, align: "left" | "center" | "right" = "left") => {
+	const line = (
+		text: string,
+		size = 8,
+		align: "left" | "center" | "right" = "left",
+	) => {
 		pdf.setFontSize(size);
-		pdf.text(text, align === "center" ? width / 2 : align === "right" ? right : left, y, { align });
+		pdf.text(
+			text,
+			align === "center" ? width / 2 : align === "right" ? right : left,
+			y,
+			{ align },
+		);
 		y += size >= 12 ? 7 : 5;
 	};
 
@@ -111,6 +122,7 @@ export async function downloadOrderInvoice(order: SalesOrderDetail): Promise<voi
 	line(`Ngày: ${invoiceDate(order.soldAt ?? order.createdAt)}`);
 	line(`Khách hàng: ${order.customer?.name || "Khách lẻ"}`);
 	if (order.customer?.phone) line(`SĐT: ${order.customer.phone}`);
+	if (order.customer?.address) line(`Địa chỉ: ${order.customer.address}`);
 	y += 2;
 
 	const tableTop = y;
@@ -147,11 +159,19 @@ export async function downloadOrderInvoice(order: SalesOrderDetail): Promise<voi
 	summary("Tiền hàng", `${formatVND(order.subtotal)} ₫`);
 	summary("Chiết khấu", `−${formatVND(order.discountAmount)} ₫`);
 	summary("TỔNG THANH TOÁN", `${formatVND(order.total)} ₫`, true);
-	summary(paymentLabel[order.paymentMethod ?? ""] ?? "Chưa thanh toán", `${formatVND(order.amountPaid)} ₫`);
-	if (order.changeAmount > 0) summary("Trả lại khách", `${formatVND(order.changeAmount)} ₫`);
-	if (order.debtAmount > 0) summary("Công nợ", `${formatVND(order.debtAmount)} ₫`, true);
+	summary(
+		paymentLabel[order.paymentMethod ?? ""] ?? "Chưa thanh toán",
+		`${formatVND(order.amountPaid)} ₫`,
+	);
+	if (order.changeAmount > 0)
+		summary("Trả lại khách", `${formatVND(order.changeAmount)} ₫`);
+	if (order.debtAmount > 0)
+		summary("Công nợ", `${formatVND(order.debtAmount)} ₫`, true);
 	if (order.note) {
-		const noteLines = pdf.splitTextToSize(`Ghi chú: ${order.note}`, 68) as string[];
+		const noteLines = pdf.splitTextToSize(
+			`Ghi chú: ${order.note}`,
+			68,
+		) as string[];
 		pdf.setFontSize(8);
 		pdf.text(noteLines, left, y);
 		y += noteLines.length * 4 + 2;
@@ -159,10 +179,15 @@ export async function downloadOrderInvoice(order: SalesOrderDetail): Promise<voi
 	y += 3;
 	line("Trân trọng cảm ơn quý khách!", 8, "center");
 	pdf.setFontSize(6.5);
-	pdf.text("Hóa đơn tạo từ đơn hàng NomoGreen; không phải hóa đơn điện tử có mã cơ quan thuế.", width / 2, y, {
-		align: "center",
-		maxWidth: 68,
-	});
+	pdf.text(
+		"Hóa đơn tạo từ đơn hàng NomoGreen; không phải hóa đơn điện tử có mã cơ quan thuế.",
+		width / 2,
+		y,
+		{
+			align: "center",
+			maxWidth: 68,
+		},
+	);
 	pdf.save(`hoa-don-${order.docNo}.pdf`);
 }
 
@@ -186,7 +211,7 @@ export function OrderInvoiceActions({ order }: { order: SalesOrderDetail }) {
 				onClick={() => void downloadOrderInvoice(order)}
 			>
 				<Download className="size-5" aria-hidden="true" />
-				Tải hóa đơn
+				Tải PDF hóa đơn
 			</button>
 			<button
 				type="button"

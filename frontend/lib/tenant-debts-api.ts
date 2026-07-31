@@ -9,6 +9,7 @@ export type DebtApiItem = {
 	code: string | null;
 	phone: string | null;
 	address: string | null;
+	createdAt: string | null;
 	balance: number;
 	openingBalance: number;
 };

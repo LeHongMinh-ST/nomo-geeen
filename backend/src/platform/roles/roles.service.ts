@@ -10,6 +10,7 @@ import { AuditLogger } from '../audit/audit-logger.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateRoleDto } from './dto/create-role.dto';
 import { UpdateRoleDto } from './dto/update-role.dto';
+import { assertPermissionsMatchRoleScope } from './role-permission-scope';
 
 export interface PermissionPublicShape {
 	id: string;
@@ -105,21 +106,31 @@ export class RolesService {
 		return this.toPublicShape(role);
 	}
 
+	/**
+	 * Load permission rows by id and enforce admin-role scope:
+	 * every id must exist AND every code must be admin.* (no tenant codes).
+	 * DB CHECK cannot inspect the related Permission row, so this is the
+	 * service/transaction boundary invariant for RolePermission grants.
+	 */
 	private async validateAdminPermissionIds(ids: string[]): Promise<void> {
 		if (ids.length === 0) return;
-		const found = await this.prisma.permission.count({
-			where: {
-				id: { in: ids },
-				code: { startsWith: ADMIN_PERMISSION_PREFIX },
-			},
+		const rows = await this.prisma.permission.findMany({
+			where: { id: { in: ids } },
+			select: { id: true, code: true },
 		});
-		if (found !== ids.length) {
+		if (rows.length !== ids.length) {
 			throw new BadRequestException({
 				reason: 'INVALID_PERMISSION_ID',
 				message:
 					'One or more permissionIds do not exist or are not admin permissions',
 			});
 		}
+		// Service-boundary invariant: admin roles cannot receive tenant codes.
+		// (DB CHECK cannot join Permission.code from role_permission.)
+		assertPermissionsMatchRoleScope({
+			isAdminRole: true,
+			permissionCodes: rows.map((row) => row.code),
+		});
 	}
 
 	async create(dto: CreateRoleDto, ctx: AuditCtx): Promise<RolePublicShape> {

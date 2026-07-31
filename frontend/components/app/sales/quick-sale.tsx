@@ -224,7 +224,11 @@ export function QuickSale() {
 					<CounterSearch
 						onSelectProduct={addProduct}
 						onChangeMeta={(meta) =>
-							setHandbookMeta((current) => ({ ...current, ...meta }))
+							setHandbookMeta(
+								Object.keys(meta).length === 0
+									? {}
+									: (current) => ({ ...current, ...meta }),
+							)
 						}
 					/>
 					{empty ? (
@@ -298,8 +302,9 @@ export function QuickSale() {
 			<PaymentSheet
 				open={payOpen}
 				total={subtotal}
+				allowPartial={Boolean(customerId)}
 				onClose={() => setPayOpen(false)}
-				onConfirm={(method, amountPaid) => void finish(method, amountPaid)}
+				onConfirm={(method, amountPaid) => finish(method, amountPaid)}
 				submitting={submitting}
 			/>
 

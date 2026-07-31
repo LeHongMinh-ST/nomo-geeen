@@ -18,6 +18,7 @@ import {
 	statusClass,
 	statusLabel,
 } from "./order-card";
+
 type StatusFilter = "all" | SalesOrderStatus;
 const PAGE_SIZE = 20;
 const filters = [
@@ -38,6 +39,7 @@ export function OrderList() {
 	const [mobile, setMobile] = useState(false);
 	const [more, setMore] = useState(false);
 	const [done, setDone] = useState(false);
+	const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
 	const seq = useRef(0);
 	useEffect(() => {
 		const t = setTimeout(() => setSearch(q.trim()), 350);
@@ -61,6 +63,7 @@ export function OrderList() {
 				});
 				if (s !== seq.current) return;
 				setTotal(r.total);
+				if (!append) setSelectedIds(new Set());
 				setItems((prev) => {
 					const next = append
 						? [
@@ -112,6 +115,19 @@ export function OrderList() {
 		void fetchPage(p, true, s);
 	}, [mobile, more, loading, done, items.length, total, page, fetchPage]);
 	const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
+	const allSelected =
+		items.length > 0 && items.every((item) => selectedIds.has(item.id));
+	const toggleSelected = (id: string, checked: boolean) => {
+		setSelectedIds((current) => {
+			const next = new Set(current);
+			if (checked) next.add(id);
+			else next.delete(id);
+			return next;
+		});
+	};
+	const toggleAll = (checked: boolean) => {
+		setSelectedIds(checked ? new Set(items.map((item) => item.id)) : new Set());
+	};
 	return (
 		<div className="flex w-full flex-col gap-5">
 			<div className="flex items-start justify-between">
@@ -156,6 +172,29 @@ export function OrderList() {
 					},
 				]}
 			/>
+			{items.length > 0 ? (
+				<div className="flex items-center justify-between gap-3 rounded-[12px] border border-border bg-card px-3 py-2">
+					<label className="flex min-h-10 items-center gap-2 text-sm font-semibold">
+						<input
+							type="checkbox"
+							aria-label="Chọn tất cả đơn đang hiển thị"
+							checked={allSelected}
+							onChange={(event) => toggleAll(event.target.checked)}
+							className="size-5 accent-primary"
+						/>
+						Chọn tất cả đơn đang hiển thị
+					</label>
+					{selectedIds.size > 0 ? (
+						<button
+							type="button"
+							onClick={() => setSelectedIds(new Set())}
+							className="min-h-10 rounded-[10px] px-3 text-sm font-semibold text-primary hover:bg-accent"
+						>
+							Bỏ chọn ({selectedIds.size})
+						</button>
+					) : null}
+				</div>
+			) : null}
 			{loading && items.length === 0 ? (
 				<ListSkeleton withToolbar rows={6} />
 			) : error && items.length === 0 ? (
@@ -193,7 +232,20 @@ export function OrderList() {
 							</div>
 						) : null}
 						{items.map((o) => (
-							<OrderCard key={o.id} order={o} />
+							<div key={o.id} className="flex items-start gap-2">
+								<input
+									type="checkbox"
+									aria-label={`Chọn đơn ${o.docNo}`}
+									checked={selectedIds.has(o.id)}
+									onChange={(event) =>
+										toggleSelected(o.id, event.target.checked)
+									}
+									className="mt-5 size-5 shrink-0 accent-primary"
+								/>
+								<div className="min-w-0 flex-1">
+									<OrderCard order={o} />
+								</div>
+							</div>
 						))}
 						{items.length < total && !done ? (
 							<LoadMoreSentinel onReach={loadMore} />
@@ -223,6 +275,7 @@ export function OrderList() {
 							<table className="w-full border-collapse text-left">
 								<thead>
 									<tr className="bg-[#f5f5f5] text-sm text-[#616161]">
+										<th className="w-12 px-3 py-3" />
 										<th className="px-4 py-3 font-semibold">Mã đơn</th>
 										<th className="px-4 py-3 font-semibold">Khách hàng</th>
 										<th className="px-4 py-3 font-semibold">Ngày</th>
@@ -239,11 +292,22 @@ export function OrderList() {
 											key={o.id}
 											className="border-t border-border transition-colors hover:bg-accent"
 										>
+											<td className="px-3 py-3">
+												<input
+													type="checkbox"
+													aria-label={`Chọn đơn ${o.docNo}`}
+													checked={selectedIds.has(o.id)}
+													onChange={(event) =>
+														toggleSelected(o.id, event.target.checked)
+													}
+													className="size-5 accent-primary"
+												/>
+											</td>
 											<td className="px-4 py-3">
-															<Link
-																href={`/don-ban-hang/${o.id}`}
-																className="inline-flex min-h-12 items-center font-semibold"
-																aria-label={`Mở chi tiết ${o.docNo}`}
+												<Link
+													href={`/don-ban-hang/${o.id}`}
+													className="inline-flex min-h-12 items-center font-semibold"
+													aria-label={`Mở chi tiết ${o.docNo}`}
 												>
 													{o.docNo}
 												</Link>
@@ -285,6 +349,7 @@ export function OrderList() {
 							noun="đơn"
 							onPage={(p) => {
 								setPage(p);
+								setSelectedIds(new Set());
 								const s = ++seq.current;
 								setLoading(true);
 								void fetchPage(p, false, s);

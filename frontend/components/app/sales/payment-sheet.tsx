@@ -3,7 +3,7 @@
 import type { LucideIcon } from "lucide-react";
 import { Banknote, Check, Smartphone, X } from "lucide-react";
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { formatVND } from "@/lib/format";
 import type { PaymentMethod } from "@/lib/orders";
 import { useScrollLock } from "@/lib/use-scroll-lock";
@@ -27,6 +27,7 @@ const methods: {
 
 /** Gợi ý mệnh giá tiền mặt phổ biến. */
 const quickCash = [50_000, 100_000, 200_000, 500_000];
+type SettlementMode = "full" | "partial";
 
 export function PaymentSheet({
 	open,
@@ -36,6 +37,7 @@ export function PaymentSheet({
 	onClose,
 	onConfirm,
 	submitting = false,
+	allowPartial = false,
 }: {
 	open: boolean;
 	total: number;
@@ -45,20 +47,28 @@ export function PaymentSheet({
 	onConfirm: (
 		method: Exclude<PaymentMethod, "debt">,
 		amountPaid: number,
-	) => void;
+	) => void | Promise<void>;
 	submitting?: boolean;
+	/** Chỉ bật khi đã chọn khách để khoản còn lại được ghi nhận là công nợ. */
+	allowPartial?: boolean;
 }) {
 	const [method, setMethod] = useState<Exclude<PaymentMethod, "debt">>("cash");
+	const [settlement, setSettlement] = useState<SettlementMode>("full");
 	const [received, setReceived] = useState("");
 	const accessToken = useUserAuth((state) => state.accessToken);
 	const [profile, setProfile] = useState<TenantProfile | null>(null);
 	const [profileLoading, setProfileLoading] = useState(false);
+	const [confirming, setConfirming] = useState(false);
+	const confirmingRef = useRef(false);
 
 	// Reset khi mở lại.
 	useEffect(() => {
 		if (open) {
 			setMethod("cash");
+			setSettlement("full");
 			setReceived("");
+			confirmingRef.current = false;
+			setConfirming(false);
 			if (accessToken) {
 				setProfileLoading(true);
 				void getCurrentProfile(accessToken)
@@ -68,6 +78,17 @@ export function PaymentSheet({
 			}
 		}
 	}, [accessToken, open]);
+
+	useEffect(() => {
+		if (!allowPartial) setSettlement("full");
+	}, [allowPartial]);
+
+	useEffect(() => {
+		if (!open) {
+			confirmingRef.current = false;
+			setConfirming(false);
+		}
+	}, [open]);
 
 	useScrollLock(open);
 
@@ -83,15 +104,32 @@ export function PaymentSheet({
 	const receivedNum = Number(received.replace(/\D/g, "")) || 0;
 	const change = receivedNum - total;
 	const isCash = method === "cash";
-	const enough = !isCash || receivedNum >= total;
+	const isPartial = settlement === "partial";
+	const amountPaid = isPartial ? receivedNum : isCash ? receivedNum : total;
+	const enough = isPartial
+		? receivedNum > 0 && receivedNum < total
+		: !isCash || receivedNum >= total;
 	const bank = profile?.bank;
-	const canConfirm = enough && (isCash || Boolean(bank));
+	const canConfirm =
+		(!isPartial || allowPartial) && enough && (isCash || Boolean(bank));
 	const addInfo =
 		[paymentReference, paymentNote].filter(Boolean).join(" - ") ||
 		"Thanh toan don hang";
 	const quickLink = bank
-		? `https://img.vietqr.io/image/${encodeURIComponent(bank.bankId)}-${encodeURIComponent(bank.accountNumber)}-compact2.png?amount=${total}&addInfo=${encodeURIComponent(addInfo)}&accountName=${encodeURIComponent(bank.accountName)}`
+		? `https://img.vietqr.io/image/${encodeURIComponent(bank.bankId)}-${encodeURIComponent(bank.accountNumber)}-compact2.png?amount=${amountPaid}&addInfo=${encodeURIComponent(addInfo)}&accountName=${encodeURIComponent(bank.accountName)}`
 		: null;
+
+	async function confirm() {
+		if (!canConfirm || submitting || confirmingRef.current) return;
+		confirmingRef.current = true;
+		setConfirming(true);
+		try {
+			await onConfirm(method, amountPaid);
+		} finally {
+			confirmingRef.current = false;
+			setConfirming(false);
+		}
+	}
 
 	return (
 		<div
@@ -164,19 +202,53 @@ export function PaymentSheet({
 						})}
 					</div>
 
+					{allowPartial ? (
+						<fieldset className="mb-5 grid grid-cols-2 gap-2">
+							<legend className="sr-only">Mức thanh toán</legend>
+							<button
+								type="button"
+								onClick={() => {
+									setSettlement("full");
+									setReceived(String(total));
+								}}
+								className={`h-11 rounded-[10px] border text-sm font-semibold ${
+									settlement === "full"
+										? "border-primary bg-accent text-accent-foreground"
+										: "border-border bg-card text-[#616161]"
+								}`}
+							>
+								Thanh toán đủ
+							</button>
+							<button
+								type="button"
+								onClick={() => {
+									setSettlement("partial");
+									setReceived("");
+								}}
+								className={`h-11 rounded-[10px] border text-sm font-semibold ${
+									settlement === "partial"
+										? "border-primary bg-accent text-accent-foreground"
+										: "border-border bg-card text-[#616161]"
+								}`}
+							>
+								Thanh toán một phần
+							</button>
+						</fieldset>
+					) : null}
+
 					{/* Tiền mặt: nhập tiền khách đưa + tính thối */}
 					{isCash ? (
 						<div className="mb-5 flex flex-col gap-3">
 							<div className="flex flex-col gap-1.5">
 								<label
-									htmlFor="received"
+									htmlFor="payment-amount"
 									className="text-sm font-semibold text-[#616161]"
 								>
-									Khách đưa
+									{isPartial ? "Số tiền thanh toán" : "Khách đưa"}
 								</label>
 								<div className="relative">
 									<input
-										id="received"
+										id="payment-amount"
 										inputMode="numeric"
 										value={received ? formatVND(receivedNum) : ""}
 										onChange={(e) => setReceived(e.target.value)}
@@ -203,7 +275,10 @@ export function PaymentSheet({
 							</div>
 							<button
 								type="button"
-								onClick={() => setReceived(String(total))}
+								onClick={() => {
+									setSettlement("full");
+									setReceived(String(total));
+								}}
 								className="h-11 rounded-[10px] border border-border bg-card text-sm font-semibold text-primary transition-colors hover:bg-accent"
 							>
 								Đúng {formatVND(total)}₫
@@ -212,24 +287,65 @@ export function PaymentSheet({
 							{receivedNum > 0 ? (
 								<div
 									className={`flex items-center justify-between rounded-[12px] px-4 py-3 ${
-										change >= 0 ? "bg-[#e8f5e9]" : "bg-[#fff8e1]"
+										isPartial
+											? receivedNum < total
+												? "bg-[#fff8e1]"
+												: "bg-[#ffebee]"
+											: change >= 0
+												? "bg-[#e8f5e9]"
+												: "bg-[#fff8e1]"
 									}`}
 								>
 									<span className="text-base font-medium text-[#616161]">
-										{change >= 0 ? "Tiền thối" : "Còn thiếu"}
+										{isPartial
+											? receivedNum < total
+												? "Còn nợ"
+												: "Số tiền phải nhỏ hơn tổng"
+											: change >= 0
+												? "Tiền thối"
+												: "Còn thiếu"}
 									</span>
 									<span
 										className={`text-xl font-bold ${
-											change >= 0 ? "text-[#2e7d32]" : "text-[#f57f17]"
+											isPartial
+												? receivedNum < total
+													? "text-[#f57f17]"
+													: "text-[#c62828]"
+												: change >= 0
+													? "text-[#2e7d32]"
+													: "text-[#f57f17]"
 										}`}
 									>
-										{formatVND(Math.abs(change))}₫
+										{formatVND(
+											isPartial
+												? Math.abs(total - receivedNum)
+												: Math.abs(change),
+										)}
+										₫
 									</span>
 								</div>
 							) : null}
 						</div>
 					) : (
 						<div className="mb-5 flex flex-col items-center gap-3 rounded-[12px] border border-dashed border-border bg-[#fafafa] py-6">
+							{isPartial ? (
+								<div className="w-full px-4">
+									<label
+										htmlFor="payment-amount"
+										className="text-sm font-semibold text-[#616161]"
+									>
+										Số tiền thanh toán
+									</label>
+									<input
+										id="payment-amount"
+										inputMode="numeric"
+										value={received ? formatVND(receivedNum) : ""}
+										onChange={(event) => setReceived(event.target.value)}
+										placeholder="0"
+										className="mt-1 h-12 w-full rounded-[10px] border border-border bg-white px-4 text-right text-xl font-bold"
+									/>
+								</div>
+							) : null}
 							{method === "transfer" ? (
 								<>
 									{profileLoading ? (
@@ -237,14 +353,14 @@ export function PaymentSheet({
 											Đang tải thông tin ngân hàng...
 										</p>
 									) : null}
-									{bank && quickLink ? (
+									{bank && quickLink && (!isPartial || amountPaid > 0) ? (
 										<>
 											<Image
 												src={quickLink}
 												alt="Mã VietQR thanh toán"
-														className="size-64 rounded-[12px] bg-white object-contain"
-														width={256}
-														height={256}
+												className="size-64 rounded-[12px] bg-white object-contain"
+												width={256}
+												height={256}
 												unoptimized
 											/>
 											<p className="text-center text-base text-[#616161]">
@@ -252,9 +368,13 @@ export function PaymentSheet({
 												<br />
 												{bank.accountNumber} · {bank.accountName}
 												<br />
-												{formatVND(total)}₫
+												{formatVND(amountPaid)}₫
 											</p>
 										</>
+									) : isPartial && amountPaid <= 0 ? (
+										<p className="text-center text-base text-[#616161]">
+											Nhập số tiền thanh toán để tạo mã VietQR.
+										</p>
 									) : (
 										<p className="text-center text-base text-destructive">
 											Chưa cấu hình tài khoản nhận chuyển khoản. Hãy cập nhật
@@ -266,7 +386,9 @@ export function PaymentSheet({
 								<>
 									<Smartphone className="size-10 text-[#9e9e9e]" aria-hidden />
 									<p className="text-base text-[#616161]">
-										Xác nhận khi đã nhận chuyển khoản {formatVND(total)}₫
+										{isPartial && amountPaid <= 0
+											? "Nhập số tiền đã nhận trước khi xác nhận"
+											: `Xác nhận khi đã nhận chuyển khoản ${formatVND(amountPaid)}₫`}
 									</p>
 								</>
 							)}
@@ -278,12 +400,13 @@ export function PaymentSheet({
 				<div className="pb-safe border-t border-border bg-card px-4 py-3">
 					<button
 						type="button"
-						disabled={!canConfirm || submitting}
-						onClick={() => onConfirm(method, isCash ? receivedNum : total)}
+						disabled={!canConfirm || submitting || confirming}
+						onClick={() => void confirm()}
+						aria-busy={submitting || confirming}
 						className="flex h-14 w-full items-center justify-center gap-2 rounded-[10px] bg-primary text-lg font-bold text-white transition-colors duration-200 ease-out hover:bg-[#5cad45] active:bg-[#3f8530] disabled:cursor-not-allowed disabled:bg-[#a5d6a7]"
 					>
 						<Check className="size-6" aria-hidden />
-						{submitting ? "Đang lưu đơn..." : "Hoàn tất thu tiền"}
+						{submitting || confirming ? "Đang lưu đơn..." : "Hoàn tất thu tiền"}
 					</button>
 				</div>
 			</div>

@@ -43,6 +43,22 @@ function renderSheet(profile: typeof configuredProfile | null) {
 	);
 }
 
+function renderPartialSheet(onConfirm = vi.fn()) {
+	vi.mocked(getCurrentProfile).mockResolvedValue(configuredProfile);
+	return {
+		onConfirm,
+		...render(
+			<PaymentSheet
+				open
+				total={125000}
+				allowPartial
+				onClose={vi.fn()}
+				onConfirm={onConfirm}
+			/>,
+		),
+	};
+}
+
 describe("PaymentSheet transfer", () => {
 	it("renders configured bank details and VietQR URL with payment reference/note", async () => {
 		renderSheet(configuredProfile);
@@ -70,5 +86,40 @@ describe("PaymentSheet transfer", () => {
 			).toBeDisabled(),
 		);
 		expect(screen.getByText(/Chưa cấu hình tài khoản/)).toBeInTheDocument();
+	});
+
+	it("makes partial and full settlement explicit", async () => {
+		const onConfirm = vi.fn().mockResolvedValue(undefined);
+		renderPartialSheet(onConfirm);
+
+		fireEvent.click(
+			screen.getByRole("button", { name: "Thanh toán một phần" }),
+		);
+		fireEvent.change(screen.getByLabelText("Số tiền thanh toán"), {
+			target: { value: "50000" },
+		});
+		fireEvent.click(screen.getByRole("button", { name: "Hoàn tất thu tiền" }));
+		await waitFor(() => expect(onConfirm).toHaveBeenCalledWith("cash", 50000));
+
+		fireEvent.click(screen.getByRole("button", { name: "Thanh toán đủ" }));
+		expect(screen.getByLabelText("Khách đưa")).toHaveValue("125.000");
+	});
+
+	it("ignores a second confirmation while the first payment is pending", async () => {
+		let resolve!: () => void;
+		const onConfirm = vi.fn(
+			() =>
+				new Promise<void>((done) => {
+					resolve = done;
+				}),
+		);
+		renderPartialSheet(onConfirm);
+		fireEvent.click(screen.getByRole("button", { name: "Thanh toán đủ" }));
+		const confirm = screen.getByRole("button", { name: "Hoàn tất thu tiền" });
+		fireEvent.click(confirm);
+		fireEvent.click(confirm);
+		expect(onConfirm).toHaveBeenCalledTimes(1);
+		resolve();
+		await waitFor(() => expect(confirm).not.toBeDisabled());
 	});
 });

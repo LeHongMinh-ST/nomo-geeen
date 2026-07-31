@@ -84,17 +84,27 @@ export const PRODUCT_KIND_CATALOG: readonly ProductKindDefinition[] = [
 		id: "FERTILIZER",
 		label: "Phân bón",
 		businessGroup: "CROP_INPUTS",
-		requiredAttrs: [
-			"composition",
-			"nitrogenPercent",
-			"phosphorusPercent",
-			"potassiumPercent",
-		],
+		requiredAttrs: ["composition"],
 		fields: [
 			...COMMON_CROP_FIELDS,
-			{ key: "nitrogenPercent", label: "% đạm (N)", input: "number" },
-			{ key: "phosphorusPercent", label: "% lân (P)", input: "number" },
-			{ key: "potassiumPercent", label: "% kali (K)", input: "number" },
+			{
+				key: "nitrogenPercent",
+				label: "% đạm (N)",
+				input: "number",
+				optional: true,
+			},
+			{
+				key: "phosphorusPercent",
+				label: "% lân (P)",
+				input: "number",
+				optional: true,
+			},
+			{
+				key: "potassiumPercent",
+				label: "% kali (K)",
+				input: "number",
+				optional: true,
+			},
 		],
 	},
 	{

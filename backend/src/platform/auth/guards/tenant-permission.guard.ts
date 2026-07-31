@@ -13,6 +13,7 @@ import {
 	boundedAuditSummary,
 } from '../../audit/audit-logger.service';
 import { PrismaService } from '../../prisma/prisma.service';
+import { isAdminPermissionCode } from '../../roles/role-permission-scope';
 import { TENANT_PERMISSIONS_KEY } from '../decorators/require-tenant-permission.decorator';
 import type { TenantIdentity } from '../token.service';
 
@@ -40,6 +41,20 @@ export class TenantPermissionGuard implements CanActivate {
 		);
 		if (!required || required.length === 0) return true;
 
+		// Tenant guard only evaluates tenant permission namespace.
+		// Fail-closed if route metadata accidentally requires admin.* codes.
+		const adminRequired = required.filter(isAdminPermissionCode);
+		if (adminRequired.length > 0) {
+			await this.recordDenial(
+				identity,
+				context,
+				required,
+				adminRequired,
+				'ADMIN_METADATA_REQUIRED',
+			);
+			throw new ForbiddenException('Tenant permission denied');
+		}
+
 		const user = await this.prisma.user.findFirst({
 			where: {
 				id: identity.id,
@@ -51,6 +66,9 @@ export class TenantPermissionGuard implements CanActivate {
 			select: {
 				role: {
 					select: {
+						// Bound role to authenticated tenant + non-admin.
+						tenantId: true,
+						isAdmin: true,
 						permissions: {
 							select: { permission: { select: { code: true } } },
 						},
@@ -59,9 +77,39 @@ export class TenantPermissionGuard implements CanActivate {
 			},
 		});
 		if (!user) throw new UnauthorizedException('User not found');
-		const granted = new Set(
-			user.role.permissions.map((grant) => grant.permission.code),
+
+		// Role must belong to the authenticated tenant and never be an admin role.
+		if (
+			user.role.tenantId !== identity.tenantId ||
+			user.role.isAdmin === true
+		) {
+			await this.recordDenial(
+				identity,
+				context,
+				required,
+				required,
+				'ROLE_SCOPE_MISMATCH',
+			);
+			throw new ForbiddenException('Tenant permission denied');
+		}
+
+		const grantedCodes = user.role.permissions.map(
+			(grant) => grant.permission.code,
 		);
+		// Fail-closed if a tenant role somehow carries admin.* grants.
+		const leakedAdmin = grantedCodes.filter(isAdminPermissionCode);
+		if (leakedAdmin.length > 0) {
+			await this.recordDenial(
+				identity,
+				context,
+				required,
+				leakedAdmin,
+				'LEAKED_ADMIN_GRANT',
+			);
+			throw new ForbiddenException('Tenant permission denied');
+		}
+
+		const granted = new Set(grantedCodes);
 		const missing = required.filter((code) => !granted.has(code));
 		if (missing.length > 0) {
 			await this.recordDenial(identity, context, required, missing);
@@ -75,6 +123,7 @@ export class TenantPermissionGuard implements CanActivate {
 		context: ExecutionContext,
 		required: string[],
 		missing: string[],
+		reason?: string,
 	): Promise<void> {
 		try {
 			await this.audit.log({
@@ -88,6 +137,8 @@ export class TenantPermissionGuard implements CanActivate {
 					required: boundedAuditSummary(required),
 					missing: boundedAuditSummary(missing),
 					outcome: 'denied',
+					// Bounded stable code for scope denials; omitted for plain missing grants.
+					...(reason ? { reason: reason.slice(0, 64) } : {}),
 				},
 			});
 		} catch {

@@ -31,7 +31,12 @@ const order: SalesOrderDetail = {
 	docNo: "SO-001",
 	channel: "ORDER",
 	status: "COMPLETED",
-	customer: { id: "c1", name: "Chị Mận <test>", phone: "0900000000" },
+	customer: {
+		id: "c1",
+		name: "Chị Mận <test>",
+		phone: "0900000000",
+		address: "Ấp <Bình Thành>",
+	},
 	warehouseId: "w1",
 	subtotal: 125000,
 	discountAmount: 5000,
@@ -77,6 +82,7 @@ describe("OrderInvoice", () => {
 		expect(html).toContain("HÓA ĐƠN THANH TOÁN");
 		expect(html).toContain("SO-001");
 		expect(html).toContain("Chị Mận &lt;test&gt;");
+		expect(html).toContain("Ấp &lt;Bình Thành&gt;");
 		expect(html).toContain("Giao buổi chiều");
 		expect(html).toContain("80mm");
 	});
@@ -94,7 +100,7 @@ describe("OrderInvoice", () => {
 			</>,
 		);
 		expect(
-			screen.getByRole("button", { name: "Tải hóa đơn" }),
+			screen.getByRole("button", { name: "Tải PDF hóa đơn" }),
 		).toBeInTheDocument();
 		expect(
 			screen.getByRole("button", { name: "In hóa đơn" }),

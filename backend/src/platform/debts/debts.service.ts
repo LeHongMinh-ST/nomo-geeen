@@ -58,14 +58,14 @@ export class DebtsService {
 			includeCustomers
 				? this.prisma.customer.findMany({
 						where: partyWhere,
-						orderBy: { name: 'asc' },
+						orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
 						take: start + query.pageSize,
 					})
 				: Promise.resolve([]),
 			includeSuppliers
 				? this.prisma.supplier.findMany({
 						where: partyWhere,
-						orderBy: { name: 'asc' },
+						orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
 						take: start + query.pageSize,
 					})
 				: Promise.resolve([]),
@@ -92,7 +92,20 @@ export class DebtsService {
 			...customers.map((p) => this.summary('CUSTOMER', p)),
 			...suppliers.map((p) => this.summary('SUPPLIER', p)),
 		]
-			.sort((a, b) => a.name.localeCompare(b.name))
+			.sort((a, b) => {
+				const aCreated = a.createdAt?.getTime() ?? null;
+				const bCreated = b.createdAt?.getTime() ?? null;
+				if (aCreated !== null && bCreated !== null && aCreated !== bCreated) {
+					return bCreated - aCreated;
+				}
+				if (aCreated !== null && bCreated !== null) {
+					return b.id.localeCompare(a.id);
+				}
+				if (aCreated !== null || bCreated !== null) {
+					return aCreated === null ? 1 : -1;
+				}
+				return a.name.localeCompare(b.name) || b.id.localeCompare(a.id);
+			})
 			.slice(start, start + query.pageSize);
 		return {
 			items,
@@ -354,6 +367,7 @@ export class DebtsService {
 			code?: string | null;
 			phone?: string | null;
 			address?: string | null;
+			createdAt?: Date | null;
 			balance: bigint;
 			openingBalance: bigint;
 		},
@@ -365,6 +379,7 @@ export class DebtsService {
 			name: p.name,
 			phone: p.phone ?? null,
 			address: p.address ?? null,
+			createdAt: p.createdAt ?? null,
 			balance: num(p.balance),
 			openingBalance: num(p.openingBalance),
 		};

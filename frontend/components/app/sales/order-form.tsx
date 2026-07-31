@@ -185,11 +185,9 @@ export function OrderForm() {
 			<PaymentSheet
 				open={paymentOpen}
 				total={total}
+				allowPartial={Boolean(customerId)}
 				onClose={() => setPaymentOpen(false)}
-				onConfirm={(method, amountPaid) => {
-					setPaymentOpen(false);
-					void submitCompleted(method, amountPaid);
-				}}
+				onConfirm={(method, amountPaid) => submitCompleted(method, amountPaid)}
 				submitting={submitting}
 			/>
 			{/* Header */}

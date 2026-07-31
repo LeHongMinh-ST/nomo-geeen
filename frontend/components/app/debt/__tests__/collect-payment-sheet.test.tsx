@@ -104,4 +104,29 @@ describe("CollectPaymentSheet transfer", () => {
 			screen.getByRole("button", { name: "Trả 250.000₫" }),
 		).not.toBeDisabled();
 	});
+
+	it("prevents duplicate debt voucher confirmation", async () => {
+		let resolve!: () => void;
+		const onConfirm = vi.fn(
+			() =>
+				new Promise<void>((done) => {
+					resolve = done;
+				}),
+		);
+		vi.mocked(getCurrentProfile).mockResolvedValue(bankProfile);
+		render(
+			<CollectPaymentSheet
+				account={customer}
+				onClose={vi.fn()}
+				onConfirm={onConfirm}
+			/>,
+		);
+		fireEvent.click(screen.getByRole("button", { name: "Thu hết 250.000₫" }));
+		const confirm = screen.getByRole("button", { name: "Thu 250.000₫" });
+		fireEvent.click(confirm);
+		fireEvent.click(confirm);
+		expect(onConfirm).toHaveBeenCalledTimes(1);
+		resolve();
+		await waitFor(() => expect(confirm).not.toBeDisabled());
+	});
 });

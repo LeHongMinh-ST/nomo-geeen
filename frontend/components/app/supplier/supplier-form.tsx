@@ -21,6 +21,24 @@ import {
 import type { UserApiError } from "@/lib/user-auth-api";
 
 type FormState = SupplierInput;
+
+function createPayload(form: FormState): SupplierInput {
+	const payload: SupplierInput = { name: form.name.trim() };
+	if (form.supplierType) payload.supplierType = form.supplierType;
+	for (const key of [
+		"contactName",
+		"phone",
+		"email",
+		"address",
+		"province",
+		"taxCode",
+	] as const) {
+		const value = form[key]?.trim();
+		if (value) payload[key] = value;
+	}
+	return payload;
+}
+
 function initial(s?: TenantSupplier): FormState {
 	return {
 		code: s?.code ?? "",
@@ -59,7 +77,7 @@ export function SupplierForm({
 		setSaving(true);
 		setError("");
 		try {
-			if (mode === "create") await createTenantSupplier(form);
+			if (mode === "create") await createTenantSupplier(createPayload(form));
 			else if (supplier) await updateTenantSupplier(supplier.id, form);
 			router.push("/nha-cung-cap");
 		} catch (e) {

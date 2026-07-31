@@ -35,7 +35,12 @@ export type SalesOrderDetail = {
 	docNo: string;
 	channel: "ORDER" | "QUICK_SALE";
 	status: SalesOrderStatus;
-	customer: { id: string; name: string; phone: string | null } | null;
+	customer: {
+		id: string;
+		name: string;
+		phone: string | null;
+		address: string | null;
+	} | null;
 	warehouseId: string;
 	subtotal: number;
 	discountAmount: number;

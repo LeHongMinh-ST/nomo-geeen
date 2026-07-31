@@ -391,6 +391,34 @@ describe('TenantsService', () => {
 			expect(prisma.$transaction).not.toHaveBeenCalled();
 		});
 
+		it('rejects templates that grant admin.* permissions to tenant roles', async () => {
+			prisma.role.findMany.mockResolvedValue([
+				{
+					code: 'OWNER',
+					permissions: [
+						{
+							permissionId: 'p-admin',
+							permission: { code: 'admin.tenant:view' },
+						},
+					],
+				},
+				{ code: 'MANAGER', permissions: [] },
+				{ code: 'STAFF', permissions: [] },
+			]);
+
+			await expect(service.create(dtoBase as never, ctx)).rejects.toMatchObject(
+				{
+					response: { reason: 'CROSS_SCOPE_PERMISSION' },
+				},
+			);
+			expect(prisma.$transaction).not.toHaveBeenCalled();
+			expect(prisma.role.findMany).toHaveBeenCalledWith(
+				expect.objectContaining({
+					where: expect.objectContaining({ isAdmin: false, tenantId: null }),
+				}),
+			);
+		});
+
 		it('rejects when neither password nor generatePassword given (400 PASSWORD_MODE_INVALID)', async () => {
 			const dto = {
 				tenant: dtoBase.tenant,

@@ -27,6 +27,7 @@ export function debtDetailToAccount(data: DebtDetailResponse): DebtAccount {
 	);
 	return {
 		id: data.party.id,
+		createdAt: data.party.createdAt,
 		direction: type === "CUSTOMER" ? "receivable" : "payable",
 		name: data.party.name,
 		phone: data.party.phone ?? "",

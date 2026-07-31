@@ -213,6 +213,25 @@ export function ProductForm({
 			...unit,
 			name: unit.code.trim().toUpperCase() === "KG" ? "kg" : unit.name,
 		}));
+	const conversionUnits = (lookups?.units ?? [])
+		.filter((unit) => {
+			const normalizedName = unit.name.trim().toLocaleLowerCase();
+			const normalizedCode = unit.code.trim().toUpperCase();
+			return (
+				normalizedName === "gói" ||
+				normalizedName === "chai" ||
+				normalizedName === "kg" ||
+				normalizedName === "bao" ||
+				normalizedCode === "GOI" ||
+				normalizedCode === "CHAI" ||
+				normalizedCode === "KG" ||
+				normalizedCode === "BAO"
+			);
+		})
+		.map((unit) => ({
+			...unit,
+			name: unit.code.trim().toUpperCase() === "KG" ? "kg" : unit.name,
+		}));
 	const selectedUnitName =
 		allowedUnits.find((unit) => unit.id === form.baseUnit)?.name ?? "";
 
@@ -588,7 +607,7 @@ export function ProductForm({
 										})
 									}
 									placeholder="Chọn đơn vị"
-									options={allowedUnits
+									options={conversionUnits
 										.filter(
 											(unit) =>
 												unit.id !== form.baseUnit &&
@@ -671,10 +690,16 @@ export function ProductForm({
 								inputMode="numeric"
 								min={0}
 								value={form.stock}
-								onChange={(e) => set("stock", e.target.value)}
+								aria-label={`Tồn kho hiện tại (${selectedUnitName || "gốc"})`}
+								readOnly
+								aria-readonly="true"
 								placeholder="0"
-								className={`${inputClass} text-right`}
+								className={`${inputClass} bg-[#f8f9f8] text-right text-[#616161]`}
 							/>
+							<p className="text-sm text-[#616161]">
+								Máy chủ tự tính tồn kho từ các phiếu nhập và xuất; không chỉnh
+								sửa tại đây.
+							</p>
 						</Field>
 						<Field label="Ngưỡng cảnh báo sắp hết">
 							<input
@@ -682,6 +707,7 @@ export function ProductForm({
 								inputMode="numeric"
 								min={0}
 								value={form.lowStockThreshold}
+								aria-label="Ngưỡng cảnh báo sắp hết"
 								onChange={(e) => set("lowStockThreshold", e.target.value)}
 								placeholder="0"
 								className={`${inputClass} text-right`}

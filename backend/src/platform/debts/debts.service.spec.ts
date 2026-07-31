@@ -268,6 +268,64 @@ describe('DebtsService', () => {
 		);
 	});
 
+	it('merges customer and supplier debts newest first', async () => {
+		const customerRows = [
+			{
+				id: 'customer-old',
+				name: 'Khách cũ',
+				createdAt: new Date('2026-07-20T00:00:00.000Z'),
+				balance: 1n,
+				openingBalance: 0n,
+			},
+			{
+				id: 'customer-new',
+				name: 'Khách mới',
+				createdAt: new Date('2026-07-30T00:00:00.000Z'),
+				balance: 1n,
+				openingBalance: 0n,
+			},
+		];
+		const supplierRows = [
+			{
+				id: 'supplier-mid',
+				name: 'NCC giữa',
+				createdAt: new Date('2026-07-25T00:00:00.000Z'),
+				balance: 1n,
+				openingBalance: 0n,
+			},
+		];
+		const prisma = {
+			customer: {
+				findMany: jest.fn().mockResolvedValue(customerRows),
+				count: jest.fn().mockResolvedValue(2),
+				aggregate: jest.fn().mockResolvedValue({ _sum: { balance: 2n } }),
+			},
+			supplier: {
+				findMany: jest.fn().mockResolvedValue(supplierRows),
+				count: jest.fn().mockResolvedValue(1),
+				aggregate: jest.fn().mockResolvedValue({ _sum: { balance: 1n } }),
+			},
+		};
+		const service = new DebtsService(prisma as never);
+
+		const result = await service.list('tenant-1', {
+			status: 'ALL',
+			page: 1,
+			pageSize: 3,
+		});
+
+		expect(result.items.map((item) => item.name)).toEqual([
+			'Khách mới',
+			'NCC giữa',
+			'Khách cũ',
+		]);
+		expect(prisma.customer.findMany).toHaveBeenCalledWith(
+			expect.objectContaining({
+				orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+			}),
+		);
+	});
+
 	it('propagates voucher write failure so the Prisma transaction can roll back', async () => {
 		const tx = {
 			customer: {

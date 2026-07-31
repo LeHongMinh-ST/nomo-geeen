@@ -3,6 +3,7 @@ import {
 	BUSINESS_GROUP_CATALOG,
 	businessGroupLabel,
 	filterEnabledBusinessGroups,
+	getProductKindDefinition,
 	getProductKindsForGroup,
 	getRequiredAttrKeys,
 	isCompatibleProductKind,
@@ -70,13 +71,18 @@ describe("product kind contract", () => {
 			"phiDays",
 			"reiDays",
 		]);
-		expect(getRequiredAttrKeys("FERTILIZER")).toEqual([
-			"composition",
-			"nitrogenPercent",
-			"phosphorusPercent",
-			"potassiumPercent",
-		]);
+		expect(getRequiredAttrKeys("FERTILIZER")).toEqual(["composition"]);
 		expect(getRequiredAttrKeys("LIVESTOCK_SEED")).toEqual(["species", "breed"]);
+	});
+
+	it("keeps fertilizer nutrient percentages optional", () => {
+		expect(getProductKindDefinition("FERTILIZER")?.fields).toEqual(
+			expect.arrayContaining([
+				expect.objectContaining({ key: "nitrogenPercent", optional: true }),
+				expect.objectContaining({ key: "phosphorusPercent", optional: true }),
+				expect.objectContaining({ key: "potassiumPercent", optional: true }),
+			]),
+		);
 	});
 
 	it("falls back to known legacy kind values without inventing unknown data", () => {

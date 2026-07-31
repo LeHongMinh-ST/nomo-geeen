@@ -68,7 +68,9 @@ export function DebtDetail({
 		.toUpperCase();
 
 	// Lịch sử: mới nhất lên đầu.
-	const history = [...account.entries].reverse();
+	const history = [...account.entries].sort(
+		(a, b) => b.date.localeCompare(a.date) || b.id.localeCompare(a.id),
+	);
 
 	async function handleConfirm(amount: number, method: DebtPaymentMethod) {
 		try {

@@ -19,7 +19,7 @@ describe('RolesService', () => {
 			findUniqueOrThrow: jest.Mock;
 			delete: jest.Mock;
 		};
-		permission: { findMany: jest.Mock; count: jest.Mock };
+		permission: { findMany: jest.Mock };
 		rolePermission: { createMany: jest.Mock; deleteMany: jest.Mock };
 		adminRoleAssignment: { count: jest.Mock };
 		auditLogCreate: jest.Mock;
@@ -60,7 +60,7 @@ describe('RolesService', () => {
 				findUniqueOrThrow: jest.fn(),
 				delete: jest.fn(),
 			},
-			permission: { findMany: jest.fn(), count: jest.fn() },
+			permission: { findMany: jest.fn() },
 			rolePermission: { createMany: jest.fn(), deleteMany: jest.fn() },
 			adminRoleAssignment: { count: jest.fn() },
 			auditLogCreate,
@@ -127,7 +127,9 @@ describe('RolesService', () => {
 
 	describe('create', () => {
 		it('rejects unknown permissionIds with INVALID_PERMISSION_ID', async () => {
-			prisma.permission.count.mockResolvedValue(1);
+			prisma.permission.findMany.mockResolvedValue([
+				{ id: 'p1', code: 'admin.role:view' },
+			]);
 
 			await expect(
 				service.create(
@@ -138,8 +140,27 @@ describe('RolesService', () => {
 			expect(audit.run).not.toHaveBeenCalled();
 		});
 
+		it('rejects tenant permission codes on admin roles with CROSS_SCOPE_PERMISSION', async () => {
+			prisma.permission.findMany.mockResolvedValue([
+				{ id: 'p1', code: 'admin.role:view' },
+				{ id: 'p2', code: 'product:view' },
+			]);
+
+			await expect(
+				service.create(
+					{ code: 'NEW_ROLE', name: 'New Role', permissionIds: ['p1', 'p2'] },
+					ctx,
+				),
+			).rejects.toMatchObject({
+				response: expect.objectContaining({
+					reason: 'CROSS_SCOPE_PERMISSION',
+				}),
+			});
+			expect(audit.run).not.toHaveBeenCalled();
+		});
+
 		it('rejects duplicate role code with ROLE_CODE_DUPLICATE', async () => {
-			prisma.permission.count.mockResolvedValue(0);
+			prisma.permission.findMany.mockResolvedValue([]);
 			prisma.role.findFirst.mockResolvedValue(roleRow());
 
 			await expect(
@@ -148,7 +169,10 @@ describe('RolesService', () => {
 		});
 
 		it('creates role + writes role_permission rows + emits ROLE_CREATE audit', async () => {
-			prisma.permission.count.mockResolvedValue(2);
+			prisma.permission.findMany.mockResolvedValue([
+				{ id: 'p1', code: 'admin.role:view' },
+				{ id: 'p2', code: 'admin.role:edit' },
+			]);
 			prisma.role.findFirst.mockResolvedValue(null);
 			prisma.role.create.mockResolvedValue(roleRow({ id: 'role-2' }));
 			prisma.rolePermission.createMany.mockResolvedValue({ count: 2 });
@@ -201,7 +225,7 @@ describe('RolesService', () => {
 
 		it('rejects unknown addPermissionIds', async () => {
 			prisma.role.findUnique.mockResolvedValue(roleRow());
-			prisma.permission.count.mockResolvedValue(0);
+			prisma.permission.findMany.mockResolvedValue([]);
 
 			await expect(
 				service.update('role-1', { addPermissionIds: ['p-ghost'] }, ctx),
@@ -209,11 +233,29 @@ describe('RolesService', () => {
 			expect(audit.run).not.toHaveBeenCalled();
 		});
 
+		it('rejects attaching tenant permission to admin role on update', async () => {
+			prisma.role.findUnique.mockResolvedValue(roleRow());
+			prisma.permission.findMany.mockResolvedValue([
+				{ id: 'p-tenant', code: 'product:view' },
+			]);
+
+			await expect(
+				service.update('role-1', { addPermissionIds: ['p-tenant'] }, ctx),
+			).rejects.toMatchObject({
+				response: expect.objectContaining({
+					reason: 'CROSS_SCOPE_PERMISSION',
+				}),
+			});
+			expect(audit.run).not.toHaveBeenCalled();
+		});
+
 		it('emits 1 ROLE_UPDATE + N GRANT + M REVOKE audit rows', async () => {
 			prisma.role.findUnique.mockResolvedValue(
 				roleRow({ permissions: [permRow('p-old', 'admin.role:view')] }),
 			);
-			prisma.permission.count.mockResolvedValue(1);
+			prisma.permission.findMany.mockResolvedValue([
+				{ id: 'p-new', code: 'admin.role:edit' },
+			]);
 			prisma.role.update.mockResolvedValue({});
 			prisma.rolePermission.createMany.mockResolvedValue({ count: 1 });
 			prisma.rolePermission.deleteMany.mockResolvedValue({ count: 1 });
@@ -261,7 +303,7 @@ describe('RolesService', () => {
 			prisma.role.findUnique.mockResolvedValue(
 				roleRow({ permissions: [permRow('p-existing', 'admin.role:view')] }),
 			);
-			prisma.permission.count.mockResolvedValue(0);
+			prisma.permission.findMany.mockResolvedValue([]);
 			prisma.role.findUniqueOrThrow.mockResolvedValue(roleRow());
 
 			await service.update(

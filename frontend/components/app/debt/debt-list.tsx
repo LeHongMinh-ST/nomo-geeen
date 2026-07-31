@@ -14,7 +14,7 @@ import { ListFilterBar } from "@/components/app/shared/list-filter-bar";
 import { ListSkeleton } from "@/components/app/shared/list-skeleton";
 import { LoadMoreSentinel } from "@/components/app/shared/load-more-sentinel";
 import {
-	compareDebtUrgency,
+	compareDebtNewest,
 	countOverdue,
 	type DebtAccount,
 	type DebtDirection,
@@ -76,6 +76,7 @@ export function DebtList() {
 				setAccounts(
 					response.items.map((item) => ({
 						id: item.id,
+						createdAt: item.createdAt,
 						direction: item.partyType === "CUSTOMER" ? "receivable" : "payable",
 						name: item.name,
 						phone: item.phone ?? "",
@@ -124,7 +125,7 @@ export function DebtList() {
 				if (!q) return true;
 				return a.name.toLowerCase().includes(q) || a.phone.includes(q);
 			})
-			.sort(compareDebtUrgency);
+			.sort(compareDebtNewest);
 	}, [owing, query, status]);
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: reset khi tiêu chí lọc đổi

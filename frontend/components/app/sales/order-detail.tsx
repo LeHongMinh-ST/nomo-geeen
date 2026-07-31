@@ -1,6 +1,13 @@
 "use client";
 
-import { ArrowLeft, Package, Phone, UserRound, XCircle } from "lucide-react";
+import {
+	ArrowLeft,
+	MapPin,
+	Package,
+	Phone,
+	UserRound,
+	XCircle,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { formatDate, formatDateTime, formatVND } from "@/lib/format";
@@ -193,6 +200,12 @@ export function OrderDetail({ id }: { id: string }) {
 								{order.customer.phone}
 							</p>
 						)}
+						{order.customer?.address && (
+							<p className="flex items-start gap-1">
+								<MapPin className="mt-0.5 size-4 shrink-0" />
+								{order.customer.address}
+							</p>
+						)}
 					</div>
 				</div>
 			</section>
@@ -266,7 +279,8 @@ export function OrderDetail({ id }: { id: string }) {
 					Hoàn thành đơn
 				</button>
 			) : null}
-			{canManageLifecycle && order.status !== "CANCELLED" &&
+			{canManageLifecycle &&
+				order.status !== "CANCELLED" &&
 				(confirm ? (
 					<div className="flex gap-3">
 						<p className="flex-1">

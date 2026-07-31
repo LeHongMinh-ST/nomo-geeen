@@ -282,6 +282,11 @@ describe("ProductForm ProductKind flow", () => {
 			),
 		).toBeInTheDocument();
 		expect(screen.getByText("1")).toBeInTheDocument();
+		expect(
+			within(screen.getByLabelText("Đơn vị quy đổi 1")).getByRole("option", {
+				name: "Bao",
+			}),
+		).toBeInTheDocument();
 		expect(screen.getByLabelText("Hệ số quy đổi 1")).toHaveValue(12);
 		expect(screen.getByLabelText("Áp dụng quy đổi 1")).toHaveValue("BOTH");
 		expect(
@@ -386,6 +391,30 @@ describe("ProductForm ProductKind flow", () => {
 				}),
 			),
 		);
+	});
+
+	it("keeps server-calculated stock read-only while threshold stays editable", () => {
+		render(
+			<ProductForm mode="edit" product={productFixture} lookups={lookups} />,
+		);
+
+		const stock = screen.getByRole("spinbutton", {
+			name: "Tồn kho hiện tại (kg)",
+		});
+		expect(stock).toHaveAttribute("readonly");
+		expect(stock).toHaveAttribute("aria-readonly", "true");
+		expect(
+			screen.getByText(
+				"Máy chủ tự tính tồn kho từ các phiếu nhập và xuất; không chỉnh sửa tại đây.",
+			),
+		).toBeInTheDocument();
+
+		const threshold = screen.getByRole("spinbutton", {
+			name: "Ngưỡng cảnh báo sắp hết",
+		});
+		expect(threshold).not.toHaveAttribute("readonly");
+		fireEvent.change(threshold, { target: { value: "5" } });
+		expect(threshold).toHaveValue(5);
 	});
 
 	it("limits base unit options to Gói, Chai, and kg and preserves allowed edit value", () => {

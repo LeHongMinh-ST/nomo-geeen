@@ -1,7 +1,7 @@
 "use client";
 
 import { PackageOpen, Plus, ScanLine, Search, X } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { filterSellableProducts } from "@/components/app/sales/product-picker";
 import { ProtocolPicker } from "@/components/app/sales/protocol-picker";
 import { ScanSheet } from "@/components/app/sales/scan-sheet";
@@ -62,6 +62,18 @@ function fieldDefault(field: ConsultField): string {
 			: "";
 }
 
+function mergeSuggestionMeta(
+	current: Array<Record<string, unknown>>,
+	additions: Array<Record<string, unknown>>,
+) {
+	const byProduct = new Map<string, Record<string, unknown>>();
+	for (const item of [...current, ...additions]) {
+		if (typeof item.productId === "string" && item.productId)
+			byProduct.set(item.productId, item);
+	}
+	return [...byProduct.values()];
+}
+
 export function HandbookQuickPanel({
 	onAddProduct,
 	onAddSuggestion,
@@ -91,37 +103,63 @@ export function HandbookQuickPanel({
 		unit: "CONG_NAM",
 	});
 	const [loading, setLoading] = useState(false);
+	const [searching, setSearching] = useState(false);
+	const [searchError, setSearchError] = useState<string | null>(null);
 	const [products, setProducts] = useState<Product[]>([]);
 	const [productsLoading, setProductsLoading] = useState(true);
+	const [productsError, setProductsError] = useState(false);
 	const [scanOpen, setScanOpen] = useState(false);
+	const searchGeneration = useRef(0);
+	const [suggestedMeta, setSuggestedMeta] = useState<
+		Array<Record<string, unknown>>
+	>([]);
 
 	useEffect(() => {
 		Promise.all([listTenantProducts(), getProductLookups()])
 			.then(([rows, lookups]) =>
 				setProducts(rows.map((row) => mapTenantProduct(row, lookups))),
 			)
+			.catch(() => setProductsError(true))
 			.finally(() => setProductsLoading(false));
 	}, []);
 
 	useEffect(() => {
+		const current = ++searchGeneration.current;
+		const term = query.trim();
+		if (!term) {
+			setResults([]);
+			setSearching(false);
+			setSearchError(null);
+			return;
+		}
+		setSearching(true);
 		const timer = window.setTimeout(() => {
-			if (!query.trim()) {
-				setResults([]);
-				return;
-			}
-			void listHandbookEntries({ search: query, page: 1, pageSize: 8 })
-				.then((response) =>
-					setResults(
-						response.items.map((item) => ({
-							id: item.id,
-							name: item.name,
-							symptom: item.symptom,
-						})),
-					),
+			setSearchError(null);
+			void listHandbookEntries({ search: term, page: 1, pageSize: 8 })
+				.then(
+					(response) =>
+						current === searchGeneration.current &&
+						setResults(
+							response.items.map((item) => ({
+								id: item.id,
+								name: item.name,
+								symptom: item.symptom,
+							})),
+						),
 				)
-				.catch(() => setResults([]));
+				.catch(() => {
+					if (current !== searchGeneration.current) return;
+					setResults([]);
+					setSearchError("Không thể tìm trong Sổ tay.");
+				})
+				.finally(() => {
+					if (current === searchGeneration.current) setSearching(false);
+				});
 		}, 180);
-		return () => window.clearTimeout(timer);
+		return () => {
+			window.clearTimeout(timer);
+			searchGeneration.current += 1;
+		};
 	}, [query]);
 
 	// Re-price the protocols whenever the entered area changes.
@@ -143,9 +181,13 @@ export function HandbookQuickPanel({
 
 	async function choose(id: string) {
 		setLoading(true);
+		setSearchError(null);
 		try {
 			const response = await getQuickHandbookSuggestions(id);
 			setSelected(response);
+			setQuery("");
+			setResults([]);
+			setSuggestedMeta([]);
 			const defaults = Object.fromEntries(
 				response.consultFields.map((field) => [
 					field.fieldKey,
@@ -155,9 +197,13 @@ export function HandbookQuickPanel({
 			setAnswers(defaults);
 			onChangeMeta({
 				diseaseId: response.disease.id,
+				protocolId: undefined,
 				consultContext: defaults,
 				suggestedProductsMeta: [],
+				suggestedQtyMeta: undefined,
 			});
+		} catch {
+			setSearchError("Không thể tải nội dung Sổ tay. Vui lòng thử lại.");
 		} finally {
 			setLoading(false);
 		}
@@ -195,11 +241,9 @@ export function HandbookQuickPanel({
 				item.packs ?? 1,
 			);
 		}
-		onChangeMeta({
-			diseaseId: selected.disease.id,
-			protocolId: protocol.id,
-			consultContext: answers,
-			suggestedProductsMeta: items.map((item) => ({
+		const protocolMeta = items
+			.filter((item) => item.productId)
+			.map((item) => ({
 				productId: item.productId,
 				activeIngredient: item.activeIngredient,
 				reason: "PROTOCOL",
@@ -207,7 +251,14 @@ export function HandbookQuickPanel({
 				needAmount: item.needAmount,
 				needUnit: item.needUnit,
 				packs: item.packs,
-			})),
+			}));
+		const nextMeta = mergeSuggestionMeta(suggestedMeta, protocolMeta);
+		setSuggestedMeta(nextMeta);
+		onChangeMeta({
+			diseaseId: selected.disease.id,
+			protocolId: protocol.id,
+			consultContext: answers,
+			suggestedProductsMeta: nextMeta,
 			suggestedQtyMeta: selected.area
 				? {
 						areaValue: selected.area.value,
@@ -225,7 +276,18 @@ export function HandbookQuickPanel({
 		setQuery("");
 		setAnswers({});
 		setArea({ value: "", unit: "CONG_NAM" });
+		setSuggestedMeta([]);
 		onChangeMeta({});
+	}
+
+	function addSuggestionMeta(meta: Record<string, unknown>) {
+		const nextMeta = mergeSuggestionMeta(suggestedMeta, [meta]);
+		setSuggestedMeta(nextMeta);
+		onChangeMeta({
+			diseaseId: selected?.disease.id,
+			consultContext: answers,
+			suggestedProductsMeta: nextMeta,
+		});
 	}
 
 	const productResults = filterSellableProducts(products, query);
@@ -261,17 +323,45 @@ export function HandbookQuickPanel({
 							aria-hidden
 						/>
 						<input
+							type="search"
+							aria-label="Tìm sản phẩm hoặc Sổ tay"
 							value={query}
 							onChange={(event) => setQuery(event.target.value)}
 							placeholder="Tìm sản phẩm, mã hàng, bệnh hoặc cây..."
-							className="h-12 w-full rounded-[10px] border border-border bg-white pl-10 pr-3 text-base focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+							className="h-12 w-full rounded-[10px] border border-border bg-white pl-10 pr-11 text-base focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
 						/>
-						{query.trim() &&
-						(productResults.length > 0 || results.length > 0) ? (
-							<div className="absolute inset-x-0 top-[calc(100%+4px)] z-50 rounded-[10px] border border-border bg-white p-1 shadow-lg">
-								{productsLoading ? (
+						{query ? (
+							<button
+								type="button"
+								aria-label="Xóa tìm kiếm"
+								onClick={() => setQuery("")}
+								className="absolute right-2 top-1/2 flex size-8 -translate-y-1/2 items-center justify-center rounded-full text-[#9e9e9e] hover:bg-[#f5f5f5]"
+							>
+								<X className="size-4" aria-hidden />
+							</button>
+						) : null}
+						{query.trim() ? (
+							<div
+								role="listbox"
+								aria-label="Gợi ý tìm kiếm"
+								className="absolute inset-x-0 top-[calc(100%+4px)] z-50 rounded-[10px] border border-border bg-white p-1 shadow-lg"
+							>
+								{productsLoading || searching ? (
 									<p className="px-3 py-2 text-sm text-[#616161]">
-										Đang tải sản phẩm...
+										Đang tìm...
+									</p>
+								) : null}
+								{productsError ? (
+									<p className="px-3 py-2 text-sm text-destructive">
+										Không thể tải danh sách sản phẩm.
+									</p>
+								) : null}
+								{searchError ? (
+									<p
+										role="alert"
+										className="px-3 py-2 text-sm text-destructive"
+									>
+										{searchError}
 									</p>
 								) : null}
 								{productResults.length > 0 ? (
@@ -317,6 +407,16 @@ export function HandbookQuickPanel({
 										))}
 									</div>
 								) : null}
+								{!productsLoading &&
+								!searching &&
+								!searchError &&
+								!productsError &&
+								productResults.length === 0 &&
+								results.length === 0 ? (
+									<p className="px-3 py-3 text-sm text-[#616161]">
+										Không tìm thấy sản phẩm hoặc mục Sổ tay.
+									</p>
+								) : null}
 							</div>
 						) : null}
 					</div>
@@ -358,8 +458,19 @@ export function HandbookQuickPanel({
 										key={field.fieldKey}
 										className="text-sm font-medium"
 									>
-										{field.label}
-										{field.unit ? ` (${field.unit})` : ""}
+										<span>
+											{field.label}
+											{field.unit ? ` (${field.unit})` : ""}
+											{field.required ? (
+												<span
+													aria-hidden="true"
+													className="ml-0.5 text-destructive"
+													title="Bắt buộc"
+												>
+													*
+												</span>
+											) : null}
+										</span>
 										{fieldChoices(field).length > 0 ? (
 											<select
 												id={`consult-${field.fieldKey}`}
@@ -486,17 +597,11 @@ export function HandbookQuickPanel({
 										disabled={!suggestion.available}
 										onClick={() => {
 											onAddSuggestion(suggestion, 1);
-											onChangeMeta({
-												diseaseId: selected.disease.id,
-												consultContext: answers,
-												suggestedProductsMeta: [
-													{
-														productId: suggestion.productId,
-														reason: suggestion.reason,
-														available: suggestion.available,
-														warnings: suggestion.warnings,
-													},
-												],
+											addSuggestionMeta({
+												productId: suggestion.productId,
+												reason: suggestion.reason,
+												available: suggestion.available,
+												warnings: suggestion.warnings,
 											});
 										}}
 										className="flex min-h-10 shrink-0 items-center justify-center gap-1 rounded-lg bg-primary px-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-[#bdbdbd]"
