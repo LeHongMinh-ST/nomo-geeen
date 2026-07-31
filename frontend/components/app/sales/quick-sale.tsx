@@ -260,7 +260,7 @@ export function QuickSale() {
 					)}
 				</div>
 
-				<aside className="rounded-[16px] border border-border bg-card p-4 shadow-card lg:sticky lg:top-[88px]">
+				<aside className="rounded-[16px] border border-border bg-card p-4 shadow-card lg:sticky lg:top-6">
 					<div className="mb-4 hidden items-center gap-2 border-b border-border pb-4 lg:flex">
 						<span className="flex size-10 items-center justify-center rounded-[10px] bg-[#f3f8f1] text-primary">
 							<ReceiptText className="size-5" aria-hidden />

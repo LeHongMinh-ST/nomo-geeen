@@ -1,5 +1,5 @@
 "use client";
-import { Package, Plus, Search } from "lucide-react";
+import { Download, Package, Plus, Search } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { DataPagination } from "@/components/app/shared/data-pagination";
@@ -8,7 +8,9 @@ import { ListSkeleton } from "@/components/app/shared/list-skeleton";
 import { LoadMoreSentinel } from "@/components/app/shared/load-more-sentinel";
 import { formatDate, formatVND } from "@/lib/format";
 import {
+	getOrder,
 	listOrders,
+	type SalesOrderDetail,
 	type SalesOrderStatus,
 	type SalesOrderSummary,
 } from "@/lib/tenant-sales-api";
@@ -18,6 +20,7 @@ import {
 	statusClass,
 	statusLabel,
 } from "./order-card";
+import { downloadOrderInvoices } from "./order-invoice";
 
 type StatusFilter = "all" | SalesOrderStatus;
 const PAGE_SIZE = 20;
@@ -40,6 +43,8 @@ export function OrderList() {
 	const [more, setMore] = useState(false);
 	const [done, setDone] = useState(false);
 	const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
+	const [downloading, setDownloading] = useState(false);
+	const [downloadError, setDownloadError] = useState<string | null>(null);
 	const seq = useRef(0);
 	useEffect(() => {
 		const t = setTimeout(() => setSearch(q.trim()), 350);
@@ -128,6 +133,28 @@ export function OrderList() {
 	const toggleAll = (checked: boolean) => {
 		setSelectedIds(checked ? new Set(items.map((item) => item.id)) : new Set());
 	};
+	// Tải hóa đơn các đơn đã chọn thành MỘT file PDF nhiều trang: iOS/Safari chặn
+	// nhiều lượt tải liên tiếp nên không tách file theo từng đơn. Gọi tuần tự để
+	// không dội hàng chục request cùng lúc khi người bán chọn cả danh sách.
+	const downloadSelected = async () => {
+		const ids = items
+			.map((item) => item.id)
+			.filter((id) => selectedIds.has(id));
+		if (ids.length === 0 || downloading) return;
+		setDownloading(true);
+		setDownloadError(null);
+		try {
+			const orders: SalesOrderDetail[] = [];
+			for (const id of ids) orders.push(await getOrder(id));
+			await downloadOrderInvoices(orders);
+		} catch (e) {
+			setDownloadError(
+				e instanceof Error ? e.message : "Không thể tải hóa đơn đã chọn",
+			);
+		} finally {
+			setDownloading(false);
+		}
+	};
 	return (
 		<div className="flex w-full flex-col gap-5">
 			<div className="flex items-start justify-between">
@@ -173,25 +200,45 @@ export function OrderList() {
 				]}
 			/>
 			{items.length > 0 ? (
-				<div className="flex items-center justify-between gap-3 rounded-[12px] border border-border bg-card px-3 py-2">
-					<label className="flex min-h-10 items-center gap-2 text-sm font-semibold">
-						<input
-							type="checkbox"
-							aria-label="Chọn tất cả đơn đang hiển thị"
-							checked={allSelected}
-							onChange={(event) => toggleAll(event.target.checked)}
-							className="size-5 accent-primary"
-						/>
-						Chọn tất cả đơn đang hiển thị
-					</label>
-					{selectedIds.size > 0 ? (
-						<button
-							type="button"
-							onClick={() => setSelectedIds(new Set())}
-							className="min-h-10 rounded-[10px] px-3 text-sm font-semibold text-primary hover:bg-accent"
-						>
-							Bỏ chọn ({selectedIds.size})
-						</button>
+				<div className="flex flex-col gap-2 rounded-[12px] border border-border bg-card px-3 py-2">
+					<div className="flex flex-wrap items-center justify-between gap-2">
+						<label className="flex min-h-10 items-center gap-2 text-sm font-semibold">
+							<input
+								type="checkbox"
+								aria-label="Chọn tất cả đơn đang hiển thị"
+								checked={allSelected}
+								onChange={(event) => toggleAll(event.target.checked)}
+								className="size-5 accent-primary"
+							/>
+							Chọn tất cả đơn đang hiển thị
+						</label>
+						{selectedIds.size > 0 ? (
+							<div className="flex items-center gap-2">
+								<button
+									type="button"
+									onClick={() => void downloadSelected()}
+									disabled={downloading}
+									className="inline-flex min-h-10 items-center gap-2 rounded-[10px] bg-primary px-3 text-sm font-semibold text-white disabled:opacity-60"
+								>
+									<Download className="size-4" aria-hidden />
+									{downloading
+										? "Đang tạo PDF..."
+										: `Tải hóa đơn (${selectedIds.size})`}
+								</button>
+								<button
+									type="button"
+									onClick={() => setSelectedIds(new Set())}
+									className="min-h-10 rounded-[10px] px-3 text-sm font-semibold text-primary hover:bg-accent"
+								>
+									Bỏ chọn ({selectedIds.size})
+								</button>
+							</div>
+						) : null}
+					</div>
+					{downloadError ? (
+						<p role="alert" className="text-sm text-destructive">
+							{downloadError}
+						</p>
 					) : null}
 				</div>
 			) : null}

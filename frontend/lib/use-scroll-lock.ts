@@ -5,13 +5,26 @@ import { useEffect } from "react";
 /**
  * Khóa cuộn nền khi mở overlay/sheet — an toàn cho iOS Safari.
  *
- * iOS Safari BỎ QUA `body { overflow: hidden }` (scroll vẫn "chain" ra nền,
- * khiến sheet khó cuộn/chọn). Cách chuẩn: `position: fixed` cả body và giữ lại
- * vị trí cuộn, khôi phục khi đóng.
+ * Trong AppShell, vùng cuộn là `<main data-app-scroll>` chứ không phải body,
+ * nên chỉ cần khóa `overflow` của chính vùng đó (giữ nguyên vị trí cuộn).
+ * Ngoài shell (trang đăng nhập...) body vẫn cuộn: iOS Safari BỎ QUA
+ * `body { overflow: hidden }`, phải dùng `position: fixed` + khôi phục vị trí.
  */
 export function useScrollLock(active: boolean) {
 	useEffect(() => {
 		if (!active) return;
+
+		const scroller = document.querySelector<HTMLElement>("[data-app-scroll]");
+		if (scroller) {
+			const prevOverflow = scroller.style.overflow;
+			const scrollTop = scroller.scrollTop;
+			scroller.style.overflow = "hidden";
+			return () => {
+				scroller.style.overflow = prevOverflow;
+				scroller.scrollTop = scrollTop;
+			};
+		}
+
 		const { body } = document;
 		const scrollY = window.scrollY;
 		const prev = {

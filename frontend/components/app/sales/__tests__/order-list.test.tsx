@@ -6,10 +6,19 @@ import {
 	waitFor,
 } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { listOrders, type SalesOrderSummary } from "@/lib/tenant-sales-api";
+import {
+	getOrder,
+	listOrders,
+	type SalesOrderSummary,
+} from "@/lib/tenant-sales-api";
+import { downloadOrderInvoices } from "../order-invoice";
 import { OrderList } from "../order-list";
 
-vi.mock("@/lib/tenant-sales-api", () => ({ listOrders: vi.fn() }));
+vi.mock("@/lib/tenant-sales-api", () => ({
+	listOrders: vi.fn(),
+	getOrder: vi.fn(),
+}));
+vi.mock("../order-invoice", () => ({ downloadOrderInvoices: vi.fn() }));
 vi.mock("next/link", () => ({
 	default: ({ children, ...props }: any) => <a {...props}>{children}</a>,
 }));
@@ -31,6 +40,11 @@ let observerCallback:
 beforeEach(() => {
 	vi.useRealTimers();
 	vi.mocked(listOrders).mockReset();
+	vi.mocked(getOrder).mockReset();
+	vi.mocked(downloadOrderInvoices).mockReset();
+	vi.mocked(getOrder).mockImplementation(
+		async (id: string) => ({ id, docNo: `SO-${id}` }) as never,
+	);
 	vi.mocked(listOrders).mockResolvedValue({
 		items: [item("1")],
 		page: 1,
@@ -172,6 +186,46 @@ describe("OrderList", () => {
 		fireEvent.click(screen.getByText("Bỏ chọn (2)"));
 		expect(screen.queryByText("Bỏ chọn (2)")).not.toBeInTheDocument();
 	});
+	it("downloads one merged PDF for the selected orders", async () => {
+		vi.mocked(listOrders).mockResolvedValueOnce({
+			items: [item("one"), item("two")],
+			page: 1,
+			pageSize: 20,
+			total: 2,
+		});
+		render(<OrderList />);
+		const [checkbox] = await screen.findAllByRole("checkbox", {
+			name: "Chọn đơn SO-one",
+		});
+		fireEvent.click(checkbox as HTMLInputElement);
+		fireEvent.click(screen.getByRole("button", { name: /Tải hóa đơn \(1\)/ }));
+		await waitFor(() =>
+			expect(downloadOrderInvoices).toHaveBeenCalledWith([
+				expect.objectContaining({ id: "one" }),
+			]),
+		);
+		expect(getOrder).toHaveBeenCalledTimes(1);
+	});
+
+	it("surfaces a failure when the bulk download breaks", async () => {
+		vi.mocked(listOrders).mockResolvedValueOnce({
+			items: [item("one")],
+			page: 1,
+			pageSize: 20,
+			total: 1,
+		});
+		vi.mocked(getOrder).mockRejectedValueOnce(new Error("Mất kết nối"));
+		render(<OrderList />);
+		fireEvent.click(
+			await screen.findByRole("checkbox", {
+				name: "Chọn tất cả đơn đang hiển thị",
+			}),
+		);
+		fireEvent.click(screen.getByRole("button", { name: /Tải hóa đơn \(1\)/ }));
+		expect(await screen.findByText("Mất kết nối")).toBeInTheDocument();
+		expect(downloadOrderInvoices).not.toHaveBeenCalled();
+	});
+
 	it("appends mobile pages with dedupe and terminal state", async () => {
 		Object.defineProperty(window, "matchMedia", {
 			configurable: true,

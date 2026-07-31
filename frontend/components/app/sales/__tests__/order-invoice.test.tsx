@@ -4,11 +4,13 @@ import type { SalesOrderDetail } from "@/lib/tenant-sales-api";
 import {
 	buildInvoiceHtml,
 	downloadOrderInvoice,
+	downloadOrderInvoices,
 	OrderInvoiceActions,
 	OrderInvoicePrint,
 } from "../order-invoice";
 
 const save = vi.fn();
+const addPage = vi.fn();
 
 vi.mock("jspdf", () => ({
 	jsPDF: class {
@@ -22,6 +24,7 @@ vi.mock("jspdf", () => ({
 		setLineDashPattern = vi.fn();
 		rect = vi.fn();
 		splitTextToSize = vi.fn((value: string) => [value]);
+		addPage = addPage;
 		save = save;
 	},
 }));
@@ -68,6 +71,7 @@ const order: SalesOrderDetail = {
 describe("OrderInvoice", () => {
 	beforeEach(() => {
 		save.mockClear();
+		addPage.mockClear();
 		vi.stubGlobal(
 			"fetch",
 			vi.fn().mockResolvedValue({
@@ -90,6 +94,21 @@ describe("OrderInvoice", () => {
 	it("downloads a real PDF file with the order number", async () => {
 		await downloadOrderInvoice(order);
 		expect(save).toHaveBeenCalledWith("hoa-don-SO-001.pdf");
+	});
+
+	it("merges selected orders into one multi-page PDF", async () => {
+		await downloadOrderInvoices([
+			order,
+			{ ...order, id: "o2", docNo: "SO-002" },
+			{ ...order, id: "o3", docNo: "SO-003" },
+		]);
+		expect(addPage).toHaveBeenCalledTimes(2);
+		expect(save).toHaveBeenCalledWith("hoa-don-3-don.pdf");
+	});
+
+	it("skips the download when nothing is selected", async () => {
+		await downloadOrderInvoices([]);
+		expect(save).not.toHaveBeenCalled();
 	});
 
 	it("renders both accessible invoice actions and the print-only receipt", () => {

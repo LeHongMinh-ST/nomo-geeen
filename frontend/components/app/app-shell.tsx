@@ -54,7 +54,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
 	return (
 		<PullToRefresh>
-			<div className="min-h-[100dvh] bg-background">
+			<div className="flex h-[100dvh] flex-col overflow-hidden bg-background">
 				{/* Sidebar — chỉ desktop */}
 				<aside className="fixed inset-y-0 left-0 hidden w-[260px] flex-col border-r border-border bg-sidebar lg:flex">
 					<div className="flex flex-col items-start gap-2 border-b border-border px-5 py-4">
@@ -108,9 +108,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 				</aside>
 
 				{/* Cột nội dung */}
-				<div className="flex min-h-[100dvh] flex-col lg:pl-[260px]">
+				<div className="flex min-h-0 flex-1 flex-col lg:pl-[260px]">
 					{/* Topbar */}
-					<header className="sticky top-0 z-50 flex h-16 items-center gap-3 border-b border-border bg-card px-4 lg:px-6">
+					<header className="z-50 flex h-16 shrink-0 items-center gap-3 border-b border-border bg-card px-4 lg:px-6">
 						{/* Logo + tên cửa hàng — mobile */}
 						<Link href="/" className="flex items-center gap-2.5 lg:hidden">
 							<span className="flex size-10 items-center justify-center rounded-full bg-accent text-base font-semibold text-accent-foreground">
@@ -145,8 +145,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 						</div>
 					</header>
 
-					{/* Nội dung trang — khung chung max-w-6xl, căn giữa cột nội dung */}
-					<main className="flex-1 px-4 pb-[calc(92px+env(safe-area-inset-bottom,0px))] pt-5 lg:px-6 lg:pb-10 lg:pt-6">
+					{/* Nội dung trang — vùng cuộn duy nhất, khung chung max-w-6xl */}
+					<main
+						data-app-scroll
+						className="min-h-0 flex-1 overflow-y-auto overscroll-none px-4 pb-[calc(92px+env(safe-area-inset-bottom,0px))] pt-5 lg:px-6 lg:pb-10 lg:pt-6"
+					>
 						<div className="mx-auto w-full max-w-6xl">{children}</div>
 					</main>
 				</div>

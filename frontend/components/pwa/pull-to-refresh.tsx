@@ -28,8 +28,11 @@ function shouldIgnore(target: EventTarget | null) {
 		return true;
 	}
 
+	// Vùng cuộn chính của app đang ở đỉnh mới cho phép kéo; mọi vùng cuộn lồng
+	// bên trong (sheet, danh sách ngang) tự xử lý cuộn của nó.
 	let element: Element | null = target;
 	while (element) {
+		if (element.hasAttribute("data-app-scroll")) return element.scrollTop > 0;
 		const style = window.getComputedStyle(element);
 		if (
 			(style.overflowY === "auto" || style.overflowY === "scroll") &&
@@ -67,8 +70,7 @@ export function PullToRefresh({ children }: { children: React.ReactNode }) {
 		};
 
 		const onTouchStart = (event: TouchEvent) => {
-			if (refreshing || window.scrollY > 0 || shouldIgnore(event.target))
-				return;
+			if (refreshing || shouldIgnore(event.target)) return;
 			startY.current = event.touches[0]?.clientY ?? null;
 		};
 

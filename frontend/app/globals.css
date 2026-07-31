@@ -7,6 +7,9 @@
 html,
 body {
 	touch-action: manipulation;
+	/* PWA/iOS: chặn rubber-band ở gốc — nếu không, lớp fixed (bottom nav, sheet)
+	   bị kéo lệch khi cuộn quá đáy. Vùng cuộn thật là [data-app-scroll]. */
+	overscroll-behavior: none;
 }
 
 @media (max-width: 768px) {

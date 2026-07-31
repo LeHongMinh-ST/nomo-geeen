@@ -75,22 +75,14 @@ async function loadInvoiceFont(): Promise<string> {
 	return btoa(binary);
 }
 
-export async function downloadOrderInvoice(
-	order: SalesOrderDetail,
-): Promise<void> {
-	const font = await loadInvoiceFont();
+function invoicePageFormat(order: SalesOrderDetail): [number, number] {
 	const rowHeight = order.lines.reduce((height, line) => {
 		return height + (line.productName.length > 22 ? 12 : 8);
 	}, 0);
-	const pdf = new jsPDF({
-		unit: "mm",
-		format: [80, Math.max(150, 92 + rowHeight)],
-	});
-	pdf.addFileToVFS("BeVietnamPro-Regular.ttf", font);
-	pdf.addFont("BeVietnamPro-Regular.ttf", "BeVietnamPro", "normal");
-	pdf.setFont("BeVietnamPro");
-	pdf.setTextColor(27, 31, 27);
+	return [80, Math.max(150, 92 + rowHeight)];
+}
 
+function renderInvoicePage(pdf: jsPDF, order: SalesOrderDetail): void {
 	const width = 80;
 	const left = 6;
 	const right = 74;
@@ -188,7 +180,40 @@ export async function downloadOrderInvoice(
 			maxWidth: 68,
 		},
 	);
+}
+
+async function createInvoicePdf(first: SalesOrderDetail): Promise<jsPDF> {
+	const font = await loadInvoiceFont();
+	const pdf = new jsPDF({ unit: "mm", format: invoicePageFormat(first) });
+	pdf.addFileToVFS("BeVietnamPro-Regular.ttf", font);
+	pdf.addFont("BeVietnamPro-Regular.ttf", "BeVietnamPro", "normal");
+	pdf.setFont("BeVietnamPro");
+	pdf.setTextColor(27, 31, 27);
+	return pdf;
+}
+
+export async function downloadOrderInvoice(
+	order: SalesOrderDetail,
+): Promise<void> {
+	const pdf = await createInvoicePdf(order);
+	renderInvoicePage(pdf, order);
 	pdf.save(`hoa-don-${order.docNo}.pdf`);
+}
+
+/** Gộp nhiều hóa đơn thành một file PDF, mỗi đơn một trang khổ 80mm. */
+export async function downloadOrderInvoices(
+	orders: SalesOrderDetail[],
+): Promise<void> {
+	const [first, ...rest] = orders;
+	if (!first) return;
+	const pdf = await createInvoicePdf(first);
+	renderInvoicePage(pdf, first);
+	for (const order of rest) {
+		pdf.addPage(invoicePageFormat(order));
+		pdf.setFont("BeVietnamPro");
+		renderInvoicePage(pdf, order);
+	}
+	pdf.save(`hoa-don-${orders.length}-don.pdf`);
 }
 
 export function OrderInvoiceActions({ order }: { order: SalesOrderDetail }) {
