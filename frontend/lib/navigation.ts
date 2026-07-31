@@ -1,5 +1,6 @@
 import type { LucideIcon } from "lucide-react";
 import {
+	BarChart3,
 	BookOpen,
 	HandCoins,
 	House,
@@ -40,7 +41,36 @@ export type NavItem = {
 	icon: LucideIcon;
 	/** Màu tile icon (green hoặc blue logo). */
 	tile: string;
+	permission?: string;
 };
+
+export function hasTenantPermission(
+	permissions: readonly string[],
+	requiredPermission?: string,
+): boolean {
+	return !requiredPermission || permissions.includes(requiredPermission);
+}
+
+export function filterNavItems(
+	items: readonly NavItem[],
+	permissions: readonly string[],
+): NavItem[] {
+	return items.filter((item) =>
+		hasTenantPermission(permissions, item.permission),
+	);
+}
+
+export function filterNavGroups(
+	groups: readonly NavGroup[],
+	permissions: readonly string[],
+): NavGroup[] {
+	return groups
+		.map((group) => ({
+			...group,
+			items: filterNavItems(group.items, permissions),
+		}))
+		.filter((group) => group.items.length > 0);
+}
 
 export type NavGroup = {
 	heading: string;
@@ -56,18 +86,21 @@ export const navGroups: NavGroup[] = [
 				href: "/ban-nhanh",
 				icon: ShoppingCart,
 				tile: USER_TILE_GREEN,
+				permission: "sales:create",
 			},
 			{
 				label: "Đơn bán hàng",
 				href: "/don-ban-hang",
 				icon: Package,
 				tile: USER_TILE_GREEN,
+				permission: "sales:view",
 			},
 			{
 				label: "Sổ tay",
 				href: "/so-tay",
 				icon: BookOpen,
 				tile: USER_TILE_GREEN,
+				permission: "handbook:view",
 			},
 		],
 	},
@@ -79,18 +112,21 @@ export const navGroups: NavGroup[] = [
 				href: "/san-pham",
 				icon: Package,
 				tile: USER_TILE_GREEN,
+				permission: "product:view",
 			},
 			{
 				label: "Nhập hàng",
 				href: "/nhap-hang",
 				icon: PackagePlus,
 				tile: USER_TILE_GREEN,
+				permission: "purchase:view",
 			},
 			{
 				label: "Tồn kho",
 				href: "/ton-kho",
 				icon: Warehouse,
 				tile: USER_TILE_GREEN,
+				permission: "inventory:view",
 			},
 		],
 	},
@@ -102,24 +138,34 @@ export const navGroups: NavGroup[] = [
 				href: "/khach-hang",
 				icon: Users,
 				tile: USER_TILE_BLUE,
+				permission: "customer:view",
 			},
 			{
 				label: "Nhà cung cấp",
 				href: "/nha-cung-cap",
 				icon: Truck,
 				tile: USER_TILE_BLUE,
+				permission: "supplier:view",
 			},
 			{
 				label: "Công nợ",
 				href: "/cong-no",
 				icon: HandCoins,
 				tile: USER_TILE_BLUE,
+				permission: "debt:view",
 			},
 		],
 	},
 	{
 		heading: "Khác",
 		items: [
+			{
+				label: "Báo cáo",
+				href: "/bao-cao",
+				icon: BarChart3,
+				tile: USER_TILE_BLUE,
+				permission: "report:view",
+			},
 			{
 				label: "Thiết lập",
 				href: "/thiet-lap",
@@ -132,18 +178,26 @@ export const navGroups: NavGroup[] = [
 
 /** 4 mục điều hướng + nút "+ Bán" ở giữa (DESIGN.md §10.1). */
 export const bottomNavItems: NavItem[] = [
-	{ label: "Trang chủ", href: "/", icon: House, tile: USER_TILE_GREEN },
+	{
+		label: "Trang chủ",
+		href: "/",
+		icon: House,
+		tile: USER_TILE_GREEN,
+		permission: "dashboard:view",
+	},
 	{
 		label: "Đơn hàng",
 		href: "/don-ban-hang",
 		icon: Package,
 		tile: USER_TILE_GREEN,
+		permission: "sales:view",
 	},
 	{
 		label: "Sổ tay",
 		href: "/so-tay",
 		icon: BookOpen,
 		tile: USER_TILE_GREEN,
+		permission: "handbook:view",
 	},
 	{ label: "Khác", href: "/khac", icon: Settings, tile: USER_TILE_BLUE },
 ];

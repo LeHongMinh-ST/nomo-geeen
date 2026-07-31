@@ -11,6 +11,9 @@ import { NotificationBell } from "@/components/app/notifications/notification-be
 import { PullToRefresh } from "@/components/pwa/pull-to-refresh";
 import {
 	bottomNavItems,
+	filterNavGroups,
+	filterNavItems,
+	hasTenantPermission,
 	navGroups,
 	USER_TILE_ACTIVE,
 	USER_TILE_GREEN,
@@ -51,6 +54,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 	const user = useUserAuth((state) => state.user);
 	const displayName = user?.fullName ?? "Minh Tâm";
 	const displayRole = roleLabel(user?.role);
+	const permissions = user?.permissions ?? [];
+	const visibleNavGroups = filterNavGroups(navGroups, permissions);
+	const visibleBottomNavItems = filterNavItems(bottomNavItems, permissions);
+	const canQuickSale = hasTenantPermission(permissions, "sales:create");
 
 	return (
 		<PullToRefresh>
@@ -87,7 +94,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 							className="mb-2 mt-3"
 						/>
 
-						{navGroups.map((group) => (
+						{visibleNavGroups.map((group) => (
 							<div key={group.heading} className="mb-5">
 								<p className="px-3 pb-2 pt-3 text-xs font-semibold uppercase tracking-wide text-[#9e9e9e]">
 									{group.heading}
@@ -156,7 +163,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
 				{/* Bottom nav — chỉ mobile */}
 				<nav className="pb-safe fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 items-center border-t border-border bg-white [height:calc(68px+env(safe-area-inset-bottom,0px))] lg:hidden">
-					{bottomNavItems.slice(0, 2).map((item) => (
+					{visibleBottomNavItems.slice(0, 2).map((item) => (
 						<BottomLink
 							key={item.href}
 							item={item}
@@ -165,17 +172,21 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 					))}
 
 					{/* Nút + Bán nhanh — hành động chính trên mobile */}
-					<div className="flex items-center justify-center">
-						<Link
-							href="/ban-nhanh"
-							className="flex size-14 -translate-y-3 select-none flex-col items-center justify-center rounded-full bg-primary text-white shadow-[0_8px_20px_rgba(76,175,80,0.4)] transition-transform duration-150 ease-out active:scale-90 active:bg-[#3f8530]"
-							aria-label="Bán nhanh"
-						>
-							<Plus className="size-7" aria-hidden />
-						</Link>
-					</div>
+					{canQuickSale ? (
+						<div className="flex items-center justify-center">
+							<Link
+								href="/ban-nhanh"
+								className="flex size-14 -translate-y-3 select-none flex-col items-center justify-center rounded-full bg-primary text-white shadow-[0_8px_20px_rgba(76,175,80,0.4)] transition-transform duration-150 ease-out active:scale-90 active:bg-[#3f8530]"
+								aria-label="Bán nhanh"
+							>
+								<Plus className="size-7" aria-hidden />
+							</Link>
+						</div>
+					) : (
+						<div aria-hidden />
+					)}
 
-					{bottomNavItems.slice(2).map((item) => {
+					{visibleBottomNavItems.slice(2).map((item) => {
 						// Mục "Khác" mở Sheet thay vì điều hướng.
 						if (item.href === "/khac") {
 							const activeColor = (

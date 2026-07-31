@@ -20,14 +20,14 @@ export class ReportsController {
 	constructor(private readonly reports: ReportsService) {}
 
 	@Get('stock-summary')
-	@RequireTenantPermission('inventory:view')
+	@RequireTenantPermission('report:view', 'inventory:view')
 	@RequireFeature('inventory')
 	stock(@Req() req: TenantRequest, @Query() query: ReportStockQueryDto) {
 		return this.reports.stockSummary(req.user.tenantId, query);
 	}
 
 	@Get('sales-summary')
-	@RequireTenantPermission('sales:view')
+	@RequireTenantPermission('report:view', 'sales:view')
 	@RequireFeature('advanced_mode')
 	sales(@Req() req: TenantRequest, @Query() query: ReportDateQueryDto) {
 		return this.reports.salesSummary(req.user.tenantId, query);

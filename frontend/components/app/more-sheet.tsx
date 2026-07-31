@@ -4,7 +4,7 @@ import { ChevronRight, LogOut, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
-import { navGroups } from "@/lib/navigation";
+import { filterNavGroups, navGroups } from "@/lib/navigation";
 import { useScrollLock } from "@/lib/use-scroll-lock";
 import { useUserAuth } from "@/stores/user-auth-store";
 
@@ -12,6 +12,25 @@ import { useUserAuth } from "@/stores/user-auth-store";
  * Menu "Khác" cho mobile — Sheet trượt từ dưới (DESIGN.md §10.1, §24).
  * Chứa thông tin cửa hàng, toàn bộ nhóm nghiệp vụ và nút đăng xuất.
  */
+
+function initials(name?: string) {
+	const words = (name ?? "").trim().split(/\s+/).filter(Boolean);
+	return (
+		words
+			.slice(-2)
+			.map((word) => word[0])
+			.join("")
+			.toUpperCase() || "NT"
+	);
+}
+
+function roleLabel(role?: string) {
+	return role === "OWNER"
+		? "Chủ cửa hàng"
+		: role === "MANAGER"
+			? "Quản lý"
+			: "Nhân viên";
+}
 
 export function MoreSheet({
 	open,
@@ -21,8 +40,11 @@ export function MoreSheet({
 	onClose: () => void;
 }) {
 	const router = useRouter();
+	const user = useUserAuth((state) => state.user);
 	const logout = useUserAuth((state) => state.logout);
 	const loading = useUserAuth((state) => state.loading);
+	const permissions = user?.permissions ?? [];
+	const visibleNavGroups = filterNavGroups(navGroups, permissions);
 
 	// Khóa cuộn nền khi sheet mở (iOS-safe).
 	useScrollLock(open);
@@ -88,14 +110,14 @@ export function MoreSheet({
 						className="mb-4 flex items-center gap-3 rounded-[16px] bg-accent p-4"
 					>
 						<span className="flex size-12 items-center justify-center rounded-full bg-white text-lg font-semibold text-accent-foreground">
-							MT
+							{initials(user?.fullName)}
 						</span>
 						<div className="flex min-w-0 flex-1 flex-col leading-tight">
 							<span className="truncate text-lg font-semibold text-foreground">
-								Minh Tâm
+								{user?.fullName ?? "Đang tải..."}
 							</span>
 							<span className="truncate text-sm text-[#616161]">
-								Chủ cửa hàng · Vật tư Minh Tâm
+								{roleLabel(user?.role)} · {user?.tenantName ?? "Cửa hàng"}
 							</span>
 						</div>
 						<ChevronRight
@@ -105,7 +127,7 @@ export function MoreSheet({
 					</Link>
 
 					{/* Nhóm nghiệp vụ */}
-					{navGroups.map((group) => (
+					{visibleNavGroups.map((group) => (
 						<div key={group.heading} className="mb-4">
 							<p className="px-1 pb-2 text-xs font-semibold uppercase tracking-wide text-[#9e9e9e]">
 								{group.heading}

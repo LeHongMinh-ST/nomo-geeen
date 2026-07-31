@@ -21,7 +21,7 @@ describe('ReportsController', () => {
 				TENANT_PERMISSIONS_KEY,
 				ReportsController.prototype.stock,
 			),
-		).toEqual(['inventory:view']);
+		).toEqual(['report:view', 'inventory:view']);
 		expect(
 			Reflect.getMetadata(
 				ENTITLEMENT_FEATURE_KEY,
@@ -45,6 +45,12 @@ describe('ReportsController', () => {
 		expect(
 			(reports as { salesSummary: jest.Mock }).salesSummary,
 		).toHaveBeenCalledWith('tenant-1', query);
+		expect(
+			Reflect.getMetadata(
+				TENANT_PERMISSIONS_KEY,
+				ReportsController.prototype.sales,
+			),
+		).toEqual(['report:view', 'sales:view']);
 	});
 
 	it('forwards home dashboard summary with dashboard:view', () => {

@@ -2,6 +2,7 @@
 import { Building2, CreditCard, MapPin, Phone, Store } from "lucide-react";
 import { useEffect, useState } from "react";
 import { SettingHeader } from "@/components/app/setting-header";
+import { hasTenantPermission } from "@/lib/navigation";
 import {
 	getCurrentProfile,
 	getVietQrBanks,
@@ -12,6 +13,10 @@ import { useUserAuth } from "@/stores/user-auth-store";
 export default function ThongTinCuaHangPage() {
 	const user = useUserAuth((state) => state.user);
 	const accessToken = useUserAuth((state) => state.accessToken);
+	const canEditStoreSettings = hasTenantPermission(
+		user?.permissions ?? [],
+		"setting:edit",
+	);
 	const updateProfile = useUserAuth((state) => state.updateProfile);
 	const [phone, setPhone] = useState("");
 	const [address, setAddress] = useState("");
@@ -25,7 +30,7 @@ export default function ThongTinCuaHangPage() {
 	const [error, setError] = useState<string | null>(null);
 	const [saved, setSaved] = useState(false);
 	useEffect(() => {
-		if (!accessToken) return;
+		if (!accessToken || !canEditStoreSettings) return;
 		void getCurrentProfile(accessToken)
 			.then((profile) => {
 				setPhone(profile.user.phone ?? "");
@@ -48,7 +53,20 @@ export default function ThongTinCuaHangPage() {
 			.then(setBanks)
 			.catch(() => setBanks([]))
 			.finally(() => setBanksLoading(false));
-	}, [accessToken]);
+	}, [accessToken, canEditStoreSettings]);
+	if (user && !canEditStoreSettings) {
+		return (
+			<div className="mx-auto flex w-full max-w-2xl flex-col gap-6 lg:mx-0">
+				<SettingHeader
+					title="Thông tin cửa hàng"
+					description="Chỉ chủ cửa hàng được thay đổi thông tin và tài khoản nhận tiền."
+				/>
+				<p className="rounded-[16px] border border-border bg-card p-5 text-base text-[#616161] shadow-card">
+					Bạn không có quyền chỉnh sửa thông tin cửa hàng.
+				</p>
+			</div>
+		);
+	}
 	async function save(event: React.FormEvent<HTMLFormElement>) {
 		event.preventDefault();
 		if (!user) return;
@@ -149,7 +167,7 @@ export default function ThongTinCuaHangPage() {
 							))}
 						</select>
 						{banksLoading ? (
-								<span className="text-sm text-[#616161]">
+							<span className="text-sm text-[#616161]">
 								Đang tải danh sách ngân hàng...
 							</span>
 						) : null}
@@ -187,7 +205,7 @@ export default function ThongTinCuaHangPage() {
 					Địa chỉ
 					<div className="relative">
 						<MapPin
-								className="pointer-events-none absolute left-3.5 top-1/2 size-4.5 -translate-y-1/2 text-[#9e9e9e]"
+							className="pointer-events-none absolute left-3.5 top-1/2 size-4.5 -translate-y-1/2 text-[#9e9e9e]"
 							aria-hidden
 						/>
 						<input

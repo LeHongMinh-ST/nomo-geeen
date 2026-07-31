@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import {
 	BadRequestException,
+	ForbiddenException,
 	forwardRef,
 	HttpException,
 	HttpStatus,
@@ -444,42 +445,42 @@ export class TenantAuthService {
 			dto.bankShortName !== undefined ||
 			dto.bankAccountNumber !== undefined ||
 			dto.bankAccountName !== undefined;
+		const storeSettingsTouched = dto.address !== undefined || bankTouched;
+		if (storeSettingsTouched && current.role.code !== 'OWNER') {
+			throw new ForbiddenException('Tenant settings update denied');
+		}
 
+		const existingSettings = await this.prisma.tenantSettings.findUnique({
+			where: { tenantId },
+			select: this.bankSettingsSelect,
+		});
 		let nextBank: TenantBankSettingsRow | undefined;
 		if (bankTouched) {
-			const existing = await this.prisma.tenantSettings.findUnique({
-				where: { tenantId },
-				select: {
-					bankId: true,
-					bankName: true,
-					bankShortName: true,
-					bankAccountNumber: true,
-					bankAccountName: true,
-				},
-			});
 			const validated = validateBankConfigInput({
-				bankId: dto.bankId !== undefined ? dto.bankId : existing?.bankId,
+				bankId:
+					dto.bankId !== undefined ? dto.bankId : existingSettings?.bankId,
 				bankName:
-					dto.bankName !== undefined ? dto.bankName : existing?.bankName,
+					dto.bankName !== undefined
+						? dto.bankName
+						: existingSettings?.bankName,
 				bankShortName:
 					dto.bankShortName !== undefined
 						? dto.bankShortName
-						: existing?.bankShortName,
+						: existingSettings?.bankShortName,
 				bankAccountNumber:
 					dto.bankAccountNumber !== undefined
 						? dto.bankAccountNumber
-						: existing?.bankAccountNumber,
+						: existingSettings?.bankAccountNumber,
 				bankAccountName:
 					dto.bankAccountName !== undefined
 						? dto.bankAccountName
-						: existing?.bankAccountName,
+						: existingSettings?.bankAccountName,
 			});
 			if (!validated.ok) {
 				throw new BadRequestException(validated.message);
 			}
 			nextBank = validated.value;
 		}
-
 		await this.audit.run(
 			{
 				tenantId,
@@ -491,6 +492,10 @@ export class TenantAuthService {
 				resourceId: userId,
 			},
 			async (tx) => {
+				const nextAddress =
+					dto.address !== undefined
+						? dto.address
+						: (existingSettings?.address ?? null);
 				await tx.user.update({
 					where: { id: userId },
 					data: {
@@ -503,11 +508,11 @@ export class TenantAuthService {
 					where: { tenantId },
 					create: {
 						tenantId,
-						address: dto.address ?? null,
+						address: nextAddress,
 						...(nextBank ?? {}),
 					},
 					update: {
-						address: dto.address ?? null,
+						address: nextAddress,
 						...(nextBank ?? {}),
 					},
 				});

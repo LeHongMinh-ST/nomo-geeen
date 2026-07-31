@@ -1,14 +1,20 @@
-// Seed du lieu nen tang Phase 1: Feature catalog, Plan, Permission, System Role (OWNER/STAFF).
+// Seed du lieu nen tang Phase 1: Feature catalog, Plan, Permission, System Role (OWNER/MANAGER/STAFF).
 // Chay: pnpm db:seed  (yeu cau DATABASE_URL tro toi Postgres dang chay)
 
+import { existsSync } from 'node:fs';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '@prisma/client';
 import * as argon2 from 'argon2';
-import { existsSync } from 'node:fs';
 import {
 	normalizeSearchList,
 	normalizeVietnameseSearch,
 } from '../src/platform/handbook/vietnamese-search';
+
+import {
+	resolveTenantRolePermissionCodes,
+	TENANT_ROLE_CODES,
+	type TenantRoleCode,
+} from '../src/platform/roles/tenant-role-permissions';
 
 // Prisma 7: nap .env thu cong (config loader khong tu nap cho ts-node seed).
 if (existsSync('.env')) process.loadEnvFile?.('.env');
@@ -416,6 +422,7 @@ async function main() {
 
 	// Permissions
 	const permissionIds: string[] = [];
+	const permissionIdByCode = new Map<string, string>();
 	for (const resource of RESOURCES) {
 		for (const action of ACTIONS) {
 			const code = `${resource}:${action}`;
@@ -425,6 +432,7 @@ async function main() {
 				create: { code, resource, action },
 			});
 			permissionIds.push(perm.id);
+			permissionIdByCode.set(code, perm.id);
 		}
 	}
 
@@ -434,6 +442,7 @@ async function main() {
 		create: { code: 'debt:collect', resource: 'debt', action: 'collect' },
 	});
 	permissionIds.push(debtCollect.id);
+	permissionIdByCode.set(debtCollect.code, debtCollect.id);
 
 	// System roles (tenantId = null). Phase 1: OWNER, MANAGER, STAFF.
 	// Luu y: NULL khong dedupe trong unique constraint Postgres => dung findFirst + create,
@@ -477,103 +486,72 @@ async function main() {
 		data: { rank: 2, isSystem: true, isAdmin: false },
 	});
 
-	// OWNER: toan quyen
-	for (const permissionId of permissionIds) {
-		await prisma.rolePermission.upsert({
-			where: { roleId_permissionId: { roleId: owner.id, permissionId } },
-			update: {},
-			create: { roleId: owner.id, permissionId },
+	// Synchronize role templates exactly so removed grants do not survive a re-seed.
+	const systemRoles = new Map<TenantRoleCode, { id: string }>([
+		['OWNER', owner],
+		['MANAGER', manager],
+		['STAFF', staff],
+	]);
+	const allTenantPermissionCodes = [...permissionIdByCode.keys()];
+
+	const permissionIdsFor = (roleCode: TenantRoleCode): string[] => {
+		const codes = resolveTenantRolePermissionCodes(
+			roleCode,
+			allTenantPermissionCodes,
+		);
+		const missing = codes.filter((code) => !permissionIdByCode.has(code));
+		if (missing.length > 0) {
+			throw new Error(
+				'Tenant role ' +
+					roleCode +
+					' references unknown permissions: ' +
+					missing.join(', '),
+			);
+		}
+		return codes.map((code) => permissionIdByCode.get(code) as string);
+	};
+
+	const syncRolePermissions = async (
+		roleId: string,
+		allowedPermissionIds: string[],
+	): Promise<void> => {
+		await prisma.rolePermission.deleteMany({
+			where:
+				allowedPermissionIds.length > 0
+					? { roleId, permissionId: { notIn: allowedPermissionIds } }
+					: { roleId },
 		});
+		for (const permissionId of allowedPermissionIds) {
+			await prisma.rolePermission.upsert({
+				where: { roleId_permissionId: { roleId, permissionId } },
+				update: {},
+				create: { roleId, permissionId },
+			});
+		}
+	};
+
+	for (const roleCode of TENANT_ROLE_CODES) {
+		const role = systemRoles.get(roleCode);
+		if (!role) throw new Error(`Missing system role ${roleCode}`);
+		await syncRolePermissions(role.id, permissionIdsFor(roleCode));
 	}
 
-	// STAFF: ban hang / nhap hang / xem khach-cong no; khong sua setting, khong xoa, khong xem report loi nhuan
-	const staffPerms = await prisma.permission.findMany({
-		where: {
-			OR: [
-				{
-					resource: { in: ['sales', 'purchase', 'product', 'inventory'] },
-					action: { in: ['view', 'create', 'edit'] },
-				},
-				{
-					resource: { in: ['customer', 'supplier', 'debt', 'dashboard'] },
-					action: 'view',
-				},
-				{ resource: 'handbook', action: 'view' },
-			],
-		},
-	});
-	for (const perm of staffPerms) {
-		await prisma.rolePermission.upsert({
-			where: {
-				roleId_permissionId: { roleId: staff.id, permissionId: perm.id },
-			},
-			update: {},
-			create: { roleId: staff.id, permissionId: perm.id },
-		});
-	}
-
-	const managerPerms = await prisma.permission.findMany({
-		where: {
-			OR: [
-				{
-					resource: { in: ['sales', 'purchase', 'product', 'inventory'] },
-					action: { in: ['view', 'create', 'edit'] },
-				},
-				{
-					resource: { in: ['customer', 'supplier', 'debt', 'dashboard'] },
-					action: 'view',
-				},
-				{ resource: 'user', action: { in: ['view', 'create', 'edit'] } },
-				{ resource: 'handbook', action: 'view' },
-			],
-		},
-	});
-	for (const perm of managerPerms) {
-		await prisma.rolePermission.upsert({
-			where: {
-				roleId_permissionId: { roleId: manager.id, permissionId: perm.id },
-			},
-			update: {},
-			create: { roleId: manager.id, permissionId: perm.id },
-		});
-	}
-
-	// Sync existing tenant-scoped system roles after adding permissions to the
-	// templates. New tenants already clone these grants during provisioning;
-	// this keeps older tenants compatible with the current permission catalog.
+	// Sync existing tenant-scoped roles with the current template exactly.
 	const tenantRoles = await prisma.role.findMany({
 		where: {
 			tenantId: { not: null },
-			code: { in: ['OWNER', 'MANAGER', 'STAFF'] },
+			code: { in: [...TENANT_ROLE_CODES] },
 		},
 		select: { id: true, code: true },
 	});
-	const templatesByCode = new Map([
-		['OWNER', owner.id],
-		['MANAGER', manager.id],
-		['STAFF', staff.id],
-	]);
 	for (const tenantRole of tenantRoles) {
-		const templateId = templatesByCode.get(tenantRole.code);
-		if (!templateId) continue;
-		const grants = await prisma.rolePermission.findMany({
-			where: { roleId: templateId },
-			select: { permissionId: true },
-		});
-		for (const grant of grants) {
-			await prisma.rolePermission.upsert({
-				where: {
-					roleId_permissionId: {
-						roleId: tenantRole.id,
-						permissionId: grant.permissionId,
-					},
-				},
-				update: {},
-				create: { roleId: tenantRole.id, permissionId: grant.permissionId },
-			});
-		}
+		if (!TENANT_ROLE_CODES.includes(tenantRole.code as TenantRoleCode))
+			continue;
+		await syncRolePermissions(
+			tenantRole.id,
+			permissionIdsFor(tenantRole.code as TenantRoleCode),
+		);
 	}
-
 	await seedDefaultHandbook();
 
 	console.log(

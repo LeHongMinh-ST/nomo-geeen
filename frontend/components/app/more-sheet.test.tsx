@@ -11,7 +11,10 @@ vi.mock("next/navigation", () => ({
 	useRouter: () => ({ replace }),
 }));
 
-vi.mock("@/lib/navigation", () => ({ navGroups: [] }));
+vi.mock("@/lib/navigation", () => ({
+	navGroups: [],
+	filterNavGroups: (groups: unknown[]) => groups,
+}));
 
 vi.mock("@/stores/user-auth-store", () => ({
 	useUserAuth: (selector: (state: unknown) => unknown) =>

@@ -16,6 +16,7 @@ import {
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { hasTenantPermission } from "@/lib/navigation";
 import { getCurrentProfile } from "@/lib/user-auth-api";
 import { useUserAuth } from "@/stores/user-auth-store";
 
@@ -36,8 +37,9 @@ type Field = {
 function fieldsFor(
 	user: { fullName: string; phone: string | null; email: string | null },
 	address: string,
+	includeAddress: boolean,
 ): Field[] {
-	return [
+	const fields: Field[] = [
 		{
 			key: "name",
 			label: "Họ và tên",
@@ -61,16 +63,18 @@ function fieldsFor(
 			type: "email",
 			inputMode: "email",
 		},
-		{
+	];
+	if (includeAddress) {
+		fields.push({
 			key: "address",
 			label: "Địa chỉ",
 			icon: MapPin,
 			value: address,
 			type: "text",
-		},
-	];
+		});
+	}
+	return fields;
 }
-
 function roleLabel(role?: string) {
 	return role === "OWNER"
 		? "Chủ cửa hàng"
@@ -98,6 +102,7 @@ const settingGroups: {
 		desc: string;
 		tile: string;
 		href: string;
+		permission?: string;
 	}[];
 }[] = [
 	{
@@ -109,6 +114,7 @@ const settingGroups: {
 				desc: "Tạo tài khoản và phân quyền nhân viên",
 				tile: "#1a6fa8",
 				href: "/thiet-lap/nhan-vien",
+				permission: "user:view",
 			},
 			{
 				icon: ShieldCheck,
@@ -128,6 +134,7 @@ const settingGroups: {
 				desc: "Thông tin liên hệ và tài khoản nhận chuyển khoản",
 				tile: "#1a6fa8",
 				href: "/thiet-lap/thong-tin-cua-hang",
+				permission: "setting:edit",
 			},
 			{
 				icon: Layers,
@@ -135,6 +142,7 @@ const settingGroups: {
 				desc: "Bật/tắt nhóm hàng cửa hàng đang bán",
 				tile: "#1a6fa8",
 				href: "/thiet-lap/nhom-kinh-doanh",
+				permission: "product:edit",
 			},
 		],
 	},
@@ -145,6 +153,10 @@ export default function ThietLapPage() {
 	const logout = useUserAuth((state) => state.logout);
 	const loading = useUserAuth((state) => state.loading);
 	const user = useUserAuth((state) => state.user);
+	const canEditStoreSettings = hasTenantPermission(
+		user?.permissions ?? [],
+		"setting:edit",
+	);
 	const accessToken = useUserAuth((state) => state.accessToken);
 	const updateProfile = useUserAuth((state) => state.updateProfile);
 	const [address, setAddress] = useState("");
@@ -152,10 +164,18 @@ export default function ThietLapPage() {
 	const [saved, setSaved] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	const [saving, setSaving] = useState(false);
+	const visibleSettingGroups = settingGroups
+		.map((group) => ({
+			...group,
+			items: group.items.filter((item) =>
+				hasTenantPermission(user?.permissions ?? [], item.permission),
+			),
+		}))
+		.filter((group) => group.items.length > 0);
 
 	useEffect(() => {
-		if (user) setFields(fieldsFor(user, address));
-	}, [user, address]);
+		if (user) setFields(fieldsFor(user, address, canEditStoreSettings));
+	}, [user, address, canEditStoreSettings]);
 
 	useEffect(() => {
 		if (!accessToken) return;
@@ -194,7 +214,9 @@ export default function ThietLapPage() {
 				fullName: String(values.name ?? "").trim(),
 				phone: String(values.phone ?? "").trim() || undefined,
 				email: String(values.email ?? "").trim() || undefined,
-				address: String(values.address ?? "").trim() || undefined,
+				address: canEditStoreSettings
+					? String(values.address ?? "").trim() || undefined
+					: undefined,
 			});
 			setAddress(nextAddress);
 			setError(null);
@@ -305,7 +327,7 @@ export default function ThietLapPage() {
 			</form>
 
 			{/* Các nhóm cài đặt */}
-			{settingGroups.map((group) => (
+			{visibleSettingGroups.map((group) => (
 				<div key={group.heading} className="flex flex-col gap-2">
 					<h2 className="px-1 text-lg font-semibold text-foreground">
 						{group.heading}
