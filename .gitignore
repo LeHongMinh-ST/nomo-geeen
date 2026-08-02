@@ -13,6 +13,7 @@ plans/
 
 # Node
 node_modules/
+.pnpm-store/
 .env.prod
 .playwright-cli/*.log
 .claude/
