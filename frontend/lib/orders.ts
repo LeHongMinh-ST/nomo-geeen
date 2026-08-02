@@ -23,7 +23,13 @@ export type OrderLine = {
 	price: number;
 	/** PHI/REI display-only (from product agro when known). */
 	phiDays?: number;
-	reiHours?: number;
+	reiDays?: number;
+	/** Product attrs passthrough for display-only advisory chips. */
+	attrs?: Record<string, unknown>;
+	/** Regulatory event dates required by the sale gate for PESTICIDE/VET_DRUG. */
+	productKind?: string;
+	harvestDate?: string;
+	withdrawalEndDate?: string;
 };
 
 export type Order = {

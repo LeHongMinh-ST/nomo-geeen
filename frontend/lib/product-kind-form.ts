@@ -48,12 +48,6 @@ type ProductKindDefinition = {
 
 const COMMON_CROP_FIELDS = [
 	{ key: "composition", label: "Thành phần", input: "text" },
-	{
-		key: "registrationNumber",
-		label: "Số đăng ký",
-		input: "text",
-		optional: true,
-	},
 	{ key: "manufacturer", label: "Nhà sản xuất", input: "text", optional: true },
 ] as const satisfies readonly ProductKindField[];
 

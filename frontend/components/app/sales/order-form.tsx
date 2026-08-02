@@ -15,6 +15,7 @@ import { CustomerPicker } from "@/components/app/sales/customer-picker";
 import { PaymentSheet } from "@/components/app/sales/payment-sheet";
 import { ProductPicker } from "@/components/app/sales/product-picker";
 import { SaleAdvisoriesStrip } from "@/components/app/sales/sale-advisories-strip";
+import { SaleRegulatoryDateField } from "@/components/app/sales/sale-regulatory-date-field";
 import { formatVND } from "@/lib/format";
 import {
 	lineTotal,
@@ -72,10 +73,24 @@ export function OrderForm() {
 					qty: 1,
 					price: resolveTierPrice(product, 1),
 					phiDays: product.agro?.phi,
-					reiHours: product.agro?.rei,
+					reiDays: product.agro?.rei,
+					attrs: product.attrs,
+					productKind: product.productKind,
 				},
 			];
 		});
+	}
+
+	function setRegulatoryDate(
+		productId: string,
+		field: "harvestDate" | "withdrawalEndDate",
+		value: string,
+	) {
+		setLines((current) =>
+			current.map((l) =>
+				l.productId === productId ? { ...l, [field]: value || undefined } : l,
+			),
+		);
 	}
 
 	function changeQty(productId: string, delta: number) {
@@ -97,6 +112,19 @@ export function OrderForm() {
 
 	function removeLine(productId: string) {
 		setLines((current) => current.filter((l) => l.productId !== productId));
+	}
+
+	function payloadLines() {
+		return lines.map((line) => ({
+			productId: line.productId,
+			unitId: line.unitId ?? line.unit,
+			qty: String(line.qty),
+			unitPrice: line.price,
+			...(line.harvestDate ? { harvestDate: line.harvestDate } : {}),
+			...(line.withdrawalEndDate
+				? { withdrawalEndDate: line.withdrawalEndDate }
+				: {}),
+		}));
 	}
 
 	async function submitCompleted(
@@ -125,12 +153,7 @@ export function OrderForm() {
 							: (method.toUpperCase() as "CASH" | "QR"),
 					amountPaid,
 				},
-				lines: lines.map((line) => ({
-					productId: line.productId,
-					unitId: line.unitId ?? line.unit,
-					qty: String(line.qty),
-					unitPrice: line.price,
-				})),
+				lines: payloadLines(),
 			});
 			idempotencyKeyRef.current = null;
 			router.push("/don-ban-hang");
@@ -164,12 +187,7 @@ export function OrderForm() {
 				customerId,
 				discountAmount: discountNum,
 				note: note || undefined,
-				lines: lines.map((line) => ({
-					productId: line.productId,
-					unitId: line.unitId ?? line.unit,
-					qty: String(line.qty),
-					unitPrice: line.price,
-				})),
+				lines: payloadLines(),
 			});
 			idempotencyKeyRef.current = null;
 			router.push("/don-ban-hang");
@@ -307,6 +325,10 @@ export function OrderForm() {
 										</span>
 									</div>
 								</div>
+								<SaleRegulatoryDateField
+									line={l}
+									onChange={setRegulatoryDate}
+								/>
 							</li>
 						))}
 					</ul>

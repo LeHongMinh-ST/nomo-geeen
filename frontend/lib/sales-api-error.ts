@@ -8,6 +8,8 @@ export type SalesApiErrorReason =
 	| "PRODUCT_LIVESTOCK_UNSELLABLE"
 	| "PRODUCT_PHI_ACTIVE"
 	| "PRODUCT_WITHDRAWAL_ACTIVE"
+	| "PRODUCT_PRESCRIPTION_REQUIRED"
+	| "PRODUCT_INGREDIENT_BANNED"
 	| "INSUFFICIENT_STOCK"
 	| "INSUFFICIENT_ELIGIBLE_BATCH"
 	| "INSUFFICIENT_BATCH"
@@ -69,6 +71,10 @@ const REASON_MESSAGES: Record<string, string> = {
 		"Sản phẩm chưa hết thời gian cách ly trước thu hoạch. Vui lòng kiểm tra lại ngày thu hoạch.",
 	PRODUCT_WITHDRAWAL_ACTIVE:
 		"Sản phẩm chưa hết thời gian ngưng sử dụng. Vui lòng kiểm tra lại ngày xuất bán.",
+	PRODUCT_PRESCRIPTION_REQUIRED:
+		"Thuốc kê đơn phải bán cho khách có hồ sơ. Vui lòng chọn khách hàng trước khi bán.",
+	PRODUCT_INGREDIENT_BANNED:
+		"Sản phẩm chứa hoạt chất cửa hàng đã khai báo cấm bán. Vui lòng bỏ khỏi giỏ hàng.",
 	INSUFFICIENT_STOCK:
 		"Một sản phẩm vừa hết tồn. Vui lòng kiểm tra lại giỏ hàng.",
 	INSUFFICIENT_ELIGIBLE_BATCH:

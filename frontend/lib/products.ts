@@ -160,7 +160,7 @@ const catalogSeed: Product[] = [
 			crop: "Lúa",
 			pest: "Rầy nâu, sâu cuốn lá",
 			phi: 7,
-			rei: 24,
+			rei: 1,
 		},
 	},
 	{

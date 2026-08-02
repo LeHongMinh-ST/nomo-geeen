@@ -2,7 +2,7 @@
 
 export type SaleAdvisorySource = {
 	phiDays?: number | null;
-	reiHours?: number | null;
+	reiDays?: number | null;
 	phi?: number | null;
 	rei?: number | null;
 	/** Nested agro from Product */
@@ -27,6 +27,26 @@ function num(v: unknown): number | undefined {
 	return undefined;
 }
 
+/** Withdrawal chips read the contract keys (camelCase + snake_case aliases)
+ * mirrored from backend SALE_ADVISORY_ATTR_KEYS. */
+const WITHDRAWAL_CHIPS = [
+	{
+		key: "withdrawalMeat",
+		aliases: ["withdrawalMeatDays", "withdrawal_meat_days"],
+		label: "Cách ly thịt",
+	},
+	{
+		key: "withdrawalMilk",
+		aliases: ["withdrawalMilkDays", "withdrawal_milk_days"],
+		label: "Cách ly sữa",
+	},
+	{
+		key: "withdrawalEgg",
+		aliases: ["withdrawalEggDays", "withdrawal_egg_days"],
+		label: "Cách ly trứng",
+	},
+] as const;
+
 /** Collect display-only PHI/REI/withdrawal chips from loose product/line meta. */
 export function collectSaleAdvisories(
 	source: SaleAdvisorySource | null | undefined,
@@ -38,29 +58,28 @@ export function collectSaleAdvisories(
 		num(source.phi) ??
 		num(source.agro?.phi) ??
 		num(source.attrs?.phiDays) ??
+		num(source.attrs?.phi_days) ??
 		num(source.attrs?.phi);
 	const rei =
-		num(source.reiHours) ??
+		num(source.reiDays) ??
 		num(source.rei) ??
 		num(source.agro?.rei) ??
 		num(source.attrs?.reiDays) ??
+		num(source.attrs?.rei_days) ??
 		num(source.attrs?.rei);
 	if (phi != null) {
 		chips.push({ key: "phi", label: `PHI ${phi} ngày` });
 	}
 	if (rei != null) {
-		chips.push({ key: "rei", label: `REI ${rei} giờ` });
+		chips.push({ key: "rei", label: `REI ${rei} ngày` });
 	}
-	const withdrawal =
-		source.attrs?.withdrawalNote ??
-		source.attrs?.withdrawal ??
-		source.attrs?.withdrawalPeriod;
-	if (typeof withdrawal === "string" && withdrawal.trim()) {
-		chips.push({ key: "withdrawal", label: withdrawal.trim() });
-	} else {
-		const wd = num(source.attrs?.withdrawalDays);
-		if (wd != null) {
-			chips.push({ key: "withdrawal", label: `Cách ly ${wd} ngày` });
+	for (const chip of WITHDRAWAL_CHIPS) {
+		const days = chip.aliases.reduce<number | undefined>(
+			(found, alias) => found ?? num(source.attrs?.[alias]),
+			undefined,
+		);
+		if (days != null) {
+			chips.push({ key: chip.key, label: `${chip.label} ${days} ngày` });
 		}
 	}
 	return chips;

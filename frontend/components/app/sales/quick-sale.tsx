@@ -15,6 +15,7 @@ import { CounterSearch } from "@/components/app/sales/counter-search";
 import { CustomerPicker } from "@/components/app/sales/customer-picker";
 import { PaymentSheet } from "@/components/app/sales/payment-sheet";
 import { SaleAdvisoriesStrip } from "@/components/app/sales/sale-advisories-strip";
+import { SaleRegulatoryDateField } from "@/components/app/sales/sale-regulatory-date-field";
 import { formatVND } from "@/lib/format";
 import {
 	lineTotal,
@@ -91,7 +92,9 @@ export function QuickSale() {
 						qty: safeQuantity,
 						price: resolveTierPrice(product, safeQuantity),
 						phiDays: product.agro?.phi,
-						reiHours: product.agro?.rei,
+						reiDays: product.agro?.rei,
+						attrs: product.attrs,
+						productKind: product.productKind,
 					},
 				];
 			});
@@ -129,6 +132,23 @@ export function QuickSale() {
 		[setLines],
 	);
 
+	const setRegulatoryDate = useCallback(
+		(
+			productId: string,
+			field: "harvestDate" | "withdrawalEndDate",
+			value: string,
+		) => {
+			setLines((current) =>
+				current.map((l) =>
+					l.productId === productId
+						? { ...l, [field]: value || undefined }
+						: l,
+				),
+			);
+		},
+		[setLines],
+	);
+
 	async function finish(method: PaymentMethod, amountPaid: number) {
 		if (submitting || lines.length === 0) return;
 		setSubmitting(true);
@@ -151,6 +171,10 @@ export function QuickSale() {
 					unitId: line.unitId ?? "",
 					qty: line.qty,
 					unitPrice: line.price,
+					...(line.harvestDate ? { harvestDate: line.harvestDate } : {}),
+					...(line.withdrawalEndDate
+						? { withdrawalEndDate: line.withdrawalEndDate }
+						: {}),
 				})),
 				...handbookMeta,
 			});
@@ -254,6 +278,7 @@ export function QuickSale() {
 									onChangeQty={changeQty}
 									onSetPrice={setPrice}
 									onRemoveLine={removeLine}
+									onSetRegulatoryDate={setRegulatoryDate}
 								/>
 							))}
 						</div>
@@ -388,11 +413,17 @@ const CartLine = memo(function CartLine({
 	onChangeQty,
 	onSetPrice,
 	onRemoveLine,
+	onSetRegulatoryDate,
 }: {
 	line: OrderLine;
 	onChangeQty: (productId: string, delta: number) => void;
 	onSetPrice: (productId: string, price: number) => void;
 	onRemoveLine: (productId: string) => void;
+	onSetRegulatoryDate: (
+		productId: string,
+		field: "harvestDate" | "withdrawalEndDate",
+		value: string,
+	) => void;
 }) {
 	return (
 		<div className="flex flex-col gap-3 rounded-[16px] border border-border bg-card p-4 shadow-card">
@@ -457,6 +488,8 @@ const CartLine = memo(function CartLine({
 					</div>
 				</div>
 			</div>
+
+			<SaleRegulatoryDateField line={line} onChange={onSetRegulatoryDate} />
 		</div>
 	);
 });

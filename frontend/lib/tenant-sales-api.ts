@@ -76,6 +76,8 @@ export type CreateSalesOrderInput = {
 		unitId: string;
 		qty: string;
 		unitPrice: number;
+		harvestDate?: string;
+		withdrawalEndDate?: string;
 	}>;
 };
 
@@ -161,6 +163,8 @@ export type CreateQuickSaleInput = {
 		unitId: string;
 		qty: number;
 		unitPrice: number;
+		harvestDate?: string;
+		withdrawalEndDate?: string;
 	}>;
 };
 
