@@ -264,6 +264,8 @@ model Tenant {
   tenantSettings     TenantSettings?
   quotaCounters      TenantQuotaCounter[]
   businessGroups     TenantBusinessGroup[]
+  licenses           TenantLicense[]
+  bannedIngredients  BannedActiveIngredient[]
 
   @@index([status])
   @@index([deletedAt])
@@ -774,6 +776,13 @@ enum BusinessGroup {
   LIVESTOCK
 }
 
+enum TenantLicenseType {
+  BUSINESS_ELIGIBILITY // Giay chung nhan du dieu kien buon ban
+  PRACTICE_CERTIFICATE // Chung chi hanh nghe
+  BUSINESS_REGISTRATION // Giay dang ky kinh doanh
+  OTHER
+}
+
 enum ProductKind {
   PESTICIDE
   FERTILIZER
@@ -1064,6 +1073,7 @@ model Product {
   isPinned         Boolean       @default(false)
   isLocked         Boolean       @default(false)
   isRecalled       Boolean       @default(false)
+  requiresPrescription Boolean   @default(false)
   status           ProductStatus @default(ACTIVE)
   deletedAt        DateTime?
   createdAt        DateTime      @default(now())
@@ -1113,6 +1123,47 @@ model TenantBusinessGroup {
   @@unique([tenantId, businessGroup])
   @@index([tenantId, enabled])
   @@map("tenant_business_group")
+}
+
+// Ho so phap ly cua hang: giay chung nhan du dieu kien buon ban, chung chi
+// hanh nghe. Canh bao khi sap het hieu luc.
+model TenantLicense {
+  id            String            @id @default(uuid())
+  tenantId      String
+  licenseType   TenantLicenseType
+  licenseNo     String
+  holderName    String?
+  issuedBy      String?
+  issuedAt      DateTime?
+  expiresAt     DateTime?
+  note          String?
+  deletedAt     DateTime?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, deletedAt])
+  @@index([tenantId, expiresAt])
+  @@map("tenant_license")
+}
+
+// Hoat chat cam do cua hang tu khai bao. Ban san pham chua hoat chat nay bi chan.
+model BannedActiveIngredient {
+  id             String    @id @default(uuid())
+  tenantId       String
+  name           String
+  nameNormalized String
+  note           String?
+  deletedAt      DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, nameNormalized])
+  @@index([tenantId, deletedAt])
+  @@map("banned_active_ingredient")
 }
 
 // Atomic tenant-scoped quota reservations. `periodKey = lifetime` is used for

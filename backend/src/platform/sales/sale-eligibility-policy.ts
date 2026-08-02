@@ -13,7 +13,9 @@ export type SaleEligibilityReason =
 	| 'PRODUCT_INACTIVE'
 	| 'PRODUCT_LIVESTOCK_UNSELLABLE'
 	| 'PRODUCT_PHI_ACTIVE'
-	| 'PRODUCT_WITHDRAWAL_ACTIVE';
+	| 'PRODUCT_WITHDRAWAL_ACTIVE'
+	| 'PRODUCT_PRESCRIPTION_REQUIRED'
+	| 'PRODUCT_INGREDIENT_BANNED';
 
 export type SaleRegulatoryDateContext = {
 	harvestDate?: Date | string | null;
@@ -29,7 +31,9 @@ export type SaleEligibleProduct = {
 	status?: ProductStatus | string | null;
 	isLocked?: boolean | null;
 	isRecalled?: boolean | null;
+	requiresPrescription?: boolean | null;
 	productKind?: ProductKind | string | null;
+	activeIngredient?: string | null;
 	attrs?: unknown;
 };
 
@@ -246,5 +250,66 @@ export function assertSaleRegulatoryDates(
 				...(productKind ? { productKind } : {}),
 			});
 		}
+	}
+}
+
+/**
+ * Prescription-only products must be sold to a customer on record; anonymous
+ * (walk-in) sales are rejected so the store keeps a traceable buyer.
+ */
+export function assertPrescriptionCustomer(
+	product: SaleEligibleProduct,
+	customerId: string | null | undefined,
+): void {
+	if (product.requiresPrescription !== true) return;
+	if (typeof customerId === 'string' && customerId.trim().length > 0) return;
+	throw new UnprocessableEntityException({
+		reason: 'PRODUCT_PRESCRIPTION_REQUIRED' satisfies SaleEligibilityReason,
+		message: 'Prescription product requires a registered customer',
+		field: 'customerId',
+		...(product.productKind != null
+			? { productKind: String(product.productKind) }
+			: {}),
+	});
+}
+
+/** Store-declared banned ingredients, compared on the same normalized form. */
+export function normalizeIngredientName(value: string): string {
+	return value.trim().toLowerCase().replace(/\s+/g, ' ');
+}
+
+/** Reads the ingredient from the column first, then the kind-specific attr. */
+function productIngredients(product: SaleEligibleProduct): string[] {
+	const attrs =
+		product.attrs != null &&
+		typeof product.attrs === 'object' &&
+		!Array.isArray(product.attrs)
+			? (product.attrs as Record<string, unknown>)
+			: undefined;
+	return [
+		product.activeIngredient,
+		attrs?.activeIngredient,
+		attrs?.active_ingredient,
+	]
+		.filter((value): value is string => typeof value === 'string')
+		.map(normalizeIngredientName)
+		.filter((value) => value.length > 0);
+}
+
+export function assertIngredientNotBanned(
+	product: SaleEligibleProduct,
+	bannedNormalizedNames: ReadonlySet<string>,
+): void {
+	if (bannedNormalizedNames.size === 0) return;
+	for (const ingredient of productIngredients(product)) {
+		if (!bannedNormalizedNames.has(ingredient)) continue;
+		throw new UnprocessableEntityException({
+			reason: 'PRODUCT_INGREDIENT_BANNED' satisfies SaleEligibilityReason,
+			message: 'Product contains an active ingredient banned by this store',
+			field: 'productId',
+			...(product.productKind != null
+				? { productKind: String(product.productKind) }
+				: {}),
+		});
 	}
 }

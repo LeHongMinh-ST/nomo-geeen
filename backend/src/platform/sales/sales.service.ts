@@ -22,6 +22,8 @@ import {
 } from './dto/create-sales-order.dto';
 import type { SalesOrderQueryDto } from './dto/sales-order-query.dto';
 import {
+	assertIngredientNotBanned,
+	assertPrescriptionCustomer,
 	assertProductSaleEligible,
 	assertSaleRegulatoryDates,
 } from './sale-eligibility-policy';
@@ -384,6 +386,18 @@ export class SalesService {
 		return value;
 	}
 
+	/** Hoạt chất cấm do cửa hàng khai báo, đã chuẩn hóa để so khớp. */
+	private async bannedIngredients(
+		tx: Prisma.TransactionClient,
+		tenantId: string,
+	): Promise<ReadonlySet<string>> {
+		const rows = await tx.bannedActiveIngredient.findMany({
+			where: { tenantId, deletedAt: null },
+			select: { nameNormalized: true },
+		});
+		return new Set(rows.map((row) => row.nameNormalized));
+	}
+
 	private async withSerializableRetry<T>(
 		operation: (tx: Prisma.TransactionClient) => Promise<T>,
 		isAdditionalRetryable: (error: unknown) => boolean = () => false,
@@ -493,10 +507,13 @@ export class SalesService {
 						throw new UnprocessableEntityException({
 							reason: 'INVALID_HANDBOOK_ENTRY',
 						});
+					const banned = await this.bannedIngredients(tx, tenantId);
 					const lines = dto.lines.map((line) => {
 						const product = byId.get(line.productId);
 						assertProductSaleEligible(product);
 						assertSaleRegulatoryDates(product, line);
+						assertPrescriptionCustomer(product, dto.customerId);
+						assertIngredientNotBanned(product, banned);
 						const factor =
 							line.unitId === product.baseUnitId
 								? new Prisma.Decimal(1)
@@ -692,7 +709,9 @@ export class SalesService {
 								status: true,
 								isLocked: true,
 								isRecalled: true,
+								requiresPrescription: true,
 								productKind: true,
+								activeIngredient: true,
 								attrs: true,
 							},
 						},
@@ -719,9 +738,12 @@ export class SalesService {
 		await this.entitlements.assertFeature(tenantId, 'inventory', tx);
 		if (settlement.debtAmount > 0n)
 			await this.entitlements.assertFeature(tenantId, 'debt', tx);
+		const banned = await this.bannedIngredients(tx, tenantId);
 		for (const line of sale.lines) {
 			assertProductSaleEligible(line.product, tenantId);
 			assertSaleRegulatoryDates(line.product, line);
+			assertPrescriptionCustomer(line.product, sale.customerId);
+			assertIngredientNotBanned(line.product, banned);
 		}
 		for (const line of sale.lines) {
 			const qtyBase = this.positiveStorageQuantity(line.qtyBase, 'qtyBase');
@@ -1157,10 +1179,13 @@ export class SalesService {
 							}
 						: dto.suggestedQtyMeta;
 
+					const banned = await this.bannedIngredients(tx, tenantId);
 					const prepared = normalized.map((line) => {
 						const product = productById.get(line.productId);
 						assertProductSaleEligible(product);
 						assertSaleRegulatoryDates(product, line);
+						assertPrescriptionCustomer(product, dto.customerId);
+						assertIngredientNotBanned(product, banned);
 						const factor =
 							line.unitId === product.baseUnitId
 								? new Prisma.Decimal(1)

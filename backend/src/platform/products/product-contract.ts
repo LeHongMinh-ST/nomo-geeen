@@ -162,6 +162,25 @@ function validateSpecializedAttrs(
 	}
 }
 
+/** Số đăng ký lưu thông bắt buộc theo quy định với hai nhóm này. */
+const REGISTRATION_NO_REQUIRED_KINDS = new Set<ProductKind>([
+	ProductKind.PESTICIDE,
+	ProductKind.VET_DRUG,
+]);
+
+/** Cột chuẩn Product.registrationNo — attrs.registrationNumber đã bị loại bỏ. */
+export function assertRegistrationNo(
+	productKind: ProductKind | null | undefined,
+	registrationNo: string | null | undefined,
+): void {
+	if (!productKind || !REGISTRATION_NO_REQUIRED_KINDS.has(productKind)) return;
+	if (typeof registrationNo !== 'string' || !registrationNo.trim()) {
+		throw new BadRequestException(
+			`registrationNo is required for ${productKind}`,
+		);
+	}
+}
+
 export function resolveBusinessGroup(
 	productKind?: ProductKind | null,
 	legacyDomain?: string | null,

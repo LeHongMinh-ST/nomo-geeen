@@ -27,6 +27,7 @@ import {
 	BUSINESS_GROUP_CATALOG,
 	BUSINESS_GROUP_FEATURES,
 	DEFAULT_BUSINESS_GROUPS,
+	assertRegistrationNo,
 	hasSpecializedAttrs,
 	resolveBusinessGroup,
 	validateProductContract,
@@ -43,6 +44,8 @@ type ProductRow = {
 	domain: string | null;
 	productKind: ProductKind;
 	businessGroup: BusinessGroup | null;
+	registrationNo: string | null;
+	requiresPrescription: boolean;
 	attrs: Prisma.JsonValue | null;
 	costPrice: bigint;
 	salePrice: bigint;
@@ -85,6 +88,8 @@ export class ProductsService {
 				domain: true,
 				productKind: true,
 				businessGroup: true,
+				registrationNo: true,
+				requiresPrescription: true,
 				attrs: true,
 				costPrice: true,
 				salePrice: true,
@@ -127,6 +132,8 @@ export class ProductsService {
 				domain: true,
 				productKind: true,
 				businessGroup: true,
+				registrationNo: true,
+				requiresPrescription: true,
 				attrs: true,
 				costPrice: true,
 				salePrice: true,
@@ -304,6 +311,7 @@ export class ProductsService {
 			false,
 			false,
 		);
+		assertRegistrationNo(dto.productKind, dto.registrationNo);
 
 		return this.prisma.$transaction(async (tx) => {
 			await this.entitlements.assertFeature(tenantId, 'inventory', tx);
@@ -345,6 +353,8 @@ export class ProductsService {
 						),
 						productKind: dto.productKind,
 						businessGroup: dto.businessGroup,
+						registrationNo: dto.registrationNo?.trim() || null,
+						requiresPrescription: dto.requiresPrescription ?? false,
 						attrs: dto.attrs as Prisma.InputJsonValue | undefined,
 						costPrice: BigInt(dto.costPrice),
 						salePrice: BigInt(dto.salePrice),
@@ -405,6 +415,7 @@ export class ProductsService {
 					id: true,
 					productKind: true,
 					businessGroup: true,
+					registrationNo: true,
 					attrs: true,
 				},
 			});
@@ -426,6 +437,20 @@ export class ProductsService {
 					(dto.productKind !== undefined &&
 						dto.productKind !== current.productKind),
 			);
+			// Chỉ soi số đăng ký khi caller thật sự đụng tới nó (hoặc đổi loại sản
+			// phẩm), để sản phẩm cũ chưa có số vẫn sửa được các trường khác.
+			if (
+				dto.registrationNo !== undefined ||
+				(dto.productKind !== undefined &&
+					dto.productKind !== current.productKind)
+			) {
+				assertRegistrationNo(
+					nextKind,
+					dto.registrationNo === undefined
+						? current.registrationNo
+						: dto.registrationNo,
+				);
+			}
 			if (nextGroup)
 				await this.assertBusinessGroupAccess(tenantId, nextGroup, tx);
 			if (dto.baseUnitId)
@@ -497,8 +522,13 @@ export class ProductsService {
 									? null
 									: BigInt(dto.wholesalePrice),
 						isLocked: dto.isLocked,
+						requiresPrescription: dto.requiresPrescription,
 						productKind: dto.productKind,
 						businessGroup: dto.businessGroup,
+						registrationNo:
+							dto.registrationNo === undefined
+								? undefined
+								: dto.registrationNo?.trim() || null,
 						attrs: dto.attrs as Prisma.InputJsonValue | undefined,
 					},
 					select: this.productSelect(),
@@ -585,6 +615,8 @@ export class ProductsService {
 			domain: true,
 			productKind: true,
 			businessGroup: true,
+			registrationNo: true,
+			requiresPrescription: true,
 			attrs: true,
 			costPrice: true,
 			salePrice: true,

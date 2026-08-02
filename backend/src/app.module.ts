@@ -7,6 +7,7 @@ import { AdminUsersModule } from './platform/admin-users/admin-users.module';
 import { AuditModule } from './platform/audit/audit.module';
 import { AuthModule } from './platform/auth/auth.module';
 import { BillingModule } from './platform/billing/billing.module';
+import { ComplianceModule } from './platform/compliance/compliance.module';
 import { CustomersModule } from './platform/customers/customers.module';
 import { DebtsModule } from './platform/debts/debts.module';
 import { EntitlementsModule } from './platform/entitlements/entitlements.module';
@@ -52,6 +53,7 @@ import { TenantsModule } from './platform/tenants/tenants.module';
 		SalesModule,
 		StockAdjustmentsModule,
 		HandbookModule,
+		ComplianceModule,
 		NotificationsModule,
 		HealthModule,
 		ObservabilityModule,

@@ -90,7 +90,13 @@ describe('ProductsService', () => {
 		).rejects.toBeInstanceOf(NotFoundException);
 		expect(tx.product.findFirst).toHaveBeenCalledWith({
 			where: { id: 'product-2', tenantId: 'tenant-1', deletedAt: null },
-			select: { id: true, productKind: true, businessGroup: true, attrs: true },
+			select: {
+				id: true,
+				productKind: true,
+				businessGroup: true,
+				registrationNo: true,
+				attrs: true,
+			},
 		});
 	});
 

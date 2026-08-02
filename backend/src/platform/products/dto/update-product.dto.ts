@@ -11,6 +11,7 @@ import {
 	IsString,
 	IsUUID,
 	Max,
+	MaxLength,
 	Min,
 	ValidateNested,
 } from 'class-validator';
@@ -81,6 +82,15 @@ export class UpdateProductDto {
 	@IsOptional()
 	@IsBoolean()
 	isLocked?: boolean;
+
+	@IsOptional()
+	@IsBoolean()
+	requiresPrescription?: boolean;
+
+	@IsOptional()
+	@IsString()
+	@MaxLength(120)
+	registrationNo?: string | null;
 
 	@IsOptional()
 	@IsEnum(BusinessGroup)

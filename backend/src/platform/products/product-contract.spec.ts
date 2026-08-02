@@ -1,6 +1,7 @@
 import { BadRequestException } from '@nestjs/common';
 import { BusinessGroup, ProductKind } from '@prisma/client';
 import {
+	assertRegistrationNo,
 	assertSelectableBusinessGroup,
 	BUSINESS_GROUP_CATALOG,
 	CROP_INPUT_PRODUCT_TYPE_CATALOG,
@@ -261,6 +262,27 @@ describe('product contract', () => {
 					false,
 				),
 			).not.toThrow();
+		});
+	});
+
+	describe('assertRegistrationNo', () => {
+		it('requires a registration number for pesticide and veterinary drugs', () => {
+			for (const kind of [ProductKind.PESTICIDE, ProductKind.VET_DRUG]) {
+				expect(() => assertRegistrationNo(kind, undefined)).toThrow(
+					BadRequestException,
+				);
+				expect(() => assertRegistrationNo(kind, '   ')).toThrow(
+					`registrationNo is required for ${kind}`,
+				);
+				expect(() => assertRegistrationNo(kind, 'SĐK-123')).not.toThrow();
+			}
+		});
+
+		it('leaves the registration number optional for other kinds', () => {
+			expect(() =>
+				assertRegistrationNo(ProductKind.FERTILIZER, null),
+			).not.toThrow();
+			expect(() => assertRegistrationNo(null, undefined)).not.toThrow();
 		});
 	});
 });

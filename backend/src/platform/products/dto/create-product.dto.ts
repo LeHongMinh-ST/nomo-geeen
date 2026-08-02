@@ -2,6 +2,7 @@ import { BusinessGroup, ProductKind } from '@prisma/client';
 import { Type } from 'class-transformer';
 import {
 	IsArray,
+	IsBoolean,
 	IsEnum,
 	IsInt,
 	IsNotEmpty,
@@ -10,6 +11,7 @@ import {
 	IsString,
 	IsUUID,
 	Max,
+	MaxLength,
 	Min,
 	ValidateNested,
 } from 'class-validator';
@@ -65,6 +67,13 @@ export class CreateProductDto {
 	@IsOptional()
 	@IsEnum(ProductKind)
 	productKind?: ProductKind;
+	@IsOptional()
+	@IsBoolean()
+	requiresPrescription?: boolean;
+	@IsOptional()
+	@IsString()
+	@MaxLength(120)
+	registrationNo?: string;
 	@IsOptional()
 	@IsObject()
 	attrs?: Record<string, unknown>;

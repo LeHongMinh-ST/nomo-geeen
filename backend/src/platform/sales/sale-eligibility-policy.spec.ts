@@ -1,8 +1,11 @@
 import { ProductKind, ProductStatus } from '@prisma/client';
 import {
+	assertIngredientNotBanned,
+	assertPrescriptionCustomer,
 	assertProductSaleEligible,
 	assertSaleRegulatoryDates,
 	extractSaleAdvisories,
+	normalizeIngredientName,
 	type SaleEligibleProduct,
 } from './sale-eligibility-policy';
 
@@ -346,6 +349,106 @@ describe('sale-eligibility-policy', () => {
 					now,
 				}),
 			).not.toThrow();
+		});
+	});
+
+	describe('assertPrescriptionCustomer', () => {
+		const prescription = baseProduct({
+			productKind: ProductKind.VET_DRUG,
+			requiresPrescription: true,
+		});
+
+		it('allows a prescription product sold to a registered customer', () => {
+			expect(() =>
+				assertPrescriptionCustomer(prescription, 'cust-1'),
+			).not.toThrow();
+		});
+
+		it('rejects an anonymous sale of a prescription product', () => {
+			for (const customerId of [undefined, null, '', '   ']) {
+				expect(() =>
+					assertPrescriptionCustomer(prescription, customerId),
+				).toThrow(
+					expect.objectContaining({
+						response: expect.objectContaining({
+							reason: 'PRODUCT_PRESCRIPTION_REQUIRED',
+							field: 'customerId',
+							productKind: ProductKind.VET_DRUG,
+						}),
+					}),
+				);
+			}
+		});
+
+		it('leaves non-prescription products anonymous-sellable', () => {
+			expect(() => assertPrescriptionCustomer(baseProduct(), null)).not.toThrow();
+		});
+	});
+
+	describe('assertIngredientNotBanned', () => {
+		it('rejects a product whose column ingredient is banned', () => {
+			expect(() =>
+				assertIngredientNotBanned(
+					baseProduct({ activeIngredient: '  Paraquat  ' }),
+					new Set(['paraquat']),
+				),
+			).toThrow(
+				expect.objectContaining({
+					response: expect.objectContaining({
+						reason: 'PRODUCT_INGREDIENT_BANNED',
+						field: 'productId',
+						productKind: ProductKind.PESTICIDE,
+					}),
+				}),
+			);
+		});
+
+		it('rejects a banned ingredient declared in attrs (both spellings)', () => {
+			for (const key of ['activeIngredient', 'active_ingredient']) {
+				expect(() =>
+					assertIngredientNotBanned(
+						baseProduct({ attrs: { [key]: 'Glyphosate' } }),
+						new Set(['glyphosate']),
+					),
+				).toThrow(
+					expect.objectContaining({
+						response: expect.objectContaining({
+							reason: 'PRODUCT_INGREDIENT_BANNED',
+						}),
+					}),
+				);
+			}
+		});
+
+		it('allows products when the ban list is empty or does not match', () => {
+			expect(() =>
+				assertIngredientNotBanned(
+					baseProduct({ activeIngredient: 'Paraquat' }),
+					new Set(),
+				),
+			).not.toThrow();
+			expect(() =>
+				assertIngredientNotBanned(
+					baseProduct({ activeIngredient: 'Abamectin' }),
+					new Set(['paraquat']),
+				),
+			).not.toThrow();
+		});
+
+		it('normalizes case and collapsed whitespace on both sides', () => {
+			expect(normalizeIngredientName('  Hoạt   Chất A ')).toBe('hoạt chất a');
+			expect(() =>
+				assertIngredientNotBanned(
+					baseProduct({ activeIngredient: 'Hoạt   Chất A' }),
+					new Set([normalizeIngredientName('hoạt chất a')]),
+				),
+			).toThrow(
+				expect.objectContaining({
+					response: expect.objectContaining({
+						reason: 'PRODUCT_INGREDIENT_BANNED',
+					}),
+				}),
+			);
 		});
 	});
 });

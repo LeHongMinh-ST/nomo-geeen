@@ -34,6 +34,9 @@ describe('SalesService', () => {
 			stockMovement: { create: jest.fn() },
 			debtLedger: { create: jest.fn() },
 			salesReturn: { findFirst: jest.fn() },
+			bannedActiveIngredient: {
+				findMany: jest.fn().mockResolvedValue([]),
+			},
 		};
 		const prisma = {
 			sale: { findMany: jest.fn(), findFirst: jest.fn(), count: jest.fn() },
