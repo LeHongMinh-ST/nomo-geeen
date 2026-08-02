@@ -437,6 +437,180 @@ export class ReportsService {
 		};
 	}
 
+	/**
+	 * Sổ xuất nhập theo lô — mọi lần nhập/xuất trong khoảng ngày, kèm mã lô, hạn
+	 * dùng và số đăng ký lưu thông để đối chiếu khi cơ quan kiểm tra.
+	 */
+	async batchLedger(
+		tenantId: string,
+		query: { from?: string; to?: string; productId?: string },
+	) {
+		const { from, to } = this.range(query);
+		const movements = await this.prisma.stockMovement.findMany({
+			where: {
+				tenantId,
+				occurredAt: { gte: from, lt: to },
+				...(query.productId ? { productId: query.productId } : {}),
+			},
+			orderBy: [{ occurredAt: 'asc' }, { id: 'asc' }],
+			take: 1000,
+			select: {
+				id: true,
+				occurredAt: true,
+				direction: true,
+				qty: true,
+				unitCost: true,
+				reason: true,
+				refType: true,
+				refId: true,
+				warehouseId: true,
+				product: {
+					select: {
+						id: true,
+						sku: true,
+						name: true,
+						productKind: true,
+						registrationNo: true,
+					},
+				},
+				batch: {
+					select: { id: true, batchCode: true, expiresAt: true },
+				},
+			},
+		});
+		let inbound = new Prisma.Decimal(0);
+		let outbound = new Prisma.Decimal(0);
+		for (const movement of movements) {
+			if (movement.direction === 'IN') inbound = inbound.add(movement.qty);
+			else outbound = outbound.add(movement.qty);
+		}
+		return {
+			from,
+			to,
+			filter: { productId: query.productId ?? null },
+			totals: {
+				movementCount: movements.length,
+				inboundQty: inbound.toString(),
+				outboundQty: outbound.toString(),
+			},
+			entries: movements.map((movement) => ({
+				id: movement.id,
+				occurredAt: movement.occurredAt,
+				direction: movement.direction,
+				qty: movement.qty.toString(),
+				unitCost: movement.unitCost?.toString() ?? null,
+				reason: movement.reason,
+				refType: movement.refType,
+				refId: movement.refId,
+				warehouseId: movement.warehouseId,
+				product: movement.product,
+				batchCode: movement.batch?.batchCode ?? null,
+				batchExpiresAt: movement.batch?.expiresAt ?? null,
+			})),
+		};
+	}
+
+	/**
+	 * Truy xuất theo số đăng ký lưu thông — sản phẩm mang số đăng ký đó, tồn theo
+	 * lô và lượng đã bán trong khoảng ngày.
+	 */
+	async registrationTrace(
+		tenantId: string,
+		query: { registrationNo: string; from?: string; to?: string },
+	) {
+		const registrationNo = query.registrationNo.trim();
+		if (!registrationNo)
+			throw new BadRequestException({ reason: 'INVALID_REGISTRATION_NO' });
+		const { from, to } = this.range(query);
+		const products = await this.prisma.product.findMany({
+			where: { tenantId, registrationNo, deletedAt: null },
+			orderBy: [{ name: 'asc' }, { id: 'asc' }],
+			select: {
+				id: true,
+				sku: true,
+				name: true,
+				productKind: true,
+				registrationNo: true,
+				requiresPrescription: true,
+			},
+		});
+		const productIds = products.map((product) => product.id);
+		if (productIds.length === 0)
+			return { from, to, registrationNo, items: [] };
+		const [batches, saleLines] = await Promise.all([
+			this.prisma.productBatch.findMany({
+				where: { tenantId, productId: { in: productIds } },
+				orderBy: [{ expiresAt: 'asc' }, { id: 'asc' }],
+				select: {
+					id: true,
+					productId: true,
+					batchCode: true,
+					expiresAt: true,
+					qtyOnHand: true,
+					isRecalled: true,
+				},
+			}),
+			this.prisma.saleLine.findMany({
+				where: {
+					tenantId,
+					productId: { in: productIds },
+					sale: {
+						tenantId,
+						status: 'COMPLETED',
+						deletedAt: null,
+						soldAt: { gte: from, lt: to },
+					},
+				},
+				select: {
+					productId: true,
+					qtyBase: true,
+					lineTotal: true,
+					sale: {
+						select: {
+							id: true,
+							docNo: true,
+							soldAt: true,
+							customerId: true,
+						},
+					},
+				},
+			}),
+		]);
+		return {
+			from,
+			to,
+			registrationNo,
+			items: products.map((product) => {
+				const sold = saleLines.filter(
+					(line) => line.productId === product.id,
+				);
+				return {
+					product,
+					batches: batches
+						.filter((batch) => batch.productId === product.id)
+						.map((batch) => ({
+							...batch,
+							qtyOnHand: batch.qtyOnHand.toString(),
+						})),
+					soldQtyBase: sold
+						.reduce(
+							(sum, line) => sum.add(line.qtyBase),
+							new Prisma.Decimal(0),
+						)
+						.toString(),
+					sales: sold.map((line) => ({
+						saleId: line.sale.id,
+						docNo: line.sale.docNo,
+						soldAt: line.sale.soldAt,
+						customerId: line.sale.customerId,
+						qtyBase: line.qtyBase.toString(),
+						lineTotal: line.lineTotal.toString(),
+					})),
+				};
+			}),
+		};
+	}
+
 	private groupFilter(value?: BusinessGroup): BusinessGroup | undefined {
 		if (value === undefined) return undefined;
 		if (!BUSINESS_GROUP_CATALOG.some((g) => g.id === value)) {

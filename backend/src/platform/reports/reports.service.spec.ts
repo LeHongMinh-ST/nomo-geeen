@@ -328,4 +328,192 @@ describe('ReportsService', () => {
 		});
 		expect(() => JSON.stringify(result)).not.toThrow();
 	});
+
+	describe('batchLedger', () => {
+		it('returns JSON-safe movements with batch and registration context', async () => {
+			const prisma = {
+				stockMovement: {
+					findMany: jest.fn().mockResolvedValue([
+						{
+							id: 'm1',
+							occurredAt: new Date('2026-07-20T02:00:00.000Z'),
+							direction: 'IN',
+							qty: new Prisma.Decimal('10'),
+							unitCost: 50_000n,
+							reason: 'PURCHASE',
+							refType: 'purchase',
+							refId: 'pu-1',
+							warehouseId: 'w1',
+							product: {
+								id: 'p1',
+								sku: 'SKU-1',
+								name: 'Thuốc A',
+								productKind: 'PESTICIDE',
+								registrationNo: 'SĐK-001',
+							},
+							batch: {
+								id: 'b1',
+								batchCode: 'L-01',
+								expiresAt: new Date('2027-01-01T00:00:00.000Z'),
+							},
+						},
+						{
+							id: 'm2',
+							occurredAt: new Date('2026-07-21T02:00:00.000Z'),
+							direction: 'OUT',
+							qty: new Prisma.Decimal('4'),
+							unitCost: null,
+							reason: 'SALE',
+							refType: 'sale',
+							refId: 'sa-1',
+							warehouseId: 'w1',
+							product: {
+								id: 'p1',
+								sku: 'SKU-1',
+								name: 'Thuốc A',
+								productKind: 'PESTICIDE',
+								registrationNo: 'SĐK-001',
+							},
+							batch: null,
+						},
+					]),
+				},
+			};
+			const result = await new ReportsService(prisma as never).batchLedger(
+				'tenant-1',
+				{ from: '2026-07-01', to: '2026-08-01' },
+			);
+			expect(result.totals).toEqual({
+				movementCount: 2,
+				inboundQty: '10',
+				outboundQty: '4',
+			});
+			expect(result.entries[0]).toMatchObject({
+				qty: '10',
+				unitCost: '50000',
+				batchCode: 'L-01',
+			});
+			expect(result.entries[1]).toMatchObject({
+				batchCode: null,
+				unitCost: null,
+			});
+			expect(() => JSON.stringify(result)).not.toThrow();
+			expect(prisma.stockMovement.findMany).toHaveBeenCalledWith(
+				expect.objectContaining({
+					where: expect.objectContaining({ tenantId: 'tenant-1' }),
+				}),
+			);
+		});
+
+		it('scopes the ledger to one product when asked', async () => {
+			const prisma = {
+				stockMovement: { findMany: jest.fn().mockResolvedValue([]) },
+			};
+			const result = await new ReportsService(prisma as never).batchLedger(
+				'tenant-1',
+				{ productId: 'p1' },
+			);
+			expect(result.filter).toEqual({ productId: 'p1' });
+			expect(prisma.stockMovement.findMany).toHaveBeenCalledWith(
+				expect.objectContaining({
+					where: expect.objectContaining({ productId: 'p1' }),
+				}),
+			);
+		});
+
+		it('rejects an inverted date range', async () => {
+			await expect(
+				new ReportsService({} as never).batchLedger('tenant-1', {
+					from: '2026-02-01',
+					to: '2026-01-01',
+				}),
+			).rejects.toBeInstanceOf(BadRequestException);
+		});
+	});
+
+	describe('registrationTrace', () => {
+		it('groups batches and completed sales per product', async () => {
+			const prisma = {
+				product: {
+					findMany: jest.fn().mockResolvedValue([
+						{
+							id: 'p1',
+							sku: 'SKU-1',
+							name: 'Thuốc A',
+							productKind: 'PESTICIDE',
+							registrationNo: 'SĐK-001',
+							requiresPrescription: false,
+						},
+					]),
+				},
+				productBatch: {
+					findMany: jest.fn().mockResolvedValue([
+						{
+							id: 'b1',
+							productId: 'p1',
+							batchCode: 'L-01',
+							expiresAt: null,
+							qtyOnHand: new Prisma.Decimal('6'),
+							isRecalled: false,
+						},
+					]),
+				},
+				saleLine: {
+					findMany: jest.fn().mockResolvedValue([
+						{
+							productId: 'p1',
+							qtyBase: new Prisma.Decimal('4'),
+							lineTotal: 200_000n,
+							sale: {
+								id: 'sa-1',
+								docNo: 'BH-0001',
+								soldAt: new Date('2026-07-21T02:00:00.000Z'),
+								customerId: 'c1',
+							},
+						},
+					]),
+				},
+			};
+			const result = await new ReportsService(
+				prisma as never,
+			).registrationTrace('tenant-1', { registrationNo: ' SĐK-001 ' });
+			expect(result.registrationNo).toBe('SĐK-001');
+			expect(result.items).toHaveLength(1);
+			expect(result.items[0].soldQtyBase).toBe('4');
+			expect(result.items[0].batches[0]).toMatchObject({ qtyOnHand: '6' });
+			expect(result.items[0].sales[0]).toMatchObject({
+				docNo: 'BH-0001',
+				qtyBase: '4',
+				lineTotal: '200000',
+			});
+			expect(() => JSON.stringify(result)).not.toThrow();
+			expect(prisma.product.findMany).toHaveBeenCalledWith(
+				expect.objectContaining({
+					where: expect.objectContaining({ registrationNo: 'SĐK-001' }),
+				}),
+			);
+		});
+
+		it('returns no items and skips follow-up queries when nothing matches', async () => {
+			const prisma = {
+				product: { findMany: jest.fn().mockResolvedValue([]) },
+				productBatch: { findMany: jest.fn() },
+				saleLine: { findMany: jest.fn() },
+			};
+			const result = await new ReportsService(
+				prisma as never,
+			).registrationTrace('tenant-1', { registrationNo: 'SĐK-999' });
+			expect(result.items).toEqual([]);
+			expect(prisma.productBatch.findMany).not.toHaveBeenCalled();
+			expect(prisma.saleLine.findMany).not.toHaveBeenCalled();
+		});
+
+		it('rejects a blank registration number', async () => {
+			await expect(
+				new ReportsService({} as never).registrationTrace('tenant-1', {
+					registrationNo: '   ',
+				}),
+			).rejects.toBeInstanceOf(BadRequestException);
+		});
+	});
 });
