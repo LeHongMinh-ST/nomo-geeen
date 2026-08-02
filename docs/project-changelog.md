@@ -9,6 +9,9 @@ Format theo [Keep a Changelog](https://keepachangelog.com/), tuân thủ [Semant
 ## [Unreleased]
 
 ### Added
+- **Mobile PWA install CTA** — thêm nút `Cài ứng dụng NomoGreen` tại `/dang-nhap` cho mobile; Android/Chromium gọi native install prompt khi có event, fallback hướng dẫn thủ công khi local/dev hoặc browser chưa phát event, iOS Safari có dialog hướng dẫn thêm vào màn hình chính, và CTA tự ẩn khi chạy standalone hoặc sau `appinstalled`. Có test cho mobile/desktop/standalone/iOS/install completion.
+- **Compliance module DI hotfix** — `ComplianceModule` imports `AuditModule` so
+  `TenantPermissionGuard` can resolve the shared `AuditLogger` during NestJS bootstrap.
 - **Handbook protocol UX** — bỏ phần `Gợi ý thuốc & kinh nghiệm` trùng lặp trong form; bộ thuốc khuyến nghị chỉ chọn thuốc có thật trong danh mục bằng ô tìm kiếm, không còn lưu hoạt chất rời. Chi tiết bệnh hiển thị đúng các sản phẩm thuộc bộ thuốc đã chọn.
 - **Lưu thay đổi nhóm kinh doanh** — hiển thị lại nút lưu trên màn hình bật/tắt nhóm; trước đó class `hidden` khiến toggle chỉ đổi state local và không gửi PATCH lên backend.
 - **Demo handbook by store profile** — `seed-demo` now enables business groups per demo store, assigns `Product.businessGroup` consistently, seeds disease entries by relevant SKU, and creates product-backed recommended protocols. Crop, livestock, aquaculture, seedling, and fertilizer/plant-protection entries are no longer shared indiscriminately across stores.

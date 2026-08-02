@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import { GuestGuard } from "@/components/auth/guest-guard";
 import { LoginForm } from "@/components/auth/login-form";
+import { PwaInstallButton } from "@/components/pwa/pwa-install-button";
 import { USER_TILE_BLUE, USER_TILE_GREEN } from "@/lib/navigation";
 
 export const metadata: Metadata = {
@@ -150,6 +151,8 @@ export default function LoginPage() {
 						</div>
 
 						<LoginForm />
+
+						<PwaInstallButton />
 					</div>
 				</main>
 			</div>

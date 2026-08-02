@@ -20,6 +20,8 @@ flowchart LR
 ## Backend boundaries
 
 - `AppModule` composes platform modules.
+- `ComplianceModule` imports `AuditModule` because its controller uses the shared
+  `TenantPermissionGuard`, whose audit-denial path requires the exported `AuditLogger`.
 - Auth guards authenticate the bearer token and enforce route permissions.
 - Plan entitlements expose the full feature catalog to every plan; plan differences are
   enforced through numeric quotas (`maxUsers`, `maxWarehouses`, `maxProducts`,
@@ -236,6 +238,13 @@ The repository contains local runtime/package configuration and migrations, but 
 - PostgreSQL bảng passkey chỉ lưu credentialId, publicKey, signCount, transports và metadata/revokedAt; không lưu private key, ảnh hay face template. Counter phải monotonic để chặn replay.
 - Assertion thành công gọi TenantAuthService.createSessionForUser, tạo tenant access JWT memory-only và refresh family mới trong Redis; cookie nomo_user_rt vẫn HttpOnly. Logout/revoke giữ nguyên blacklist/family revocation hiện có.
 - Feature bật bằng WEBAUTHN_ENABLED=true và fail closed nếu thiếu RP ID/origin. Localhost là secure-context dev; production yêu cầu HTTPS. iOS standalone PWA/Android Chrome chưa được tuyên bố hỗ trợ nếu chưa có browser/device proof.
+
+## PWA install CTA trên tenant login
+
+- Trang `/dang-nhap` hiển thị CTA cài ứng dụng chỉ sau hydration và chỉ khi viewport là mobile (`max-width: 1023px`); không phụ thuộc `pointer: coarse` để Chrome DevTools Device Emulation vẫn kiểm thử được; `/admin/login` không dùng CTA này.
+- CTA mobile luôn có fallback thủ công khi trình duyệt chưa phát `beforeinstallprompt` (ví dụ local/dev hoặc Chrome DevTools emulation); Android/Chromium dùng native prompt khi có event, còn iOS Safari mở hướng dẫn `Chia sẻ` → `Thêm vào màn hình chính`. Sự kiện `appinstalled` ẩn CTA ngay trong phiên hiện tại.
+- Dialog hướng dẫn có touch target đóng tối thiểu 48px.
+- CTA bị ẩn khi `display-mode: standalone` hoặc `navigator.standalone` là `true`, nên PWA đã cài không nhắc cài lại khi mở từ icon.
 ## Tenant bank transfer configuration
 
 Tenant profile responses include an optional complete bank configuration sourced from `TenantSettings`. The auth service validates and atomically persists the VietQR bank identifier, account number, and account name; incomplete configurations are returned as `bank: null`. The tenant settings screen (`/thiet-lap/thong-tin-cua-hang`, reachable from the `Cửa hàng` group in `/thiet-lap`) loads bank choices from `https://api.vietqr.io/v2/banks` and retains manual bank-id entry as a fallback. Sales `PaymentSheet` keeps the existing cash/transfer payment contract, removes the separate QR choice, and uses the configured account to render a VietQR Quick Link for the order amount. Transfer confirmation is disabled until the account is configured. Only an Owner with `setting:edit` may change the address or VietQR bank configuration; other tenant roles can still update their own contact fields through `/thiet-lap`.
