@@ -125,7 +125,7 @@
                 - /url: /ban-nhanh
               - link "Nhập hàng" [ref=e283] [cursor=pointer]:
                 - /url: /nhap-hang
-              - link "Thu nợ" [ref=e290] [cursor=pointer]:
+              - link "Công nợ" [ref=e290] [cursor=pointer]:
                 - /url: /cong-no
           - generic [ref=e299]:
             - generic [ref=e300]:
